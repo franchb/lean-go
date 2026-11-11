@@ -191,7 +191,7 @@ func TestRegeneration(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		out := filepath.Join(dir, fmt.Sprintf("package%d", i))
 		irPath := filepath.Join(dir, fmt.Sprintf("ir%d.json", i))
-		cmd := exec.Command("python3", filepath.Join(root, "scripts/generate.py"), "--out", out, "--ir-output", irPath)
+		cmd := exec.Command("uv", "run", "--locked", "python", filepath.Join(root, "scripts/generate.py"), "--out", out, "--ir-output", irPath)
 		cmd.Dir = root
 		cmd.Env = commandEnv(nil)
 		if output, err := cmd.CombinedOutput(); err != nil {

@@ -1,0 +1,195 @@
+{
+  "schema": "lean-go-manifest/v2",
+  "generator": "lean-go-modulegen/v1",
+  "generator_source_sha256": "ae0dd8465c6b2d4982e83662def7290a7e944ea0b4819312d08d3edb36162889",
+  "validator_source_sha256": "8d906369f341aa0ec2ce70f4eaafb3c4f551599f3daec64a7a8a2874af540780",
+  "ir_sha256": "b284d52fba7b17e9e4e12ed141b7e3b57666a103dcf55e8e7f7c1661b28bc9ba",
+  "program": {
+    "schema": "lean-go-ir/v2",
+    "profile": "pure-module/v1",
+    "stage": "pure-mono",
+    "lean_version": "4.35.0",
+    "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "module": "Choice.Transform",
+    "root": "Choice.rotate",
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "d066b441827a71c085a37afb2d5dfdf02f8c4b9bab0458501d9c651453372c89",
+      "producer/LeanGo/Module/Export.lean": "63696db5b7078b8c7788306a8369ec62659db27a63145e42fd73845bd297361f",
+      "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
+      "scripts/export_module.py": "a7ed00a427d93252032122724e3d761d6612dd22b6e3101b365545abefdb7bd3",
+      "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
+      "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
+      "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
+    },
+    "types": [
+      {
+        "name": "Choice.Signal",
+        "constructors": [
+          {
+            "name": "Choice.Signal.stop",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Choice.Signal.wait",
+            "tag": 1,
+            "fields": []
+          },
+          {
+            "name": "Choice.Signal.go",
+            "tag": 2,
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "Choice.Signal",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Choice.Signal.casesOn",
+        "dependencies": [
+          "Choice.Signal",
+          "Choice.Signal.go",
+          "Choice.Signal.rec",
+          "Choice.Signal.stop",
+          "Choice.Signal.wait"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Choice.rotate",
+        "dependencies": [
+          "Choice.Signal",
+          "Choice.Signal.go",
+          "Choice.Signal.stop",
+          "Choice.Signal.wait",
+          "Choice.rotate.match_1",
+          "Unit"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Choice.rotate.match_1",
+        "dependencies": [
+          "Choice.Signal",
+          "Choice.Signal.casesOn",
+          "Choice.Signal.go",
+          "Choice.Signal.stop",
+          "Choice.Signal.wait",
+          "Unit",
+          "Unit.unit"
+        ],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Choice.rotate",
+        "params": [
+          {
+            "id": 1,
+            "type": "Choice.Signal"
+          }
+        ],
+        "result": "Choice.Signal",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Choice.Signal",
+          "result": "Choice.Signal",
+          "alts": [
+            {
+              "constructor": "Choice.Signal.stop",
+              "params": [],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 2,
+                  "type": "Choice.Signal"
+                },
+                "value": {
+                  "kind": "constructor",
+                  "name": "Choice.Signal.wait",
+                  "args": []
+                },
+                "next": {
+                  "op": "return",
+                  "var": 2
+                }
+              }
+            },
+            {
+              "constructor": "Choice.Signal.wait",
+              "params": [],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 3,
+                  "type": "Choice.Signal"
+                },
+                "value": {
+                  "kind": "constructor",
+                  "name": "Choice.Signal.go",
+                  "args": []
+                },
+                "next": {
+                  "op": "return",
+                  "var": 3
+                }
+              }
+            },
+            {
+              "constructor": "Choice.Signal.go",
+              "params": [],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 4,
+                  "type": "Choice.Signal"
+                },
+                "value": {
+                  "kind": "constructor",
+                  "name": "Choice.Signal.stop",
+                  "args": []
+                },
+                "next": {
+                  "op": "return",
+                  "var": 4
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "function_ids": {
+    "Choice.rotate": 0
+  },
+  "constructor_ids": {
+    "Choice.Signal.go": [
+      1,
+      2
+    ],
+    "Choice.Signal.stop": [
+      1,
+      0
+    ],
+    "Choice.Signal.wait": [
+      1,
+      1
+    ]
+  },
+  "generated_files": {
+    "control.go": "87bc7d53b72e502513c99ecea26a9de3ba303283f293650625b7c822e3b1c7bb",
+    "runtime.go": "3cf0882aa2448d742c0e87d95c835bcc9fac120e154586613becc8ffc62a2391",
+    "schema.go": "a7560b25bdf261b901f5019ff17011057060f1cdd2c689ee134d12c8b95e1fe4"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."
+}

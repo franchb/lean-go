@@ -69,5 +69,48 @@ class InputFreshnessTests(unittest.TestCase):
                 run.assert_not_called()
             self.assertEqual(before, {p.name: p.read_bytes() for p in package.iterdir()})
 
+class ModuleArgumentsTests(unittest.TestCase):
+    def test_partial_module_arguments_fail_before_processes(self):
+        for arguments in (['--module', 'Example'], ['--root', 'Example.run'],
+                          ['--source-dir', '/tmp/unused', '--module', 'Example']):
+            with mock.patch.object(generate.sys, 'argv', ['generate.py', *arguments]), \
+                 mock.patch.object(generate.subprocess, 'run') as run:
+                with self.assertRaisesRegex(ValueError, 'together'):
+                    generate.main()
+                run.assert_not_called()
+
+    def test_module_mode_requires_explicit_outputs(self):
+        arguments = ['generate.py', '--source-dir', '/tmp/unused', '--module', 'Example', '--root', 'Example.run']
+        with mock.patch.object(generate.sys, 'argv', arguments), mock.patch.object(generate.subprocess, 'run') as run:
+            with self.assertRaisesRegex(ValueError, 'explicit'):
+                generate.main()
+            run.assert_not_called()
+
+    def test_module_output_source_conflicts_fail_before_processes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'source'
+            source.mkdir()
+            lean = source / 'Example.lean'
+            lean.write_text('def identity (x : UInt32) := x')
+            base = ['generate.py', '--source-dir', str(source), '--module', 'Example', '--root', 'identity']
+            cases = [('--out', str(Path(tmp) / 'package'), '--ir-output', str(lean)),
+                     ('--out', str(source), '--ir-output', str(Path(tmp) / 'ir.json')),
+                     ('--out', str(Path(tmp) / 'package'), '--ir-output', str(source / 'lakefile.toml'))]
+            for output in cases:
+                with self.subTest(output=output), mock.patch.object(generate.sys, 'argv', base + list(output)), \
+                     mock.patch.object(generate.subprocess, 'run') as run:
+                    with self.assertRaisesRegex((ValueError, generate.ExportError), 'overlap|conflicts'):
+                        generate.main()
+                    run.assert_not_called()
+            self.assertEqual(lean.read_text(), 'def identity (x : UInt32) := x')
+
+    def test_wrong_python_fails_before_processes(self):
+        with mock.patch.object(generate.sys, 'argv', ['generate.py']), \
+             mock.patch.object(generate.check_python.__globals__['sys'], 'version_info', (3, 14, 0)), \
+             mock.patch.object(generate.subprocess, 'run') as run:
+            with self.assertRaisesRegex(generate.ExportError, 'Python 3.15'):
+                generate.main()
+            run.assert_not_called()
+
 if __name__ == '__main__':
     unittest.main()

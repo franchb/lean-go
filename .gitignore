@@ -4,3 +4,4 @@
 /feasibility/Mutant*.lean
 /scripts/__pycache__/
 /producer/.lake/
+/.venv/

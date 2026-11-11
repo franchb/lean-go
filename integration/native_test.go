@@ -81,7 +81,7 @@ func TestNativeLeanReference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("python3", filepath.Join(root, "scripts/export.py"), "--output", irPath, "--reference-input", inputPath, "--reference-output", outputPath)
+	cmd := exec.Command("uv", "run", "--locked", "python", filepath.Join(root, "scripts/export.py"), "--output", irPath, "--reference-input", inputPath, "--reference-output", outputPath)
 	cmd.Dir = root
 	if output, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("native producer failed: %v\n%s", err, output)

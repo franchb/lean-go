@@ -2,27 +2,108 @@
 
 Generate pure Go from a supported subset of ordinary Lean 4.
 
-The **working local extraction pilot** compiles one audited, proved
-three-valued expression normalizer through Lean's pure monomorphic LCNF,
-a strict typed JSON IR, and an original Go emitter. The generated package uses
-only the Go standard library and builds and runs with `CGO_ENABLED=0`.
-Consumers need Go; proof checking and regeneration need Lean and Python.
+The module extractor accepts user-supplied ordinary Lean source within a supported
+pure, monomorphic subset and generates a standalone Go package. Generated consumers
+use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python are
+needed for regeneration, not deployment.
 
-The current profile admits exactly the reviewed
-[`Model.lean`](feasibility/LeanGo/Feasibility/Model.lean) revision. Modified model
-bytes and arbitrary Lean modules are rejected. This is a completed local pilot;
-there is no published release or general module admission yet.
+The original audited normalizer remains available as a separate v1 profile. The
+new `pure-module/v1` profile uses v2 IR and has no fixed model hash or application
+name allowlist. This is local experimental software; no release has been published.
+
+## Extract a module
+
+Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.
+Python dependencies are managed by `uv.lock`; currently the tooling uses only the
+standard library. From the repository root:
+
+```sh
+uv run --locked python scripts/generate.py \
+  --source-dir examples/modules --module Trees --root Trees.mirror \
+  --out generated/trees --ir-output testdata/trees.ir.json
+```
+
+Point `--source-dir` at your Lean sources and select a module and fully qualified
+root. Local imports are rebuilt from source. The command uses a fresh workspace,
+ignores project build scripts and compiled caches, and accepts supported pinned
+standard-library imports. External Lake packages are not supported. Module and root
+CLI names currently use ASCII Lean identifiers. Output package and IR paths are
+required; differing existing package contents are preserved and rejected.
+
+Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
+functions, saturated calls, exhaustive matches, and self recursion. `UInt32` can
+be passed through unchanged. Arithmetic, generic collections, polymorphism,
+higher-order code, mutual function recursion, effects, and unsupported compiler
+forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.
+
+The producer records original source dependencies and active compiler rewrites
+when each declaration compiles, including helpers later inlined away. User-defined
+compiler rewrites are currently rejected; the pinned `Bool.not` rewrite is audited.
+Source must be trusted for Lean elaboration: this tool is not a sandbox for macros
+or initializers. The new profile makes no application correctness-theorem claim.
+See the [module report](docs/research/extraction-modules.md) for the exact limits
+and validation evidence, and the
+[module design](docs/superpowers/specs/2026-11-11-lean-go-modules-design.md).
+
+## Generated module API
+
+The selected root is exposed as `Run`. Full Lean names identify values, avoiding
+Go identifier collisions between different source modules:
+
+```go
+import x "github.com/franchb/lean-go/generated/trees"
+
+limits := x.DefaultLimits()
+input := &x.Input{
+    Type: "Trees.Tree", Constructor: "Trees.Tree.leaf",
+    Fields: []*x.Input{{Type: "Trees.Color", Constructor: "Trees.Color.red"}},
+}
+owned, err := x.Import(input, limits)
+if err != nil { panic(err) }
+result, err := x.Run([]x.Value{owned}, limits)
+if err != nil { panic(err) }
+// result.Fields()[0].Constructor() == "Trees.Color.blue"
+```
+
+`Import` copies every input occurrence into immutable storage. Do not mutate the
+input during import; later mutation cannot affect the owned value. Cycles fail,
+and shared acyclic subtrees are copied and charged per occurrence. `Value{}` is
+invalid. `Type`, `Constructor`, `UInt32`, and `Fields` inspect owned values;
+`Fields` returns a fresh slice. A scalar input uses `Type: "UInt32"` and the
+`UInt32` field, with no constructor or children.
+
+`Import` enforces the input node and depth budgets; the other five budgets apply
+to `Run`. All seven limit fields must be valid in both calls.
+`Run` checks root argument types/arity and enforces node, depth, output-node,
+allocation, step, frame, and cumulative frame-slot limits. Errors return an invalid
+value and distinguish `ErrMalformed`, `ErrLimits`, and `ErrResource`. The manifest
+records the schema, root signature, source provenance, and output hashes. Control
+flow is compiled Go code, not a deployed Lean or IR interpreter.
+
+## Check the project
+
+```sh
+uv run --locked python -m unittest discover -s scripts -p 'test_*.py'
+CGO_ENABLED=0 GOTOOLCHAIN=local go test -count=1 ./...
+CGO_ENABLED=0 GOTOOLCHAIN=local LEAN_GO_NATIVE=1 LEAN_GO_REGENERATE=1 LEAN_GO_MODULES=1 go test -count=1 ./...
+LEAN_GO_MODULES=1 uv run --locked python -m unittest discover -s scripts -p 'test_*.py'
+```
+
+The first Go command uses tracked generated packages; the opt-in gates compile
+native Lean references, rebuild both profiles, and test changed source modules.
+Generated packages can be copied into independent Go modules without producer
+files or tools. Extraction remains tested and trusted, not formally verified.
 
 ## Run the pilot
 
-Use Go **1.27.4**, Python **3.11+**, and the Lean **4.35.0** toolchain named in
+Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.35.0** toolchain named in
 [`producer/lean-toolchain`](producer/lean-toolchain). The exporter checks the
 exact Lean commit, `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`. Run from the
 repository root, with these tools available on `PATH`:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local go test -count=1 ./...
-python3 scripts/generate.py
+uv run --locked python scripts/generate.py
 CGO_ENABLED=0 GOTOOLCHAIN=local LEAN_GO_NATIVE=1 LEAN_GO_REGENERATE=1 go test -count=1 ./...
 ```
 

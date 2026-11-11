@@ -1,10 +1,32 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestCompileSchemaDispatch(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/normalizer.ir.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := compile(bytes.NewReader(data))
+	if err != nil || len(files) != 3 {
+		t.Fatalf("v1 dispatch: files=%d err=%v", len(files), err)
+	}
+	for _, data := range [][]byte{
+		[]byte(`{"schema":"lean-go-ir/v99"}`),
+		[]byte(`{"schema":"lean-go-ir/v2","schema":"lean-go-ir/v1"}`),
+		[]byte(`{"schema":"lean-go-ir/v2"} {}`),
+		bytes.Repeat([]byte(" "), (4<<20)+1),
+	} {
+		if _, err := compile(bytes.NewReader(data)); err == nil {
+			t.Fatal("invalid envelope accepted")
+		}
+	}
+}
 
 func TestRunRejectsIncompleteAndMalformed(t *testing.T) {
 	for _, args := range [][]string{nil, {"-in", "missing"}, {"-out", "missing"}, {"-unknown"}, {"-in", "missing", "-out", "unused", "extra"}} {
