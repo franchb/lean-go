@@ -1,0 +1,10 @@
+name = "lean_go_feasibility"
+version = "0.0.0"
+defaultTargets = ["LeanGo"]
+
+[[lean_lib]]
+name = "LeanGo"
+
+[[lean_exe]]
+name = "normalizer-checks"
+root = "LeanGo.Feasibility.Checks"
