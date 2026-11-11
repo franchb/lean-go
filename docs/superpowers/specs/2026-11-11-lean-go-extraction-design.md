@@ -6,7 +6,7 @@ Maintainer: franchb <hello@franchb.com>
 
 Working project name: lean-go
 
-Status: design agreed in discussion; written specification awaiting review
+Status: approved for the bounded feasibility investigation
 
 ## Purpose and scope
 

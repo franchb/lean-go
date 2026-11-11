@@ -15,4 +15,8 @@ compiler-correctness proof.
 See the [initial design](docs/superpowers/specs/2026-11-11-lean-go-extraction-design.md)
 for scope, architecture, proof boundaries, and release acceptance criteria.
 
+The [feasibility implementation plan](docs/superpowers/plans/2026-11-11-lean-go-feasibility.md)
+specifies the source proofs, compiler probes, reuse assessment, and decision gate
+that precede a Go backend. Its implementation has not yet been executed.
+
 Maintainer: [franchb](https://github.com/franchb) · hello@franchb.com
