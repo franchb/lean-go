@@ -22,4 +22,4 @@ run_cmd do
     for ctorName in info.ctors do
       let ctor ← getConstInfoCtor ctorName
       logInfo m!"CTOR {ctor.name} tag={ctor.cidx} parameters={ctor.numParams} fields={ctor.numFields}"
-      logInfo m!"CTOR_TYPE {ctor.type}"
+      logInfo m!"CTOR_TYPE {ctor.name}: {ctor.type}"

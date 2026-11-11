@@ -1,5 +1,6 @@
 import Lean
 import Lean.Compiler.LCNF
+import Lean.Compiler.CSimpAttr
 import Lean.Compiler.ExternAttr
 import Lean.Compiler.ImplementedByAttr
 import Lean.Util.CollectAxioms
@@ -27,7 +28,19 @@ def reportExtern (data : ExternAttrData) : CoreM Unit := do
     | .adhoc backend => logInfo m!"EXTERN adhoc backend={backend}"
     | .opaque => logInfo "EXTERN opaque: body unavailable"
 
+def auditClaim (name : Name) : CoreM Unit := do
+  let info ← getConstInfo name
+  logInfo m!"CLAIM {name}: {info.type}"
+  let axioms ← collectAxioms name
+  logInfo m!"AXIOMS {name}: {axioms}"
+  for axiomName in axioms do
+    unless [``propext, ``Quot.sound, ``Classical.choice].contains axiomName do
+      throwError "Unexpected axiom {axiomName} in {name}"
+  logInfo m!"AXIOMS_ACCEPTED {name}: {axioms}"
+
 -- Source dependencies overapproximate original attributes separately from executable stages.
+-- CSimp lookup observes mappings in the current environment. It cannot reconstruct
+-- earlier scoped rewrites; a general adapter needs compile-time provenance or restrictions.
 partial def sourceClosure (pending : List Name) (seen : List Name := []) : CoreM Unit := do
   match pending with
   | [] => pure ()
@@ -37,8 +50,17 @@ partial def sourceClosure (pending : List Name) (seen : List Name := []) : CoreM
         let env ← getEnv
         let some info := env.find? name | throwError "Unresolved source dependency {name}"
         logInfo m!"SOURCE {name}"
+        let mut replacements := []
         if let some replacement := Compiler.getImplementedBy? env name then
           logInfo m!"SOURCE_REPLACEMENT {name} -> {replacement}"
+          replacements := replacement :: replacements
+        if let some entry := (Compiler.CSimp.ext.getState env).map.find? name then
+          logInfo m!"SOURCE_CSIMP {entry.fromDeclName} -> {entry.toDeclName} theorem={entry.thmName}"
+          let theoremInfo ← getConstInfo entry.thmName
+          match theoremInfo with
+          | .thmInfo _ => auditClaim entry.thmName
+          | _ => throwError "Compiler simplification evidence {entry.thmName} is not a theorem"
+          replacements := entry.toDeclName :: replacements
         if let some data := getExternAttrData? env name then
           logInfo m!"SOURCE_EXTERN {name}"
           reportExtern data
@@ -46,16 +68,7 @@ partial def sourceClosure (pending : List Name) (seen : List Name := []) : CoreM
           | .defnInfo value => value.value.getUsedConstants.toList
           | .opaqueInfo value => value.value.getUsedConstants.toList
           | _ => []
-        sourceClosure (dependencies ++ rest) (name :: seen)
-
-def auditClaim (name : Name) : CoreM Unit := do
-  let info ← getConstInfo name
-  logInfo m!"CLAIM {name}: {info.type}"
-  let axioms ← collectAxioms name
-  for axiomName in axioms do
-    unless [``propext, ``Quot.sound, ``Classical.choice].contains axiomName do
-      throwError "Unexpected axiom {axiomName} in {name}"
-  logInfo m!"AXIOMS_ACCEPTED {name}: {axioms}"
+        sourceClosure (replacements ++ dependencies ++ rest) (name :: seen)
 
 -- Code.forM includes nested function and join bodies. Empty-argument fvar references
 -- and partial constants still require a manual control-flow audit.
