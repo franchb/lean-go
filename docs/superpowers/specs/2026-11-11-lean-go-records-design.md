@@ -34,6 +34,9 @@ layers; detect cycles explicitly. Confirm the pinned compiler's
 selects field zero. Check the independently computed result against `toMonoType`.
 Do not infer permission merely from Lean marking a type trivial: proof-bearing
 structures can have one runtime field but multiple source fields.
+An ordinary recursive single-constructor type that the compiler does not erase
+keeps its existing nominal schema; this milestone does not add a rejection for
+previously supported recursive data.
 
 All source schemas retain full Lean names and original field types. For example,
 `Count { value : UInt32 }` remains a Count node in Go, and a record containing a

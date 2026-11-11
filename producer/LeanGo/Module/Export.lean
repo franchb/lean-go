@@ -1,5 +1,6 @@
 module
 public meta import LeanGo.Module.Audit
+public meta import LeanGo.Module.Records
 public meta import Lean.Compiler.LCNF
 public meta section
 open Lean Elab Command Meta
@@ -22,31 +23,6 @@ def sortRewrites (rs : Array Rewrite) : Array Rewrite :=
     else if a.target != b.target then a.target.toString < b.target.toString
     else a.theoremName.toString < b.theoremName.toString
 
-def typeKey (e : Expr) : CoreM String := do
-  let .const n [] := e | throwError "Unsupported first-order monomorphic type: {e}"
-  if n == ``UInt32 then return n.toString
-  let info ← getConstInfoInduct n
-  unless info.numParams == 0 && info.numIndices == 0 && info.levelParams.isEmpty &&
-      info.type == .sort (.succ .zero) do
-    throwError "Unsupported ADT type: {n}"
-  return n.toString
-
-def signature (e : Expr) : CoreM (List String × String) := do
-  match e with
-  | .forallE _ domain body _ =>
-    let domain ← typeKey domain
-    let (domains, result) ← signature body
-    return (domain :: domains, result)
-  | _ => return ([], ← typeKey e)
-
-def constructor (name : Name) : CoreM (String × List String) := do
-  let ctor ← getConstInfoCtor name
-  unless ctor.numParams == 0 && ctor.levelParams.isEmpty do
-    throwError "Unsupported constructor: {name}"
-  let (fields, result) ← signature ctor.type
-  unless ctor.numFields == fields.length do throwError "Dependent constructor: {name}"
-  return (result, fields)
-
 structure EncodingState where
   next : Nat := 1
   seen : List FVarId := []
@@ -55,32 +31,98 @@ structure EncodingState where
   types : List String := []
 abbrev EncodeM := StateRefT EncodingState CoreM
 abbrev Scope := List (FVarId × Nat × String)
+abbrev Prefix := Array (Json → Json)
+
+def prepend (steps : Prefix) (body : Json) : Json :=
+  steps.foldr (fun step body => step body) body
+
+def charge (count : Nat := 1) : EncodeM Unit := do
+  let s ← get
+  if s.nodes + count > 10000 then throwError "IR traversal limit"
+  modify fun s => { s with nodes := s.nodes + count }
+
+def instruction (depth : Nat) : EncodeM Unit := do
+  if depth > 256 then throwError "IR traversal limit"
+  charge
 
 def lookup (scope : Scope) (f : FVarId) : EncodeM (Nat × String) := do
   for (id, n, ty) in scope do
     if id == f then return (n, ty)
   throwError "Unbound variable {f.name}"
 
-def bind (scope : Scope) (f : FVarId) (ty : String) : EncodeM (Scope × Json) := do
+-- Synthetic and compiler binders share this allocator. Only associate records
+-- compiler FVarIds, so an unwrapped parameter maps to its final mono value.
+def fresh (ty : String) : EncodeM (Nat × Json) := do
+  charge
+  let s ← get
+  set { s with next := s.next + 1, types := ty :: s.types }
+  return (s.next, obj [("id", toJson s.next), ("type", str ty)])
+
+def associate (scope : Scope) (f : FVarId) (id : Nat) (ty : String) : EncodeM Scope := do
   let s ← get
   if s.seen.contains f then throwError "Duplicate variable {f.name}"
-  set { s with next := s.next + 1, seen := f :: s.seen, types := ty :: s.types }
-  return ((f, s.next, ty) :: scope, obj [("id", toJson s.next), ("type", str ty)])
+  set { s with seen := f :: s.seen }
+  return (f, id, ty) :: scope
+
+def bind (scope : Scope) (f : FVarId) (ty : String) : EncodeM (Scope × Json) := do
+  let (id, binder) ← fresh ty
+  return (← associate scope f id ty, binder)
+
+def wrapValue (rep : Representation) (id : Nat) (depth : Nat) : EncodeM (Nat × Prefix) := do
+  let mut id := id
+  let mut steps := #[]
+  for wrapper in rep.wrappers.reverse do
+    instruction (depth + steps.size)
+    let (nextId, binder) ← fresh wrapper.source
+    charge -- Constructor value object, in addition to its instruction and binder.
+    let value := obj [("kind", str "constructor"), ("name", str wrapper.ctor.toString),
+      ("args", toJson #[id])]
+    steps := steps.push fun body => obj [("op", str "let"), ("bind", binder),
+      ("value", value), ("next", body)]
+    id := nextId
+  return (id, steps)
+
+def unwrapValue (rep : Representation) (id : Nat) (result : String) (depth : Nat) :
+    EncodeM (Nat × Prefix) := do
+  let mut id := id
+  let mut steps := #[]
+  for wrapper in rep.wrappers do
+    instruction (depth + steps.size)
+    charge -- The generated case alternative is a structural node too.
+    let (nextId, binder) ← fresh wrapper.field
+    let discr := id
+    steps := steps.push fun body =>
+      let alt := obj [("constructor", str wrapper.ctor.toString), ("params", toJson #[binder]),
+        ("body", body)]
+      obj [("op", str "cases"), ("var", toJson discr), ("type", str wrapper.source),
+        ("result", str result), ("alts", toJson #[alt])]
+    id := nextId
+  return (id, steps)
+
+def sourceBinder (scope : Scope) (f : FVarId) (source : String) (monoType : Expr)
+    (result : String) (depth : Nat) : EncodeM (Scope × Json × Prefix) := do
+  let rep ← representation source
+  unless (← typeKey monoType) == rep.mono do throwError "Source binder type mismatch"
+  let (id, binder) ← fresh source
+  let (monoId, steps) ← unwrapValue rep id result depth
+  return (← associate scope f monoId rep.mono, binder, steps)
 
 partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth : Nat := 1) : EncodeM Json := do
-  let s ← get
-  if depth > 256 || s.nodes >= 10000 then throwError "IR traversal limit"
-  modify fun s => { s with nodes := s.nodes + 1 }
   match code with
   | .return f =>
     let (id, ty) ← lookup scope f
-    unless ty == result do throwError "Return type mismatch"
-    return obj [("op", str "return"), ("var", toJson id)]
+    let rep ← representation result
+    unless ty == rep.mono do throwError "Return type mismatch"
+    let (id, steps) ← wrapValue rep id depth
+    instruction (depth + steps.size)
+    return prepend steps <| obj [("op", str "return"), ("var", toJson id)]
   | .let decl next =>
     let ty ← typeKey decl.type
     if let .lit (.uint32 literal) := decl.value then
+      instruction depth
       unless ty == "UInt32" do throwError "UInt32 literal type mismatch"
       let (scope, param) ← bind scope decl.fvarId ty
+      charge
       let value := obj [("kind", str "uint32"), ("name", str (toString literal.toNat)), ("args", .arr #[])]
       return obj [("op", str "let"), ("bind", param), ("value", value),
         ("next", ← encode next scope result (depth + 1))]
@@ -100,27 +142,42 @@ partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth 
         let (domains, target) ← signature info.type
         modify fun s => { s with calls := name :: s.calls }
         pure ("call", domains, target)
-    unless ty == target && args.size == expected.length do throwError "Application signature mismatch: {name}"
+    let targetRep ← representation target
+    unless ty == targetRep.mono && args.size == expected.length do
+      throwError "Application signature mismatch: {name}"
+    let mut steps := #[]
     let mut ids := #[]
     for i in [:args.size] do
       let .fvar f := args[i]! | throwError "Unsupported argument"
-      let (id, ty) ← lookup scope f
-      unless ty == expected[i]! do throwError "Argument type mismatch"
+      let (id, actual) ← lookup scope f
+      let rep ← representation expected[i]!
+      unless actual == rep.mono do throwError "Argument type mismatch"
+      let (id, wrapping) ← wrapValue rep id (depth + steps.size)
+      steps := steps ++ wrapping
       ids := ids.push id
-    let (scope, param) ← bind scope decl.fvarId ty
+    let applicationDepth := depth + steps.size
+    instruction applicationDepth
+    let (id, param) ← fresh target
+    let (monoId, suffix) ← unwrapValue targetRep id result (applicationDepth + 1)
+    let scope ← associate scope decl.fvarId monoId targetRep.mono
+    charge
     let value := obj [("kind", str kind), ("name", str name.toString), ("args", toJson ids)]
-    return obj [("op", str "let"), ("bind", param), ("value", value),
-      ("next", ← encode next scope result (depth + 1))]
+    let body ← encode next scope result (applicationDepth + 1 + suffix.size)
+    return prepend steps <| obj [("op", str "let"), ("bind", param), ("value", value),
+      ("next", prepend suffix body)]
   | .cases (.mk name resultType discr alts) =>
+    instruction depth
     let ty ← typeKey (.const name [])
     let info ← getConstInfoInduct name
     let ctors := info.ctors
     let (id, actual) ← lookup scope discr
-    unless actual == ty && (← typeKey resultType) == result do throwError "Cases type mismatch"
+    let resultRep ← representation result
+    unless actual == ty && (← typeKey resultType) == resultRep.mono do throwError "Cases type mismatch"
     unless alts.size == ctors.length do throwError "Nonexhaustive alternatives"
     let mut seen : List Name := []
     let mut branches := #[]
     for alt in alts do
+      charge
       let .alt ctor params body _ := alt | throwError "Unsupported alternative"
       let (target, fields) ← constructor ctor
       unless target == ty && ctors.contains ctor && !seen.contains ctor && params.size == fields.length do
@@ -128,14 +185,17 @@ partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth 
       seen := ctor :: seen
       let mut branchScope := scope
       let mut binders := #[]
+      let mut steps := #[]
       for i in [:params.size] do
         let p := params[i]!
-        unless (← typeKey p.type) == fields[i]! do throwError "Case field type mismatch"
-        let (updated, binder) ← bind branchScope p.fvarId fields[i]!
+        let (updated, binder, unwrapping) ← sourceBinder branchScope p.fvarId fields[i]! p.type result
+          (depth + 1 + steps.size)
         branchScope := updated
         binders := binders.push binder
+        steps := steps ++ unwrapping
+      let branchBody ← encode body branchScope result (depth + 1 + steps.size)
       branches := branches.push (obj [("constructor", str ctor.toString), ("params", .arr binders),
-        ("body", ← encode body branchScope result (depth + 1))])
+        ("body", prepend steps branchBody)])
     return obj [("op", str "cases"), ("var", toJson id), ("type", str ty),
       ("result", str result), ("alts", .arr branches)]
   | _ => throwError "Unsupported control flow (only return, let and exhaustive cases are admitted)"
@@ -148,21 +208,26 @@ def exportFunction (name : Name) : CoreM (Json × List Name × List String) := d
     unless record.compiled do throwError "Runtime helper lacks its own compilation provenance: {name}"
   let info ← getConstInfo name
   let (domains, result) ← signature info.type
+  let monoDomains ← domains.mapM fun domain => return (← representation domain).mono
+  let monoResult := (← representation result).mono
   let some decl ← getMonoDecl? name | throwError "Missing pure-mono declaration: {name}"
   unless decl.safe && decl.levelParams.isEmpty && decl.params.size == domains.length &&
-      (← signature decl.type) == (domains, result) do
+      (← signature decl.type) == (monoDomains, monoResult) do
     throwError "Function signature/safety mismatch: {name}"
   let .code body := decl.value | throwError "External function body: {name}"
   let ((params, body), state) ← (do
     let mut scope := []
     let mut params := #[]
+    let mut steps := #[]
     for i in [:decl.params.size] do
       let p := decl.params[i]!
-      unless (← typeKey p.type) == domains[i]! do throwError "Parameter type mismatch"
-      let (updated, param) ← bind scope p.fvarId domains[i]!
+      let (updated, param, unwrapping) ← sourceBinder scope p.fvarId domains[i]! p.type result
+        (1 + steps.size)
       scope := updated
       params := params.push param
-    pure (params, ← encode body scope result) : EncodeM (Array Json × Json)).run {}
+      steps := steps ++ unwrapping
+    let body ← encode body scope result (1 + steps.size)
+    pure (params, prepend steps body) : EncodeM (Array Json × Json)).run {}
   return (obj [("name", str name.toString), ("params", .arr params),
     ("result", str result), ("body", body)], state.calls, result :: state.types)
 

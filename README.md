@@ -41,6 +41,13 @@ other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.
 
+Record fields, nested reads and updates use the same API. Single-field record
+wrappers keep their source names and constructors in Go even when Lean removes
+them internally. The producer inserts checked wrapping/unwrapping steps at
+function and field boundaries; wrapping consumes the existing allocation and
+step budgets. See the [record report](docs/research/extraction-records.md) for
+examples and the supported representation rules.
+
 The producer records original source dependencies and active compiler rewrites
 when each declaration compiles, including helpers later inlined away. User-defined
 compiler rewrites are currently rejected; the pinned `Bool.not` rewrite is audited.

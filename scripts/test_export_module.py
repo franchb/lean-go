@@ -102,12 +102,13 @@ class ModuleExportTests(unittest.TestCase):
         self.assertTrue(result.endswith(body))
 
     def test_freshness_tracks_original_source_and_trusted_producer(self):
+        self.assertIn('producer/LeanGo/Module/Records.lean', producer.PRODUCER_INPUTS)
         program = {'inputs': producer.input_digests(producer.source_snapshot(self.source),
                                                    producer.producer_snapshot(self.root))}
         self.assertIn('source/Example.lean', program['inputs'])
         self.assertTrue(all(not Path(key).is_absolute() for key in program['inputs']))
         producer.verify_inputs(self.root, self.source, program)
-        for path in (self.source / 'Example.lean', self.root / producer.PRODUCER_INPUTS[0]):
+        for path in [self.source / 'Example.lean', *(self.root / name for name in producer.PRODUCER_INPUTS)]:
             old = path.read_bytes()
             path.write_bytes(old + b'changed')
             with self.assertRaisesRegex(producer.ExportError, 'changed'):

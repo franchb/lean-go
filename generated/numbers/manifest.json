@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v2",
   "generator_source_sha256": "fddce12a5fb2bf2485bc2a3772e8304f5baf9bb2b104a98a6bd6f89f5740b5f1",
   "validator_source_sha256": "0edcb3642d8c40b14d4cadddd64057d0b00eb15c3cd15f9167a56389b3eac33d",
-  "ir_sha256": "1f085a2f0da17b0f9fb374db463e2b14ff9debdfb2d23089894a47fead7c1448",
+  "ir_sha256": "94d11be59c3a7a7c556d18d31f893e70a8732429a138ae5d5a2d91f3b67a7bf5",
   "program": {
     "schema": "lean-go-ir/v3",
     "profile": "pure-module/v2",
@@ -14,13 +14,15 @@
     "root": "Numbers.compute",
     "inputs": {
       "producer/LeanGo/Module/Audit.lean": "5bc256966ae6616c9ab6a9b141ef895c133b1a2bb10180e95480d410510278f1",
-      "producer/LeanGo/Module/Export.lean": "3da8d74955d6f44046a252a4001a04f1ed02fff0001f7c74d2e14debae63b57c",
+      "producer/LeanGo/Module/Export.lean": "f7fa4615269d8a6156d623032ef54c9cf4e2ea042689468363dbc8fd86148416",
       "producer/LeanGo/Module/Primitives.lean": "142e099912d496dae63d6996273fa37ddfdb2929860a408fcfb7ee9e011c1119",
+      "producer/LeanGo/Module/Records.lean": "a521851bf276852e3b90dbfcf83792c4a9e5ccb8a8c459f813bd77cfb923a84f",
       "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
-      "scripts/export_module.py": "4037b01986edf5e980093d9a0349860f9fbc7cf7bb3a750804db47f600197afd",
+      "scripts/export_module.py": "03b3091e4366a6db8f79c30a00c0eb8f2d396ead15e17f974f7fdf33183722e8",
       "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
       "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
       "source/Numbers.lean": "c182a6bbbebc09ee4beea79303dcfe62ec07a402247840641f72fb4d30bfccd7",
+      "source/Records.lean": "69e1b7169186d7c4709e548e13c42fd7aabe30c4cd5cd2d89df0f9ab43e2d433",
       "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
     },
     "types": [

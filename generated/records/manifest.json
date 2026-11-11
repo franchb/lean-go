@@ -1,0 +1,887 @@
+{
+  "schema": "lean-go-manifest/v3",
+  "generator": "lean-go-modulegen/v2",
+  "generator_source_sha256": "fddce12a5fb2bf2485bc2a3772e8304f5baf9bb2b104a98a6bd6f89f5740b5f1",
+  "validator_source_sha256": "0edcb3642d8c40b14d4cadddd64057d0b00eb15c3cd15f9167a56389b3eac33d",
+  "ir_sha256": "6391d4247ecff185ee5fccabed8324b4a2ad6d47e84f582c13b92b5055b80005",
+  "program": {
+    "schema": "lean-go-ir/v3",
+    "profile": "pure-module/v2",
+    "stage": "pure-mono",
+    "lean_version": "4.35.0",
+    "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "module": "Records",
+    "root": "Records.update",
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5bc256966ae6616c9ab6a9b141ef895c133b1a2bb10180e95480d410510278f1",
+      "producer/LeanGo/Module/Export.lean": "f7fa4615269d8a6156d623032ef54c9cf4e2ea042689468363dbc8fd86148416",
+      "producer/LeanGo/Module/Primitives.lean": "142e099912d496dae63d6996273fa37ddfdb2929860a408fcfb7ee9e011c1119",
+      "producer/LeanGo/Module/Records.lean": "a521851bf276852e3b90dbfcf83792c4a9e5ccb8a8c459f813bd77cfb923a84f",
+      "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
+      "scripts/export_module.py": "03b3091e4366a6db8f79c30a00c0eb8f2d396ead15e17f974f7fdf33183722e8",
+      "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
+      "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
+      "source/Numbers.lean": "c182a6bbbebc09ee4beea79303dcfe62ec07a402247840641f72fb4d30bfccd7",
+      "source/Records.lean": "69e1b7169186d7c4709e548e13c42fd7aabe30c4cd5cd2d89df0f9ab43e2d433",
+      "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
+    },
+    "types": [
+      {
+        "name": "Bool",
+        "constructors": [
+          {
+            "name": "Bool.false",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Bool.true",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Records.Count",
+        "constructors": [
+          {
+            "name": "Records.Count.mk",
+            "tag": 0,
+            "fields": [
+              "UInt32"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Records.Enabled",
+        "constructors": [
+          {
+            "name": "Records.Enabled.mk",
+            "tag": 0,
+            "fields": [
+              "Bool"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Records.Nested",
+        "constructors": [
+          {
+            "name": "Records.Nested.mk",
+            "tag": 0,
+            "fields": [
+              "Records.Count"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Records.State",
+        "constructors": [
+          {
+            "name": "Records.State.mk",
+            "tag": 0,
+            "fields": [
+              "Records.Count",
+              "Records.Nested",
+              "Records.Enabled",
+              "UInt32"
+            ]
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [
+      {
+        "source": "Bool.not",
+        "target": "Bool.Internal.not",
+        "theorem": "Bool.not_eq_internalNot",
+        "axioms": [
+          "Quot.sound"
+        ]
+      }
+    ],
+    "provenance": [
+      {
+        "name": "Bool.Internal.not",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Bool.not",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HAdd.hAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Records.Count",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Records.Count.value",
+        "dependencies": [
+          "Records.Count"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.Enabled",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Records.Enabled.value",
+        "dependencies": [
+          "Records.Enabled"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.Nested",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Records.Nested.count",
+        "dependencies": [
+          "Records.Nested"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.State",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Records.State.count",
+        "dependencies": [
+          "Records.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.State.enabled",
+        "dependencies": [
+          "Records.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.State.nested",
+        "dependencies": [
+          "Records.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.State.raw",
+        "dependencies": [
+          "Records.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.addCount",
+        "dependencies": [
+          "HAdd.hAdd",
+          "Records.Count",
+          "Records.Count.mk",
+          "Records.Count.value",
+          "UInt32",
+          "instAddUInt32",
+          "instHAdd"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Records.flip",
+        "dependencies": [
+          "Bool.not",
+          "Records.Enabled",
+          "Records.Enabled.mk",
+          "Records.Enabled.value"
+        ],
+        "rewrites": [
+          {
+            "source": "Bool.not",
+            "target": "Bool.Internal.not",
+            "theorem": "Bool.not_eq_internalNot",
+            "axioms": [
+              "Quot.sound"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Records.update",
+        "dependencies": [
+          "HAdd.hAdd",
+          "Records.Count",
+          "Records.Count.value",
+          "Records.Nested",
+          "Records.Nested.count",
+          "Records.Nested.mk",
+          "Records.State",
+          "Records.State.count",
+          "Records.State.enabled",
+          "Records.State.mk",
+          "Records.State.nested",
+          "Records.State.raw",
+          "Records.addCount",
+          "Records.flip",
+          "UInt32",
+          "instAddUInt32",
+          "instHAdd"
+        ],
+        "rewrites": [
+          {
+            "source": "Bool.not",
+            "target": "Bool.Internal.not",
+            "theorem": "Bool.not_eq_internalNot",
+            "axioms": [
+              "Quot.sound"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "instAddUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAdd",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Records.addCount",
+        "params": [
+          {
+            "id": 1,
+            "type": "Records.Count"
+          },
+          {
+            "id": 3,
+            "type": "Records.Count"
+          }
+        ],
+        "result": "Records.Count",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Records.Count",
+          "result": "Records.Count",
+          "alts": [
+            {
+              "constructor": "Records.Count.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt32"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 3,
+                "type": "Records.Count",
+                "result": "Records.Count",
+                "alts": [
+                  {
+                    "constructor": "Records.Count.mk",
+                    "params": [
+                      {
+                        "id": 4,
+                        "type": "UInt32"
+                      }
+                    ],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 5,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.add",
+                        "args": [
+                          2,
+                          4
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 6,
+                          "type": "Records.Count"
+                        },
+                        "value": {
+                          "kind": "constructor",
+                          "name": "Records.Count.mk",
+                          "args": [
+                            5
+                          ]
+                        },
+                        "next": {
+                          "op": "return",
+                          "var": 6
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Records.flip",
+        "params": [
+          {
+            "id": 1,
+            "type": "Records.Enabled"
+          }
+        ],
+        "result": "Records.Enabled",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Records.Enabled",
+          "result": "Records.Enabled",
+          "alts": [
+            {
+              "constructor": "Records.Enabled.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "Bool"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 2,
+                "type": "Bool",
+                "result": "Records.Enabled",
+                "alts": [
+                  {
+                    "constructor": "Bool.false",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 3,
+                        "type": "Bool"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Bool.true",
+                        "args": []
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 4,
+                          "type": "Records.Enabled"
+                        },
+                        "value": {
+                          "kind": "constructor",
+                          "name": "Records.Enabled.mk",
+                          "args": [
+                            3
+                          ]
+                        },
+                        "next": {
+                          "op": "return",
+                          "var": 4
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "constructor": "Bool.true",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 5,
+                        "type": "Bool"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Bool.false",
+                        "args": []
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 6,
+                          "type": "Records.Enabled"
+                        },
+                        "value": {
+                          "kind": "constructor",
+                          "name": "Records.Enabled.mk",
+                          "args": [
+                            5
+                          ]
+                        },
+                        "next": {
+                          "op": "return",
+                          "var": 6
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Records.update",
+        "params": [
+          {
+            "id": 1,
+            "type": "Records.State"
+          },
+          {
+            "id": 2,
+            "type": "Records.Count"
+          }
+        ],
+        "result": "Records.State",
+        "body": {
+          "op": "cases",
+          "var": 2,
+          "type": "Records.Count",
+          "result": "Records.State",
+          "alts": [
+            {
+              "constructor": "Records.Count.mk",
+              "params": [
+                {
+                  "id": 3,
+                  "type": "UInt32"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 1,
+                "type": "Records.State",
+                "result": "Records.State",
+                "alts": [
+                  {
+                    "constructor": "Records.State.mk",
+                    "params": [
+                      {
+                        "id": 4,
+                        "type": "Records.Count"
+                      },
+                      {
+                        "id": 6,
+                        "type": "Records.Nested"
+                      },
+                      {
+                        "id": 9,
+                        "type": "Records.Enabled"
+                      },
+                      {
+                        "id": 11,
+                        "type": "UInt32"
+                      }
+                    ],
+                    "body": {
+                      "op": "cases",
+                      "var": 4,
+                      "type": "Records.Count",
+                      "result": "Records.State",
+                      "alts": [
+                        {
+                          "constructor": "Records.Count.mk",
+                          "params": [
+                            {
+                              "id": 5,
+                              "type": "UInt32"
+                            }
+                          ],
+                          "body": {
+                            "op": "cases",
+                            "var": 6,
+                            "type": "Records.Nested",
+                            "result": "Records.State",
+                            "alts": [
+                              {
+                                "constructor": "Records.Nested.mk",
+                                "params": [
+                                  {
+                                    "id": 7,
+                                    "type": "Records.Count"
+                                  }
+                                ],
+                                "body": {
+                                  "op": "cases",
+                                  "var": 7,
+                                  "type": "Records.Count",
+                                  "result": "Records.State",
+                                  "alts": [
+                                    {
+                                      "constructor": "Records.Count.mk",
+                                      "params": [
+                                        {
+                                          "id": 8,
+                                          "type": "UInt32"
+                                        }
+                                      ],
+                                      "body": {
+                                        "op": "cases",
+                                        "var": 9,
+                                        "type": "Records.Enabled",
+                                        "result": "Records.State",
+                                        "alts": [
+                                          {
+                                            "constructor": "Records.Enabled.mk",
+                                            "params": [
+                                              {
+                                                "id": 10,
+                                                "type": "Bool"
+                                              }
+                                            ],
+                                            "body": {
+                                              "op": "let",
+                                              "bind": {
+                                                "id": 12,
+                                                "type": "Records.Count"
+                                              },
+                                              "value": {
+                                                "kind": "constructor",
+                                                "name": "Records.Count.mk",
+                                                "args": [
+                                                  5
+                                                ]
+                                              },
+                                              "next": {
+                                                "op": "let",
+                                                "bind": {
+                                                  "id": 13,
+                                                  "type": "Records.Count"
+                                                },
+                                                "value": {
+                                                  "kind": "constructor",
+                                                  "name": "Records.Count.mk",
+                                                  "args": [
+                                                    3
+                                                  ]
+                                                },
+                                                "next": {
+                                                  "op": "let",
+                                                  "bind": {
+                                                    "id": 14,
+                                                    "type": "Records.Count"
+                                                  },
+                                                  "value": {
+                                                    "kind": "call",
+                                                    "name": "Records.addCount",
+                                                    "args": [
+                                                      12,
+                                                      13
+                                                    ]
+                                                  },
+                                                  "next": {
+                                                    "op": "cases",
+                                                    "var": 14,
+                                                    "type": "Records.Count",
+                                                    "result": "Records.State",
+                                                    "alts": [
+                                                      {
+                                                        "constructor": "Records.Count.mk",
+                                                        "params": [
+                                                          {
+                                                            "id": 15,
+                                                            "type": "UInt32"
+                                                          }
+                                                        ],
+                                                        "body": {
+                                                          "op": "let",
+                                                          "bind": {
+                                                            "id": 16,
+                                                            "type": "Records.Count"
+                                                          },
+                                                          "value": {
+                                                            "kind": "constructor",
+                                                            "name": "Records.Count.mk",
+                                                            "args": [
+                                                              8
+                                                            ]
+                                                          },
+                                                          "next": {
+                                                            "op": "let",
+                                                            "bind": {
+                                                              "id": 17,
+                                                              "type": "Records.Count"
+                                                            },
+                                                            "value": {
+                                                              "kind": "constructor",
+                                                              "name": "Records.Count.mk",
+                                                              "args": [
+                                                                5
+                                                              ]
+                                                            },
+                                                            "next": {
+                                                              "op": "let",
+                                                              "bind": {
+                                                                "id": 18,
+                                                                "type": "Records.Count"
+                                                              },
+                                                              "value": {
+                                                                "kind": "call",
+                                                                "name": "Records.addCount",
+                                                                "args": [
+                                                                  16,
+                                                                  17
+                                                                ]
+                                                              },
+                                                              "next": {
+                                                                "op": "cases",
+                                                                "var": 18,
+                                                                "type": "Records.Count",
+                                                                "result": "Records.State",
+                                                                "alts": [
+                                                                  {
+                                                                    "constructor": "Records.Count.mk",
+                                                                    "params": [
+                                                                      {
+                                                                        "id": 19,
+                                                                        "type": "UInt32"
+                                                                      }
+                                                                    ],
+                                                                    "body": {
+                                                                      "op": "let",
+                                                                      "bind": {
+                                                                        "id": 20,
+                                                                        "type": "Records.Enabled"
+                                                                      },
+                                                                      "value": {
+                                                                        "kind": "constructor",
+                                                                        "name": "Records.Enabled.mk",
+                                                                        "args": [
+                                                                          10
+                                                                        ]
+                                                                      },
+                                                                      "next": {
+                                                                        "op": "let",
+                                                                        "bind": {
+                                                                          "id": 21,
+                                                                          "type": "Records.Enabled"
+                                                                        },
+                                                                        "value": {
+                                                                          "kind": "call",
+                                                                          "name": "Records.flip",
+                                                                          "args": [
+                                                                            20
+                                                                          ]
+                                                                        },
+                                                                        "next": {
+                                                                          "op": "cases",
+                                                                          "var": 21,
+                                                                          "type": "Records.Enabled",
+                                                                          "result": "Records.State",
+                                                                          "alts": [
+                                                                            {
+                                                                              "constructor": "Records.Enabled.mk",
+                                                                              "params": [
+                                                                                {
+                                                                                  "id": 22,
+                                                                                  "type": "Bool"
+                                                                                }
+                                                                              ],
+                                                                              "body": {
+                                                                                "op": "let",
+                                                                                "bind": {
+                                                                                  "id": 23,
+                                                                                  "type": "UInt32"
+                                                                                },
+                                                                                "value": {
+                                                                                  "kind": "primitive",
+                                                                                  "name": "UInt32.add",
+                                                                                  "args": [
+                                                                                    11,
+                                                                                    3
+                                                                                  ]
+                                                                                },
+                                                                                "next": {
+                                                                                  "op": "let",
+                                                                                  "bind": {
+                                                                                    "id": 24,
+                                                                                    "type": "Records.Count"
+                                                                                  },
+                                                                                  "value": {
+                                                                                    "kind": "constructor",
+                                                                                    "name": "Records.Count.mk",
+                                                                                    "args": [
+                                                                                      15
+                                                                                    ]
+                                                                                  },
+                                                                                  "next": {
+                                                                                    "op": "let",
+                                                                                    "bind": {
+                                                                                      "id": 25,
+                                                                                      "type": "Records.Count"
+                                                                                    },
+                                                                                    "value": {
+                                                                                      "kind": "constructor",
+                                                                                      "name": "Records.Count.mk",
+                                                                                      "args": [
+                                                                                        19
+                                                                                      ]
+                                                                                    },
+                                                                                    "next": {
+                                                                                      "op": "let",
+                                                                                      "bind": {
+                                                                                        "id": 26,
+                                                                                        "type": "Records.Nested"
+                                                                                      },
+                                                                                      "value": {
+                                                                                        "kind": "constructor",
+                                                                                        "name": "Records.Nested.mk",
+                                                                                        "args": [
+                                                                                          25
+                                                                                        ]
+                                                                                      },
+                                                                                      "next": {
+                                                                                        "op": "let",
+                                                                                        "bind": {
+                                                                                          "id": 27,
+                                                                                          "type": "Records.Enabled"
+                                                                                        },
+                                                                                        "value": {
+                                                                                          "kind": "constructor",
+                                                                                          "name": "Records.Enabled.mk",
+                                                                                          "args": [
+                                                                                            22
+                                                                                          ]
+                                                                                        },
+                                                                                        "next": {
+                                                                                          "op": "let",
+                                                                                          "bind": {
+                                                                                            "id": 28,
+                                                                                            "type": "Records.State"
+                                                                                          },
+                                                                                          "value": {
+                                                                                            "kind": "constructor",
+                                                                                            "name": "Records.State.mk",
+                                                                                            "args": [
+                                                                                              24,
+                                                                                              26,
+                                                                                              27,
+                                                                                              23
+                                                                                            ]
+                                                                                          },
+                                                                                          "next": {
+                                                                                            "op": "return",
+                                                                                            "var": 28
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    }
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          ]
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "function_ids": {
+    "Records.addCount": 0,
+    "Records.flip": 1,
+    "Records.update": 2
+  },
+  "constructor_ids": {
+    "Bool.false": [
+      1,
+      0
+    ],
+    "Bool.true": [
+      1,
+      1
+    ],
+    "Records.Count.mk": [
+      2,
+      0
+    ],
+    "Records.Enabled.mk": [
+      3,
+      0
+    ],
+    "Records.Nested.mk": [
+      4,
+      0
+    ],
+    "Records.State.mk": [
+      5,
+      0
+    ]
+  },
+  "generated_files": {
+    "control.go": "31e4e53518af7ab760c976e9432fcd100590d0afc1593c41550bb227015f7e06",
+    "runtime.go": "3cf0882aa2448d742c0e87d95c835bcc9fac120e154586613becc8ffc62a2391",
+    "schema.go": "2a056c6e3eb3bbcc03e2faab0b2830a327d12b4aaecfe564208b1cb2d2b2c0af"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt32.add",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a + b) modulo 2^32"
+    }
+  ]
+}

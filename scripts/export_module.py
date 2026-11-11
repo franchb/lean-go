@@ -20,6 +20,7 @@ MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_IR_BYTES = 4 * 1024 * 1024
 PRODUCER_INPUTS = ("producer/LeanGo/Module/Audit.lean", "producer/LeanGo/Module/Export.lean",
                    "producer/LeanGo/Module/Primitives.lean",
+                   "producer/LeanGo/Module/Records.lean",
                    "scripts/export_module.py", "scripts/export.py")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*\Z", re.ASCII)
 RESERVED = {"Lean", "Init", "Std", "LeanGo", "Lake"}
