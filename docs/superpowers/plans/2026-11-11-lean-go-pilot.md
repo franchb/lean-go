@@ -17,6 +17,13 @@ libraries only. No consumer dependency on Lean, Python, C, or a deployed IR
 interpreter. The producer is tested on Linux/amd64; Windows execution remains
 a release gate until actually performed.
 
+**Outcome (2026-11-11):** The audited local pilot is implemented and verified.
+The [pilot evidence report](../../research/extraction-pilot.md) records the
+actual generated package, commands, semantic and resource tests, fresh-build
+reproducibility, isolated Go-only consumer, and measured benchmarks. Windows
+runtime and tagged-release consumer gates remain pending. The numbered steps
+below retain the approved implementation contract.
+
 ## Authority and scope
 
 This implements the [approved design](../specs/2026-11-11-lean-go-extraction-design.md)
@@ -140,6 +147,8 @@ There are exactly two claims, named
 `LeanGo.Feasibility.normalize_is_normal`, each with exactly `[propext]`.
 There is exactly one Rewrite: source `Bool.not`, target `Bool.Internal.not`,
 theorem `Bool.not_eq_internalNot`, axioms exactly `[Quot.sound]`.
+This records the reviewed source/compiler substitution; `Bool.Internal.not`
+is not an additional runtime primitive in the admitted IR.
 Duplicate or unrelated claims/rewrites are errors.
 Statements are exact stable contract text after kernel type checks:
 

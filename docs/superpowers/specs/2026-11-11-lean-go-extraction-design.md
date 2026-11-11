@@ -6,10 +6,12 @@ Maintainer: franchb <hello@franchb.com>
 
 Working project name: lean-go
 
-Status: approved design; bounded feasibility completed on 2026-11-11.
-The [evidence report](../../research/extraction-feasibility.md) selects pure mono
-LCNF for the controlled normalizer subset. Go backend and release work remain
-future milestones.
+Status: approved design; bounded feasibility and the audited local extraction
+pilot completed on 2026-11-11. The [feasibility report](../../research/extraction-feasibility.md)
+selects pure mono LCNF for the controlled normalizer subset. The
+[pilot report](../../research/extraction-pilot.md) records generated pure-Go
+execution, Linux evidence, and the remaining release gates. General source
+admission and a published release remain future milestones.
 
 ## Purpose and scope
 
@@ -313,9 +315,12 @@ The release is accepted only when all of the following evidence exists:
 
 The feasibility report records completed Lean source proofs, truth-table/shape
 checks, native Lean smoke, targeted proof mutations, and compiler/source audit
-controls. These are bounded producer evidence. The generated-Go, differential,
-boundary, two-platform runtime, external-consumer, and release requirements
-above remain acceptance requirements for the future implementation and release.
+controls. The [pilot report](../../research/extraction-pilot.md) adds generated-Go,
+independent differential, boundary, mutation, reproducibility, Linux/amd64
+runtime, and isolated Go-only consumer evidence for the exact audited source
+revision. Windows/amd64 has cross-build evidence only. Windows runtime testing
+and an external consumer from a tagged release remain unmet release gates;
+this local pilot does not waive any acceptance requirement above.
 
 ## Compatibility, maintenance, and collaboration
 
