@@ -55,6 +55,13 @@ reuse the current Go frame; declarations and jumps consume control steps but
 allocate no values or call frames. Local functions and closures remain outside
 the supported subset. See the [join report](docs/research/extraction-joins.md).
 
+Unused arguments can be removed inside compiler-generated `._redArg` helpers
+while the exported root keeps its original source signature. The producer checks
+the compiler event and forwarding argument map, then audits each helper through
+its original source owner. See the
+[reduced-argument report](docs/research/extraction-reduced-arguments.md) for the
+supported forms and collision checks.
+
 The producer records original source dependencies and active compiler rewrites
 when each declaration compiles, including helpers later inlined away. User-defined
 compiler rewrites are currently rejected; the pinned `Bool.not` rewrite is audited.

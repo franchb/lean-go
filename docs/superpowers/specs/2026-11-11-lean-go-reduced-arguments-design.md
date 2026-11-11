@@ -29,7 +29,9 @@ current attributes at export. Reject kernel-name collisions before or after the
 event, repeated compilation, modified snapshots, missing evidence and malformed
 wrappers. Detect an overwritten pre-existing helper as a collision even if a later
 optimization removed the owner wrapper; it must not fall through to ordinary
-source-function admission. An ordinary source name containing `_redArg` grants
+source-function admission. When no forwarding witness exists and a pre-existing
+mono entry is unchanged, ordinary source admission still applies; spelling alone
+does not establish a compiler collision. An ordinary source name containing `_redArg` grants
 no privilege and can still use the ordinary source path when no collision exists.
 
 Small wrappers can disappear through simplification. Their unused helpers remain

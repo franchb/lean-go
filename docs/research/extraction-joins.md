@@ -71,10 +71,12 @@ duplicate a small continuation instead of retaining a join; source tests check
 actual exported control flow as well as results. Extraction is tested and trusted,
 not a compiler-correctness proof. Source elaboration remains trusted execution.
 
-An existing limitation remains for compiler-generated reduced-argument helpers:
+At the join milestone, a limitation remained for compiler-generated reduced-argument helpers:
 an unused source parameter can cause Lean to introduce a `._redArg` declaration
 that the producer cannot yet resolve. Such modules fail explicitly, even when
 their remaining control flow uses supported joins.
+The subsequent [reduced-argument milestone](extraction-reduced-arguments.md)
+supports helpers whose compiler origin and argument mapping can be checked.
 
 Actual Windows execution and a consumer built from a tagged release remain
 separate release gates. No remote or release is created by this milestone.

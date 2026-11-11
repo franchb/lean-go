@@ -103,6 +103,7 @@ class ModuleExportTests(unittest.TestCase):
 
     def test_freshness_tracks_original_source_and_trusted_producer(self):
         self.assertIn('producer/LeanGo/Module/Records.lean', producer.PRODUCER_INPUTS)
+        self.assertIn('producer/LeanGo/Module/Reduced.lean', producer.PRODUCER_INPUTS)
         program = {'inputs': producer.input_digests(producer.source_snapshot(self.source),
                                                    producer.producer_snapshot(self.root))}
         self.assertIn('source/Example.lean', program['inputs'])

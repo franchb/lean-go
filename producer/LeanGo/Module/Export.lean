@@ -23,6 +23,63 @@ def sortRewrites (rs : Array Rewrite) : Array Rewrite :=
     else if a.target != b.target then a.target.toString < b.target.toString
     else a.theoremName.toString < b.theoremName.toString
 
+def exportTypes (used : List String) : CoreM Json := do
+  let mut pending := used
+  let mut seen : List String := []
+  let mut result := #[]
+  let mut fuel := 1000
+  while !pending.isEmpty do
+    if fuel == 0 then throwError "ADT closure limit"
+    fuel := fuel - 1
+    let name := pending.head!
+    pending := pending.tail!
+    unless seen.contains name || name == "UInt32" do
+      seen := name :: seen
+      let n := name.toName
+      discard <| typeKey (.const n [])
+      let info ← getConstInfoInduct n
+      if info.isUnsafe then throwError "Unsafe ADT: {n}"
+      let mut ctors := #[]
+      for i in [:info.ctors.length] do
+        let ctorName := info.ctors[i]!
+        let ctor ← getConstInfoCtor ctorName
+        let (target, fields) ← constructor ctorName
+        unless target == name && ctor.cidx == i do throwError "Constructor schema mismatch: {ctorName}"
+        pending := fields ++ pending
+        ctors := ctors.push <| obj [("name", str ctorName.toString), ("tag", toJson i), ("fields", toJson fields)]
+      if ctors.isEmpty then throwError "Empty inductives unsupported: {n}"
+      result := result.push <| obj [("name", str name), ("constructors", .arr ctors)]
+  return .arr (sortByName result)
+
+structure FunctionShape where
+  domains : List String
+  result : String
+  allUnused : Bool := false
+
+-- Source-shaped signatures are the public and internal runtime contract. Validate
+-- every original owner domain and ADT field before discarding unused parameters.
+def resolveFunction (name : Name) : CoreM FunctionShape := do
+  validateReducedOwner name
+  if let some evidence ← reducedSource? name then
+    let info ← getConstInfo evidence.owner
+    let (domains, result) ← signature info.type
+    discard <| exportTypes (domains ++ [result])
+    let monoDomains ← domains.mapM fun domain => return (← representation domain).mono
+    let monoResult := (← representation result).mono
+    unless evidence.ownerDecl.params.size == domains.length &&
+        (← signature evidence.ownerDecl.type) == (monoDomains, monoResult) do
+      throwError "Reduced helper source owner signature mismatch: {name}"
+    return {
+      domains := evidence.retained.toList.map (domains[·]!), result
+      allUnused := evidence.allUnused }
+  unless isPrimitiveDefinition name do
+    let some record := (provenanceExt.getState (← getEnv)).find? name
+      | throwError "Runtime function lacks compilation provenance: {name}"
+    unless record.compiled do throwError "Runtime helper lacks its own compilation provenance: {name}"
+  let info ← getConstInfo name
+  let (domains, result) ← signature info.type
+  return { domains, result }
+
 structure EncodingState where
   next : Nat := 1
   seen : List FVarId := []
@@ -144,19 +201,24 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
     let .const name levels args _ := decl.value
       | throwError "Unsupported let value (only UInt32 literals, primitive calls, functions and constructors are admitted)"
     unless levels.isEmpty do throwError "Universe arguments unsupported"
-    let (kind, expected, target) ← if let some primitive := numericPrimitive? name then do
+    -- A later kernel collision must fail before it can be mistaken for a
+    -- constructor or another independently admitted constant kind.
+    discard <| reducedEvidence? name
+    let (kind, expected, target, allUnused) ← if let some primitive := numericPrimitive? name then do
       validateNumericPrimitive primitive
-      pure ("primitive", ["UInt32", "UInt32"], primitive.result.toString)
+      pure ("primitive", ["UInt32", "UInt32"], primitive.result.toString, false)
     else do
-      let info ← getConstInfo name
-      match info with
-      | .ctorInfo _ => do
+      if (← getEnv).find? name matches some (.ctorInfo _) then
         let (target, fields) ← constructor name
-        pure ("constructor", fields, target)
-      | _ => do
-        let (domains, target) ← signature info.type
+        pure ("constructor", fields, target, false)
+      else
+        let shape ← resolveFunction name
         modify fun s => { s with calls := name :: s.calls }
-        pure ("call", domains, target)
+        pure ("call", shape.domains, shape.result, shape.allUnused)
+    let args ← if allUnused then do
+      unless args == #[.erased] do throwError "Invalid reduced helper erased argument: {name}"
+      pure #[]
+    else pure args
     let targetRep ← representation target
     unless ty == targetRep.mono && args.size == expected.length do
       throwError "Application signature mismatch: {name}"
@@ -251,63 +313,45 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
   | _ => throwError "Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)"
 
 def exportFunction (name : Name) : CoreM (Json × List Name × List String) := do
-  let env ← getEnv
-  unless isPrimitiveDefinition name do
-    let some record := (provenanceExt.getState env).find? name
-      | throwError "Runtime function lacks compilation provenance: {name}"
-    unless record.compiled do throwError "Runtime helper lacks its own compilation provenance: {name}"
-  let info ← getConstInfo name
-  let (domains, result) ← signature info.type
+  let shape ← resolveFunction name
+  let domains := shape.domains
+  let result := shape.result
   let monoDomains ← domains.mapM fun domain => return (← representation domain).mono
   let monoResult := (← representation result).mono
   let some decl ← getMonoDecl? name | throwError "Missing pure-mono declaration: {name}"
-  unless decl.safe && decl.levelParams.isEmpty && decl.params.size == domains.length &&
-      (← signature decl.type) == (monoDomains, monoResult) do
+  unless decl.safe && decl.levelParams.isEmpty do
     throwError "Function signature/safety mismatch: {name}"
+  if shape.allUnused then
+    let .forallE _ domain resultType _ := decl.type
+      | throwError "Invalid reduced helper dummy signature: {name}"
+    unless domains.isEmpty && decl.params.size == 1 && domain == .const ``lcVoid [] &&
+        decl.params[0]!.type == domain && (← typeKey resultType) == monoResult do
+      throwError "Invalid reduced helper dummy signature: {name}"
+  else
+    unless decl.params.size == domains.length &&
+        (← signature decl.type) == (monoDomains, monoResult) do
+      throwError "Function signature/safety mismatch: {name}"
   let .code body := decl.value | throwError "External function body: {name}"
   let ((params, body), state) ← (do
     let mut scope := []
     let mut params := #[]
     let mut steps := #[]
-    for i in [:decl.params.size] do
-      let p := decl.params[i]!
-      let (updated, param, unwrapping) ← sourceBinder scope p.fvarId domains[i]! p.type result
-        (1 + steps.size)
-      scope := updated
-      params := params.push param
-      steps := steps ++ unwrapping
+    if shape.allUnused then
+      -- Reserve the compiler dummy without giving it a runtime value. Any use in
+      -- the body is an unbound-variable error, including self-recursive operands.
+      reserve decl.params[0]!.fvarId
+    else
+      for i in [:decl.params.size] do
+        let p := decl.params[i]!
+        let (updated, param, unwrapping) ← sourceBinder scope p.fvarId domains[i]! p.type result
+          (1 + steps.size)
+        scope := updated
+        params := params.push param
+        steps := steps ++ unwrapping
     let body ← encode body scope [] result (1 + steps.size)
     pure (params, prepend steps body) : EncodeM (Array Json × Json)).run {}
   return (obj [("name", str name.toString), ("params", .arr params),
     ("result", str result), ("body", body)], state.calls, result :: state.types)
-
-def exportTypes (used : List String) : CoreM Json := do
-  let mut pending := used
-  let mut seen : List String := []
-  let mut result := #[]
-  let mut fuel := 1000
-  while !pending.isEmpty do
-    if fuel == 0 then throwError "ADT closure limit"
-    fuel := fuel - 1
-    let name := pending.head!
-    pending := pending.tail!
-    unless seen.contains name || name == "UInt32" do
-      seen := name :: seen
-      let n := name.toName
-      discard <| typeKey (.const n [])
-      let info ← getConstInfoInduct n
-      if info.isUnsafe then throwError "Unsafe ADT: {n}"
-      let mut ctors := #[]
-      for i in [:info.ctors.length] do
-        let ctorName := info.ctors[i]!
-        let ctor ← getConstInfoCtor ctorName
-        let (target, fields) ← constructor ctorName
-        unless target == name && ctor.cidx == i do throwError "Constructor schema mismatch: {ctorName}"
-        pending := fields ++ pending
-        ctors := ctors.push <| obj [("name", str ctorName.toString), ("tag", toJson i), ("fields", toJson fields)]
-      if ctors.isEmpty then throwError "Empty inductives unsupported: {n}"
-      result := result.push <| obj [("name", str name), ("constructors", .arr ctors)]
-  return .arr (sortByName result)
 
 def rewriteJson (r : Rewrite) : CoreM Json := do
   unless r.source == ``Bool.not && r.target == ``Bool.Internal.not &&
@@ -338,6 +382,7 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
     pending := pending.tail!
     unless seen.contains n do
       seen := seen.insert n
+      validateReducedOwner n
       if isNumericSourceBoundary n then
         let issues := numericBoundaryIssues env n
         unless issues.isEmpty do throwError "Numeric source audit rejected: {issues}"
@@ -352,7 +397,11 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
         unless (rawInfo matches .defnInfo { safety := .partial, .. }) &&
             (env.find? n matches some (.defnInfo { safety := .safe, .. })) do
           throwError "Unverified recursive implementation override: {n}"
-      if let some record := records.find? n then
+      if let some evidence ← reducedSource? n then
+        provenance := provenance.push <| obj [("name", str n.toString),
+          ("dependencies", toJson #[evidence.owner.toString]), ("rewrites", .arr #[])]
+        pending := evidence.owner :: pending
+      else if let some record := records.find? n then
         unless record.issues.isEmpty do throwError "Source audit rejected {n}: {record.issues}"
         let mut evidence := #[]
         for rewrite in sortRewrites record.rewrites do
