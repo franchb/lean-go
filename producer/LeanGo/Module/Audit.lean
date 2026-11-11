@@ -1,6 +1,7 @@
 module
 public meta import LeanGo.Module.Primitives
 public meta import LeanGo.Module.Reduced
+public meta import LeanGo.Module.LocalObserve
 public meta import Lean.Compiler.LCNF.Main
 public meta import Lean.Compiler.Options
 public meta import Lean.Compiler.CSimpAttr
@@ -84,6 +85,23 @@ def reducedSource? (name : Name) : CoreM (Option ReducedEvidence) := do
     unless (importedCompilation? env records evidence.owner).isSome do
       throwError "Reduced helper lacks safe imported source owner: {evidence.owner}"
   | _ => throwError "Reduced helper lacks safe source owner: {evidence.owner}"
+  return some evidence
+
+def localSource? (name : Name) : CoreM (Option LocalEvidence) := do
+  let some evidence ← localEvidence? name | return none
+  let env ← getEnv
+  let records := provenanceExt.getState env
+  let some source := records.find? evidence.sourceOwner
+    | throwError "Local helper lacks original source provenance: {name}"
+  unless source.compiled && source.safeDefinition && source.issues.isEmpty &&
+      source.sourceModule == evidence.sourceModule do
+    throwError "Local helper source owner rejected: {evidence.sourceOwner}: {source.issues}"
+  match env.find? evidence.sourceOwner with
+  | some (.defnInfo { safety := .safe, .. }) => pure ()
+  | some (.axiomInfo _) =>
+    unless (importedCompilation? env records evidence.sourceOwner).isSome do
+      throwError "Local helper lacks safe imported source owner: {evidence.sourceOwner}"
+  | _ => throwError "Local helper lacks safe source owner: {evidence.sourceOwner}"
   return some evidence
 
 -- This is source evidence, not reconstructed compiler IR. Preserve the dependency
@@ -206,12 +224,14 @@ initialize
       throwError "lean-go provenance requires compiler.postponeCompile=false"
     let moduleName := (← getEnv).mainModule
     let mut reducedObservations := #[]
+    let mut localOwners := #[]
     unless moduleName == `LeanGo.Module.Export || moduleName == `LeanGo.Module.Audit do
       for rawName in names do
         let n := (isUnsafeRecName? rawName).getD rawName
         unless isMarkedMeta (← getEnv) n do
           let info ← getConstInfo n
           unless info matches .thmInfo _ do
+            localOwners := localOwners.push n
             reducedObservations := reducedObservations.push (← observeReduced n)
             let mut entry ← capture n
             if let some old := (provenanceExt.getState (← getEnv)).find? n then
@@ -237,6 +257,10 @@ initialize
                     let source ← capture dep
                     modifyEnv (provenanceExt.addEntry · source)
                     pending := pending ++ source.dependencies
-    original names opts
-    for before in reducedObservations do captureReduced before
+    let issues ← withLocalObservations localOwners do
+      original names opts
+      for before in reducedObservations do captureReduced before
+    for (owner, issue) in issues do
+      if let some entry := (provenanceExt.getState (← getEnv)).find? owner then
+        modifyEnv (provenanceExt.addEntry · { entry with issues := entry.issues.push issue })
 end LeanGo.Module

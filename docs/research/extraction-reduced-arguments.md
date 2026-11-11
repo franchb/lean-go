@@ -43,7 +43,9 @@ whose name contains `_redArg` receives ordinary source checks and no privileges.
 Small forwarding wrappers sometimes disappear through optimization. Without an
 exact witness, their leftover helpers are not admitted; ordinary owner bodies
 that no longer call those helpers continue to work. Arbitrary compiler-generated
-helpers, closures and specialization remain outside this milestone.
+helpers, closures and specialization remained outside that milestone. The later
+[local-helper milestone](extraction-local-helpers.md) adds checked directly called
+local helpers with captured data.
 If no forwarding witness exists and a pre-existing mono entry is unchanged,
 ordinary source admission still applies; spelling alone does not establish a
 compiler event or a collision.

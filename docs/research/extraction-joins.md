@@ -65,11 +65,14 @@ Regeneration uses pinned Lean 4.35.0, Go 1.27.4 and Python 3.15 through uv.
 
 ## Scope
 
-This supports nonrecursive lexical joins, not local functions, closures, effects,
+This milestone supported nonrecursive lexical joins, not local functions, closures, effects,
 mutually recursive functions, polymorphic or dependent data. Optimizations may
 duplicate a small continuation instead of retaining a join; source tests check
 actual exported control flow as well as results. Extraction is tested and trusted,
 not a compiler-correctness proof. Source elaboration remains trusted execution.
+
+The later [local-helper milestone](extraction-local-helpers.md) adds directly called
+local functions with checked captured data.
 
 At the join milestone, a limitation remained for compiler-generated reduced-argument helpers:
 an unused source parameter can cause Lean to introduce a `._redArg` declaration

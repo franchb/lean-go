@@ -52,8 +52,7 @@ examples and the supported representation rules.
 Results of `if` and `match` expressions can feed later arithmetic and record
 updates through nonrecursive local joins. Joins preserve captured values and
 reuse the current Go frame; declarations and jumps consume control steps but
-allocate no values or call frames. Local functions and closures remain outside
-the supported subset. See the [join report](docs/research/extraction-joins.md).
+allocate no values or call frames. See the [join report](docs/research/extraction-joins.md).
 
 Unused arguments can be removed inside compiler-generated `._redArg` helpers
 while the exported root keeps its original source signature. The producer checks
@@ -61,6 +60,13 @@ the compiler event and forwarding argument map, then audits each helper through
 its original source owner. See the
 [reduced-argument report](docs/research/extraction-reduced-arguments.md) for the
 supported forms and collision checks.
+
+Directly called local helpers can capture supported data, including nested records.
+The producer checks their original source types and the compiler's actual lifting
+event, including capture order. Exported roots keep their source signatures;
+internal helper parameters use checked compiler data representations. See the
+[local-helper report](docs/research/extraction-local-helpers.md) for the exact
+limits, including unsupported escaping closures and ambiguous helper reuse.
 
 The producer records original source dependencies and active compiler rewrites
 when each declaration compiles, including helpers later inlined away. User-defined

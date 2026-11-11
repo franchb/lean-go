@@ -60,6 +60,9 @@ structure FunctionShape where
 -- every original owner domain and ADT field before discarding unused parameters.
 def resolveFunction (name : Name) : CoreM FunctionShape := do
   validateReducedOwner name
+  validateLocalOwner name
+  if let some evidence ← localSource? name then
+    return { domains := evidence.domains, result := evidence.result }
   if let some evidence ← reducedSource? name then
     let info ← getConstInfo evidence.owner
     let (domains, result) ← signature info.type
@@ -204,6 +207,7 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
     -- A later kernel collision must fail before it can be mistaken for a
     -- constructor or another independently admitted constant kind.
     discard <| reducedEvidence? name
+    discard <| localEvidence? name
     let (kind, expected, target, allUnused) ← if let some primitive := numericPrimitive? name then do
       validateNumericPrimitive primitive
       pure ("primitive", ["UInt32", "UInt32"], primitive.result.toString, false)
@@ -383,6 +387,7 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
     unless seen.contains n do
       seen := seen.insert n
       validateReducedOwner n
+      validateLocalOwner n
       if isNumericSourceBoundary n then
         let issues := numericBoundaryIssues env n
         unless issues.isEmpty do throwError "Numeric source audit rejected: {issues}"
@@ -397,7 +402,11 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
         unless (rawInfo matches .defnInfo { safety := .partial, .. }) &&
             (env.find? n matches some (.defnInfo { safety := .safe, .. })) do
           throwError "Unverified recursive implementation override: {n}"
-      if let some evidence ← reducedSource? n then
+      if let some evidence ← localSource? n then
+        provenance := provenance.push <| obj [("name", str n.toString),
+          ("dependencies", toJson #[evidence.sourceOwner.toString]), ("rewrites", .arr #[])]
+        pending := evidence.sourceOwner :: pending
+      else if let some evidence ← reducedSource? n then
         provenance := provenance.push <| obj [("name", str n.toString),
           ("dependencies", toJson #[evidence.owner.toString]), ("rewrites", .arr #[])]
         pending := evidence.owner :: pending

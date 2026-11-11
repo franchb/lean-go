@@ -22,6 +22,9 @@ PRODUCER_INPUTS = ("producer/LeanGo/Module/Audit.lean", "producer/LeanGo/Module/
                    "producer/LeanGo/Module/Primitives.lean",
                    "producer/LeanGo/Module/Records.lean",
                    "producer/LeanGo/Module/Reduced.lean",
+                   "producer/LeanGo/Module/Local.lean",
+                   "producer/LeanGo/Module/LocalSource.lean",
+                   "producer/LeanGo/Module/LocalObserve.lean",
                    "scripts/export_module.py", "scripts/export.py")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*\Z", re.ASCII)
 RESERVED = {"Lean", "Init", "Std", "LeanGo", "Lake"}

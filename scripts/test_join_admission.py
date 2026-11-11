@@ -166,14 +166,14 @@ def run {input_param} : Count :=
                 self.assert_rejected(body, diagnostic)
 
     def test_captured_closure_remains_rejected(self):
-        # The pinned compiler retains a partially applied lifted lambda here;
-        # a directly invoked local lambda would be optimized into ordinary code.
+        # Passing the captured function to apply retains a function value;
+        # the local-helper source audit now rejects it before runtime type checks.
         self.assert_rejected("""@[noinline] def apply (f : UInt32 → UInt32) (value : UInt32) : UInt32 :=
   f value
 def run (bias value : UInt32) : UInt32 :=
   let captured := fun x => x + bias
   apply captured value
-""", 'Unsupported first-order monomorphic type')
+""", 'Local helper requires saturated direct calls')
 
 
 if __name__ == '__main__':
