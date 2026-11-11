@@ -39,10 +39,17 @@ for label, text, start, end in cases:
             text=True, capture_output=True,
         )
         output = run.stdout + run.stderr
+        errors = re.findall(r"^.*\berror:.*$", output, re.MULTILINE | re.IGNORECASE)
         positions = [int(n) for n in re.findall(
-            re.escape(path.name) + r":(\d+):\d+: error:", output
+            r"^" + re.escape(path.name) + r":(\d+):\d+: error:",
+            output, re.MULTILINE,
         )]
-        if run.returncode == 0 or not any(lo <= n < hi for n in positions):
+        if (
+            run.returncode != 1
+            or not positions
+            or len(positions) != len(errors)
+            or not all(lo <= n < hi for n in positions)
+        ):
             print(output)
             raise SystemExit(f"{label}: expected theorem failure was not observed")
         print(f"{label}: rejected at the expected theorem")
