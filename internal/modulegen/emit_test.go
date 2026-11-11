@@ -92,6 +92,12 @@ func TestScalar(t *testing.T){v,e:=Import(&Input{Type:"UInt32",UInt32:^uint32(0)
 }
 func runGenerated(t *testing.T, files map[string][]byte, source string) {
 	t.Helper()
+	if out, err := runGeneratedOutput(t, files, source); err != nil {
+		t.Fatalf("generated Go: %v\n%s", err, out)
+	}
+}
+func runGeneratedOutput(t *testing.T, files map[string][]byte, source string) ([]byte, error) {
+	t.Helper()
 	dir := t.TempDir()
 	for n, b := range files {
 		if err := os.WriteFile(filepath.Join(dir, n), b, 0600); err != nil {
@@ -110,9 +116,7 @@ func runGenerated(t *testing.T, files map[string][]byte, source string) {
 	cmd := exec.Command(goBin, "test", "-count=1", "./...")
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0", "GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off", "PATH="+filepath.Dir(goBin))
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("generated Go: %v\n%s", err, out)
-	}
+	return cmd.CombinedOutput()
 }
 
 const boundaryTest = `package extracted

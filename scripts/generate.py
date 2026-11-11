@@ -22,9 +22,9 @@ INPUT_FILES = (
 
 
 def verify_inputs(root, program, source_dir=None):
-    if program.get("schema") == "lean-go-ir/v2":
+    if program.get("schema") in {"lean-go-ir/v2", "lean-go-ir/v3"}:
         if source_dir is None:
-            raise ValueError("module source directory is required for v2 freshness checks")
+            raise ValueError("module source directory is required for module freshness checks")
         verify_module_inputs(root, source_dir, program)
         return
     inputs = program.get('inputs')

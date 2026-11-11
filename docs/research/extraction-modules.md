@@ -1,5 +1,9 @@
 # Ordinary Lean modules to pure Go
 
+This report records the original v2 module milestone. New source exports use v3
+with the numeric extension described in the [UInt32 report](extraction-uint32.md);
+the earlier v2 profile remains supported by the Go backend.
+
 The module profile extends the audited normalizer pilot to user-supplied source
 files, module names, root functions, and data schemas. It uses `lean-go-ir/v2` and
 `pure-module/v1`; the old v1 validator, generator, model and proof claims remain

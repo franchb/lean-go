@@ -61,7 +61,7 @@ func compile(r io.Reader) (map[string][]byte, error) {
 			return nil, err
 		}
 		return gogen.Generate(program)
-	case moduleir.Schema:
+	case moduleir.Schema, moduleir.SchemaV3:
 		program, err := moduleir.Decode(bytes.NewReader(data))
 		if err != nil {
 			return nil, err

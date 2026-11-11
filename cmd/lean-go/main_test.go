@@ -2,10 +2,47 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/franchb/lean-go/internal/moduleir"
 )
+
+func TestCompileNumericSchema(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/choice.ir.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var p moduleir.Program
+	if err = json.Unmarshal(data, &p); err != nil {
+		t.Fatal(err)
+	}
+	p.Schema, p.Profile, p.Module, p.Root = "lean-go-ir/v3", "pure-module/v2", "Literal", "Literal.answer"
+	p.Types = []moduleir.TypeDecl{}
+	p.Provenance = []moduleir.Provenance{{Name: p.Root, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}}
+	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{}, Result: "UInt32", Body: &moduleir.Code{
+		Op: "let", Bind: &moduleir.Param{ID: 1, Type: "UInt32"}, Value: &moduleir.Value{Kind: "uint32", Name: "4294967295", Args: []int{}},
+		Next: &moduleir.Code{Op: "return", Var: 1},
+	}}}
+	data, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := compile(bytes.NewReader(data))
+	if err != nil || len(files) != 4 {
+		t.Fatalf("v3 dispatch: files=%d err=%v", len(files), err)
+	}
+	p.Schema, p.Profile = "lean-go-ir/v2", "pure-module/v1"
+	data, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = compile(bytes.NewReader(data)); err == nil {
+		t.Fatal("older profile accepted a numeric literal")
+	}
+}
 
 func TestCompileSchemaDispatch(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/normalizer.ir.json")

@@ -1,9 +1,11 @@
-// Package moduleir validates the bounded pure-module/v1 extraction profile.
+// Package moduleir validates the bounded pure-module extraction profiles.
 package moduleir
 
 const (
 	Schema          = "lean-go-ir/v2"
 	Profile         = "pure-module/v1"
+	SchemaV3        = "lean-go-ir/v3"
+	ProfileV2       = "pure-module/v2"
 	Stage           = "pure-mono"
 	LeanVersion     = "4.35.0"
 	LeanCommit      = "eb6cafb7290e8bd5f2937522d8d804f58f02bafc"

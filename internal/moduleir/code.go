@@ -133,6 +133,12 @@ func (v *validator) value(value *Value, function string, scope map[int]string) (
 		}
 		result = callee.Result
 		v.edges[function][value.Name] = true
+	case "uint32", "primitive":
+		var err error
+		params, result, err = v.numericValue(value)
+		if err != nil {
+			return "", err
+		}
 	default:
 		return "", fmt.Errorf("unsupported value kind %q", value.Kind)
 	}

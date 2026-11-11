@@ -78,10 +78,21 @@ partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth 
     return obj [("op", str "return"), ("var", toJson id)]
   | .let decl next =>
     let ty ← typeKey decl.type
-    let .const name levels args _ := decl.value | throwError "Unsupported let value (only calls and constructors are admitted)"
+    if let .lit (.uint32 literal) := decl.value then
+      unless ty == "UInt32" do throwError "UInt32 literal type mismatch"
+      let (scope, param) ← bind scope decl.fvarId ty
+      let value := obj [("kind", str "uint32"), ("name", str (toString literal.toNat)), ("args", .arr #[])]
+      return obj [("op", str "let"), ("bind", param), ("value", value),
+        ("next", ← encode next scope result (depth + 1))]
+    let .const name levels args _ := decl.value
+      | throwError "Unsupported let value (only UInt32 literals, primitive calls, functions and constructors are admitted)"
     unless levels.isEmpty do throwError "Universe arguments unsupported"
-    let info ← getConstInfo name
-    let (kind, expected, target) ← match info with
+    let (kind, expected, target) ← if let some primitive := numericPrimitive? name then do
+      validateNumericPrimitive primitive
+      pure ("primitive", ["UInt32", "UInt32"], primitive.result.toString)
+    else do
+      let info ← getConstInfo name
+      match info with
       | .ctorInfo _ => do
         let (target, fields) ← constructor name
         pure ("constructor", fields, target)
@@ -212,7 +223,10 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
     pending := pending.tail!
     unless seen.contains n do
       seen := seen.insert n
-      if (getExternAttrData? env n).isSome then throwError "extern source dependency: {n}"
+      if isNumericSourceBoundary n then
+        let issues := numericBoundaryIssues env n
+        unless issues.isEmpty do throwError "Numeric source audit rejected: {issues}"
+      else if (getExternAttrData? env n).isSome then throwError "extern source dependency: {n}"
       if (Lean.Compiler.getImplementedBy? env n).isSome then throwError "implemented_by source dependency: {n}"
       if Lean.hasInitAttr env n then throwError "initialized source dependency: {n}"
       let activeRewrite? := ((Lean.Compiler.CSimp.ext.getState env).map.find? n).map fun e =>
@@ -233,7 +247,7 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
         provenance := provenance.push <| obj [("name", str n.toString),
           ("dependencies", toJson (sortedDependencies record.dependencies)), ("rewrites", .arr evidence)]
         pending := record.dependencies.toList ++ pending
-      else if isPrimitiveDefinition n then
+      else if isPrimitiveDefinition n || isNumericSourceBoundary n then
         provenance := provenance.push <| obj [("name", str n.toString),
           ("dependencies", .arr #[]), ("rewrites", .arr #[])]
       else if isCompilerSupport n then pure ()

@@ -1,24 +1,26 @@
 {
-  "schema": "lean-go-manifest/v2",
-  "generator": "lean-go-modulegen/v1",
-  "generator_source_sha256": "ae0dd8465c6b2d4982e83662def7290a7e944ea0b4819312d08d3edb36162889",
-  "validator_source_sha256": "8d906369f341aa0ec2ce70f4eaafb3c4f551599f3daec64a7a8a2874af540780",
-  "ir_sha256": "1de193eea7e2ad42c05c18c85ea97f02ea0dc99390b98c836661f5645065a502",
+  "schema": "lean-go-manifest/v3",
+  "generator": "lean-go-modulegen/v2",
+  "generator_source_sha256": "fddce12a5fb2bf2485bc2a3772e8304f5baf9bb2b104a98a6bd6f89f5740b5f1",
+  "validator_source_sha256": "0edcb3642d8c40b14d4cadddd64057d0b00eb15c3cd15f9167a56389b3eac33d",
+  "ir_sha256": "1ecb9be9cfd4743f24045a6e55bc0453668017f70a4fb6f76a7d6144679126b5",
   "program": {
-    "schema": "lean-go-ir/v2",
-    "profile": "pure-module/v1",
+    "schema": "lean-go-ir/v3",
+    "profile": "pure-module/v2",
     "stage": "pure-mono",
     "lean_version": "4.35.0",
     "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
     "module": "Trees",
     "root": "Trees.mirror",
     "inputs": {
-      "producer/LeanGo/Module/Audit.lean": "d066b441827a71c085a37afb2d5dfdf02f8c4b9bab0458501d9c651453372c89",
-      "producer/LeanGo/Module/Export.lean": "63696db5b7078b8c7788306a8369ec62659db27a63145e42fd73845bd297361f",
+      "producer/LeanGo/Module/Audit.lean": "5bc256966ae6616c9ab6a9b141ef895c133b1a2bb10180e95480d410510278f1",
+      "producer/LeanGo/Module/Export.lean": "3da8d74955d6f44046a252a4001a04f1ed02fff0001f7c74d2e14debae63b57c",
+      "producer/LeanGo/Module/Primitives.lean": "142e099912d496dae63d6996273fa37ddfdb2929860a408fcfb7ee9e011c1119",
       "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
-      "scripts/export_module.py": "a7ed00a427d93252032122724e3d761d6612dd22b6e3101b365545abefdb7bd3",
+      "scripts/export_module.py": "4037b01986edf5e980093d9a0349860f9fbc7cf7bb3a750804db47f600197afd",
       "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
       "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
+      "source/Numbers.lean": "c182a6bbbebc09ee4beea79303dcfe62ec07a402247840641f72fb4d30bfccd7",
       "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
     },
     "types": [
@@ -419,5 +421,6 @@
     "runtime.go": "3cf0882aa2448d742c0e87d95c835bcc9fac120e154586613becc8ffc62a2391",
     "schema.go": "4a21c54fdcf6990a0ba00a2b37586101fe227b570b09fa73f94edc178b7814b4"
   },
-  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": []
 }

@@ -17,6 +17,7 @@ type constructorInfo struct {
 }
 type validator struct {
 	nodes        int
+	numeric      bool
 	functions    map[string]Function
 	constructors map[string]constructorInfo
 	types        map[string][]Constructor
@@ -53,6 +54,9 @@ func Validate(p *Program) error {
 		return err
 	}
 	if err := v.validateTypes(p.Types); err != nil {
+		return err
+	}
+	if err := v.validateNumericTypes(); err != nil {
 		return err
 	}
 	if len(p.Functions) == 0 || len(p.Functions) > MaxFunctions {
@@ -93,9 +97,10 @@ func Validate(p *Program) error {
 	return v.validateTypeClosure()
 }
 func (v *validator) validateMetadata(p *Program) error {
-	if p.Schema != Schema || p.Profile != Profile || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) || !validName(p.Root) {
+	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) || !validName(p.Root) {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
+	v.numeric = p.Profile == ProfileV2
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}

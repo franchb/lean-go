@@ -42,7 +42,7 @@ class RealModuleAdmissionTests(unittest.TestCase):
                                    'def run (b : Bool) : Bool := f b\n',
                                    'recursive implementation|repeated compilation'),
             'polymorphic': ('def run {α : Type} (x : α) : α := x\n', 'polymorph|type|Type|universe'),
-            'arithmetic': ('def run (x : UInt32) : UInt32 := x + 1\n', 'primitive|Primitive|Unsupported|unsupported|extern source dependency'),
+            'division': ('def run (x : UInt32) : UInt32 := x / 3\n', 'primitive|Primitive|Unsupported|unsupported|extern source dependency|provenance'),
             'sorry_proof': ('theorem forged : False := by sorry\n'
                             'def run (_ : Bool) : Bool := False.elim forged\n',
                             'axiom|proof|Unsupported|unsupported|Missing pure|missing pure'),

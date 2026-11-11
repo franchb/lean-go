@@ -1,14 +1,25 @@
 module
-public meta import Lean
+public meta import LeanGo.Module.Primitives
 public meta import Lean.Compiler.LCNF.Main
 public meta import Lean.Compiler.Options
 public meta import Lean.Compiler.CSimpAttr
 public meta import Lean.Compiler.ExternAttr
 public meta import Lean.Compiler.ImplementedByAttr
 public meta import Lean.Util.CollectAxioms
+meta import all Lean
+meta import all Init.Data.UInt.Package
 public meta section
 open Lean Lean.Compiler
 namespace LeanGo.Module
+
+-- Persist the clean toolchain evidence before this module installs the hook and
+-- before the fresh build imports any user source.
+run_cmd do
+  Elab.Command.liftCoreM do
+    for n in numericPrimitives.map (·.name) ++ numericSourceSupport do
+      validateNumericDefinition n
+      let boundary ← captureNumericBoundary n
+      modifyEnv (numericTrustExt.addEntry · boundary)
 
 structure Rewrite where
   source : Name
@@ -120,13 +131,15 @@ def capture (n : Name) : CoreM Provenance := do
         let rewrite := { source := current, target := e.toDeclName, theoremName := e.thmName : Rewrite }
         unless rewrites.contains rewrite do rewrites := rewrites.push rewrite
         pending := pending.push e.toDeclName
-      if (getExternAttrData? env current).isSome then
+      if isNumericSourceBoundary current then
+        issues := issues ++ numericBoundaryIssues env current
+      else if (getExternAttrData? env current).isSome then
         issues := issues.push s!"extern source dependency: {current}"
       if (getImplementedBy? env current).isSome then
         issues := issues.push s!"implemented_by source dependency: {current}"
       if hasInitAttr env current then
         issues := issues.push s!"initialized source dependency: {current}"
-      unless isCompilerSupport current || isPrimitiveDefinition current do
+      unless isCompilerSupport current || isPrimitiveDefinition current || isNumericSourceBoundary current do
         match env.find? current with
         | some (.defnInfo d) =>
           unless d.safety == .safe do issues := issues.push s!"unsafe source dependency: {current}"
@@ -148,7 +161,9 @@ def capture (n : Name) : CoreM Provenance := do
                 let rewrite := { source := dep, target := e.toDeclName, theoremName := e.thmName : Rewrite }
                 unless rewrites.contains rewrite do rewrites := rewrites.push rewrite
                 pending := pending.push e.toDeclName
-              if (getExternAttrData? env dep).isSome then
+              if isNumericSourceBoundary dep then
+                issues := issues ++ numericBoundaryIssues env dep
+              else if (getExternAttrData? env dep).isSome then
                 issues := issues.push s!"extern source dependency: {dep}"
               if (getImplementedBy? env dep).isSome then
                 issues := issues.push s!"implemented_by source dependency: {dep}"

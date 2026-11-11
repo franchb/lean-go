@@ -191,6 +191,13 @@ func TestProvenanceAndStructuralBounds(t *testing.T) {
 func FuzzDecode(f *testing.F) {
 	valid, _ := json.Marshal(validProgram())
 	f.Add(valid)
+	literal, _ := json.Marshal(numericProgram(&Value{Kind: "uint32", Name: "4294967295", Args: []int{}}, "UInt32"))
+	f.Add(literal)
+	for _, name := range []string{"UInt32.add", "UInt32.sub", "UInt32.mul", "UInt32.shiftLeft", "UInt32.decEq", "UInt32.decLt", "UInt32.decLe"} {
+		primitive, _ := LookupPrimitive(name)
+		encoded, _ := json.Marshal(numericProgram(&Value{Kind: "primitive", Name: name, Args: []int{1, 2}}, primitive.Result))
+		f.Add(encoded)
+	}
 	f.Add([]byte(`{"schema":null}`))
 	f.Add([]byte(`[]`))
 	f.Fuzz(func(t *testing.T, data []byte) {

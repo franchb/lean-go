@@ -19,6 +19,7 @@ MAX_FILES = 256
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_IR_BYTES = 4 * 1024 * 1024
 PRODUCER_INPUTS = ("producer/LeanGo/Module/Audit.lean", "producer/LeanGo/Module/Export.lean",
+                   "producer/LeanGo/Module/Primitives.lean",
                    "scripts/export_module.py", "scripts/export.py")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*\Z", re.ASCII)
 RESERVED = {"Lean", "Init", "Std", "LeanGo", "Lake"}
@@ -236,7 +237,7 @@ def export_module(root, source_dir, module, entry, output):
             raise ExportError("unexpected module producer result fields")
         if program["module"] != module or program["root"] != entry:
             raise ExportError("module producer returned a different module or root")
-        program.update(schema="lean-go-ir/v2", profile="pure-module/v1", stage="pure-mono",
+        program.update(schema="lean-go-ir/v3", profile="pure-module/v2", stage="pure-mono",
                        lean_version="4.35.0", lean_commit=COMMIT,
                        inputs=input_digests(sources, producer))
         result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()

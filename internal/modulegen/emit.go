@@ -17,7 +17,7 @@ import (
 //go:embed templates/runtime.go.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v1"
+const Version = "lean-go-modulegen/v2"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -191,21 +191,24 @@ func (g *generator) emitCode(w *bytes.Buffer, f *function, c *moduleir.Code) {
 		}
 		w.WriteString("default:return nil,ErrMalformed}\n")
 	case "let":
-		if c.Value.Kind == "constructor" {
+		switch c.Value.Kind {
+		case "uint32", "primitive":
+			g.emitNumeric(w, f, c)
+		case "constructor":
 			ctor := g.constructors[c.Value.Name]
 			fmt.Fprintf(w, "value,err:=b.make(%d,%d,[]*node{", ctor.typ, ctor.tag)
 			for _, id := range c.Value.Args {
 				fmt.Fprintf(w, "f.slots[%d],", f.slots[id])
 			}
 			fmt.Fprintf(w, "});if err!=nil{return nil,err};f.slots[%d]=value;f.pc=%d\n", f.slots[c.Bind.ID], f.states[c.Next])
-			return
+		case "call":
+			callee := g.functions[c.Value.Name]
+			fmt.Fprintf(w, "if err:=b.enter(%d,len(stack));err!=nil{return nil,err};next:=frame{function:%d,destination:%d,slots:make([]*node,%d)}\n", len(callee.slots), callee.id, f.slots[c.Bind.ID], len(callee.slots))
+			for i, p := range callee.decl.Params {
+				fmt.Fprintf(w, "next.slots[%d]=f.slots[%d]\n", callee.slots[p.ID], f.slots[c.Value.Args[i]])
+			}
+			fmt.Fprintf(w, "f.pc=%d;stack=append(stack,next)\n", f.states[c.Next])
 		}
-		callee := g.functions[c.Value.Name]
-		fmt.Fprintf(w, "if err:=b.enter(%d,len(stack));err!=nil{return nil,err};next:=frame{function:%d,destination:%d,slots:make([]*node,%d)}\n", len(callee.slots), callee.id, f.slots[c.Bind.ID], len(callee.slots))
-		for i, p := range callee.decl.Params {
-			fmt.Fprintf(w, "next.slots[%d]=f.slots[%d]\n", callee.slots[p.ID], f.slots[c.Value.Args[i]])
-		}
-		fmt.Fprintf(w, "f.pc=%d;stack=append(stack,next)\n", f.states[c.Next])
 	}
 }
 func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
@@ -226,17 +229,23 @@ func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
 		constructors[n] = [2]int{c.typ, c.tag}
 	}
 	manifest := struct {
-		Schema          string            `json:"schema"`
-		Generator       string            `json:"generator"`
-		GeneratorSource string            `json:"generator_source_sha256"`
-		ValidatorSource string            `json:"validator_source_sha256"`
-		IR              string            `json:"ir_sha256"`
-		Program         *moduleir.Program `json:"program"`
-		Functions       map[string]int    `json:"function_ids"`
-		Constructors    map[string][2]int `json:"constructor_ids"`
-		Files           map[string]string `json:"generated_files"`
-		Evidence        string            `json:"evidence"`
-	}{"lean-go-manifest/v2", Version, SourceDigest(), moduleir.SourceDigest(), digest(canonical), g.program, functions, constructors, hashes, "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
+		Schema          string                `json:"schema"`
+		Generator       string                `json:"generator"`
+		GeneratorSource string                `json:"generator_source_sha256"`
+		ValidatorSource string                `json:"validator_source_sha256"`
+		IR              string                `json:"ir_sha256"`
+		Program         *moduleir.Program     `json:"program"`
+		Functions       map[string]int        `json:"function_ids"`
+		Constructors    map[string][2]int     `json:"constructor_ids"`
+		Files           map[string]string     `json:"generated_files"`
+		Evidence        string                `json:"evidence"`
+		Primitives      *[]moduleir.Primitive `json:"primitives,omitempty"`
+	}{Schema: "lean-go-manifest/v2", Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
+	if g.program.Schema == moduleir.SchemaV3 {
+		manifest.Schema = "lean-go-manifest/v3"
+		primitives := g.primitiveCatalog()
+		manifest.Primitives = &primitives
+	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return nil, err

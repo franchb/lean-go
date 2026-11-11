@@ -7,9 +7,11 @@ pure, monomorphic subset and generates a standalone Go package. Generated consum
 use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python are
 needed for regeneration, not deployment.
 
-The original audited normalizer remains available as a separate v1 profile. The
-new `pure-module/v1` profile uses v2 IR and has no fixed model hash or application
-name allowlist. This is local experimental software; no release has been published.
+The original audited normalizer remains available as a separate v1 profile.
+Module exports now use `pure-module/v2` with v3 IR, including UInt32 arithmetic
+and comparisons. Earlier v2 IR remains accepted with its original restrictions.
+There is no fixed model hash or application name allowlist. This is local
+experimental software; no release has been published.
 
 ## Extract a module
 
@@ -31,18 +33,24 @@ CLI names currently use ASCII Lean identifiers. Output package and IR paths are
 required; differing existing package contents are preserved and rejected.
 
 Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
-functions, saturated calls, exhaustive matches, and self recursion. `UInt32` can
-be passed through unchanged. Arithmetic, generic collections, polymorphism,
+functions, saturated calls, exhaustive matches, and self recursion. `UInt32`
+supports literals, addition, subtraction, multiplication, left shift, equality,
+and unsigned less-than/less-or-equal comparisons. Arithmetic wraps modulo 2^32;
+shift counts are reduced modulo 32. Division, remainder, other bit operations,
+other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.
 
 The producer records original source dependencies and active compiler rewrites
 when each declaration compiles, including helpers later inlined away. User-defined
 compiler rewrites are currently rejected; the pinned `Bool.not` rewrite is audited.
+Numeric primitives and their standard-library operator support are also pinned
+and audited, including historical changes to their compiler attributes.
 Source must be trusted for Lean elaboration: this tool is not a sandbox for macros
 or initializers. The new profile makes no application correctness-theorem claim.
 See the [module report](docs/research/extraction-modules.md) for the exact limits
-and validation evidence, and the
+and the [UInt32 report](docs/research/extraction-uint32.md) for numeric semantics
+and validation evidence, plus the
 [module design](docs/superpowers/specs/2026-11-11-lean-go-modules-design.md).
 
 ## Generated module API

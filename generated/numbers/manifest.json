@@ -1,0 +1,622 @@
+{
+  "schema": "lean-go-manifest/v3",
+  "generator": "lean-go-modulegen/v2",
+  "generator_source_sha256": "fddce12a5fb2bf2485bc2a3772e8304f5baf9bb2b104a98a6bd6f89f5740b5f1",
+  "validator_source_sha256": "0edcb3642d8c40b14d4cadddd64057d0b00eb15c3cd15f9167a56389b3eac33d",
+  "ir_sha256": "1f085a2f0da17b0f9fb374db463e2b14ff9debdfb2d23089894a47fead7c1448",
+  "program": {
+    "schema": "lean-go-ir/v3",
+    "profile": "pure-module/v2",
+    "stage": "pure-mono",
+    "lean_version": "4.35.0",
+    "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "module": "Numbers",
+    "root": "Numbers.compute",
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5bc256966ae6616c9ab6a9b141ef895c133b1a2bb10180e95480d410510278f1",
+      "producer/LeanGo/Module/Export.lean": "3da8d74955d6f44046a252a4001a04f1ed02fff0001f7c74d2e14debae63b57c",
+      "producer/LeanGo/Module/Primitives.lean": "142e099912d496dae63d6996273fa37ddfdb2929860a408fcfb7ee9e011c1119",
+      "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
+      "scripts/export_module.py": "4037b01986edf5e980093d9a0349860f9fbc7cf7bb3a750804db47f600197afd",
+      "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
+      "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
+      "source/Numbers.lean": "c182a6bbbebc09ee4beea79303dcfe62ec07a402247840641f72fb4d30bfccd7",
+      "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
+    },
+    "types": [
+      {
+        "name": "Bool",
+        "constructors": [
+          {
+            "name": "Bool.false",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Bool.true",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Numbers.Results",
+        "constructors": [
+          {
+            "name": "Numbers.Results.mk",
+            "tag": 0,
+            "fields": [
+              "UInt32",
+              "UInt32",
+              "UInt32",
+              "UInt32",
+              "Bool",
+              "Bool",
+              "Bool",
+              "UInt32",
+              "UInt32",
+              "UInt32",
+              "UInt32",
+              "UInt32"
+            ]
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "BEq.beq",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Decidable.decide",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HAdd.hAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HMul.hMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HSub.hSub",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "LE.le",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "LT.lt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Numbers.compute",
+        "dependencies": [
+          "BEq.beq",
+          "Decidable.decide",
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "HSub.hSub",
+          "LE.le",
+          "LT.lt",
+          "Numbers.Results.mk",
+          "Numbers.scalar",
+          "OfNat.ofNat",
+          "Std.LinearOrderPackage.toLinearPreorderPackage",
+          "Std.LinearPreorderPackage.toPreorderPackage",
+          "Std.PreorderPackage.toBEq",
+          "UInt32",
+          "UInt32.decLe",
+          "UInt32.decLt",
+          "UInt32.instOfNat",
+          "UInt32.shiftLeft",
+          "_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt32",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instHSub",
+          "instLEUInt32",
+          "instLTUInt32",
+          "instMulUInt32",
+          "instSubUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Numbers.scalar",
+        "dependencies": [
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "HSub.hSub",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instHSub",
+          "instMulUInt32",
+          "instSubUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "OfNat.ofNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Std.LinearOrderPackage.toLinearPreorderPackage",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Std.LinearPreorderPackage.toPreorderPackage",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Std.PreorderPackage.toBEq",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.decLe",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.decLt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.shiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instAddUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHSub",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instLEUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instLTUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instMulUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instSubUInt32",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Numbers.compute",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          },
+          {
+            "id": 2,
+            "type": "UInt32"
+          }
+        ],
+        "result": "Numbers.Results",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt32.add",
+            "args": [
+              1,
+              2
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 4,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.sub",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 5,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.mul",
+                "args": [
+                  1,
+                  2
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.shiftLeft",
+                  "args": [
+                    1,
+                    2
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "Bool"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt32.decEq",
+                    "args": [
+                      1,
+                      2
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 8,
+                      "type": "Bool"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.decLt",
+                      "args": [
+                        1,
+                        2
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 9,
+                        "type": "Bool"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.decLe",
+                        "args": [
+                          1,
+                          2
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 10,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "uint32",
+                          "name": "1",
+                          "args": []
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 11,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.shiftLeft",
+                            "args": [
+                              1,
+                              10
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 12,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "uint32",
+                              "name": "0",
+                              "args": []
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 13,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "uint32",
+                                "name": "4294967295",
+                                "args": []
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 14,
+                                  "type": "UInt32"
+                                },
+                                "value": {
+                                  "kind": "call",
+                                  "name": "Numbers.scalar",
+                                  "args": [
+                                    1,
+                                    2
+                                  ]
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 15,
+                                    "type": "Numbers.Results"
+                                  },
+                                  "value": {
+                                    "kind": "constructor",
+                                    "name": "Numbers.Results.mk",
+                                    "args": [
+                                      3,
+                                      4,
+                                      5,
+                                      6,
+                                      7,
+                                      8,
+                                      9,
+                                      11,
+                                      12,
+                                      13,
+                                      10,
+                                      14
+                                    ]
+                                  },
+                                  "next": {
+                                    "op": "return",
+                                    "var": 15
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Numbers.scalar",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          },
+          {
+            "id": 2,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "1",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 4,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.add",
+              "args": [
+                1,
+                3
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 5,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.sub",
+                "args": [
+                  2,
+                  3
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.mul",
+                  "args": [
+                    4,
+                    5
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 6
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "function_ids": {
+    "Numbers.compute": 0,
+    "Numbers.scalar": 1
+  },
+  "constructor_ids": {
+    "Bool.false": [
+      1,
+      0
+    ],
+    "Bool.true": [
+      1,
+      1
+    ],
+    "Numbers.Results.mk": [
+      2,
+      0
+    ]
+  },
+  "generated_files": {
+    "control.go": "12b280a825a6c7b7ba3f609234d2aacb23450f4815d693325a5080c8b3a33af8",
+    "runtime.go": "3cf0882aa2448d742c0e87d95c835bcc9fac120e154586613becc8ffc62a2391",
+    "schema.go": "52f95795adcaefd25b180454fec000ef556600b945f6babb7c8b4f0fa020f380"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt32.add",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a + b) modulo 2^32"
+    },
+    {
+      "name": "UInt32.decEq",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a == b"
+    },
+    {
+      "name": "UInt32.decLe",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a \u003c= b"
+    },
+    {
+      "name": "UInt32.decLt",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a \u003c b"
+    },
+    {
+      "name": "UInt32.mul",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a * b) modulo 2^32"
+    },
+    {
+      "name": "UInt32.shiftLeft",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a * 2^(b modulo 32)) modulo 2^32"
+    },
+    {
+      "name": "UInt32.sub",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a - b) modulo 2^32"
+    }
+  ]
+}

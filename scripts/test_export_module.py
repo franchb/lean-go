@@ -142,7 +142,9 @@ class ModuleExportTests(unittest.TestCase):
         with mock.patch.object(producer, 'run', side_effect=self.fake_run):
             self.export()
         program = json.loads(self.output.read_bytes())
-        self.assertEqual(program['schema'], 'lean-go-ir/v2')
+        self.assertEqual(program['schema'], 'lean-go-ir/v3')
+        self.assertEqual(program['profile'], 'pure-module/v2')
+        self.assertIn('producer/LeanGo/Module/Primitives.lean', program['inputs'])
         self.assertEqual(program['root'], 'identity')
         self.assertEqual(program['inputs']['source/Example.lean'],
                          hashlib.sha256((self.source / 'Example.lean').read_bytes()).hexdigest())
