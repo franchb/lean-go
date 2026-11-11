@@ -1,0 +1,156 @@
+{
+  "schema": "lean-go-manifest/v1",
+  "generator": "lean-go-gogen/v1",
+  "generator_source_sha256": "9b73ce8a67e726695c2194ddb4bb39381a4a696cc1b5eeb14c125d9f5b0cd964",
+  "validator_source_sha256": "10988ccbac5a7e9960d2c12062e9cae61e0dcf52d00a941520fb6773a8271d9c",
+  "ir_sha256": "32083183ed989beee3d42b2c84fbe5ed59cd933115f3ee24a94cd07c7bbdde5f",
+  "ir_schema": "lean-go-ir/v1",
+  "profile": "audited-normalizer/v1",
+  "stage": "pure-mono",
+  "lean_version": "4.35.0",
+  "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+  "model_sha256": "c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f",
+  "root": "LeanGo.Feasibility.normalize",
+  "inputs": {
+    "feasibility/LeanGo/Feasibility/Model.lean": "c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f",
+    "producer/Export.lean": "ac1a0cb5fbd08b05f9db23f9f7f42399ccdb67b555264cd97eb7053548cd434c",
+    "producer/LeanGo/Pilot/Export.lean": "b4a3b01fa5cc619603ae240176a20dd9fca41375ccb5df06250a46cf75a74ed1",
+    "producer/Reference.lean": "91af6494fe92975125dab0fc37f4ccc921386f298331db224bc6a1da21d97fb1",
+    "producer/lakefile.toml": "d8d5431e8543a819f7e7d192ebc6e7c987da1c0c8ade4c56b5670edfd6bff318",
+    "producer/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+    "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062"
+  },
+  "types": [
+    {
+      "name": "bool",
+      "constructors": [
+        {
+          "name": "Bool.false",
+          "tag": 0,
+          "fields": []
+        },
+        {
+          "name": "Bool.true",
+          "tag": 1,
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "tri",
+      "constructors": [
+        {
+          "name": "LeanGo.Feasibility.Tri.f",
+          "tag": 0,
+          "fields": []
+        },
+        {
+          "name": "LeanGo.Feasibility.Tri.u",
+          "tag": 1,
+          "fields": []
+        },
+        {
+          "name": "LeanGo.Feasibility.Tri.t",
+          "tag": 2,
+          "fields": []
+        }
+      ]
+    },
+    {
+      "name": "expr",
+      "constructors": [
+        {
+          "name": "LeanGo.Feasibility.Expr.lit",
+          "tag": 0,
+          "fields": [
+            "tri"
+          ]
+        },
+        {
+          "name": "LeanGo.Feasibility.Expr.var",
+          "tag": 1,
+          "fields": [
+            "u32"
+          ]
+        },
+        {
+          "name": "LeanGo.Feasibility.Expr.neg",
+          "tag": 2,
+          "fields": [
+            "expr"
+          ]
+        },
+        {
+          "name": "LeanGo.Feasibility.Expr.conj",
+          "tag": 3,
+          "fields": [
+            "expr",
+            "expr"
+          ]
+        },
+        {
+          "name": "LeanGo.Feasibility.Expr.disj",
+          "tag": 4,
+          "fields": [
+            "expr",
+            "expr"
+          ]
+        }
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "name": "LeanGo.Feasibility.normalize_preserves_eval",
+      "statement": "forall e : Expr, forall rho : UInt32 -\u003e Tri, eval rho (normalize e) = eval rho e",
+      "axioms": [
+        "propext"
+      ],
+      "statement_sha256": "f3ed8a8af6c3afeb702bdd4867e792d07a6146d6283429ae54c956ba07d7bb1d"
+    },
+    {
+      "name": "LeanGo.Feasibility.normalize_is_normal",
+      "statement": "forall e : Expr, IsNormalForm (normalize e)",
+      "axioms": [
+        "propext"
+      ],
+      "statement_sha256": "ed5041266579dd14cf396ae8492f070cb7ebd4fe0ba4b53ef013c86c752756a7"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "Bool.not",
+      "target": "Bool.Internal.not",
+      "theorem": "Bool.not_eq_internalNot",
+      "axioms": [
+        "Quot.sound"
+      ]
+    }
+  ],
+  "function_mappings": {
+    "LeanGo.Feasibility.Tri.neg": "fnTriNeg",
+    "LeanGo.Feasibility.normalize": "fnNormalize",
+    "LeanGo.Feasibility.normalizeAux": "fnNormalizeAux"
+  },
+  "constructor_mappings": {
+    "Bool.false": "false",
+    "Bool.true": "true",
+    "LeanGo.Feasibility.Expr.conj": "And",
+    "LeanGo.Feasibility.Expr.disj": "Or",
+    "LeanGo.Feasibility.Expr.lit": "Literal",
+    "LeanGo.Feasibility.Expr.neg": "Not",
+    "LeanGo.Feasibility.Expr.var": "Variable",
+    "LeanGo.Feasibility.Tri.f": "0",
+    "LeanGo.Feasibility.Tri.t": "2",
+    "LeanGo.Feasibility.Tri.u": "1"
+  },
+  "generated_files": {
+    "control.go": "e0ecdbfe4cef3fabe383ace0319031352bfd0dbc7c9efae1af7a6300975c194a",
+    "runtime.go": "aa1c75a7abebf1231636e989023017402ce09e4d4bfbab397eac8ec06c3dda50"
+  },
+  "intended_targets": [
+    "linux/amd64",
+    "windows/amd64"
+  ],
+  "target_evidence": "Intended build targets only; this manifest does not certify execution or correctness."
+}
