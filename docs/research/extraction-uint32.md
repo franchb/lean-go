@@ -1,8 +1,9 @@
 # UInt32 extraction
 
-Ordinary module extraction now emits `lean-go-ir/v3` with `pure-module/v2`.
-The Go backend still accepts v2 IR with the original `pure-module/v1`
-restrictions. The audited normalizer's v1 implementation is unchanged.
+This report records the numeric milestone, which introduced `lean-go-ir/v3` with
+`pure-module/v2`. New exports use v4 with [local joins](extraction-joins.md);
+the numeric semantics below are unchanged. The Go backend still accepts v2 and
+v3 with their original restrictions. The audited normalizer's v1 implementation is unchanged.
 This milestone is local experimental software; no release has been published.
 
 ## Use it

@@ -31,6 +31,7 @@ structure EncodingState where
   types : List String := []
 abbrev EncodeM := StateRefT EncodingState CoreM
 abbrev Scope := List (FVarId × Nat × String)
+abbrev JoinScope := List (FVarId × Nat × List String)
 abbrev Prefix := Array (Json → Json)
 
 def prepend (steps : Prefix) (body : Json) : Json :=
@@ -50,18 +51,31 @@ def lookup (scope : Scope) (f : FVarId) : EncodeM (Nat × String) := do
     if id == f then return (n, ty)
   throwError "Unbound variable {f.name}"
 
--- Synthetic and compiler binders share this allocator. Only associate records
--- compiler FVarIds, so an unwrapped parameter maps to its final mono value.
-def fresh (ty : String) : EncodeM (Nat × Json) := do
+def lookupJoin (joins : JoinScope) (f : FVarId) : EncodeM (Nat × List String) := do
+  for (target, id, params) in joins do
+    if target == f then return (id, params)
+  throwError "Out of scope join point {f.name}"
+
+-- Join IDs, synthetic binders and compiler binders share one allocator.
+def freshId : EncodeM Nat := do
   charge
   let s ← get
-  set { s with next := s.next + 1, types := ty :: s.types }
-  return (s.next, obj [("id", toJson s.next), ("type", str ty)])
+  set { s with next := s.next + 1 }
+  return s.next
 
-def associate (scope : Scope) (f : FVarId) (id : Nat) (ty : String) : EncodeM Scope := do
+def fresh (ty : String) : EncodeM (Nat × Json) := do
+  let id ← freshId
+  modify fun s => { s with types := ty :: s.types }
+  return (id, obj [("id", toJson id), ("type", str ty)])
+
+def reserve (f : FVarId) : EncodeM Unit := do
   let s ← get
   if s.seen.contains f then throwError "Duplicate variable {f.name}"
   set { s with seen := f :: s.seen }
+
+-- An unwrapped compiler parameter maps only to its final mono value.
+def associate (scope : Scope) (f : FVarId) (id : Nat) (ty : String) : EncodeM Scope := do
+  reserve f
   return (f, id, ty) :: scope
 
 def bind (scope : Scope) (f : FVarId) (ty : String) : EncodeM (Scope × Json) := do
@@ -107,7 +121,8 @@ def sourceBinder (scope : Scope) (f : FVarId) (source : String) (monoType : Expr
   let (monoId, steps) ← unwrapValue rep id result depth
   return (← associate scope f monoId rep.mono, binder, steps)
 
-partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth : Nat := 1) : EncodeM Json := do
+partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
+    (result : String) (depth : Nat := 1) : EncodeM Json := do
   match code with
   | .return f =>
     let (id, ty) ← lookup scope f
@@ -125,7 +140,7 @@ partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth 
       charge
       let value := obj [("kind", str "uint32"), ("name", str (toString literal.toNat)), ("args", .arr #[])]
       return obj [("op", str "let"), ("bind", param), ("value", value),
-        ("next", ← encode next scope result (depth + 1))]
+        ("next", ← encode next scope joins result (depth + 1))]
     let .const name levels args _ := decl.value
       | throwError "Unsupported let value (only UInt32 literals, primitive calls, functions and constructors are admitted)"
     unless levels.isEmpty do throwError "Universe arguments unsupported"
@@ -162,9 +177,44 @@ partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth 
     let scope ← associate scope decl.fvarId monoId targetRep.mono
     charge
     let value := obj [("kind", str kind), ("name", str name.toString), ("args", toJson ids)]
-    let body ← encode next scope result (applicationDepth + 1 + suffix.size)
+    let body ← encode next scope joins result (applicationDepth + 1 + suffix.size)
     return prepend steps <| obj [("op", str "let"), ("bind", param), ("value", value),
       ("next", prepend suffix body)]
+  | .jp decl next =>
+    instruction depth
+    let (expected, target) ← signature decl.type
+    let resultRep ← representation result
+    unless expected.length == decl.params.size && target == resultRep.mono do
+      throwError "Join point signature mismatch"
+    if decl.params.size > 64 then throwError "Join point arity limit"
+    let id ← freshId -- The join object is a structural node too.
+    reserve decl.fvarId
+    let mut bodyScope := scope
+    let mut params := #[]
+    for i in [:decl.params.size] do
+      let param := decl.params[i]!
+      let ty ← typeKey param.type
+      unless ty == expected[i]! do throwError "Join point parameter type mismatch"
+      -- These are internal mono values, without source-boundary wrappers.
+      let (updated, binder) ← bind bodyScope param.fvarId ty
+      bodyScope := updated
+      params := params.push binder
+    -- The declaration cannot see itself; only the continuation gains its target.
+    let body ← encode decl.value bodyScope joins result (depth + 1)
+    let next ← encode next scope ((decl.fvarId, id, expected) :: joins) result (depth + 1)
+    return obj [("op", str "join"),
+      ("join", obj [("id", toJson id), ("params", .arr params), ("body", body)]), ("next", next)]
+  | .jmp target args =>
+    instruction depth
+    let (id, expected) ← lookupJoin joins target
+    unless args.size == expected.length do throwError "Jump arity mismatch"
+    let mut ids := #[]
+    for i in [:args.size] do
+      let .fvar f := args[i]! | throwError "Unsupported jump argument"
+      let (id, actual) ← lookup scope f
+      unless actual == expected[i]! do throwError "Jump argument type mismatch"
+      ids := ids.push id
+    return obj [("op", str "jump"), ("target", toJson id), ("args", toJson ids)]
   | .cases (.mk name resultType discr alts) =>
     instruction depth
     let ty ← typeKey (.const name [])
@@ -193,12 +243,12 @@ partial def encode (code : Code .pure) (scope : Scope) (result : String) (depth 
         branchScope := updated
         binders := binders.push binder
         steps := steps ++ unwrapping
-      let branchBody ← encode body branchScope result (depth + 1 + steps.size)
+      let branchBody ← encode body branchScope joins result (depth + 1 + steps.size)
       branches := branches.push (obj [("constructor", str ctor.toString), ("params", .arr binders),
         ("body", prepend steps branchBody)])
     return obj [("op", str "cases"), ("var", toJson id), ("type", str ty),
       ("result", str result), ("alts", .arr branches)]
-  | _ => throwError "Unsupported control flow (only return, let and exhaustive cases are admitted)"
+  | _ => throwError "Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)"
 
 def exportFunction (name : Name) : CoreM (Json × List Name × List String) := do
   let env ← getEnv
@@ -226,7 +276,7 @@ def exportFunction (name : Name) : CoreM (Json × List Name × List String) := d
       scope := updated
       params := params.push param
       steps := steps ++ unwrapping
-    let body ← encode body scope result (1 + steps.size)
+    let body ← encode body scope [] result (1 + steps.size)
     pure (params, prepend steps body) : EncodeM (Array Json × Json)).run {}
   return (obj [("name", str name.toString), ("params", .arr params),
     ("result", str result), ("body", body)], state.calls, result :: state.types)

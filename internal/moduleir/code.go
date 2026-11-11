@@ -33,7 +33,7 @@ func copyScope(scope map[int]string) map[int]string {
 	return copy
 }
 
-func (v *validator) code(c *Code, f Function, scope map[int]string, used map[int]bool, seen map[*Code]bool, depth int) error {
+func (v *validator) code(c *Code, f Function, scope map[int]string, joins map[int]*Join, used map[int]bool, seen map[*Code]bool, depth int) error {
 	if c == nil {
 		return fmt.Errorf("missing code")
 	}
@@ -49,7 +49,7 @@ func (v *validator) code(c *Code, f Function, scope map[int]string, used map[int
 	}
 	switch c.Op {
 	case "let":
-		if c.Bind == nil || c.Value == nil || c.Next == nil || c.Var != 0 || c.Type != "" || c.Result != "" || c.Alts != nil {
+		if c.Bind == nil || c.Value == nil || c.Next == nil || c.Var != 0 || c.Type != "" || c.Result != "" || c.Alts != nil || c.Join != nil || c.Target != 0 || c.Args != nil {
 			return fmt.Errorf("invalid let payload")
 		}
 		typ, err := v.value(c.Value, f.Name, scope)
@@ -62,16 +62,16 @@ func (v *validator) code(c *Code, f Function, scope map[int]string, used map[int
 		if err = v.bind(*c.Bind, scope, used); err != nil {
 			return err
 		}
-		return v.code(c.Next, f, scope, used, seen, depth+1)
+		return v.code(c.Next, f, scope, joins, used, seen, depth+1)
 	case "return":
-		if c.Bind != nil || c.Value != nil || c.Next != nil || c.Type != "" || c.Result != "" || c.Alts != nil {
+		if c.Bind != nil || c.Value != nil || c.Next != nil || c.Type != "" || c.Result != "" || c.Alts != nil || c.Join != nil || c.Target != 0 || c.Args != nil {
 			return fmt.Errorf("invalid return payload")
 		}
 		if c.Var <= 0 || scope[c.Var] != f.Result {
 			return fmt.Errorf("invalid return variable/type")
 		}
 	case "cases":
-		if c.Bind != nil || c.Value != nil || c.Next != nil || c.Var <= 0 || scope[c.Var] != c.Type || c.Result != f.Result {
+		if c.Bind != nil || c.Value != nil || c.Next != nil || c.Var <= 0 || scope[c.Var] != c.Type || c.Result != f.Result || c.Join != nil || c.Target != 0 || c.Args != nil {
 			return fmt.Errorf("invalid cases payload or type")
 		}
 		constructors, ok := v.types[c.Type]
@@ -97,10 +97,14 @@ func (v *validator) code(c *Code, f Function, scope map[int]string, used map[int
 					return err
 				}
 			}
-			if err := v.code(alt.Body, f, local, used, seen, depth+1); err != nil {
+			if err := v.code(alt.Body, f, local, joins, used, seen, depth+1); err != nil {
 				return err
 			}
 		}
+	case "join":
+		return v.join(c, f, scope, joins, used, seen, depth)
+	case "jump":
+		return v.jump(c, scope, joins)
 	default:
 		return fmt.Errorf("unsupported code operation %q", c.Op)
 	}

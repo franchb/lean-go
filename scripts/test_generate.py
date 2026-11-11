@@ -10,12 +10,14 @@ generate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generate)
 
 class InputFreshnessTests(unittest.TestCase):
-    def test_both_module_schemas_use_module_freshness(self):
-        for schema in ('lean-go-ir/v2', 'lean-go-ir/v3'):
+    def test_all_module_schemas_use_module_freshness(self):
+        for schema in ('lean-go-ir/v2', 'lean-go-ir/v3', 'lean-go-ir/v4'):
             program = {'schema': schema}
             with self.subTest(schema=schema), mock.patch.object(generate, 'verify_module_inputs') as verify:
                 generate.verify_inputs(Path('/project'), program, Path('/source'))
                 verify.assert_called_once_with(Path('/project'), Path('/source'), program)
+            with self.subTest(schema=schema), self.assertRaisesRegex(ValueError, 'source directory'):
+                generate.verify_inputs(Path('/project'), program)
 
     def snapshot(self, root):
         inputs = {}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/franchb/lean-go/internal/moduleir"
@@ -41,6 +42,36 @@ func TestCompileNumericSchema(t *testing.T) {
 	}
 	if _, err = compile(bytes.NewReader(data)); err == nil {
 		t.Fatal("older profile accepted a numeric literal")
+	}
+}
+
+func TestCompileJoinSchema(t *testing.T) {
+	p := moduleir.Program{
+		Schema: moduleir.SchemaV4, Profile: moduleir.ProfileV3, Stage: moduleir.Stage,
+		LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit, Module: "Joins", Root: "Joins.answer",
+		Inputs: map[string]string{"Joins.lean": strings.Repeat("0", 64)}, Types: []moduleir.TypeDecl{}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{},
+		Provenance: []moduleir.Provenance{{Name: "Joins.answer", Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}},
+		Functions: []moduleir.Function{{Name: "Joins.answer", Params: []moduleir.Param{{ID: 1, Type: "UInt32"}}, Result: "UInt32", Body: &moduleir.Code{
+			Op: "join", Join: &moduleir.Join{ID: 2, Params: []moduleir.Param{}, Body: &moduleir.Code{Op: "return", Var: 1}}, Next: &moduleir.Code{Op: "jump", Target: 2, Args: []int{}},
+		}}},
+	}
+	data, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := compile(bytes.NewReader(data))
+	if err != nil || len(files) != 4 {
+		t.Fatalf("v4 dispatch: files=%d err=%v", len(files), err)
+	}
+	for _, pair := range [][2]string{{moduleir.Schema, moduleir.Profile}, {moduleir.SchemaV3, moduleir.ProfileV2}, {moduleir.SchemaV4, moduleir.ProfileV2}} {
+		p.Schema, p.Profile = pair[0], pair[1]
+		data, err = json.Marshal(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := compile(bytes.NewReader(data)); err == nil {
+			t.Fatal("older/mismatched profile admitted joins", pair)
+		}
 	}
 }
 

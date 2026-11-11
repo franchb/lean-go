@@ -18,6 +18,7 @@ type constructorInfo struct {
 type validator struct {
 	nodes        int
 	numeric      bool
+	joins        bool
 	functions    map[string]Function
 	constructors map[string]constructorInfo
 	types        map[string][]Constructor
@@ -78,7 +79,7 @@ func Validate(p *Program) error {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 		}
-		if err := v.code(f.Body, f, scope, used, map[*Code]bool{}, 1); err != nil {
+		if err := v.code(f.Body, f, scope, map[int]*Join{}, used, map[*Code]bool{}, 1); err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
 	}
@@ -100,7 +101,8 @@ func (v *validator) validateMetadata(p *Program) error {
 	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) || !validName(p.Root) {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
-	v.numeric = p.Profile == ProfileV2
+	v.numeric = p.Profile == ProfileV2 || p.Profile == ProfileV3
+	v.joins = p.Profile == ProfileV3
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}
@@ -280,6 +282,13 @@ func (v *validator) validateTypeClosure() error {
 	return nil
 }
 func collectCodeTypes(c *Code, out *[]string) {
+	if c.Op == "join" {
+		for _, p := range c.Join.Params {
+			*out = append(*out, p.Type)
+		}
+		collectCodeTypes(c.Join.Body, out)
+		collectCodeTypes(c.Next, out)
+	}
 	if c.Op == "let" {
 		*out = append(*out, c.Bind.Type)
 		collectCodeTypes(c.Next, out)

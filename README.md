@@ -8,8 +8,9 @@ use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python a
 needed for regeneration, not deployment.
 
 The original audited normalizer remains available as a separate v1 profile.
-Module exports now use `pure-module/v2` with v3 IR, including UInt32 arithmetic
-and comparisons. Earlier v2 IR remains accepted with its original restrictions.
+Module exports now use `pure-module/v3` with v4 IR, including UInt32 arithmetic,
+comparisons and local joins for branch results. Earlier v2 and v3 IR remain
+accepted with their original restrictions.
 There is no fixed model hash or application name allowlist. This is local
 experimental software; no release has been published.
 
@@ -47,6 +48,12 @@ them internally. The producer inserts checked wrapping/unwrapping steps at
 function and field boundaries; wrapping consumes the existing allocation and
 step budgets. See the [record report](docs/research/extraction-records.md) for
 examples and the supported representation rules.
+
+Results of `if` and `match` expressions can feed later arithmetic and record
+updates through nonrecursive local joins. Joins preserve captured values and
+reuse the current Go frame; declarations and jumps consume control steps but
+allocate no values or call frames. Local functions and closures remain outside
+the supported subset. See the [join report](docs/research/extraction-joins.md).
 
 The producer records original source dependencies and active compiler rewrites
 when each declaration compiles, including helpers later inlined away. User-defined

@@ -1,0 +1,1095 @@
+{
+  "schema": "lean-go-manifest/v4",
+  "generator": "lean-go-modulegen/v3",
+  "generator_source_sha256": "680bdbcdb402b81ef6861b2efd3ca4ec02126d126a8797ada299371d209474b0",
+  "validator_source_sha256": "5e9002826cf0f2e83386db9a165a7fb354183598dbfbbffeb20ecec633d03767",
+  "ir_sha256": "016eff8285368980cabd395747a2cf37b7dbcc2cfd85da76c590a4f89a43103d",
+  "program": {
+    "schema": "lean-go-ir/v4",
+    "profile": "pure-module/v3",
+    "stage": "pure-mono",
+    "lean_version": "4.35.0",
+    "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+    "module": "Joins",
+    "root": "Joins.update",
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5bc256966ae6616c9ab6a9b141ef895c133b1a2bb10180e95480d410510278f1",
+      "producer/LeanGo/Module/Export.lean": "c75e51348c6827d6429067797ca2207b7bc0664e94c285a4319ac76715617ced",
+      "producer/LeanGo/Module/Primitives.lean": "142e099912d496dae63d6996273fa37ddfdb2929860a408fcfb7ee9e011c1119",
+      "producer/LeanGo/Module/Records.lean": "a521851bf276852e3b90dbfcf83792c4a9e5ccb8a8c459f813bd77cfb923a84f",
+      "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
+      "scripts/export_module.py": "5d749f8e10a753949f35907068e1d340fd2be21f1e46c3715faf81fd5774354e",
+      "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
+      "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
+      "source/Joins.lean": "fd494bec6e5eb4bde184fa2f088651f6ad44b972612cfdc23ff8fa710f0492e5",
+      "source/Numbers.lean": "c182a6bbbebc09ee4beea79303dcfe62ec07a402247840641f72fb4d30bfccd7",
+      "source/Records.lean": "69e1b7169186d7c4709e548e13c42fd7aabe30c4cd5cd2d89df0f9ab43e2d433",
+      "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
+    },
+    "types": [
+      {
+        "name": "Bool",
+        "constructors": [
+          {
+            "name": "Bool.false",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Bool.true",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Joins.Count",
+        "constructors": [
+          {
+            "name": "Joins.Count.mk",
+            "tag": 0,
+            "fields": [
+              "UInt32"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Joins.Enabled",
+        "constructors": [
+          {
+            "name": "Joins.Enabled.mk",
+            "tag": 0,
+            "fields": [
+              "Bool"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Joins.Nested",
+        "constructors": [
+          {
+            "name": "Joins.Nested.mk",
+            "tag": 0,
+            "fields": [
+              "Joins.Count"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Joins.State",
+        "constructors": [
+          {
+            "name": "Joins.State.mk",
+            "tag": 0,
+            "fields": [
+              "Joins.Count",
+              "Joins.Nested",
+              "Joins.Enabled",
+              "UInt32"
+            ]
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [
+      {
+        "source": "Bool.not",
+        "target": "Bool.Internal.not",
+        "theorem": "Bool.not_eq_internalNot",
+        "axioms": [
+          "Quot.sound"
+        ]
+      }
+    ],
+    "provenance": [
+      {
+        "name": "Bool.Internal.not",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Bool.not",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Decidable.decide",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HAdd.hAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.Count",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.Count.value",
+        "dependencies": [
+          "Joins.Count"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.Enabled",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.Enabled.value",
+        "dependencies": [
+          "Joins.Enabled"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.Nested",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.Nested.count",
+        "dependencies": [
+          "Joins.Nested"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.State",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.State.count",
+        "dependencies": [
+          "Joins.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.State.enabled",
+        "dependencies": [
+          "Joins.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.State.nested",
+        "dependencies": [
+          "Joins.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.State.raw",
+        "dependencies": [
+          "Joins.State"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.add",
+        "dependencies": [
+          "HAdd.hAdd",
+          "UInt32",
+          "instAddUInt32",
+          "instHAdd"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Joins.update",
+        "dependencies": [
+          "Bool",
+          "Bool.not",
+          "Bool.true",
+          "Decidable.decide",
+          "Eq",
+          "Joins.Count",
+          "Joins.Count.mk",
+          "Joins.Count.value",
+          "Joins.Enabled.mk",
+          "Joins.Enabled.value",
+          "Joins.Nested.count",
+          "Joins.Nested.mk",
+          "Joins.State",
+          "Joins.State.count",
+          "Joins.State.enabled",
+          "Joins.State.mk",
+          "Joins.State.nested",
+          "Joins.State.raw",
+          "Joins.add",
+          "Joins.update.match_1",
+          "LT.lt",
+          "UInt32",
+          "UInt32.decLt",
+          "Unit",
+          "instDecidableEqBool",
+          "instLTUInt32",
+          "ite"
+        ],
+        "rewrites": [
+          {
+            "source": "Bool.not",
+            "target": "Bool.Internal.not",
+            "theorem": "Bool.not_eq_internalNot",
+            "axioms": [
+              "Quot.sound"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Joins.update.match_1",
+        "dependencies": [
+          "Bool",
+          "Bool.casesOn",
+          "Bool.false",
+          "Bool.true",
+          "Unit",
+          "Unit.unit"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "LT.lt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.decLt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instAddUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instDecidableEqBool",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instLTUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "ite",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Joins.add",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          },
+          {
+            "id": 2,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt32.add",
+            "args": [
+              1,
+              2
+            ]
+          },
+          "next": {
+            "op": "return",
+            "var": 3
+          }
+        }
+      },
+      {
+        "name": "Joins.update",
+        "params": [
+          {
+            "id": 1,
+            "type": "Joins.State"
+          },
+          {
+            "id": 2,
+            "type": "Joins.Count"
+          },
+          {
+            "id": 4,
+            "type": "Bool"
+          }
+        ],
+        "result": "Joins.State",
+        "body": {
+          "op": "cases",
+          "var": 2,
+          "type": "Joins.Count",
+          "result": "Joins.State",
+          "alts": [
+            {
+              "constructor": "Joins.Count.mk",
+              "params": [
+                {
+                  "id": 3,
+                  "type": "UInt32"
+                }
+              ],
+              "body": {
+                "op": "join",
+                "next": {
+                  "op": "join",
+                  "next": {
+                    "op": "join",
+                    "next": {
+                      "op": "join",
+                      "next": {
+                        "op": "cases",
+                        "var": 4,
+                        "type": "Bool",
+                        "result": "Joins.State",
+                        "alts": [
+                          {
+                            "constructor": "Bool.false",
+                            "params": [],
+                            "body": {
+                              "op": "cases",
+                              "var": 1,
+                              "type": "Joins.State",
+                              "result": "Joins.State",
+                              "alts": [
+                                {
+                                  "constructor": "Joins.State.mk",
+                                  "params": [
+                                    {
+                                      "id": 49,
+                                      "type": "Joins.Count"
+                                    },
+                                    {
+                                      "id": 51,
+                                      "type": "Joins.Nested"
+                                    },
+                                    {
+                                      "id": 54,
+                                      "type": "Joins.Enabled"
+                                    },
+                                    {
+                                      "id": 56,
+                                      "type": "UInt32"
+                                    }
+                                  ],
+                                  "body": {
+                                    "op": "cases",
+                                    "var": 49,
+                                    "type": "Joins.Count",
+                                    "result": "Joins.State",
+                                    "alts": [
+                                      {
+                                        "constructor": "Joins.Count.mk",
+                                        "params": [
+                                          {
+                                            "id": 50,
+                                            "type": "UInt32"
+                                          }
+                                        ],
+                                        "body": {
+                                          "op": "cases",
+                                          "var": 51,
+                                          "type": "Joins.Nested",
+                                          "result": "Joins.State",
+                                          "alts": [
+                                            {
+                                              "constructor": "Joins.Nested.mk",
+                                              "params": [
+                                                {
+                                                  "id": 52,
+                                                  "type": "Joins.Count"
+                                                }
+                                              ],
+                                              "body": {
+                                                "op": "cases",
+                                                "var": 52,
+                                                "type": "Joins.Count",
+                                                "result": "Joins.State",
+                                                "alts": [
+                                                  {
+                                                    "constructor": "Joins.Count.mk",
+                                                    "params": [
+                                                      {
+                                                        "id": 53,
+                                                        "type": "UInt32"
+                                                      }
+                                                    ],
+                                                    "body": {
+                                                      "op": "cases",
+                                                      "var": 54,
+                                                      "type": "Joins.Enabled",
+                                                      "result": "Joins.State",
+                                                      "alts": [
+                                                        {
+                                                          "constructor": "Joins.Enabled.mk",
+                                                          "params": [
+                                                            {
+                                                              "id": 55,
+                                                              "type": "Bool"
+                                                            }
+                                                          ],
+                                                          "body": {
+                                                            "op": "jump",
+                                                            "target": 37,
+                                                            "args": [
+                                                              50
+                                                            ]
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "constructor": "Bool.true",
+                            "params": [],
+                            "body": {
+                              "op": "jump",
+                              "target": 37,
+                              "args": [
+                                3
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "join": {
+                        "id": 37,
+                        "params": [
+                          {
+                            "id": 38,
+                            "type": "UInt32"
+                          }
+                        ],
+                        "body": {
+                          "op": "cases",
+                          "var": 1,
+                          "type": "Joins.State",
+                          "result": "Joins.State",
+                          "alts": [
+                            {
+                              "constructor": "Joins.State.mk",
+                              "params": [
+                                {
+                                  "id": 39,
+                                  "type": "Joins.Count"
+                                },
+                                {
+                                  "id": 41,
+                                  "type": "Joins.Nested"
+                                },
+                                {
+                                  "id": 44,
+                                  "type": "Joins.Enabled"
+                                },
+                                {
+                                  "id": 46,
+                                  "type": "UInt32"
+                                }
+                              ],
+                              "body": {
+                                "op": "cases",
+                                "var": 39,
+                                "type": "Joins.Count",
+                                "result": "Joins.State",
+                                "alts": [
+                                  {
+                                    "constructor": "Joins.Count.mk",
+                                    "params": [
+                                      {
+                                        "id": 40,
+                                        "type": "UInt32"
+                                      }
+                                    ],
+                                    "body": {
+                                      "op": "cases",
+                                      "var": 41,
+                                      "type": "Joins.Nested",
+                                      "result": "Joins.State",
+                                      "alts": [
+                                        {
+                                          "constructor": "Joins.Nested.mk",
+                                          "params": [
+                                            {
+                                              "id": 42,
+                                              "type": "Joins.Count"
+                                            }
+                                          ],
+                                          "body": {
+                                            "op": "cases",
+                                            "var": 42,
+                                            "type": "Joins.Count",
+                                            "result": "Joins.State",
+                                            "alts": [
+                                              {
+                                                "constructor": "Joins.Count.mk",
+                                                "params": [
+                                                  {
+                                                    "id": 43,
+                                                    "type": "UInt32"
+                                                  }
+                                                ],
+                                                "body": {
+                                                  "op": "cases",
+                                                  "var": 44,
+                                                  "type": "Joins.Enabled",
+                                                  "result": "Joins.State",
+                                                  "alts": [
+                                                    {
+                                                      "constructor": "Joins.Enabled.mk",
+                                                      "params": [
+                                                        {
+                                                          "id": 45,
+                                                          "type": "Bool"
+                                                        }
+                                                      ],
+                                                      "body": {
+                                                        "op": "cases",
+                                                        "var": 45,
+                                                        "type": "Bool",
+                                                        "result": "Joins.State",
+                                                        "alts": [
+                                                          {
+                                                            "constructor": "Bool.false",
+                                                            "params": [],
+                                                            "body": {
+                                                              "op": "let",
+                                                              "bind": {
+                                                                "id": 47,
+                                                                "type": "UInt32"
+                                                              },
+                                                              "value": {
+                                                                "kind": "call",
+                                                                "name": "Joins.add",
+                                                                "args": [
+                                                                  43,
+                                                                  38
+                                                                ]
+                                                              },
+                                                              "next": {
+                                                                "op": "jump",
+                                                                "target": 17,
+                                                                "args": [
+                                                                  38,
+                                                                  40,
+                                                                  46,
+                                                                  47
+                                                                ]
+                                                              }
+                                                            }
+                                                          },
+                                                          {
+                                                            "constructor": "Bool.true",
+                                                            "params": [],
+                                                            "body": {
+                                                              "op": "let",
+                                                              "bind": {
+                                                                "id": 48,
+                                                                "type": "Bool"
+                                                              },
+                                                              "value": {
+                                                                "kind": "primitive",
+                                                                "name": "UInt32.decLt",
+                                                                "args": [
+                                                                  38,
+                                                                  46
+                                                                ]
+                                                              },
+                                                              "next": {
+                                                                "op": "cases",
+                                                                "var": 48,
+                                                                "type": "Bool",
+                                                                "result": "Joins.State",
+                                                                "alts": [
+                                                                  {
+                                                                    "constructor": "Bool.false",
+                                                                    "params": [],
+                                                                    "body": {
+                                                                      "op": "jump",
+                                                                      "target": 24,
+                                                                      "args": [
+                                                                        38,
+                                                                        40,
+                                                                        45,
+                                                                        43,
+                                                                        46,
+                                                                        46
+                                                                      ]
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "constructor": "Bool.true",
+                                                                    "params": [],
+                                                                    "body": {
+                                                                      "op": "jump",
+                                                                      "target": 24,
+                                                                      "args": [
+                                                                        38,
+                                                                        40,
+                                                                        45,
+                                                                        43,
+                                                                        46,
+                                                                        38
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          }
+                                                        ]
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "join": {
+                      "id": 24,
+                      "params": [
+                        {
+                          "id": 25,
+                          "type": "UInt32"
+                        },
+                        {
+                          "id": 26,
+                          "type": "UInt32"
+                        },
+                        {
+                          "id": 27,
+                          "type": "Bool"
+                        },
+                        {
+                          "id": 28,
+                          "type": "UInt32"
+                        },
+                        {
+                          "id": 29,
+                          "type": "UInt32"
+                        },
+                        {
+                          "id": 30,
+                          "type": "UInt32"
+                        }
+                      ],
+                      "body": {
+                        "op": "let",
+                        "bind": {
+                          "id": 31,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Joins.add",
+                          "args": [
+                            30,
+                            28
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 32,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "call",
+                            "name": "Joins.add",
+                            "args": [
+                              31,
+                              3
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 33,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "call",
+                              "name": "Joins.add",
+                              "args": [
+                                32,
+                                26
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 34,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "call",
+                                "name": "Joins.add",
+                                "args": [
+                                  33,
+                                  29
+                                ]
+                              },
+                              "next": {
+                                "op": "cases",
+                                "var": 27,
+                                "type": "Bool",
+                                "result": "Joins.State",
+                                "alts": [
+                                  {
+                                    "constructor": "Bool.false",
+                                    "params": [],
+                                    "body": {
+                                      "op": "jump",
+                                      "target": 17,
+                                      "args": [
+                                        25,
+                                        26,
+                                        29,
+                                        34
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "constructor": "Bool.true",
+                                    "params": [],
+                                    "body": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 35,
+                                        "type": "UInt32"
+                                      },
+                                      "value": {
+                                        "kind": "call",
+                                        "name": "Joins.add",
+                                        "args": [
+                                          25,
+                                          26
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 36,
+                                          "type": "Bool"
+                                        },
+                                        "value": {
+                                          "kind": "constructor",
+                                          "name": "Bool.false",
+                                          "args": []
+                                        },
+                                        "next": {
+                                          "op": "jump",
+                                          "target": 5,
+                                          "args": [
+                                            25,
+                                            34,
+                                            35,
+                                            29,
+                                            36
+                                          ]
+                                        }
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "join": {
+                    "id": 17,
+                    "params": [
+                      {
+                        "id": 18,
+                        "type": "UInt32"
+                      },
+                      {
+                        "id": 19,
+                        "type": "UInt32"
+                      },
+                      {
+                        "id": 20,
+                        "type": "UInt32"
+                      },
+                      {
+                        "id": 21,
+                        "type": "UInt32"
+                      }
+                    ],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 22,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Joins.add",
+                        "args": [
+                          18,
+                          19
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 23,
+                          "type": "Bool"
+                        },
+                        "value": {
+                          "kind": "constructor",
+                          "name": "Bool.true",
+                          "args": []
+                        },
+                        "next": {
+                          "op": "jump",
+                          "target": 5,
+                          "args": [
+                            18,
+                            21,
+                            22,
+                            20,
+                            23
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                "join": {
+                  "id": 5,
+                  "params": [
+                    {
+                      "id": 6,
+                      "type": "UInt32"
+                    },
+                    {
+                      "id": 7,
+                      "type": "UInt32"
+                    },
+                    {
+                      "id": 8,
+                      "type": "UInt32"
+                    },
+                    {
+                      "id": 9,
+                      "type": "UInt32"
+                    },
+                    {
+                      "id": 10,
+                      "type": "Bool"
+                    }
+                  ],
+                  "body": {
+                    "op": "let",
+                    "bind": {
+                      "id": 11,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "call",
+                      "name": "Joins.add",
+                      "args": [
+                        9,
+                        6
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 12,
+                        "type": "Joins.Count"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Joins.Count.mk",
+                        "args": [
+                          8
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 13,
+                          "type": "Joins.Count"
+                        },
+                        "value": {
+                          "kind": "constructor",
+                          "name": "Joins.Count.mk",
+                          "args": [
+                            7
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 14,
+                            "type": "Joins.Nested"
+                          },
+                          "value": {
+                            "kind": "constructor",
+                            "name": "Joins.Nested.mk",
+                            "args": [
+                              13
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 15,
+                              "type": "Joins.Enabled"
+                            },
+                            "value": {
+                              "kind": "constructor",
+                              "name": "Joins.Enabled.mk",
+                              "args": [
+                                10
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 16,
+                                "type": "Joins.State"
+                              },
+                              "value": {
+                                "kind": "constructor",
+                                "name": "Joins.State.mk",
+                                "args": [
+                                  12,
+                                  14,
+                                  15,
+                                  11
+                                ]
+                              },
+                              "next": {
+                                "op": "return",
+                                "var": 16
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "function_ids": {
+    "Joins.add": 0,
+    "Joins.update": 1
+  },
+  "constructor_ids": {
+    "Bool.false": [
+      1,
+      0
+    ],
+    "Bool.true": [
+      1,
+      1
+    ],
+    "Joins.Count.mk": [
+      2,
+      0
+    ],
+    "Joins.Enabled.mk": [
+      3,
+      0
+    ],
+    "Joins.Nested.mk": [
+      4,
+      0
+    ],
+    "Joins.State.mk": [
+      5,
+      0
+    ]
+  },
+  "generated_files": {
+    "control.go": "77b6155056fe759c16162ce5f6284aa553dcff17a3846e634a49db43b68e906f",
+    "runtime.go": "3cf0882aa2448d742c0e87d95c835bcc9fac120e154586613becc8ffc62a2391",
+    "schema.go": "86d924f3a669dfad35649865915a592b53a82f6406b222c7abeee28f29a34e42"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt32.add",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a + b) modulo 2^32"
+    },
+    {
+      "name": "UInt32.decLt",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a \u003c b"
+    }
+  ]
+}

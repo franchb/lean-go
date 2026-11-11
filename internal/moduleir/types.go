@@ -6,6 +6,8 @@ const (
 	Profile         = "pure-module/v1"
 	SchemaV3        = "lean-go-ir/v3"
 	ProfileV2       = "pure-module/v2"
+	SchemaV4        = "lean-go-ir/v4"
+	ProfileV3       = "pure-module/v3"
 	Stage           = "pure-mono"
 	LeanVersion     = "4.35.0"
 	LeanCommit      = "eb6cafb7290e8bd5f2937522d8d804f58f02bafc"
@@ -53,6 +55,11 @@ type Alt struct {
 	Params      []Param `json:"params"`
 	Body        *Code   `json:"body"`
 }
+type Join struct {
+	ID     int     `json:"id"`
+	Params []Param `json:"params"`
+	Body   *Code   `json:"body"`
+}
 type Code struct {
 	Op     string `json:"op"`
 	Bind   *Param `json:"bind,omitempty"`
@@ -62,6 +69,9 @@ type Code struct {
 	Type   string `json:"type,omitempty"`
 	Result string `json:"result,omitempty"`
 	Alts   []Alt  `json:"alts,omitempty"`
+	Join   *Join  `json:"join,omitempty"`
+	Target int    `json:"target,omitempty"`
+	Args   []int  `json:"args,omitzero"`
 }
 type Function struct {
 	Name   string  `json:"name"`

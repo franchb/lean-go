@@ -123,6 +123,7 @@ var objectFields = map[string][]string{
 	"claim": {"name", "statement", "axioms"}, "rewrite": {"source", "target", "theorem", "axioms"},
 	"value": {"kind", "name", "args"}, "alt": {"constructor", "params", "body"}, "function": {"name", "params", "result", "body"},
 	"let": {"op", "bind", "value", "next"}, "cases": {"op", "var", "type", "result", "alts"}, "return": {"op", "var"},
+	"join": {"op", "join", "next"}, "join_decl": {"id", "params", "body"}, "jump": {"op", "target", "args"},
 }
 
 func checkShape(value any, kind string) error {
@@ -136,7 +137,7 @@ func checkShape(value any, kind string) error {
 			return fmt.Errorf("code requires string op")
 		}
 		switch op {
-		case "let", "cases", "return":
+		case "let", "cases", "return", "join", "jump":
 			kind = op
 		default:
 			return fmt.Errorf("unsupported code op %q", op)
@@ -153,8 +154,10 @@ func checkShape(value any, kind string) error {
 	}
 	numberField := ""
 	switch kind {
-	case "param":
+	case "param", "join_decl":
 		numberField = "id"
+	case "jump":
+		numberField = "target"
 	case "constructor":
 		numberField = "tag"
 	case "cases", "return":
@@ -188,9 +191,9 @@ func checkShape(value any, kind string) error {
 		return list("fields", "")
 	case "claim", "rewrite":
 		return list("axioms", "")
-	case "value":
+	case "value", "jump":
 		return list("args", "")
-	case "alt", "function":
+	case "alt", "function", "join_decl":
 		if err := list("params", "param"); err != nil {
 			return err
 		}
@@ -203,6 +206,11 @@ func checkShape(value any, kind string) error {
 		}
 	case "cases":
 		return list("alts", "alt")
+	case "join":
+		if err := check("join", "join_decl"); err != nil {
+			return err
+		}
+		return check("next", "code")
 	}
 	return nil
 }

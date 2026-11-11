@@ -17,7 +17,7 @@ import (
 //go:embed templates/runtime.go.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v2"
+const Version = "lean-go-modulegen/v3"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -27,6 +27,7 @@ type function struct {
 	nodes  []*moduleir.Code
 	states map[*moduleir.Code]int
 	slots  map[int]int
+	joins  map[int]*moduleir.Join
 }
 type generator struct {
 	program      *moduleir.Program
@@ -74,7 +75,7 @@ func newGenerator(p *moduleir.Program) *generator {
 		}
 	}
 	for i, d := range p.Functions {
-		f := &function{decl: d, id: i, states: map[*moduleir.Code]int{}, slots: map[int]int{}}
+		f := &function{decl: d, id: i, states: map[*moduleir.Code]int{}, slots: map[int]int{}, joins: map[int]*moduleir.Join{}}
 		for _, param := range d.Params {
 			f.slots[param.ID] = 0
 		}
@@ -94,6 +95,14 @@ func newGenerator(p *moduleir.Program) *generator {
 func (f *function) collect(c *moduleir.Code) {
 	f.states[c] = len(f.nodes)
 	f.nodes = append(f.nodes, c)
+	if c.Op == "join" {
+		f.joins[c.Join.ID] = c.Join
+		for _, p := range c.Join.Params {
+			f.slots[p.ID] = 0
+		}
+		f.collect(c.Join.Body)
+		f.collect(c.Next)
+	}
 	if c.Op == "let" {
 		f.slots[c.Bind.ID] = 0
 		f.collect(c.Next)
@@ -178,6 +187,10 @@ func (g *generator) emitControl(w *bytes.Buffer) {
 }
 func (g *generator) emitCode(w *bytes.Buffer, f *function, c *moduleir.Code) {
 	switch c.Op {
+	case "join":
+		fmt.Fprintf(w, "f.pc=%d\n", f.states[c.Next])
+	case "jump":
+		g.emitJump(w, f, c)
 	case "return":
 		fmt.Fprintf(w, "value:=f.slots[%d];destination:=f.destination;stack=stack[:len(stack)-1];if len(stack)==0{return value,nil};stack[len(stack)-1].slots[destination]=value\n", f.slots[c.Var])
 	case "cases":
@@ -241,8 +254,11 @@ func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
 		Evidence        string                `json:"evidence"`
 		Primitives      *[]moduleir.Primitive `json:"primitives,omitempty"`
 	}{Schema: "lean-go-manifest/v2", Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
-	if g.program.Schema == moduleir.SchemaV3 {
+	if g.program.Schema == moduleir.SchemaV3 || g.program.Schema == moduleir.SchemaV4 {
 		manifest.Schema = "lean-go-manifest/v3"
+		if g.program.Schema == moduleir.SchemaV4 {
+			manifest.Schema = "lean-go-manifest/v4"
+		}
 		primitives := g.primitiveCatalog()
 		manifest.Primitives = &primitives
 	}

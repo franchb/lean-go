@@ -1,5 +1,9 @@
 # Record fields and source-shaped wrappers
 
+This report records the record-adapter milestone. The subsequent
+[local join milestone](extraction-joins.md) adds conditional branch results and
+advances new exports to v4 IR; the representation rules below still apply.
+
 This milestone makes ordinary record field access, nested reads and updates work
 when Lean removes single-field wrappers during compilation. Multi-field record
 access was already supported through Lean's projection-to-cases lowering.
@@ -53,8 +57,8 @@ wrappers. A wrapper may contain a nontrivial recursive sum.
 
 Unwrapping uses existing exhaustive cases; wrapping uses existing constructors.
 There are no new IR operations, synthetic functions, runtime representations or
-compiler passes. Exports remain `lean-go-ir/v3` / `pure-module/v2`, and the Go
-validator, emitter and runtime template are unchanged. The trusted producer
+compiler passes. At this milestone exports used `lean-go-ir/v3` / `pure-module/v2`,
+and the Go validator, emitter and runtime template were unchanged. The trusted producer
 input hashes include the new record adapter source.
 
 All inserted instructions and binders count toward IR limits. At runtime,
@@ -68,8 +72,9 @@ Original source dependencies still pass the historical and final audits,
 including generated accessors, inlined helpers and imported modern modules.
 Unsupported replacements, externs and axioms are not permitted through erasure.
 No new standard-library exception was added. Generics, proof/dependent fields,
-other numeric types, local joins and local functions remain unsupported; a
-conditional record update may still lower to a rejected join.
+other numeric types and local functions remain unsupported. Local joins were
+unsupported at this milestone; the subsequent join extension admits conditional
+record updates within its lexical control-flow rules.
 
 Source elaboration remains trusted local execution. This work preserves source
 data shapes through tested extraction; it does not prove compiler correctness.
