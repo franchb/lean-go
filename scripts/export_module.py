@@ -237,12 +237,12 @@ def export_module(root, source_dir, module, entry, output):
         if len(raw) > MAX_IR_BYTES:
             raise ExportError("producer IR exceeds 4 MiB")
         program = parse_json(raw)
-        fields = {"module", "root", "types", "functions", "claims", "rewrites", "provenance"}
+        fields = {"module", "root", "types", "functions", "claims", "rewrites", "provenance", "api"}
         if not isinstance(program, dict) or set(program) != fields:
             raise ExportError("unexpected module producer result fields")
         if program["module"] != module or program["root"] != entry:
             raise ExportError("module producer returned a different module or root")
-        program.update(schema="lean-go-ir/v4", profile="pure-module/v3", stage="pure-mono",
+        program.update(schema="lean-go-ir/v5", profile="pure-module/v3", stage="pure-mono",
                        lean_version="4.35.0", lean_commit=COMMIT,
                        inputs=input_digests(sources, producer))
         result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()

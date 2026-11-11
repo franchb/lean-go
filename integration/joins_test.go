@@ -419,7 +419,7 @@ func requireJoinControl(t *testing.T, data []byte, minimum, nesting int) {
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program["schema"] != "lean-go-ir/v4" || program["profile"] != "pure-module/v3" {
+	if program["schema"] != "lean-go-ir/v5" || program["profile"] != "pure-module/v3" {
 		t.Fatalf("unexpected join IR schema/profile: %v/%v", program["schema"], program["profile"])
 	}
 	joinCount, jumpCount, maxDepth := 0, 0, 0

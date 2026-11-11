@@ -404,7 +404,7 @@ func requireLocalIR(t *testing.T, data []byte) {
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program.Schema != "lean-go-ir/v4" || program.Profile != "pure-module/v3" || program.Root != "Local.run" {
+	if program.Schema != "lean-go-ir/v5" || program.Profile != "pure-module/v3" || program.Root != "Local.run" {
 		t.Fatalf("unexpected local schema/profile/root: %s/%s/%s", program.Schema, program.Profile, program.Root)
 	}
 	functions := make(map[string]reducedFunction)

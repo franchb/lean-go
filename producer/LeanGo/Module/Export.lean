@@ -51,6 +51,26 @@ def exportTypes (used : List String) : CoreM Json := do
       result := result.push <| obj [("name", str name), ("constructors", .arr ctors)]
   return .arr (sortByName result)
 
+-- Direct structure fields follow constructor order, including embedded parents.
+-- Environment lookup does not run MetaM or consume the compiler name generator.
+def exportAPI (types : Json) : CoreM Json := do
+  let .arr declarations := types | throwError "Invalid exported type closure"
+  let env ← getEnv
+  let mut records := []
+  for declaration in declarations do
+    let .ok name := declaration.getObjValAs? String "name"
+      | throwError "Invalid exported type name"
+    if let some info := getStructureInfo? env name.toName then
+      let .ok ctors := declaration.getObjValAs? (Array Json) "constructors"
+        | throwError "Invalid exported constructors: {name}"
+      unless ctors.size == 1 do throwError "Structure constructor count mismatch: {name}"
+      let .ok fields := ctors[0]!.getObjValAs? (Array String) "fields"
+        | throwError "Invalid exported constructor fields: {name}"
+      unless info.fieldNames.size == fields.size do
+        throwError "Structure field count mismatch: {name}"
+      records := records ++ [(name, toJson (info.fieldNames.map Name.toString))]
+  return obj [("records", obj records)]
+
 structure FunctionShape where
   domains : List String
   result : String
@@ -473,8 +493,10 @@ def exportProgram (moduleName : String) (root : Name) : CoreM Json := do
       pending := calls ++ pending
   rejectMutualRecursion graph
   let (provenance, rewrites) ← auditSource (graph.map Prod.fst)
+  let exportedTypes ← exportTypes types
+  let api ← exportAPI exportedTypes
   return obj [("module", str moduleName), ("root", str root.toString),
-    ("types", ← exportTypes types), ("functions", .arr (sortByName functions)),
+    ("types", exportedTypes), ("api", api), ("functions", .arr (sortByName functions)),
     ("claims", .arr #[]), ("rewrites", rewrites), ("provenance", provenance)]
 
 elab "#lean_go_export " output:str root:ident moduleName:str : command => do

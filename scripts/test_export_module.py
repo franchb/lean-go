@@ -135,7 +135,7 @@ class ModuleExportTests(unittest.TestCase):
         else:
             self.assertIn('import Example', (workspace / 'LeanGo/Module/Harness.lean').read_text())
             (workspace / 'ir.json').write_text(json.dumps(dict(module='Example', root='identity',
-                types=[], functions=[], claims=[], rewrites=[], provenance=[])))
+                types=[], functions=[], claims=[], rewrites=[], provenance=[], api={'records': {}})))
         return ''
 
     def export(self):
@@ -146,7 +146,8 @@ class ModuleExportTests(unittest.TestCase):
         with mock.patch.object(producer, 'run', side_effect=self.fake_run):
             self.export()
         program = json.loads(self.output.read_bytes())
-        self.assertEqual(program['schema'], 'lean-go-ir/v4')
+        self.assertEqual(program['schema'], 'lean-go-ir/v5')
+        self.assertEqual(program['api'], {'records': {}})
         self.assertEqual(program['profile'], 'pure-module/v3')
         self.assertIn('producer/LeanGo/Module/Primitives.lean', program['inputs'])
         self.assertEqual(program['root'], 'identity')

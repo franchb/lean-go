@@ -445,7 +445,7 @@ func requireReducedIR(t *testing.T, data []byte, root string, rootParams, retain
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program.Schema != "lean-go-ir/v4" || program.Profile != "pure-module/v3" || program.Root != root {
+	if program.Schema != "lean-go-ir/v5" || program.Profile != "pure-module/v3" || program.Root != root {
 		t.Fatalf("unexpected reduced schema/profile/root: %s/%s/%s", program.Schema, program.Profile, program.Root)
 	}
 	functions := make(map[string]reducedFunction)

@@ -21,6 +21,7 @@ func TestCompileNumericSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.Schema, p.Profile, p.Module, p.Root = "lean-go-ir/v3", "pure-module/v2", "Literal", "Literal.answer"
+	p.API = nil
 	p.Types = []moduleir.TypeDecl{}
 	p.Provenance = []moduleir.Provenance{{Name: p.Root, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}}
 	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{}, Result: "UInt32", Body: &moduleir.Code{
@@ -42,6 +43,35 @@ func TestCompileNumericSchema(t *testing.T) {
 	}
 	if _, err = compile(bytes.NewReader(data)); err == nil {
 		t.Fatal("older profile accepted a numeric literal")
+	}
+}
+
+func TestCompileAPISchema(t *testing.T) {
+	data, err := os.ReadFile("../../testdata/choice.ir.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var p moduleir.Program
+	if err := json.Unmarshal(data, &p); err != nil {
+		t.Fatal(err)
+	}
+	p.Schema, p.Profile = moduleir.SchemaV5, moduleir.ProfileV3
+	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
+	data, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := compile(bytes.NewReader(data))
+	if err != nil || len(files["schema.go"]) == 0 {
+		t.Fatalf("v5 dispatch: files=%d err=%v", len(files), err)
+	}
+	p.API = nil
+	data, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := compile(bytes.NewReader(data)); err == nil {
+		t.Fatal("v5 dispatch accepted missing API metadata")
 	}
 }
 

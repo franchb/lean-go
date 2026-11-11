@@ -8,9 +8,9 @@ use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python a
 needed for regeneration, not deployment.
 
 The original audited normalizer remains available as a separate v1 profile.
-Module exports now use `pure-module/v3` with v4 IR, including UInt32 arithmetic,
-comparisons and local joins for branch results. Earlier v2 and v3 IR remain
-accepted with their original restrictions.
+Module exports now use `pure-module/v3` with v5 IR, including UInt32 arithmetic,
+comparisons, local joins and source record names for typed Go APIs. Earlier v2,
+v3 and v4 IR remain accepted with their original restrictions and raw APIs.
 There is no fixed model hash or application name allowlist. This is local
 experimental software; no release has been published.
 
@@ -80,7 +80,35 @@ and the [UInt32 report](docs/research/extraction-uint32.md) for numeric semantic
 and validation evidence, plus the
 [module design](docs/superpowers/specs/2026-11-11-lean-go-modules-design.md).
 
-## Generated module API
+## Typed module API
+
+New module exports include typed constructors, record getters, sum destructors and
+`RunTyped`. ADT wrappers own immutable values; `UInt32` and `Bool` use Go `uint32`
+and `bool`. For example, the generated tree package can be called without Lean
+names or field indexes:
+
+```go
+import x "github.com/franchb/lean-go/generated/trees"
+
+limits := x.DefaultLimits()
+red, err := x.NewColorRed(limits)
+if err != nil { panic(err) }
+leaf, err := x.NewTreeLeaf(red, limits)
+if err != nil { panic(err) }
+result, err := x.RunTyped(leaf, limits)
+if err != nil { panic(err) }
+color, ok := result.AsLeaf()
+if !ok || !color.IsBlue() { panic("unexpected result") }
+```
+
+Records have named getters such as `count.Value()` and `state.Count()`, returning
+a typed value and a validity flag. Sums have `IsLeaf`/`AsLeaf`-style methods.
+Constructors reject invalid zero wrappers and enforce input node/depth limits.
+`RunTyped` delegates to the same runtime and resource limits as `Run`. Generated
+names are deterministic; the manifest records collision resolutions. See the
+[typed API report](docs/research/extraction-typed-api.md) for the complete contract.
+
+## Raw module API
 
 The selected root is exposed as `Run`. Full Lean names identify values, avoiding
 Go identifier collisions between different source modules:

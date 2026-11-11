@@ -14,10 +14,10 @@ import (
 	"github.com/franchb/lean-go/internal/moduleir"
 )
 
-//go:embed templates/runtime.go.tmpl
+//go:embed templates/*.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v3"
+const Version = "lean-go-modulegen/v4"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -31,6 +31,7 @@ type function struct {
 }
 type generator struct {
 	program      *moduleir.Program
+	api          *goAPI
 	types        map[string]int
 	constructors map[string]constructor
 	functions    map[string]*function
@@ -52,6 +53,14 @@ func Generate(p *moduleir.Program) (map[string][]byte, error) {
 		return nil, err
 	}
 	files := map[string][]byte{"runtime.go": runtime, "schema.go": schema.Bytes(), "control.go": control.Bytes()}
+	if p.Schema == moduleir.SchemaV5 {
+		g.api = newGoAPI(p)
+		api, err := g.emitAPI()
+		if err != nil {
+			return nil, err
+		}
+		files["api.go"] = api
+	}
 	for name, data := range files {
 		formatted, err := format.Source(data)
 		if err != nil {
@@ -253,14 +262,19 @@ func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
 		Files           map[string]string     `json:"generated_files"`
 		Evidence        string                `json:"evidence"`
 		Primitives      *[]moduleir.Primitive `json:"primitives,omitempty"`
+		GoAPI           *goAPI                `json:"go_api,omitempty"`
 	}{Schema: "lean-go-manifest/v2", Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
-	if g.program.Schema == moduleir.SchemaV3 || g.program.Schema == moduleir.SchemaV4 {
+	if g.program.Schema == moduleir.SchemaV3 || g.program.Schema == moduleir.SchemaV4 || g.program.Schema == moduleir.SchemaV5 {
 		manifest.Schema = "lean-go-manifest/v3"
 		if g.program.Schema == moduleir.SchemaV4 {
 			manifest.Schema = "lean-go-manifest/v4"
 		}
 		primitives := g.primitiveCatalog()
 		manifest.Primitives = &primitives
+	}
+	if g.program.Schema == moduleir.SchemaV5 {
+		manifest.Schema = "lean-go-manifest/v5"
+		manifest.GoAPI = g.api
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {

@@ -7,6 +7,7 @@ const (
 	SchemaV3        = "lean-go-ir/v3"
 	ProfileV2       = "pure-module/v2"
 	SchemaV4        = "lean-go-ir/v4"
+	SchemaV5        = "lean-go-ir/v5"
 	ProfileV3       = "pure-module/v3"
 	Stage           = "pure-mono"
 	LeanVersion     = "4.35.0"
@@ -85,6 +86,11 @@ type Provenance struct {
 	Rewrites     []Rewrite `json:"rewrites"`
 }
 
+// APIMetadata supplies presentation names without changing runtime type shapes.
+type APIMetadata struct {
+	Records map[string][]string `json:"records"`
+}
+
 type Program struct {
 	Schema      string            `json:"schema"`
 	Profile     string            `json:"profile"`
@@ -99,4 +105,5 @@ type Program struct {
 	Rewrites    []Rewrite         `json:"rewrites"`
 	Provenance  []Provenance      `json:"provenance"`
 	Functions   []Function        `json:"functions"`
+	API         *APIMetadata      `json:"api,omitempty"`
 }

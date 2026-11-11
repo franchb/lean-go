@@ -11,7 +11,7 @@ spec.loader.exec_module(generate)
 
 class InputFreshnessTests(unittest.TestCase):
     def test_all_module_schemas_use_module_freshness(self):
-        for schema in ('lean-go-ir/v2', 'lean-go-ir/v3', 'lean-go-ir/v4'):
+        for schema in ('lean-go-ir/v2', 'lean-go-ir/v3', 'lean-go-ir/v4', 'lean-go-ir/v5'):
             program = {'schema': schema}
             with self.subTest(schema=schema), mock.patch.object(generate, 'verify_module_inputs') as verify:
                 generate.verify_inputs(Path('/project'), program, Path('/source'))

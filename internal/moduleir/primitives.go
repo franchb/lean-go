@@ -39,7 +39,16 @@ func LookupPrimitive(name string) (Primitive, bool) {
 }
 
 func validProfile(schema, profile string) bool {
-	return schema == Schema && profile == Profile || schema == SchemaV3 && profile == ProfileV2 || schema == SchemaV4 && profile == ProfileV3
+	switch schema {
+	case Schema:
+		return profile == Profile
+	case SchemaV3:
+		return profile == ProfileV2
+	case SchemaV4, SchemaV5:
+		return profile == ProfileV3
+	default:
+		return false
+	}
 }
 
 func (v *validator) validateNumericTypes() error {

@@ -104,7 +104,7 @@ func TestJoinManifestAndCompatibility(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v4" || manifest.Generator != "lean-go-modulegen/v3" || len(manifest.Primitives) != len(numericOperations) {
+	if manifest.Schema != "lean-go-manifest/v4" || manifest.Generator != "lean-go-modulegen/v4" || len(manifest.Primitives) != len(numericOperations) {
 		t.Fatal("wrong join manifest", manifest.Schema, manifest.Generator, manifest.Primitives)
 	}
 	raw, err := json.Marshal(manifest.Program)

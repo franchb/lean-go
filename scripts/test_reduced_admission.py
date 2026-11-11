@@ -54,7 +54,7 @@ class ReducedAdmissionTests(unittest.TestCase):
         self.assertEqual(provenance[helper],
                          dict(name=helper, dependencies=[owner], rewrites=[]))
         self.assertIn(owner, provenance)
-        self.assertEqual(program['schema'], 'lean-go-ir/v4')
+        self.assertEqual(program['schema'], 'lean-go-ir/v5')
         self.assertEqual(program['profile'], 'pure-module/v3')
         return function
 

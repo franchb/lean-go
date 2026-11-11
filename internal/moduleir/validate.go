@@ -57,6 +57,9 @@ func Validate(p *Program) error {
 	if err := v.validateTypes(p.Types); err != nil {
 		return err
 	}
+	if err := v.validateAPI(p); err != nil {
+		return err
+	}
 	if err := v.validateNumericTypes(); err != nil {
 		return err
 	}

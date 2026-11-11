@@ -144,6 +144,9 @@ func checkShape(value any, kind string) error {
 		}
 	}
 	fields := objectFields[kind]
+	if kind == "program" && obj["schema"] == SchemaV5 {
+		fields = append(append([]string{}, fields...), "api")
+	}
 	if len(obj) != len(fields) {
 		return fmt.Errorf("%s has missing or irrelevant fields", kind)
 	}
@@ -172,6 +175,11 @@ func checkShape(value any, kind string) error {
 	list := func(field, child string) error { return checkArray(obj[field], child) }
 	switch kind {
 	case "program":
+		if api, exists := obj["api"]; exists {
+			if err := checkAPIShape(api); err != nil {
+				return err
+			}
+		}
 		if _, ok := obj["inputs"].(map[string]any); !ok {
 			return fmt.Errorf("inputs must be an object")
 		}
