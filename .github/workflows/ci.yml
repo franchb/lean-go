@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CGO_ENABLED: '0'
+  GOTOOLCHAIN: local
+  GOWORK: 'off'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  go:
+    name: Go (${{ matrix.os }})
+    if: github.ref_type != 'tag'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Verify Go toolchain
+        run: |
+          go version
+          test "$(go env GOVERSION)" = go1.27.4
+          go env CGO_ENABLED GOTOOLCHAIN GOWORK
+      - name: Test
+        run: go test -count=1 -timeout=25m ./...
+      - name: Vet
+        run: go vet ./...
+
+  extraction:
+    name: Lean extraction (Ubuntu)
+    if: github.ref_type != 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      LEAN_GO_NATIVE: '1'
+      LEAN_GO_REGENERATE: '1'
+      LEAN_GO_MODULES: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.5'
+          python-version: '3.15.1'
+          enable-cache: false
+      - name: Install pinned Lean release
+        run: |
+          archive="$RUNNER_TEMP/lean-4.35.0-linux.tar.zst"
+          curl --fail --location --retry 3 \
+            https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst \
+            --output "$archive"
+          printf '%s  %s\n' \
+            7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d \
+            "$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/lean"
+          tar --zstd -xf "$archive" -C "$RUNNER_TEMP/lean" --strip-components=1
+          printf '%s\n' "$RUNNER_TEMP/lean/bin" >> "$GITHUB_PATH"
+      - name: Verify extraction toolchain
+        run: |
+          go version
+          test "$(go env GOVERSION)" = go1.27.4
+          uv --version
+          test "$(uv --version | cut -d ' ' -f 2)" = 0.13.5
+          lean --version
+          lake --version
+          uv run --locked python - <<'PY'
+          import subprocess
+          import sys
+
+          sys.path.insert(0, 'scripts')
+          from export import check_version
+
+          print(sys.version)
+          assert sys.version_info[:3] == (3, 15, 1)
+          check_version(subprocess.check_output(['lean', '--version'], text=True))
+          PY
+      - name: Native Lean comparison and fresh regeneration
+        run: go test -count=1 -timeout=60m ./...
+      - name: Python source admission tests
+        run: |
+          printf '%s\0' scripts/test_*.py |
+            xargs -0 -n 1 -P 3 uv run --locked python
+
+  tagged-consumer:
+    name: Tagged consumer (${{ matrix.os }})
+    # Tag only commits whose branch checks already passed.
+    if: github.ref_type == 'tag'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Verify Go toolchain
+        run: |
+          go version
+          test "$(go env GOVERSION)" = go1.27.4
+          go env CGO_ENABLED GOTOOLCHAIN GOWORK
+      - name: Fetch and exercise the exact public module tag
+        env:
+          LEAN_GO_RELEASE_VERSION: ${{ github.ref_name }}
+        run: go test -count=1 -timeout=25m -run '^TestTaggedReleaseConsumer$' -v ./integration

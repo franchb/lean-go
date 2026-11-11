@@ -11,8 +11,10 @@ The original audited normalizer remains available as a separate v1 profile.
 Module exports now use `pure-module/v4` with v6 IR, including UInt32 and UInt64
 arithmetic, comparisons, local joins and source record names for typed Go APIs.
 Earlier v2–v5 IR remain accepted with their original restrictions and APIs.
-There is no fixed model hash or application name allowlist. This is local
-experimental software; no release has been published.
+There is no fixed model hash or application name allowlist. The experimental
+preview is `v0.1.0-alpha.1`; APIs and supported compiler forms may change before
+a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
+[preview notes](docs/releases/v0.1.0-alpha.1.md).
 
 ## Extract a module
 
@@ -228,8 +230,8 @@ The assurance is **proved Lean logic with tested, trusted extraction**. Lean
 checks evaluation preservation and output normal form; the adapter, lowering,
 Go emitter, host boundary, compilers, and runtimes remain trusted. There is no
 end-to-end compiler-correctness proof. Linux/amd64 tests and an isolated Go-only
-consumer passed; Windows/amd64 has only been cross-built, and execution from a
-tagged release remains pending.
+consumer passed. CI runs Go checks on Linux and Windows; the published prerelease
+record links the observed platform and exact-tag consumer results.
 
 The [approved design](docs/superpowers/specs/2026-11-11-lean-go-extraction-design.md),
 [feasibility report](docs/research/extraction-feasibility.md), and
@@ -237,3 +239,6 @@ The [approved design](docs/superpowers/specs/2026-11-11-lean-go-extraction-desig
 architecture, and evidence boundaries.
 
 Maintainer: [franchb](https://github.com/franchb) · hello@franchb.com
+
+License: [Apache 2.0](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+pinned tools and validation workflow.
