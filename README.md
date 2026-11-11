@@ -12,9 +12,9 @@ Module exports now use `pure-module/v4` with v6 IR, including UInt32 and UInt64
 arithmetic, comparisons, local joins and source record names for typed Go APIs.
 Earlier v2–v5 IR remain accepted with their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
-preview is `v0.1.0-alpha.1`; APIs and supported compiler forms may change before
+preview is `v0.1.0-alpha.2`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
-[preview notes](docs/releases/v0.1.0-alpha.1.md).
+[preview notes](docs/releases/v0.1.0-alpha.2.md).
 
 ## Extract a module
 

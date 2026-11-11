@@ -84,7 +84,9 @@ func main() {
 	}
 	cache := t.TempDir()
 	settings := map[string]string{
-		"GOENV":      "off",
+		"GOENV": "off",
+		// The cache belongs to t.TempDir and must remain removable by the test.
+		"GOFLAGS":    "-modcacherw",
 		"GOPATH":     filepath.Join(cache, "gopath"),
 		"GOMODCACHE": filepath.Join(cache, "modules"),
 		"GOCACHE":    filepath.Join(cache, "build"),

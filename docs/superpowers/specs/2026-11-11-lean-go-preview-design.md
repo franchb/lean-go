@@ -1,6 +1,6 @@
 # Experimental public preview
 
-Publish the completed typed API and UInt64 work as `v0.1.0-alpha.1` in
+Publish the completed typed API and UInt64 work as `v0.1.0-alpha.2` in
 `github.com/franchb/lean-go`. This is experimental software for the documented
 subset of ordinary Lean, with a trusted extraction pipeline rather than a
 formally verified compiler. Keep public attribution to franchb and
@@ -28,3 +28,8 @@ the public repository, push the reviewed default branch, wait for actual CI
 success, tag that exact commit, verify tagged consumers, then publish a GitHub
 prerelease. Never rewrite a public version tag. Preserve the evidence in the
 release record. No unrelated announcements or messages are part of this work.
+
+The initial `v0.1.0-alpha.1` tag remains immutable. Its Linux consumer executed
+successfully but failed during cleanup of Go's read-only module cache. The
+alpha.2 candidate requests writable temporary cache directories and must pass
+the complete publication gates before becoming the first GitHub prerelease.

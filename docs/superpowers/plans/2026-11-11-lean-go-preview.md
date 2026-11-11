@@ -39,7 +39,9 @@ for changed code. Commit as franchb and transfer to the requested local checkout
 
 Create `franchb/lean-go` publicly and push the reviewed candidate to `main` over
 HTTPS. Observe Linux, Windows and extraction jobs to completion; fix any real
-failure before tagging. Tag the verified commit `v0.1.0-alpha.1`, then run the
+failure before tagging. Preserve the initial `v0.1.0-alpha.1` tag, whose consumer
+cleanup failure led to the writable-cache fix. Tag the verified fix commit
+`v0.1.0-alpha.2`, then run the
 isolated exact-tag consumer locally and in both CI operating systems. Publish a
 GitHub prerelease only after those gates pass, with links to the observed runs.
 Record completed evidence and synchronize task status. Preserve a clean local
