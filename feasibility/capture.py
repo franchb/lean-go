@@ -18,7 +18,8 @@ SUCCESS = "capture checks passed; manual IR and primitive audit required"
 MARKERS = (
     "CAPTURED", "CLOSURE_COMPLETE", "CODE", "EDGE", "CONSTRUCTOR",
     "REPLACEMENT", "EXTERNAL_LEAF", "EXTERN", "TYPE", "CTOR", "CTOR_TYPE",
-    "SOURCE", "SOURCE_REPLACEMENT", "SOURCE_EXTERN", "AXIOMS_ACCEPTED",
+    "SOURCE", "SOURCE_REPLACEMENT", "SOURCE_EXTERN", "SOURCE_CSIMP",
+    "AXIOMS", "AXIOMS_ACCEPTED",
 )
 PATTERN = re.compile(r"\b(" + "|".join(MARKERS) + r")\s+.*")
 FLAGS = [
@@ -60,9 +61,29 @@ def run(report, label, command):
     return result
 
 
+def marker_records(text):
+    return [match.group().strip() for line in text.splitlines()
+            if (match := PATTERN.search(line))]
+
+
 def inventory(text):
-    return sorted({match.group().strip() for line in text.splitlines()
-                   if (match := PATTERN.search(line))})
+    return sorted(set(marker_records(text)))
+
+
+def check_claims(text, expected, label):
+    records = marker_records(text)
+    for marker in ("AXIOMS", "AXIOMS_ACCEPTED"):
+        actual = sorted(row for row in records if row.startswith(marker + " "))
+        required = sorted(f"{marker} {name}: {axioms}" for name, axioms in expected.items())
+        require(actual == required, f"{label}: missing, duplicate, or unexpected {marker} audit")
+
+
+def check_substitutions(records, expected, label):
+    require([row for row in records if row.startswith("SOURCE_CSIMP ")] == [expected],
+            f"{label}: missing or unexpected compiler simplification edge")
+    require(not any(row.startswith(("REPLACEMENT ", "EXTERNAL_LEAF ", "EXTERN ",
+                                    "SOURCE_REPLACEMENT ", "SOURCE_EXTERN "))
+                    for row in records), f"{label}: unexpected external or replacement")
 
 
 def check_normalizer(label, result):
@@ -74,10 +95,16 @@ def check_normalizer(label, result):
         ) for row in records), f"{label}: missing nonempty {stage} root")
         require(f"CLOSURE_COMPLETE {stage}" in records,
                 f"{label}: incomplete {stage} closure")
-    for theorem in ("normalize_preserves_eval", "normalize_is_normal"):
-        require(any(re.fullmatch(
-            rf"AXIOMS_ACCEPTED {re.escape(PREFIX + theorem)}: \[.*\]", row,
-        ) for row in records), f"{label}: missing claim audit: {theorem}")
+    check_claims(result.stdout, {
+        PREFIX + "normalize_preserves_eval": "[propext]",
+        PREFIX + "normalize_is_normal": "[propext]",
+        "Bool.not_eq_internalNot": "[Quot.sound]",
+    }, label)
+    check_substitutions(marker_records(result.stdout),
+                        "SOURCE_CSIMP Bool.not -> Bool.Internal.not "
+                        "theorem=Bool.not_eq_internalNot", label)
+    require("SOURCE Bool.Internal.not" in records,
+            f"{label}: missing compiler simplification target source audit")
     for name in ("Tri", "Expr"):
         require(f"TYPE {PREFIX}{name} parameters=0" in records,
                 f"{label}: missing original type metadata: {name}")
@@ -89,17 +116,27 @@ def check_normalizer(label, result):
     for name, (tag, fields) in constructors.items():
         expected = f"CTOR {PREFIX}{name} tag={tag} parameters=0 fields={fields}"
         require(expected in records, f"{label}: incorrect or missing constructor: {name}")
+    types = {
+        "Tri.f": PREFIX + "Tri", "Tri.u": PREFIX + "Tri", "Tri.t": PREFIX + "Tri",
+        "Expr.lit": PREFIX + "Tri → " + PREFIX + "Expr",
+        "Expr.var": "UInt32 → " + PREFIX + "Expr",
+        "Expr.neg": PREFIX + "Expr → " + PREFIX + "Expr",
+        "Expr.conj": (PREFIX + "Expr → ") * 2 + PREFIX + "Expr",
+        "Expr.disj": (PREFIX + "Expr → ") * 2 + PREFIX + "Expr",
+    }
+    actual_types = sorted(row for row in marker_records(result.stdout)
+                          if row.startswith("CTOR_TYPE "))
+    required_types = sorted(f"CTOR_TYPE {PREFIX}{name}: {typ}" for name, typ in types.items())
+    require(actual_types == required_types, f"{label}: incorrect or missing constructor types")
     forbidden = ("eval", "normalizeAux_preserves_eval", "normalize_preserves_eval",
                  "normalizeAux_is_normal", "normalize_is_normal", "IsNormalForm",
                  "Tri.neg_neg", "Tri.neg_meet", "Tri.neg_join")
     runtime_rows = [row for row in records if row.startswith(("CODE ", "EDGE "))]
-    require(not any(PREFIX + name in row for row in runtime_rows for name in forbidden),
+    require(not any(PREFIX + name in row for row in runtime_rows for name in forbidden)
+            and not any("Bool.not_eq_internalNot" in row for row in runtime_rows),
             f"{label}: proof/reference code appears in runtime closure")
     require(all(" safe=true " in row for row in records if row.startswith("CODE ")),
             f"{label}: unsafe code in runtime closure")
-    require(not any(row.startswith(("REPLACEMENT ", "EXTERNAL_LEAF ", "EXTERN ",
-                                    "SOURCE_REPLACEMENT ", "SOURCE_EXTERN "))
-                    for row in records), f"{label}: unexpected external or replacement")
     return records
 
 
@@ -125,14 +162,58 @@ def check_raw_roots(text):
     return roots
 
 
-def check_bad_claim(result):
+def check_expected_error(result, filename, message):
     diagnostics = re.findall(r"^.*\berror:.*$", result.stdout, re.MULTILINE | re.IGNORECASE)
     expected = re.findall(
-        r"^BadClaim\.lean:\d+:\d+: error: Unexpected axiom BadClaim\.untrusted "
-        r"in BadClaim\.advertised$", result.stdout, re.MULTILINE,
+        r"^" + re.escape(filename) + r":\d+:\d+: error: " + re.escape(message) + r"$",
+        result.stdout, re.MULTILINE,
     )
     require(result.returncode == 1 and len(expected) == len(diagnostics) == 1,
-            "Bad claim must fail only at its expected axiom audit; inspect log")
+            f"{filename}: must fail only at its expected axiom audit; inspect log")
+
+
+def check_bad_claim(result):
+    check_expected_error(result, "BadClaim.lean",
+                         "Unexpected axiom BadClaim.untrusted in BadClaim.advertised")
+
+
+def check_csimp(result):
+    label = "csimp"
+    require(result.returncode == 0, "Compiler simplification fixture failed before classification")
+    records = marker_records(result.stdout)
+    check_substitutions(records,
+                        "SOURCE_CSIMP CSimpFixture.original -> CSimpFixture.replacement "
+                        "theorem=CSimpFixture.replace_eq", label)
+    check_claims(result.stdout, {"CSimpFixture.replace_eq": "[]"}, label)
+    require("SOURCE CSimpFixture.replacement" in records,
+            "Compiler simplification target source audit was missed")
+    for stage in ("base", "mono"):
+        require(f"EDGE {stage} CSimpFixture.root -> CSimpFixture.replacement" in records,
+                f"Compiler simplification executable edge was missed at {stage}")
+        for name in ("root", "replacement"):
+            require(f"CODE {stage} CSimpFixture.{name} safe=true recursive=false" in records,
+                    f"Compiler simplification executable body was missed at {stage}: {name}")
+    require(all(" safe=true " in row for row in records if row.startswith("CODE ")),
+            "Unsafe code in compiler simplification fixture")
+
+
+def check_bad_csimp(result):
+    message = "Unexpected axiom BadCSimpFixture.forged in BadCSimpFixture.replace_eq"
+    check_expected_error(result, "BadCSimpFixture.lean", message)
+    records = marker_records(result.stdout)
+    expected_axioms = ["AXIOMS BadCSimpFixture.logical_identity: []",
+                       "AXIOMS BadCSimpFixture.replace_eq: [BadCSimpFixture.forged]"]
+    require(sorted(row for row in records if row.startswith("AXIOMS ")) == expected_axioms,
+            "Bad compiler simplification fixture lost collected axiom evidence")
+    accepted = "AXIOMS_ACCEPTED BadCSimpFixture.logical_identity: []"
+    require([row for row in records if row.startswith("AXIOMS_ACCEPTED ")] == [accepted],
+            "Bad compiler simplification fixture must accept only its logical theorem")
+    edge = ("SOURCE_CSIMP BadCSimpFixture.original -> BadCSimpFixture.replacement "
+            "theorem=BadCSimpFixture.replace_eq")
+    check_substitutions(records, edge, "bad-csimp")
+    require(result.stdout.index(accepted) < result.stdout.index(edge)
+            < result.stdout.index("error: " + message),
+            "Logical theorem must pass before the forged compiler rewrite is rejected")
 
 
 def compile_file(report, label, filename):
@@ -141,14 +222,14 @@ def compile_file(report, label, filename):
 
 
 def capture(report):
-    require(not TEMP.exists(), "Temporary probe already exists; inspect it first")
     for path in sorted(ROOT.rglob("*.lean")):
         relative = path.relative_to(ROOT)
-        if not any(part in {".lake", ".evidence"} for part in relative.parts):
+        if path != TEMP and not any(part in {".lake", ".evidence"} for part in relative.parts):
             report["inputs"][relative.as_posix()] = digest(path.read_bytes())
     for name in ("lean-toolchain", "lakefile.toml", "lake-manifest.json",
                  "capture.py", "check_mutations.py"):
         report["inputs"][name] = digest((ROOT / name).read_bytes())
+    require(not TEMP.exists(), "Temporary probe already exists; inspect it first")
     require((ROOT / "lean-toolchain").read_text().strip() == "leanprover/lean4:v4.35.0",
             "Unexpected toolchain pin")
     version = run(report, "version", ["lake", "env", "lean", "--version"])
@@ -200,6 +281,8 @@ def capture(report):
         require(f"REPLACEMENT {stage} {edge}" in records,
                 f"Substitution was missed at {stage}")
     check_bad_claim(compile_file(report, "bad-claim", "BadClaim.lean"))
+    check_csimp(compile_file(report, "csimp", "CSimpFixture.lean"))
+    check_bad_csimp(compile_file(report, "bad-csimp", "BadCSimpFixture.lean"))
 
 
 def main():
