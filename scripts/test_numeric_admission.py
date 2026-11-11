@@ -69,7 +69,7 @@ def run (a b : UInt32) : UInt32 := a + b
 
     def test_unsupported_numeric_sources_preserve_output_even_when_folded(self):
         cases = {
-            'other_width': 'def run (a : UInt64) : UInt64 := a\n',
+            'other_width': 'def run (a : UInt16) : UInt16 := a\n',
             'custom_foreign_instance':
                 '@[extern \"lean_go_untrusted\"] opaque foreign : UInt32 → UInt32 → UInt32\n'
                 'instance : Add UInt32 := ⟨foreign⟩\n'

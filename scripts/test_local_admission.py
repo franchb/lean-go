@@ -51,8 +51,8 @@ class LocalAdmissionTests(unittest.TestCase):
         self.assertEqual(provenance[helper],
                          dict(name=helper, dependencies=[owner], rewrites=[]))
         self.assertIn(owner, provenance)
-        self.assertEqual(program['schema'], 'lean-go-ir/v5')
-        self.assertEqual(program['profile'], 'pure-module/v3')
+        self.assertEqual(program['schema'], 'lean-go-ir/v6')
+        self.assertEqual(program['profile'], 'pure-module/v4')
         self.assertTrue(any(call['name'] == helper for caller in program['functions']
                             for call in self.calls(caller)),
                         'the lifted function must have an emitted direct call')
@@ -148,7 +148,7 @@ def run (x : UInt32) : UInt32 := ordinary._lam_0 x
 
     def test_erased_unsupported_local_parameters_preserve_output(self):
         for name, typ, argument in [('proof', 'True', 'True.intro'),
-                                    ('wide', 'UInt64', '0'),
+                                    ('wide', 'UInt16', '0'),
                                     ('higher_order', 'UInt32 → UInt32', '(fun z => z)')]:
             with self.subTest(parameter=name):
                 body = SCALAR.replace('fun (a : UInt32) =>', f'fun (a : UInt32) (_unused : {typ}) =>')
@@ -169,7 +169,7 @@ def run (x : UInt32) : UInt32 := ordinary._lam_0 x
 
     def test_erased_unsupported_captures_preserve_output(self):
         for name, typ, value in [('proof', 'True', 'True.intro'),
-                                 ('wide', 'UInt64', '0'),
+                                 ('wide', 'UInt16', '0'),
                                  ('closure', 'UInt32 → UInt32', '(fun z => z)')]:
             with self.subTest(field=name):
                 record = f'structure Settings where\n  bias : UInt32\n  hidden : {typ}\n'

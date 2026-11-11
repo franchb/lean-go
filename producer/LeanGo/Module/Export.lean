@@ -33,7 +33,7 @@ def exportTypes (used : List String) : CoreM Json := do
     fuel := fuel - 1
     let name := pending.head!
     pending := pending.tail!
-    unless seen.contains name || name == "UInt32" do
+    unless seen.contains name || name == "UInt32" || name == "UInt64" do
       seen := name :: seen
       let n := name.toName
       discard <| typeKey (.const n [])
@@ -213,16 +213,20 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
     return prepend steps <| obj [("op", str "return"), ("var", toJson id)]
   | .let decl next =>
     let ty ← typeKey decl.type
-    if let .lit (.uint32 literal) := decl.value then
+    let literal? := match decl.value with
+      | .lit (.uint32 value) => some ("UInt32", "uint32", value.toNat)
+      | .lit (.uint64 value) => some ("UInt64", "uint64", value.toNat)
+      | _ => none
+    if let some (expected, kind, literal) := literal? then
       instruction depth
-      unless ty == "UInt32" do throwError "UInt32 literal type mismatch"
+      unless ty == expected do throwError "Numeric literal type mismatch"
       let (scope, param) ← bind scope decl.fvarId ty
       charge
-      let value := obj [("kind", str "uint32"), ("name", str (toString literal.toNat)), ("args", .arr #[])]
+      let value := obj [("kind", str kind), ("name", str (toString literal)), ("args", .arr #[])]
       return obj [("op", str "let"), ("bind", param), ("value", value),
         ("next", ← encode next scope joins result (depth + 1))]
     let .const name levels args _ := decl.value
-      | throwError "Unsupported let value (only UInt32 literals, primitive calls, functions and constructors are admitted)"
+      | throwError "Unsupported let value (only UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)"
     unless levels.isEmpty do throwError "Universe arguments unsupported"
     -- A later kernel collision must fail before it can be mistaken for a
     -- constructor or another independently admitted constant kind.
@@ -230,7 +234,7 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
     discard <| localEvidence? name
     let (kind, expected, target, allUnused) ← if let some primitive := numericPrimitive? name then do
       validateNumericPrimitive primitive
-      pure ("primitive", ["UInt32", "UInt32"], primitive.result.toString, false)
+      pure ("primitive", [primitive.operand.toString, primitive.operand.toString], primitive.result.toString, false)
     else do
       if (← getEnv).find? name matches some (.ctorInfo _) then
         let (target, fields) ← constructor name

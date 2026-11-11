@@ -4,10 +4,12 @@ package extracted
 import "errors"
 
 // Input is mutable caller-owned data. Type and constructor names are Lean names.
-// UInt32 uses Type="UInt32", no constructor or fields; ADTs require UInt32=0.
+// Scalars use their type name, no constructor or fields, and only their active payload.
+// ADTs require both UInt32=0 and UInt64=0.
 type Input struct {
 	Type, Constructor string
 	UInt32            uint32
+	UInt64            uint64
 	Fields            []*Input
 }
 type Limits struct{ MaxNodes, MaxDepth, MaxOutputNodes, MaxAllocations, MaxSteps, MaxFrames, MaxSlots uint64 }
@@ -24,6 +26,7 @@ var (
 type node struct {
 	typ, tag    int
 	scalar      uint32
+	scalar64    uint64
 	fields      []*node
 	size, depth uint64
 }
@@ -48,6 +51,12 @@ func (v Value) UInt32() (uint32, bool) {
 		return 0, false
 	}
 	return v.n.scalar, true
+}
+func (v Value) UInt64() (uint64, bool) {
+	if v.n == nil || v.n.typ != 3 {
+		return 0, false
+	}
+	return v.n.scalar64, true
 }
 
 // Fields returns a fresh slice; modifying it cannot change the owned value.
@@ -119,7 +128,7 @@ func Import(input *Input, l Limits) (Value, error) {
 		if err != nil {
 			return Value{}, err
 		}
-		result = &node{typ: f.typ, tag: f.tag, scalar: f.input.UInt32, fields: f.fields, size: size, depth: depth}
+		result = &node{typ: f.typ, tag: f.tag, scalar: f.input.UInt32, scalar64: f.input.UInt64, fields: f.fields, size: size, depth: depth}
 		delete(active, f.input)
 		stack = stack[:len(stack)-1]
 		if len(stack) > 0 {

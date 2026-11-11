@@ -58,7 +58,7 @@ def isPrimitiveDefinition (n : Name) : Bool :=
 -- `fun {motive} t false true => Bool.rec false true t`. It is not a runtime primitive;
 -- exportFunction still requires fresh compilation provenance for any emitted call.
 def isCompilerSupport (n : Name) : Bool :=
-  n == ``Bool || n == ``UInt32 || n == ``Unit || n == ``Unit.unit || n == ``Bool.casesOn
+  n == ``Bool || n == ``UInt32 || n == ``UInt64 || n == ``Unit || n == ``Unit.unit || n == ``Bool.casesOn
 
 -- In a `module` import, an ordinary public definition can be represented as an
 -- axiom because its implementation is hidden. Only a safe definition captured by

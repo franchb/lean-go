@@ -17,7 +17,7 @@ def validateSourceTypes (used : List String) : CoreM Unit := do
     fuel := fuel - 1
     let name := pending.head!
     pending := pending.tail!
-    unless name == "UInt32" || seen.contains name do
+    unless name == "UInt32" || name == "UInt64" || seen.contains name do
       seen := name :: seen
       discard <| typeKey (.const name.toName [])
       let info ← getConstInfoInduct name.toName

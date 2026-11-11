@@ -1,28 +1,28 @@
 {
-  "schema": "lean-go-manifest/v5",
-  "generator": "lean-go-modulegen/v4",
-  "generator_source_sha256": "48ad4018ce831a36ad6e684e32d7412c42c4cb02333ba6a73891d00e377406db",
-  "validator_source_sha256": "bc2ccfe1881a660d973a2c01a6770efd96351526f3f2073f07b6dc86b0ac7523",
-  "ir_sha256": "0667c13dadbfd89e91175dff4965ddd1b04c0c2aed65c55a04ac5cbc02435b36",
+  "schema": "lean-go-manifest/v6",
+  "generator": "lean-go-modulegen/v5",
+  "generator_source_sha256": "8a67b96bf468592b8adefc425f0be66ca29b2744712d072b638dc3e644b5035a",
+  "validator_source_sha256": "35ee55526bca8dca2e13816ac5bf4cbaf2daa513a5c35ec2a1052950bbb5b8d2",
+  "ir_sha256": "49f03f0c720262e3954a571db4be1764ee1768d945d7bbe006efe4bd3a01a7fd",
   "program": {
-    "schema": "lean-go-ir/v5",
-    "profile": "pure-module/v3",
+    "schema": "lean-go-ir/v6",
+    "profile": "pure-module/v4",
     "stage": "pure-mono",
     "lean_version": "4.35.0",
     "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
     "module": "Joins",
     "root": "Joins.update",
     "inputs": {
-      "producer/LeanGo/Module/Audit.lean": "53bf47e5d448cae4d52a1fd52b7dfada7730411dbbf269f4c382cd76e5cee823",
-      "producer/LeanGo/Module/Export.lean": "e19f590cd55e93a64beed19785d7e9c746715f3197bbd7089fd6e580d1d4df4f",
+      "producer/LeanGo/Module/Audit.lean": "72319ed42e98c0a10ccfaf84436fcc317c60a97b8294129962269e0801bc45f1",
+      "producer/LeanGo/Module/Export.lean": "81c6c5b9c754cd46c4b4d7e2fae1529cf1af0b0a043eb85c7fc718409d8e1c45",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "8a71824efc5b1b8bb454714eabf1627aaee0766b4e748e9174a18adc4fd23718",
-      "producer/LeanGo/Module/LocalSource.lean": "610ce5e3e6b1114353273250f4f0fc24107a19c0c76d82467dc281d71f10460d",
-      "producer/LeanGo/Module/Primitives.lean": "142e099912d496dae63d6996273fa37ddfdb2929860a408fcfb7ee9e011c1119",
-      "producer/LeanGo/Module/Records.lean": "a521851bf276852e3b90dbfcf83792c4a9e5ccb8a8c459f813bd77cfb923a84f",
+      "producer/LeanGo/Module/LocalSource.lean": "5f258daf638ea0f63a8ad5729c9c4873b119400a55e3c2aa928fd0ee6ba6db52",
+      "producer/LeanGo/Module/Primitives.lean": "1dd9cd3058cf878e77e817542a8cd083ca842655f7ac7b8187cd0d468e2cdfe7",
+      "producer/LeanGo/Module/Records.lean": "61abf2f31abad5df29bdfa1d640caf09775f6f8726253589e9761570619b17a8",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
-      "scripts/export_module.py": "0fd9f6045d5f2868fb193ebea19d522879f56fe0afba3969246cb59adc5d11df",
+      "scripts/export_module.py": "cfddfb1ef4e501b2f00124c69443487ecd1c2bde4d5aef76c8388f10609a0d4f",
       "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
       "source/Choice/Transform.lean": "f6cc53055bff294aa8ce1beed78fd496109488e4b554de24aa788f8862aca207",
       "source/Joins.lean": "fd494bec6e5eb4bde184fa2f088651f6ad44b972612cfdc23ff8fa710f0492e5",
@@ -30,7 +30,8 @@
       "source/Numbers.lean": "c182a6bbbebc09ee4beea79303dcfe62ec07a402247840641f72fb4d30bfccd7",
       "source/Records.lean": "69e1b7169186d7c4709e548e13c42fd7aabe30c4cd5cd2d89df0f9ab43e2d433",
       "source/Reduced.lean": "0de8364449bc6fa95082cb8f83de4ad98b8485b5cb0b6d7836378b36b5f99d2a",
-      "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3"
+      "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3",
+      "source/Wide.lean": "5513da955d6a4bfeac9c0c4dbac1e9c0190652e793b46db414f1527d57f572fb"
     },
     "types": [
       {
@@ -1092,10 +1093,10 @@
     ]
   },
   "generated_files": {
-    "api.go": "fd7d122e362ae7ec36ff3f8e830db91a83463b9f38916d86aba793758f6c0968",
+    "api.go": "fe091c6f55bcc24bb9b9a6013b52c3c7920be2e4a0415d76c228a2056773dd8f",
     "control.go": "77b6155056fe759c16162ce5f6284aa553dcff17a3846e634a49db43b68e906f",
-    "runtime.go": "3cf0882aa2448d742c0e87d95c835bcc9fac120e154586613becc8ffc62a2391",
-    "schema.go": "86d924f3a669dfad35649865915a592b53a82f6406b222c7abeee28f29a34e42"
+    "runtime.go": "ba276379e9cda93a6262b37c092c7f15f1c70c3e41d12d47c850f93210df7538",
+    "schema.go": "80ed5d3705c71d6c935df33adace265a18331aeaf5752ce961999aa84374f8cc"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
   "primitives": [
@@ -1126,7 +1127,8 @@
       "Joins.Enabled": "Enabled",
       "Joins.Nested": "Nested",
       "Joins.State": "State",
-      "UInt32": "uint32"
+      "UInt32": "uint32",
+      "UInt64": "uint64"
     },
     "constructors": {
       "Joins.Count.mk": "NewCount",

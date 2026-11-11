@@ -144,7 +144,7 @@ func checkShape(value any, kind string) error {
 		}
 	}
 	fields := objectFields[kind]
-	if kind == "program" && obj["schema"] == SchemaV5 {
+	if kind == "program" && (obj["schema"] == SchemaV5 || obj["schema"] == SchemaV6) {
 		fields = append(append([]string{}, fields...), "api")
 	}
 	if len(obj) != len(fields) {

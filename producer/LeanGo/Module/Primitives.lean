@@ -14,6 +14,7 @@ structure NumericPrimitive where
   name : Name
   result : Name
   externalSymbol : String
+  operand : Name := ``UInt32
   axioms : Array Name := #[]
   deriving Inhabited
 
@@ -27,7 +28,15 @@ def numericPrimitives : Array NumericPrimitive := #[
   { name := ``UInt32.decLe, result := ``Bool, externalSymbol := "lean_uint32_dec_le" },
   -- The pinned compiler also introduces this when multiplying by a power of two.
   { name := ``UInt32.shiftLeft, result := ``UInt32, externalSymbol := "lean_uint32_shift_left",
-    axioms := #[``propext] }]
+    axioms := #[``propext] },
+  { name := ``UInt64.add, operand := ``UInt64, result := ``UInt64, externalSymbol := "lean_uint64_add" },
+  { name := ``UInt64.sub, operand := ``UInt64, result := ``UInt64, externalSymbol := "lean_uint64_sub" },
+  { name := ``UInt64.mul, operand := ``UInt64, result := ``UInt64, externalSymbol := "lean_uint64_mul" },
+  { name := ``UInt64.decEq, operand := ``UInt64, result := ``Bool, externalSymbol := "lean_uint64_dec_eq" },
+  { name := ``UInt64.decLt, operand := ``UInt64, result := ``Bool, externalSymbol := "lean_uint64_dec_lt" },
+  { name := ``UInt64.decLe, operand := ``UInt64, result := ``Bool, externalSymbol := "lean_uint64_dec_le" },
+  { name := ``UInt64.shiftLeft, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_shift_left", axioms := #[``propext] }]
 
 def numericPrimitive? (n : Name) : Option NumericPrimitive :=
   numericPrimitives.find? (·.name == n)
@@ -35,18 +44,22 @@ def numericPrimitive? (n : Name) : Option NumericPrimitive :=
 def numericOrderPackage : Name :=
   "_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt32".toName
 
+def numericWideOrderPackage : Name :=
+  "_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt64".toName
+
 -- Source-only wrappers support ordinary notation and erased decision proofs.
 -- None of these names authorizes an executable call in exported IR.
 def numericSourceSupport : Array Name := #[
-  ``UInt32.ofNat, ``OfNat.ofNat, ``UInt32.instOfNat,
-  ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt32,
-  ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt32,
-  ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt32, ``outParam,
+  ``UInt32.ofNat, ``UInt64.ofNat, ``OfNat.ofNat, ``UInt32.instOfNat, ``UInt64.instOfNat,
+  ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt32, ``instAddUInt64,
+  ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt32, ``instSubUInt64,
+  ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt32, ``instMulUInt64, ``outParam,
   ``BEq.beq, ``Std.PreorderPackage.toBEq,
   ``Std.LinearPreorderPackage.toPreorderPackage,
-  ``Std.LinearOrderPackage.toLinearPreorderPackage, numericOrderPackage,
-  ``Decidable.decide, ``instDecidableEqUInt32, ``instDecidableEqBool, ``instBEqOfDecidableEq,
-  ``LT.lt, ``instLTUInt32, ``LE.le, ``instLEUInt32,
+  ``Std.LinearOrderPackage.toLinearPreorderPackage, numericOrderPackage, numericWideOrderPackage,
+  ``Decidable.decide, ``instDecidableEqUInt32, ``instDecidableEqUInt64,
+  ``instDecidableEqBool, ``instBEqOfDecidableEq,
+  ``LT.lt, ``instLTUInt32, ``instLTUInt64, ``LE.le, ``instLEUInt32, ``instLEUInt64,
   ``ite, ``dite, ``Not, ``Bool.Reflects, ``Bool.Reflects.match_1]
 
 def isNumericSourceBoundary (n : Name) : Bool :=
@@ -118,7 +131,8 @@ def captureNumericBoundary (n : Name) : CoreM TrustedBoundary := do
   return { name := n, observations }
 
 def expectedNumericAxioms (n : Name) : Array Name :=
-  if n == numericOrderPackage then #[``propext, ``Classical.choice, ``Quot.sound]
+  if n == numericOrderPackage || n == numericWideOrderPackage then
+    #[``propext, ``Classical.choice, ``Quot.sound]
   else if n == ``Std.LinearPreorderPackage.toPreorderPackage ||
       n == ``Std.LinearOrderPackage.toLinearPreorderPackage then #[``propext]
   else (numericPrimitive? n).map (·.axioms) |>.getD #[]
@@ -141,10 +155,11 @@ def validateNumericDefinition (n : Name) : CoreM Unit := do
       throwError "Unexpected numeric primitive extern: {n}"
     unless (getImplementedBy? env n).isNone && (observedRewrite env n).isNone && !hasInitAttr env n do
       throwError "Unexpected numeric primitive replacement: {n}"
-  else if n == ``UInt32.ofNat then
-    let expected : ExternAttrData := { entries := [.standard `all "lean_uint32_of_nat"] }
+  else if n == ``UInt32.ofNat || n == ``UInt64.ofNat then
+    let symbol := if n == ``UInt32.ofNat then "lean_uint32_of_nat" else "lean_uint64_of_nat"
+    let expected : ExternAttrData := { entries := [.standard `all symbol] }
     unless getExternAttrData? env n == some expected do
-      throwError "Unexpected UInt32 literal extern"
+      throwError "Unexpected numeric literal extern: {n}"
   else unless (getExternAttrData? env n).isNone do
     throwError "Unexpected numeric source support extern: {n}"
 
@@ -176,9 +191,9 @@ def validateNumericPrimitive (primitive : NumericPrimitive) : CoreM Unit := do
     | throwError "Missing numeric pure-mono declaration: {primitive.name}"
   let .forallE _ (.const u₁ []) (.forallE _ (.const u₂ []) (.const result []) _) _ := decl.type
     | throwError "Invalid numeric primitive signature: {primitive.name}"
-  unless u₁ == ``UInt32 && u₂ == ``UInt32 && result == primitive.result &&
+  unless u₁ == primitive.operand && u₂ == primitive.operand && result == primitive.result &&
       decl.safe && decl.levelParams.isEmpty && decl.params.size == 2 &&
-      decl.params.all (·.type == .const ``UInt32 []) do
+      decl.params.all (·.type == .const primitive.operand []) do
     throwError "Numeric primitive signature/safety mismatch: {primitive.name}"
   let .extern data := decl.value | throwError "Numeric primitive is not external: {primitive.name}"
   unless data == { entries := [.standard `all primitive.externalSymbol] } do

@@ -18,6 +18,7 @@ type constructorInfo struct {
 type validator struct {
 	nodes        int
 	numeric      bool
+	wide         bool
 	joins        bool
 	functions    map[string]Function
 	constructors map[string]constructorInfo
@@ -104,8 +105,9 @@ func (v *validator) validateMetadata(p *Program) error {
 	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) || !validName(p.Root) {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
-	v.numeric = p.Profile == ProfileV2 || p.Profile == ProfileV3
-	v.joins = p.Profile == ProfileV3
+	v.numeric = p.Profile == ProfileV2 || p.Profile == ProfileV3 || p.Profile == ProfileV4
+	v.wide = p.Schema == SchemaV6
+	v.joins = p.Profile == ProfileV3 || p.Profile == ProfileV4
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}
@@ -194,7 +196,7 @@ func (v *validator) validateTypes(types []TypeDecl) error {
 	}
 	previous := ""
 	for _, t := range types {
-		if !validName(t.Name) || t.Name == "UInt32" || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
+		if !validName(t.Name) || t.Name == "UInt32" || (v.wide && t.Name == "UInt64") || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
 			return fmt.Errorf("invalid or unordered type %s", t.Name)
 		}
 		previous = t.Name
@@ -260,6 +262,10 @@ func (v *validator) validateClosure(root string) error {
 }
 func (v *validator) validateTypeClosure() error {
 	used := map[string]bool{"UInt32": true}
+	if v.wide {
+		used["UInt64"] = true
+	}
+	scalarCount := len(used)
 	pending := []string{}
 	for _, f := range v.functions {
 		pending = append(pending, f.Result)
@@ -279,7 +285,7 @@ func (v *validator) validateTypeClosure() error {
 			pending = append(pending, c.Fields...)
 		}
 	}
-	if len(used)-1 != len(v.types) {
+	if len(used)-scalarCount != len(v.types) {
 		return fmt.Errorf("unreachable runtime types")
 	}
 	return nil

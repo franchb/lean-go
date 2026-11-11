@@ -69,7 +69,7 @@ func exportedAPIName(lean string) string {
 const apiReservedNames = `Input Limits DefaultLimits ErrMalformed ErrResource ErrLimits
 node Value typeName constructorName inputShape fieldType rootParameters rootResult
 checkLimits Import measure budget Run frame execute RunTyped
-apiMake apiNode apiMatches apiUInt32Node apiReadUInt32 apiBoolNode apiReadBool`
+apiMake apiNode apiMatches apiUInt32Node apiReadUInt32 apiBoolNode apiReadBool apiUInt64Node apiReadUInt64`
 
 func newGoAPI(p *moduleir.Program) *goAPI {
 	api := &goAPI{

@@ -153,3 +153,36 @@ func TestRunRejectsIncompleteAndMalformed(t *testing.T) {
 		t.Fatal("failed generation changed output", err)
 	}
 }
+
+func TestCompileUInt64Schema(t *testing.T) {
+	p := moduleir.Program{Schema: moduleir.SchemaV6, Profile: moduleir.ProfileV4, Stage: moduleir.Stage, LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit,
+		Module: "Wide", Root: "Wide.answer", Inputs: map[string]string{"Wide.lean": strings.Repeat("0", 64)}, Types: []moduleir.TypeDecl{}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{}, API: &moduleir.APIMetadata{Records: map[string][]string{}},
+		Provenance: []moduleir.Provenance{{Name: "Wide.answer", Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}},
+		Functions:  []moduleir.Function{{Name: "Wide.answer", Params: []moduleir.Param{}, Result: "UInt64", Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "UInt64"}, Value: &moduleir.Value{Kind: "uint64", Name: "18446744073709551615", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}}},
+	}
+	raw, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := compile(bytes.NewReader(raw))
+	if err != nil || len(files) != 5 || !bytes.Contains(files["api.go"], []byte("RunTyped(l Limits) (uint64, error)")) {
+		t.Fatal("v6 CLI dispatch", err)
+	}
+	p.API = nil
+	raw, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = compile(bytes.NewReader(raw)); err == nil {
+		t.Fatal("v6 accepted absent API")
+	}
+	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
+	p.Schema, p.Profile = moduleir.SchemaV5, moduleir.ProfileV3
+	raw, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = compile(bytes.NewReader(raw)); err == nil {
+		t.Fatal("v5 accepted UInt64 literal")
+	}
+}

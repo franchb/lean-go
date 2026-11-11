@@ -6,7 +6,7 @@ namespace LeanGo.Module
 
 def typeKey (e : Expr) : CoreM String := do
   let .const n [] := e | throwError "Unsupported first-order monomorphic type: {e}"
-  if n == ``UInt32 then return n.toString
+  if n == ``UInt32 || n == ``UInt64 then return n.toString
   let info ← getConstInfoInduct n
   unless info.numParams == 0 && info.numIndices == 0 && info.levelParams.isEmpty &&
       info.type == .sort (.succ .zero) do
@@ -48,7 +48,7 @@ private def wrapperChain (source : String) (seen : List String) (fuel : Nat) :
     CoreM (String × List Wrapper) := do
   let name := source.toName
   discard <| typeKey (.const name [])
-  if source == "UInt32" then return (source, [])
+  if source == "UInt32" || source == "UInt64" then return (source, [])
   if seen.contains source then throwError "Cyclic wrapper representation: {name}"
   let info ← getConstInfoInduct name
   if info.isUnsafe then throwError "Unsafe ADT: {name}"

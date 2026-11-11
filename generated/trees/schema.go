@@ -9,6 +9,8 @@ func typeName(t int) string {
 		return "Trees.Color"
 	case 2:
 		return "Trees.Tree"
+	case 3:
+		return "UInt64"
 	}
 	return ""
 }
@@ -39,9 +41,11 @@ func inputShape(in *Input) (int, int, bool) {
 	}
 	switch in.Type {
 	case "UInt32":
-		return 0, 0, in.Constructor == "" && len(in.Fields) == 0
+		return 0, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt64 == 0
+	case "UInt64":
+		return 3, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0
 	case "Trees.Color":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
@@ -53,7 +57,7 @@ func inputShape(in *Input) (int, int, bool) {
 			return 1, 2, len(in.Fields) == 0
 		}
 	case "Trees.Tree":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {

@@ -3,6 +3,7 @@ package moduleir
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 // Primitive describes one pinned pure-mono runtime leaf. Kernel signatures of
@@ -16,26 +17,34 @@ type Primitive struct {
 
 // LookupPrimitive returns a fresh signature, so callers cannot mutate the catalog.
 func LookupPrimitive(name string) (Primitive, bool) {
-	result, semantics := "UInt32", ""
-	switch name {
-	case "UInt32.add":
-		semantics = "(a + b) modulo 2^32"
-	case "UInt32.sub":
-		semantics = "(a - b) modulo 2^32"
-	case "UInt32.mul":
-		semantics = "(a * b) modulo 2^32"
-	case "UInt32.shiftLeft":
-		semantics = "(a * 2^(b modulo 32)) modulo 2^32"
-	case "UInt32.decEq":
+	width, operation, ok := strings.Cut(name, ".")
+	if !ok || (width != "UInt32" && width != "UInt64") {
+		return Primitive{}, false
+	}
+	bits := "32"
+	if width == "UInt64" {
+		bits = "64"
+	}
+	result, semantics := width, ""
+	switch operation {
+	case "add":
+		semantics = "(a + b) modulo 2^" + bits
+	case "sub":
+		semantics = "(a - b) modulo 2^" + bits
+	case "mul":
+		semantics = "(a * b) modulo 2^" + bits
+	case "shiftLeft":
+		semantics = "(a * 2^(b modulo " + bits + ")) modulo 2^" + bits
+	case "decEq":
 		result, semantics = "Bool", "unsigned a == b"
-	case "UInt32.decLt":
+	case "decLt":
 		result, semantics = "Bool", "unsigned a < b"
-	case "UInt32.decLe":
+	case "decLe":
 		result, semantics = "Bool", "unsigned a <= b"
 	default:
 		return Primitive{}, false
 	}
-	return Primitive{name, []string{"UInt32", "UInt32"}, result, semantics}, true
+	return Primitive{name, []string{width, width}, result, semantics}, true
 }
 
 func validProfile(schema, profile string) bool {
@@ -46,6 +55,8 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV2
 	case SchemaV4, SchemaV5:
 		return profile == ProfileV3
+	case SchemaV6:
+		return profile == ProfileV4
 	default:
 		return false
 	}
@@ -73,21 +84,34 @@ func (v *validator) numericValue(value *Value) ([]string, string, error) {
 		return nil, "", fmt.Errorf("value kind %q requires %s", value.Kind, ProfileV2)
 	}
 	if value.Kind == "uint32" {
-		if len(value.Name) > 10 {
-			return nil, "", fmt.Errorf("invalid UInt32 literal")
+		return nil, "UInt32", validateLiteral(value.Name, 32, 10)
+	}
+	if value.Kind == "uint64" {
+		if !v.wide {
+			return nil, "", fmt.Errorf("UInt64 literals require %s", ProfileV4)
 		}
-		n, err := strconv.ParseUint(value.Name, 10, 32)
-		if err != nil || strconv.FormatUint(n, 10) != value.Name {
-			return nil, "", fmt.Errorf("invalid UInt32 literal %q", value.Name)
-		}
-		return nil, "UInt32", nil
+		return nil, "UInt64", validateLiteral(value.Name, 64, 20)
 	}
 	primitive, ok := LookupPrimitive(value.Name)
 	if !ok {
 		return nil, "", fmt.Errorf("unknown primitive %s", value.Name)
 	}
+	if primitive.Params[0] == "UInt64" && !v.wide {
+		return nil, "", fmt.Errorf("UInt64 primitives require %s", ProfileV4)
+	}
 	if !v.validType(primitive.Result) {
 		return nil, "", fmt.Errorf("missing primitive result type %s", primitive.Result)
 	}
 	return primitive.Params, primitive.Result, nil
+}
+
+func validateLiteral(name string, bits, maxDigits int) error {
+	if len(name) > maxDigits {
+		return fmt.Errorf("invalid UInt%d literal", bits)
+	}
+	n, err := strconv.ParseUint(name, 10, bits)
+	if err != nil || strconv.FormatUint(n, 10) != name {
+		return fmt.Errorf("invalid UInt%d literal %q", bits, name)
+	}
+	return nil
 }

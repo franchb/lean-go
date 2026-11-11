@@ -57,7 +57,7 @@ func TestPrimitiveRegistry(t *testing.T) {
 			t.Fatal("mutable registry signature", name)
 		}
 	}
-	for _, name := range []string{"", "UInt32.div", "UInt64.add", "UInt32.and", "UInt32.add._boxed"} {
+	for _, name := range []string{"", "UInt32.div", "UInt64.div", "UInt32.and", "UInt32.add._boxed"} {
 		if primitive, ok := LookupPrimitive(name); ok {
 			t.Fatal("unknown primitive admitted", primitive)
 		}

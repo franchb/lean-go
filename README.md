@@ -8,9 +8,9 @@ use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python a
 needed for regeneration, not deployment.
 
 The original audited normalizer remains available as a separate v1 profile.
-Module exports now use `pure-module/v3` with v5 IR, including UInt32 arithmetic,
-comparisons, local joins and source record names for typed Go APIs. Earlier v2,
-v3 and v4 IR remain accepted with their original restrictions and raw APIs.
+Module exports now use `pure-module/v4` with v6 IR, including UInt32 and UInt64
+arithmetic, comparisons, local joins and source record names for typed Go APIs.
+Earlier v2–v5 IR remain accepted with their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. This is local
 experimental software; no release has been published.
 
@@ -34,10 +34,11 @@ CLI names currently use ASCII Lean identifiers. Output package and IR paths are
 required; differing existing package contents are preserved and rejected.
 
 Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
-functions, saturated calls, exhaustive matches, and self recursion. `UInt32`
+functions, saturated calls, exhaustive matches, and self recursion. `UInt32` and `UInt64`
 supports literals, addition, subtraction, multiplication, left shift, equality,
-and unsigned less-than/less-or-equal comparisons. Arithmetic wraps modulo 2^32;
-shift counts are reduced modulo 32. Division, remainder, other bit operations,
+and unsigned less-than/less-or-equal comparisons. Arithmetic wraps modulo 2^32 or
+2^64 respectively; shift counts are reduced modulo 32 or 64. Conversions between
+widths, division, remainder, other bit operations,
 other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.
@@ -77,14 +78,15 @@ Source must be trusted for Lean elaboration: this tool is not a sandbox for macr
 or initializers. The new profile makes no application correctness-theorem claim.
 See the [module report](docs/research/extraction-modules.md) for the exact limits
 and the [UInt32 report](docs/research/extraction-uint32.md) for numeric semantics
-and validation evidence, plus the
+and validation evidence. The [UInt64 report](docs/research/extraction-uint64.md)
+describes exact wide values and mixed-width validation. See also the
 [module design](docs/superpowers/specs/2026-11-11-lean-go-modules-design.md).
 
 ## Typed module API
 
 New module exports include typed constructors, record getters, sum destructors and
-`RunTyped`. ADT wrappers own immutable values; `UInt32` and `Bool` use Go `uint32`
-and `bool`. For example, the generated tree package can be called without Lean
+`RunTyped`. ADT wrappers own immutable values; `UInt32`, `UInt64` and `Bool` use Go
+`uint32`, `uint64` and `bool`. For example, the generated tree package can be called without Lean
 names or field indexes:
 
 ```go
@@ -131,9 +133,10 @@ if err != nil { panic(err) }
 `Import` copies every input occurrence into immutable storage. Do not mutate the
 input during import; later mutation cannot affect the owned value. Cycles fail,
 and shared acyclic subtrees are copied and charged per occurrence. `Value{}` is
-invalid. `Type`, `Constructor`, `UInt32`, and `Fields` inspect owned values;
+invalid. `Type`, `Constructor`, `UInt32`, `UInt64`, and `Fields` inspect owned values;
 `Fields` returns a fresh slice. A scalar input uses `Type: "UInt32"` and the
-`UInt32` field, with no constructor or children.
+`UInt32` field, with no constructor or children; a wide scalar uses `Type: "UInt64"`
+and the `UInt64` field. Nonzero inactive scalar payloads are rejected.
 
 `Import` enforces the input node and depth budgets; the other five budgets apply
 to `Run`. All seven limit fields must be valid in both calls.

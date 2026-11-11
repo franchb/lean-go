@@ -54,8 +54,8 @@ class ReducedAdmissionTests(unittest.TestCase):
         self.assertEqual(provenance[helper],
                          dict(name=helper, dependencies=[owner], rewrites=[]))
         self.assertIn(owner, provenance)
-        self.assertEqual(program['schema'], 'lean-go-ir/v5')
-        self.assertEqual(program['profile'], 'pure-module/v3')
+        self.assertEqual(program['schema'], 'lean-go-ir/v6')
+        self.assertEqual(program['profile'], 'pure-module/v4')
         return function
 
     def calls(self, function):
@@ -267,7 +267,7 @@ def run (value unused : UInt32) : Foo := Foo.run value unused
                 self.assert_rejected(definitions + body, 'rewrite|replacement|repeated compilation|extern|implemented_by')
 
     def test_discarded_unsupported_source_fields_preserve_output(self):
-        fields = {'wide': 'UInt64', 'closure': 'UInt32 → UInt32',
+        fields = {'wide': 'UInt16', 'closure': 'UInt32 → UInt32',
                   'proof': 'True', 'dependent': 'Fin 7'}
         for field, typ in fields.items():
             with self.subTest(field=field):

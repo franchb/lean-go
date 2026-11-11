@@ -10,18 +10,19 @@ import (
 
 func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) {
 	expression := c.Value.Name
-	result := "UInt32"
+	result := c.Bind.Type
 	if c.Value.Kind == "primitive" {
 		primitive, _ := moduleir.LookupPrimitive(c.Value.Name)
 		result = primitive.Result
-		left := fmt.Sprintf("f.slots[%d].scalar", f.slots[c.Value.Args[0]])
-		right := fmt.Sprintf("f.slots[%d].scalar", f.slots[c.Value.Args[1]])
+		field := scalarField(primitive.Params[0])
+		left := fmt.Sprintf("f.slots[%d].%s", f.slots[c.Value.Args[0]], field)
+		right := fmt.Sprintf("f.slots[%d].%s", f.slots[c.Value.Args[1]], field)
 		expression = primitiveExpression(c.Value.Name, left, right)
 	}
 	if result == "Bool" {
 		fmt.Fprintf(w, "tag:=0;if %s{tag=1};value,err:=b.make(%d,tag,nil);if err!=nil{return nil,err}\n", expression, g.types["Bool"])
 	} else {
-		fmt.Fprintf(w, "value,err:=b.make(0,0,nil);if err!=nil{return nil,err};value.scalar=%s\n", expression)
+		fmt.Fprintf(w, "value,err:=b.make(%d,0,nil);if err!=nil{return nil,err};value.%s=%s\n", g.types[result], scalarField(result), expression)
 	}
 	fmt.Fprintf(w, "f.slots[%d]=value;f.pc=%d\n", f.slots[c.Bind.ID], f.states[c.Next])
 }
@@ -29,19 +30,21 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 func primitiveExpression(name, left, right string) string {
 	operator := ""
 	switch name {
-	case "UInt32.add":
+	case "UInt32.add", "UInt64.add":
 		operator = "+"
-	case "UInt32.sub":
+	case "UInt32.sub", "UInt64.sub":
 		operator = "-"
-	case "UInt32.mul":
+	case "UInt32.mul", "UInt64.mul":
 		operator = "*"
 	case "UInt32.shiftLeft":
 		return left + " << (" + right + " & 31)"
-	case "UInt32.decEq":
+	case "UInt64.shiftLeft":
+		return left + " << (" + right + " & 63)"
+	case "UInt32.decEq", "UInt64.decEq":
 		operator = "=="
-	case "UInt32.decLt":
+	case "UInt32.decLt", "UInt64.decLt":
 		operator = "<"
-	case "UInt32.decLe":
+	case "UInt32.decLe", "UInt64.decLe":
 		operator = "<="
 	}
 	return left + " " + operator + " " + right
@@ -67,4 +70,11 @@ func (g *generator) primitiveCatalog() []moduleir.Primitive {
 		primitives = append(primitives, primitive)
 	}
 	return primitives
+}
+
+func scalarField(typ string) string {
+	if typ == "UInt64" {
+		return "scalar64"
+	}
+	return "scalar"
 }

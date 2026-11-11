@@ -16,6 +16,9 @@ type apiScalar struct {
 
 func apiScalars(p *moduleir.Program) map[string]apiScalar {
 	scalars := map[string]apiScalar{"UInt32": {"uint32", "0", "apiUInt32Node", "apiReadUInt32"}}
+	if p.Schema == moduleir.SchemaV6 {
+		scalars["UInt64"] = apiScalar{"uint64", "0", "apiUInt64Node", "apiReadUInt64"}
+	}
 	for _, typ := range p.Types {
 		if canonicalAPIBool(typ) {
 			scalars[typ.Name] = apiScalar{"bool", "false", "apiBoolNode", "apiReadBool"}
@@ -44,7 +47,7 @@ type apiEmitter struct {
 }
 
 func (g *generator) emitAPI() ([]byte, error) {
-	template, err := templates.ReadFile("templates/api.go.tmpl")
+	template, err := g.renderTemplate("api.go.tmpl")
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +56,11 @@ func (g *generator) emitAPI() ([]byte, error) {
 	if _, ok := e.scalars["Bool"]; ok {
 		typ := g.types["Bool"]
 		fmt.Fprintf(w, "func apiBoolNode(value bool)*node{tag:=0;if value{tag=1};return &node{typ:%d,tag:tag,size:1,depth:1}}\n", typ)
-		fmt.Fprintf(w, "func apiReadBool(n *node)(bool,bool){if !apiNode(n,%d)||len(n.fields)!=0||n.scalar!=0||n.size!=1||n.depth!=1||(n.tag!=0&&n.tag!=1){return false,false};return n.tag==1,true}\n", typ)
+		inactive := ""
+		if g.program.Schema == moduleir.SchemaV6 {
+			inactive = "||n.scalar64!=0"
+		}
+		fmt.Fprintf(w, "func apiReadBool(n *node)(bool,bool){if !apiNode(n,%d)||len(n.fields)!=0||n.scalar!=0%s||n.size!=1||n.depth!=1||(n.tag!=0&&n.tag!=1){return false,false};return n.tag==1,true}\n", typ, inactive)
 	}
 	for _, typ := range g.program.Types {
 		if _, scalar := e.scalars[typ.Name]; scalar {

@@ -242,7 +242,7 @@ def export_module(root, source_dir, module, entry, output):
             raise ExportError("unexpected module producer result fields")
         if program["module"] != module or program["root"] != entry:
             raise ExportError("module producer returned a different module or root")
-        program.update(schema="lean-go-ir/v5", profile="pure-module/v3", stage="pure-mono",
+        program.update(schema="lean-go-ir/v6", profile="pure-module/v4", stage="pure-mono",
                        lean_version="4.35.0", lean_commit=COMMIT,
                        inputs=input_digests(sources, producer))
         result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()

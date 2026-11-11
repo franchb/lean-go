@@ -15,6 +15,8 @@ func typeName(t int) string {
 		return "Records.Nested"
 	case 5:
 		return "Records.State"
+	case 6:
+		return "UInt64"
 	}
 	return ""
 }
@@ -56,9 +58,11 @@ func inputShape(in *Input) (int, int, bool) {
 	}
 	switch in.Type {
 	case "UInt32":
-		return 0, 0, in.Constructor == "" && len(in.Fields) == 0
+		return 0, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt64 == 0
+	case "UInt64":
+		return 6, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0
 	case "Bool":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
@@ -68,7 +72,7 @@ func inputShape(in *Input) (int, int, bool) {
 			return 1, 1, len(in.Fields) == 0
 		}
 	case "Records.Count":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
@@ -76,7 +80,7 @@ func inputShape(in *Input) (int, int, bool) {
 			return 2, 0, len(in.Fields) == 1
 		}
 	case "Records.Enabled":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
@@ -84,7 +88,7 @@ func inputShape(in *Input) (int, int, bool) {
 			return 3, 0, len(in.Fields) == 1
 		}
 	case "Records.Nested":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
@@ -92,7 +96,7 @@ func inputShape(in *Input) (int, int, bool) {
 			return 4, 0, len(in.Fields) == 1
 		}
 	case "Records.State":
-		if in.UInt32 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
