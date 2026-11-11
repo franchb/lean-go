@@ -30,11 +30,19 @@ It does not replace those requirements with a handwritten Go implementation.
 
 Lean 4.35.0 and its compiler sources were inspected while writing this plan.
 The `saveBase` and `saveMono` trace classes, compiler substitutions, and public
-metadata APIs are grounded in the sources linked below. Neither Lean nor Go was
-available on the planning environment's PATH. **The Lean listings and expected
-command results have not been executed.** Executing and correcting them against
-the pinned compiler is the first evidence this plan must produce. Do not weaken
-theorems, add axioms, or silently upgrade Lean to make a probe pass.
+metadata APIs are grounded in the sources linked below. The initial planning
+shell did not find Lean or Go on its PATH. After installation and an upgrade, a
+follow-up local check on 2026-11-11 verified Go 1.27.4 (`linux/amd64`), Lean
+4.35.0 (commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`), and Lake
+5.0.0-src+eb6cafb. The agent shell still requires the installed executable
+directories on its PATH; explicit executable paths work. This is a shell
+configuration issue, not an absent installation.
+
+**The Lean listings and expected feasibility results have not been executed.**
+Version checks establish tool availability only. Executing and correcting the
+listings against the pinned compiler is the first implementation evidence this
+plan must produce. Do not weaken theorems, add axioms, or silently upgrade Lean
+to make a probe pass.
 
 All new example material must be authored from the standard truth tables and
 the design. Keep private application names, code, fixtures, paths, identifiers,
@@ -87,14 +95,18 @@ of `LeanGo.Feasibility.normalize`.
    git config --local --get user.name
    git config --local --get user.email
    python3 --version
-   command -v elan
+   export PATH="${ELAN_HOME:-$HOME/.elan}/bin:/usr/local/go/bin:$PATH"
+   command -v elan lean lake
    ```
 
    Expected: a clean working tree, the stated identity, Python 3.11 or newer,
-   and an Elan executable. If Elan is absent, install it using the
-   [official installation instructions](https://lean-lang.org/install/) before
-   continuing; installation must respect the execution environment's permission
-   policy. Tool absence is not a failed feasibility result about extraction.
+   and the Elan, Lean, and Lake executables. The PATH adjustment covers the
+   locally verified installation locations and affects only this shell; adapt
+   it for installations elsewhere. A failed command lookup does not establish
+   that a tool is uninstalled. Only if Elan is actually absent, install it using
+   the [official installation instructions](https://lean-lang.org/install/);
+   installation must respect the execution environment's permission policy.
+   Tool absence is not a failed feasibility result about extraction.
 
 2. Create `.gitignore` with exactly:
 
@@ -132,15 +144,20 @@ of `LeanGo.Feasibility.normalize`.
    import LeanGo.Feasibility.Model
    ```
 
-6. Install and verify the exact toolchain:
+6. Reuse and verify the exact installed toolchain:
 
    ```bash
-   elan toolchain install leanprover/lean4:v4.35.0
    cd feasibility
+   elan run leanprover/lean4:v4.35.0 lean --version
    lake env lean --version
    lake --version
    cd ..
    ```
+
+   The local follow-up already confirmed this pin is installed. On another
+   machine, if Elan reports that this specific toolchain is missing, install it
+   with `elan toolchain install leanprover/lean4:v4.35.0` and rerun the checks.
+   Do not reinstall solely because the shell PATH omitted Elan's binaries.
 
    Expected: Lean 4.35.0. Record the actual compiler version/commit in the final
    report. The release tag resolves to
