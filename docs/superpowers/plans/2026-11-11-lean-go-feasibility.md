@@ -1,8 +1,8 @@
 # Ordinary Lean to Pure Go Feasibility Implementation Plan
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` or
-> `superpowers:executing-plans` to execute this plan task by task. Steps below
-> are implementation instructions; keep execution status in the task tracker.
+> `superpowers:executing-plans` to execute this plan task by task. This executed plan records
+> implementation responsibilities; keep execution status in the task tracker.
 
 **Goal:** Prove an original three-valued expression normalizer and collect enough
 compiler, dependency, representation, and reuse evidence to select or reject a
@@ -38,11 +38,15 @@ follow-up local check on 2026-11-11 verified Go 1.27.4 (`linux/amd64`), Lean
 directories on its PATH; explicit executable paths work. This is a shell
 configuration issue, not an absent installation.
 
-**The Lean listings and expected feasibility results have not been executed.**
-Version checks establish tool availability only. Executing and correcting the
-listings against the pinned compiler is the first implementation evidence this
-plan must produce. Do not weaken theorems, add axioms, or silently upgrade Lean
-to make a probe pass.
+**Executed on 2026-11-11.** Tasks 1–6 produced the pinned model, source
+proofs, strict mutation/capture controls, imported-stage evidence, and read-only
+reuse assessment. The [Task 7 evidence report](../../research/extraction-feasibility.md)
+records the source baseline, hashes, exact results, and decision: **proceed with
+pure mono LCNF for the controlled normalizer subset**. No Go backend or release
+is implemented. Task 1's pin and Task 2's model remain the approved foundation;
+Tasks 3–5 below link the corrected committed implementation rather than retain
+stale initial code proposals. Do not weaken theorems, add axioms, or silently
+upgrade Lean to make a probe pass.
 
 All new example material must be authored from the standard truth tables and
 the design. Keep private application names, code, fixtures, paths, identifiers,
@@ -70,6 +74,8 @@ from missing tools or unrelated compiler errors.
 | `feasibility/ForeignFixture.lean` | External executable dependency fixture |
 | `feasibility/ReplacementFixture.lean` | Logical-versus-compiled body substitution fixture |
 | `feasibility/BadClaim.lean` | Axiom-audit rejection fixture |
+| `feasibility/CSimpFixture.lean` | Accepted compiler rewrite and actual stage edges |
+| `feasibility/BadCSimpFixture.lean` | Logical claim accepted, forged compiler rewrite rejected |
 | `feasibility/check_mutations.py` | Temporary, targeted negative proof tests |
 | `feasibility/capture.py` | Reproducible same-file/imported compiler captures and logs |
 | `feasibility/lake-manifest.json` | Lake-generated dependency lock, reviewed when first created |
@@ -412,600 +418,128 @@ of `LeanGo.Feasibility.normalize`.
 
 ## Task 3: Confirm that the proofs reject incorrect implementations
 
-**Files:** Create `feasibility/check_mutations.py`.
+**Verified implementation:** [check_mutations.py](../../../feasibility/check_mutations.py).
+This replaces the initial proposed Python listing; use the committed script.
 
-1. Create the following complete script. It never rewrites the real model;
-   each mutant is a temporary file inside the Lake package:
+The script checks that each source edit has exactly one intended target, creates
+an owned temporary file, and removes it in `finally`. It changes the negated
+conjunction's De Morgan rule and requires diagnostics only inside
+`normalizeAux_preserves_eval`. Separately, it replaces `normalize` with the
+identity and adjusts its evaluation proof to `rfl`; only failure inside
+`normalize_is_normal` counts. Both cases require exit 1, at least one ordinary
+Lean error, and every error positioned in the intended theorem range. Missing
+tools, abnormal exits, unpositioned errors, and unrelated failures cannot pass.
+The original model must remain byte-identical.
 
-   ```python
-   from pathlib import Path
-   import re
-   import subprocess
-   import tempfile
+Run from `feasibility/`:
 
-   source = Path("LeanGo/Feasibility/Model.lean").read_text()
-   semantic_old = "then .disj (normalizeAux true a) (normalizeAux true b)"
-   assert source.count(semantic_old) == 1
-   semantic = source.replace(
-       semantic_old,
-       "then .conj (normalizeAux true a) (normalizeAux true b)",
-   )
-   normalize_old = "def normalize (e : Expr) : Expr :=\n  normalizeAux false e"
-   assert source.count(normalize_old) == 1
-   shape = source.replace(normalize_old, "def normalize (e : Expr) : Expr :=\n  e")
-   proof_old = "  simpa [normalize] using normalizeAux_preserves_eval e rho false"
-   assert shape.count(proof_old) == 1
-   shape = shape.replace(proof_old, "  rfl")
+```bash
+python3 check_mutations.py
+```
 
-   cases = [
-       ("wrong De Morgan rule", semantic, "theorem normalizeAux_preserves_eval",
-        "theorem normalize_preserves_eval"),
-       ("identity normalizer", shape, "theorem normalize_is_normal",
-        "end LeanGo.Feasibility"),
-   ]
-   for label, text, start, end in cases:
-       lines = text.splitlines()
-       lo = next(i + 1 for i, line in enumerate(lines) if line.startswith(start))
-       hi = next(i + 1 for i, line in enumerate(lines) if line.startswith(end))
-       with tempfile.NamedTemporaryFile(
-           mode="w", encoding="utf-8", dir=".", prefix="Mutant",
-           suffix=".lean", delete=False,
-       ) as stream:
-           stream.write(text)
-           path = Path(stream.name)
-       try:
-           run = subprocess.run(
-               ["lake", "env", "lean", path.name],
-               text=True, capture_output=True,
-           )
-           output = run.stdout + run.stderr
-           positions = [int(n) for n in re.findall(
-               re.escape(path.name) + r":(\d+):\d+: error:", output
-           )]
-           if run.returncode == 0 or not any(lo <= n < hi for n in positions):
-               print(output)
-               raise SystemExit(f"{label}: expected theorem failure was not observed")
-           print(f"{label}: rejected at the expected theorem")
-       finally:
-           path.unlink()
-   assert Path("LeanGo/Feasibility/Model.lean").read_text() == source
-   ```
-
-2. From `feasibility/`, run:
-
-   ```bash
-   python3 check_mutations.py
-   ```
-
-   Expected: both mutations are rejected at their named theorem. An unavailable
-   compiler, import error, or unrelated parse error does not count. If the pinned
-   compiler diagnostic format differs, inspect it and adjust only the diagnostic
-   parser, never convert every nonzero exit into a passing test.
-
-3. Commit the negative checks:
-
-   ```bash
-   git add feasibility/check_mutations.py
-   git diff --cached --check
-   git commit -m "test: reject invalid normalizer mutations"
-   ```
+Expected: both mutations rejected at their intended theorems. These committed
+controls passed. The report distinguishes additional one-off diagnostic fault
+checks from committed reproducible coverage.
 
 ## Task 4: Add fail-fast source, claim, and stage inspection
 
-**Files:** Create `feasibility/LeanGo/Feasibility/ProbeSupport.lean`,
-`feasibility/Inspect.lean`, `feasibility/ForeignFixture.lean`,
-`feasibility/ReplacementFixture.lean`, and `feasibility/BadClaim.lean`.
+**Verified source files:**
 
-1. Create `ProbeSupport.lean` with the imports and API checks below. Compile
-   this opening section before adding traversal logic:
+| File | Responsibility |
+| --- | --- |
+| [ProbeSupport.lean](../../../feasibility/LeanGo/Feasibility/ProbeSupport.lean) | Pinned API checks, claim/source auditing, conservative named dependency inventory, saved-stage lookup |
+| [Inspect.lean](../../../feasibility/Inspect.lean) | Audit two exact claims, source closure and both runtime stages; record full public constructor types |
+| [ForeignFixture.lean](../../../feasibility/ForeignFixture.lean) | Classify a missing external dependency without linking/calling it |
+| [ReplacementFixture.lean](../../../feasibility/ReplacementFixture.lean) | Show a logical identity whose compiled body uses a different implemented_by target |
+| [BadClaim.lean](../../../feasibility/BadClaim.lean) | Reject an unexpected project axiom |
+| [CSimpFixture.lean](../../../feasibility/CSimpFixture.lean) | Accept an axiom-free compiler rewrite and observe actual base/mono edges |
+| [BadCSimpFixture.lean](../../../feasibility/BadCSimpFixture.lean) | Accept the logical root theorem independently, then reject forged rewrite evidence |
 
-   ```lean
-   import Lean
-   import Lean.Compiler.LCNF
-   import Lean.Compiler.ExternAttr
-   import Lean.Compiler.ImplementedByAttr
-   import Lean.Util.CollectAxioms
+These links replace the initial split Lean listings, which predated compiler
+simplification auditing. The committed files are the implementation authority.
+`ProbeSupport` checks the pinned compiler APIs at elaboration. `auditClaim`
+collects transitive axioms and accepts only the stated foundational allowlist.
+`sourceClosure` reports original extern/implemented_by attributes and current
+CSimp mappings, requires rewrite evidence to exist and be a theorem, audits its
+axioms, and follows its target. The normalizer actually uses
+`Bool.not → Bool.Internal.not`, justified by `Bool.not_eq_internalNot` with
+`[Quot.sound]`; its two public claims separately use `[propext]`.
 
-   open Lean Elab Command
-   open Lean.Compiler.LCNF
+Current-environment CSimp lookup cannot reconstruct arbitrary earlier scoped
+rewrites. This is sufficient only for the controlled module with its actual
+bodies inspected. A general adapter needs compile-time provenance or explicit
+history restrictions/rejection; end-environment absence is not a proof of no
+substitution. The replacement fixture additionally reaches `Nat.rec` CSimp
+through its UInt32 zero literal; those are fixture dependencies.
 
-   #check getBaseDecl?
-   #check getMonoDecl?
-   #check DeclValue.forCodeM
-   #check Code.forM
-   #check Lean.getExternAttrData?
-   #check Lean.Compiler.getImplementedBy?
-   #check Lean.getConstInfoInduct
-   #check Lean.getConstInfoCtor
-   #check Lean.collectAxioms
-   ```
+The runtime inventory traverses nested bodies and direct named calls, reporting
+local join edges. It is not a full automatic admission checker: empty-argument
+fvar references, partial applications, every typed IR form, and primitive
+semantics require exhaustive admission or the bounded manual audit recorded in
+the report. `safe=true` alone does not prove purity of arbitrary dependencies.
+Original metadata records all eight Tri/Expr constructors, parameters, tags,
+field counts, and complete constructor types, including passed-through Tri.u
+and Expr.var.
 
-   Run from `feasibility/`:
+Run from `feasibility/`:
 
-   ```bash
-   lake build LeanGo.Feasibility.ProbeSupport
-   ```
+```bash
+lake build LeanGo.Feasibility.ProbeSupport
+lake env lean Inspect.lean
+```
 
-   Expected: all named APIs resolve. If not, inspect the corresponding pinned
-   source under the toolchain, record the actual signature, and adjust the
-   version-specific probe. Do not switch to unversioned documentation or another
-   Lean release without recording a design revision. In particular, the web API
-   reference for `PhaseExt` was not version-qualified during planning.
-
-2. Append the source audit and transitive axiom check:
-
-   ```lean
-   namespace Probe
-
-   def reportExtern (data : ExternAttrData) : CoreM Unit := do
-     for entry in data.entries do
-       match entry with
-       | .standard backend symbol =>
-           logInfo m!"EXTERN standard backend={backend} symbol={symbol}"
-       | .inline backend pattern =>
-           logInfo m!"EXTERN inline backend={backend} pattern={pattern}"
-       | .adhoc backend =>
-           logInfo m!"EXTERN adhoc backend={backend}"
-       | .opaque =>
-           logInfo "EXTERN opaque: body unavailable"
-
-   partial def sourceClosure
-       (pending : List Name) (seen : List Name := []) : CoreM Unit := do
-     match pending with
-     | [] => pure ()
-     | name :: rest =>
-         if seen.contains name then
-           sourceClosure rest seen
-         else
-           let env ← getEnv
-           let some info := env.find? name
-             | throwError "Unresolved source dependency {name}"
-           logInfo m!"SOURCE {name}"
-           if let some replacement := Compiler.getImplementedBy? env name then
-             logInfo m!"SOURCE_REPLACEMENT {name} -> {replacement}"
-           if let some data := getExternAttrData? env name then
-             logInfo m!"SOURCE_EXTERN {name}"
-             reportExtern data
-           let dependencies := match info with
-             | .defnInfo value => value.value.getUsedConstants.toList
-             | .opaqueInfo value => value.value.getUsedConstants.toList
-             | _ => []
-           sourceClosure (dependencies ++ rest) (name :: seen)
-
-   def auditClaim (name : Name) : CoreM Unit := do
-     let info ← getConstInfo name
-     logInfo m!"CLAIM {name}: {info.type}"
-     let axioms ← collectAxioms name
-     for axiomName in axioms do
-       unless [``propext, ``Quot.sound, ``Classical.choice].contains axiomName do
-         throwError "Unexpected axiom {axiomName} in {name}"
-     logInfo m!"AXIOMS_ACCEPTED {name}: {axioms}"
-
-   end Probe
-   ```
-
-   This source traversal is deliberately an over-approximation used to find
-   original-body attributes before lowering erases them. It is not the runtime
-   closure. Theorem bodies are audited separately; no import is rejected merely
-   because it contains proof code.
-
-3. Append the stage closure collector:
-
-   ```lean
-   namespace Probe
-
-   def directCalls (decl : Decl .pure) : CoreM (Array Name) := do
-     let found ← IO.mkRef (#[] : Array Name)
-     decl.value.forCodeM (m := CoreM) fun code =>
-       code.forM (m := CoreM) fun node => do
-         match node with
-         | .let binding _ =>
-             match binding.value with
-             | .const name .. =>
-                 found.modify fun names => names.push name
-             | .fvar _ args =>
-                 unless args.isEmpty do
-                   throwError "Unresolved indirect call in {decl.name}"
-             | _ => pure ()
-         | .jmp target _ =>
-             logInfo m!"JOIN_EDGE {decl.name} target={target.name}"
-         | _ => pure ()
-     found.get
-
-   partial def reportClosure
-       (stage : String)
-       (lookup : Name → CoreM (Option (Decl .pure)))
-       (pending : List Name)
-       (seen : List Name := []) : CoreM Unit := do
-     match pending with
-     | [] => pure ()
-     | name :: rest =>
-         if seen.contains name then
-           reportClosure stage lookup rest seen
-         else
-           let seen := name :: seen
-           let env ← getEnv
-           if let some replacement := Compiler.getImplementedBy? env name then
-             logInfo m!"REPLACEMENT {stage} {name} -> {replacement}"
-             reportClosure stage lookup (replacement :: rest) seen
-           else
-             match env.find? name with
-             | some (.ctorInfo ctor) =>
-                 logInfo m!"CONSTRUCTOR {stage} {name} tag={ctor.cidx} fields={ctor.numFields}"
-                 reportClosure stage lookup rest seen
-             | _ =>
-                 let some decl ← lookup name
-                   | throwError "Unresolved {stage} dependency {name}"
-                 match decl.value with
-                 | .extern data =>
-                     logInfo m!"EXTERNAL_LEAF {stage} {name}"
-                     reportExtern data
-                     reportClosure stage lookup rest seen
-                 | .code _ =>
-                     logInfo m!"CODE {stage} {name} safe={decl.safe} recursive={decl.recursive}"
-                     let calls ← directCalls decl
-                     for callee in calls do
-                       logInfo m!"EDGE {stage} {name} -> {callee}"
-                     reportClosure stage lookup (calls.toList ++ rest) seen
-
-   def captureRoot (name : Name) : CoreM Unit := do
-     let some base ← getBaseDecl? name
-       | throwError "Missing base-stage root {name}"
-     let some mono ← getMonoDecl? name
-       | throwError "Missing mono-stage root {name}"
-     match base.value with
-     | .code _ => logInfo m!"CAPTURED base {base.name} size={base.size}"
-     | .extern _ => throwError "Base root has no implementation body"
-     match mono.value with
-     | .code _ => logInfo m!"CAPTURED mono {mono.name} size={mono.size}"
-     | .extern _ => throwError "Mono root has no implementation body"
-     reportClosure "base" getBaseDecl? [name]
-     logInfo "CLOSURE_COMPLETE base"
-     reportClosure "mono" getMonoDecl? [name]
-     logInfo "CLOSURE_COMPLETE mono"
-
-   end Probe
-   ```
-
-   This is a conservative named-dependency inventory with rejection of
-   unresolved indirect applications, not a complete call graph. It traverses
-   nested local functions and join-point bodies; `JOIN_EDGE` records local jumps
-   for manual control-flow review. Constant applications also include constructor
-   uses and partially applied/global values. Empty-argument local references do
-   not prove that higher-order values cannot escape. Audit these and every
-   other `Code` and `LetValue` form found
-   in the actual traces against pinned `Basic.lean`. An empty edge list is not
-   evidence that arbitrary IR forms are safe. Unresolved indirect calls are a
-   bounded-subset failure requiring investigation, not permission to drop calls.
-   An external leaf is classified, not accepted for extraction automatically.
-
-4. Create `Inspect.lean`. The marker is used by Task 5 to run identical actions
-   with same-file definitions and imported definitions:
-
-   ```lean
-   import LeanGo.Feasibility.ProbeSupport
-   import LeanGo.Feasibility.Model
-
-   -- PROBE ACTIONS
-   set_option trace.Compiler.saveBase false
-   set_option trace.Compiler.saveMono false
-
-   open Lean Elab Command
-   open Lean.Compiler.LCNF
-
-   run_cmd do
-     liftCoreM do
-       Probe.auditClaim ``LeanGo.Feasibility.normalize_preserves_eval
-       Probe.auditClaim ``LeanGo.Feasibility.normalize_is_normal
-       Probe.sourceClosure [``LeanGo.Feasibility.normalize]
-       Probe.captureRoot ``LeanGo.Feasibility.normalize
-
-   run_cmd do
-     for name in [``LeanGo.Feasibility.Tri, ``LeanGo.Feasibility.Expr] do
-       let info ← getConstInfoInduct name
-       logInfo m!"TYPE {info.name} parameters={info.numParams}"
-       for ctorName in info.ctors do
-         let ctor ← getConstInfoCtor ctorName
-         logInfo m!"CTOR {ctor.name} tag={ctor.cidx} parameters={ctor.numParams} fields={ctor.numFields}"
-         logInfo m!"CTOR_TYPE {ctor.type}"
-   ```
-
-5. Create `ForeignFixture.lean`:
-
-   ```lean
-   import LeanGo.Feasibility.ProbeSupport
-
-   namespace ForeignFixture
-   @[extern "lean_go_missing_foreign"]
-   opaque foreign : UInt32 → UInt32
-   def root (value : UInt32) : UInt32 := foreign value
-   end ForeignFixture
-
-   open Lean Elab Command
-   open Lean.Compiler.LCNF
-   run_cmd do
-     liftCoreM do
-       Probe.sourceClosure [``ForeignFixture.root]
-       Probe.reportClosure "base" getBaseDecl? [``ForeignFixture.root]
-       Probe.reportClosure "mono" getMonoDecl? [``ForeignFixture.root]
-   ```
-
-   This fixture only compiles to evidence, never links or calls its foreign
-   symbol. Its external leaf must remain visible in the inventory.
-
-6. Create `ReplacementFixture.lean`:
-
-   ```lean
-   import LeanGo.Feasibility.ProbeSupport
-
-   namespace ReplacementFixture
-   def replacement (_ : UInt32) : UInt32 := 0
-   @[implemented_by replacement]
-   def root (value : UInt32) : UInt32 := value
-   theorem logical_identity (value : UInt32) : root value = value := rfl
-   end ReplacementFixture
-
-   open Lean Elab Command
-   open Lean.Compiler.LCNF
-   run_cmd do
-     liftCoreM do
-       Probe.sourceClosure [``ReplacementFixture.root]
-       Probe.reportClosure "base" getBaseDecl? [``ReplacementFixture.root]
-       Probe.reportClosure "mono" getMonoDecl? [``ReplacementFixture.root]
-   ```
-
-   The logical identity theorem can pass while the compiler replaces its
-   function. The source report must identify that substitution. Do not infer
-   equivalence from the replacement's type or from either function being safe.
-
-7. Create `BadClaim.lean`:
-
-   ```lean
-   import LeanGo.Feasibility.ProbeSupport
-
-   namespace BadClaim
-   axiom untrusted : False
-   theorem advertised : False := untrusted
-   end BadClaim
-
-   open Lean Elab Command
-   run_cmd do
-     liftCoreM <| Probe.auditClaim ``BadClaim.advertised
-   ```
-
-8. From `feasibility/`, rebuild support:
-
-   ```bash
-   lake build LeanGo.Feasibility.ProbeSupport
-   ```
-
-   Expected: successful compilation. Task 5 executes every fixture and checks
-   the expected positive and negative evidence. Do not include their functions
-   in the normalizer's export set.
-
-9. Commit the probe sources:
-
-   ```bash
-   git add feasibility/LeanGo/Feasibility/ProbeSupport.lean feasibility/Inspect.lean feasibility/ForeignFixture.lean feasibility/ReplacementFixture.lean feasibility/BadClaim.lean
-   git diff --cached --check
-   git commit -m "feat: inspect Lean source and pure compiler stages"
-   ```
+Expected: both bodies available as `.code` after import, full original schema,
+and the exact source proof/rewrite basis. Task 5 executes all fixtures with the
+strict process/diagnostic checks rather than treating any nonzero exit as proof.
 
 ## Task 5: Capture reproducible evidence across the module boundary
 
-**Files:** Create `feasibility/capture.py`. Generate ignored artifacts under
-`feasibility/.evidence/`; temporarily create and remove
-`feasibility/ProbeSameFile.lean`.
+**Verified implementation:** [capture.py](../../../feasibility/capture.py).
+This replaces the initial proposed Python listing, which lacked the final
+CSimp and exact-type gates. Use the committed script, not a copied old listing.
 
-1. Create the capture harness with this complete file:
+The capture creates a same-file probe from the model and `Inspect.lean` actions,
+builds the pinned dependencies, captures base/mono with compiler checking, and
+compares its sorted inventory to imported inspection. It hashes all known input
+files before checking for an unowned temporary probe, hashes the generated probe
+when owned, records exact subprocess argv/exits, and preserves failure JSON/logs.
+Exclusive creation and owned cleanup protect a pre-existing temporary source.
+Generated C is diagnostic producer material, never a runtime fallback.
 
-   ```python
-   #!/usr/bin/env python3
-   import hashlib
-   import json
-   import re
-   import subprocess
-   from pathlib import Path
+Successful capture requires all of the following:
 
-   ROOT = Path(__file__).resolve().parent
-   OUT = ROOT / ".evidence"
-   OUT.mkdir(exist_ok=True)
-   MODEL = ROOT / "LeanGo/Feasibility/Model.lean"
-   INSPECT = ROOT / "Inspect.lean"
-   TEMP = ROOT / "ProbeSameFile.lean"
-   PREFIX = "LeanGo.Feasibility."
-   MARKERS = (
-       "CAPTURED", "CLOSURE_COMPLETE", "CODE", "EDGE", "CONSTRUCTOR",
-       "REPLACEMENT", "EXTERNAL_LEAF", "EXTERN", "TYPE", "CTOR", "CTOR_TYPE",
-       "SOURCE", "SOURCE_REPLACEMENT", "SOURCE_EXTERN", "AXIOMS_ACCEPTED",
-   )
-   PATTERN = re.compile(r"\b(" + "|".join(MARKERS) + r")\s+.*")
-   FLAGS = [
-       "-Dcompiler.postponeCompile=false",
-       "-Dcompiler.check=true",
-       "-Dtrace.Compiler.saveBase=true",
-       "-Dtrace.Compiler.saveMono=true",
-   ]
-   report = {"commands": [], "inputs": {}, "inventories": {}, "verdict": "failed"}
+- Exact Lean 4.35.0 compiler commit, nonempty base/mono roots, raw root trace
+  blocks, and complete named runtime closures at both stages.
+- Equal same-file/imported inventories, no unexpected proof/foreign/unsafe
+  runtime dependency, and all eight exact original constructor type records.
+- Exact collected and accepted axiom records, checked before deduplication;
+  no missing, duplicate, or extra records. Both public claims use `[propext]`;
+  the actual Bool.not rewrite uses `[Quot.sound]` and its target is traversed.
+- Source and stage classification of the foreign and implemented_by fixtures.
+  The missing foreign symbol is never linked/called.
+- An axiom-free positive CSimp rule with actual root-to-target edges at both
+  stages, and rejection of the forged rewrite after its logical claim passes.
+- Exit 1 and the sole exact intended diagnostic for each of BadClaim and
+  BadCSimpFixture; every other captured command must exit 0. Wrong exits,
+  missing errors, or mixed/unrelated diagnostics fail.
 
-   def run(label, command):
-       result = subprocess.run(
-           command, cwd=ROOT, text=True, stdout=subprocess.PIPE,
-           stderr=subprocess.STDOUT, check=False,
-       )
-       (OUT / f"{label}.log").write_text(result.stdout)
-       report["commands"].append({
-           "label": label, "argv": command, "exit_code": result.returncode,
-       })
-       return result
+Run from `feasibility/`:
 
-   def require(condition, message):
-       if not condition:
-           raise RuntimeError(message)
+```bash
+python3 capture.py
+cp .evidence/capture.json .evidence/capture-first.json
+python3 capture.py
+cmp .evidence/capture-first.json .evidence/capture.json
+sha256sum .evidence/capture.json
+```
 
-   def inventory(text):
-       return sorted(set(
-           match.group(0).strip()
-           for line in text.splitlines()
-           if (match := PATTERN.search(line))
-       ))
-
-   def check_normalizer(label, result):
-       require(result.returncode == 0, f"{label}: compiler failed; inspect log")
-       records = inventory(result.stdout)
-       report["inventories"][label] = records
-       for stage in ("base", "mono"):
-           require(any(row.startswith(f"CAPTURED {stage} {PREFIX}normalize size=")
-                       for row in records), f"{label}: missing {stage} root")
-           require(f"CLOSURE_COMPLETE {stage}" in records,
-                   f"{label}: incomplete {stage} closure")
-       for theorem in ("normalize_preserves_eval", "normalize_is_normal"):
-           require(any(row.startswith(f"AXIOMS_ACCEPTED {PREFIX}{theorem}:")
-                       for row in records), f"{label}: missing claim audit")
-       for name in ("Tri", "Expr"):
-           require(f"TYPE {PREFIX}{name} parameters=0" in records,
-                   f"{label}: missing original type metadata")
-       for name in ("Tri.f", "Tri.u", "Tri.t", "Expr.lit", "Expr.var",
-                    "Expr.neg", "Expr.conj", "Expr.disj"):
-           require(any(row.startswith(f"CTOR {PREFIX}{name} tag=")
-                       for row in records), f"{label}: missing constructor {name}")
-       forbidden = (PREFIX + "eval", PREFIX + "normalize_preserves_eval",
-                    PREFIX + "normalize_is_normal")
-       runtime_rows = [row for row in records
-                       if row.startswith(("CODE ", "EDGE "))]
-       require(not any(name in row for row in runtime_rows for name in forbidden),
-               f"{label}: proof/reference code appears in runtime closure")
-       return records
-
-   def compile_file(label, filename):
-       return run(label, ["lake", "env", "lean", *FLAGS,
-                          "-c", f".evidence/{label}.c", filename])
-
-   created_temp = False
-   try:
-       for path in sorted(ROOT.rglob("*.lean")):
-           relative = path.relative_to(ROOT)
-           if any(part in {".lake", ".evidence"} for part in relative.parts):
-               continue
-           require(path != TEMP, "Temporary probe already exists; inspect it first")
-           report["inputs"][str(relative)] = hashlib.sha256(path.read_bytes()).hexdigest()
-       for name in ("lean-toolchain", "lakefile.toml", "capture.py",
-                    "check_mutations.py"):
-           report["inputs"][name] = hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
-
-       version = run("version", ["lake", "env", "lean", "--version"])
-       require(version.returncode == 0 and "version 4.35.0" in version.stdout,
-               "Wrong or unavailable Lean version")
-       for target in ("LeanGo", "LeanGo.Feasibility.ProbeSupport"):
-           result = run("build-" + target, ["lake", "build", target])
-           require(result.returncode == 0, f"Build failed: {target}")
-
-       sections = INSPECT.read_text().split("-- PROBE ACTIONS")
-       require(len(sections) == 2, "Expected exactly one probe-action marker")
-       source = ("import LeanGo.Feasibility.ProbeSupport\n"
-                 + MODEL.read_text() + "\n" + sections[1])
-       with TEMP.open("x") as handle:
-           handle.write(source)
-       created_temp = True
-       report["inputs"][TEMP.name] = hashlib.sha256(source.encode()).hexdigest()
-       same = compile_file("samefile", TEMP.name)
-       same_records = check_normalizer("samefile", same)
-       for stage in ("Base", "Mono"):
-           require(f"[Compiler.save{stage}]" in same.stdout,
-                   f"No raw save{stage} trace; inspect compiler trace configuration")
-
-       imported = compile_file("imported", "Inspect.lean")
-       imported_records = check_normalizer("imported", imported)
-       require(same_records == imported_records,
-               "Same-file/imported inventories differ; explain before choosing a stage")
-
-       foreign = compile_file("foreign", "ForeignFixture.lean")
-       require(foreign.returncode == 0, "Foreign fixture failed before classification")
-       require("SOURCE_EXTERN ForeignFixture.foreign" in foreign.stdout,
-               "Foreign source attribute was missed")
-       for stage in ("base", "mono"):
-           require(f"EXTERNAL_LEAF {stage} ForeignFixture.foreign" in foreign.stdout,
-                   f"Foreign executable dependency was missed at {stage}")
-       report["inventories"]["foreign"] = inventory(foreign.stdout)
-
-       replaced = compile_file("replacement", "ReplacementFixture.lean")
-       require(replaced.returncode == 0, "Replacement fixture failed before classification")
-       require("SOURCE_REPLACEMENT ReplacementFixture.root -> ReplacementFixture.replacement"
-               in replaced.stdout, "Original replacement attribute was missed")
-       for stage in ("base", "mono"):
-           require(f"REPLACEMENT {stage} ReplacementFixture.root -> ReplacementFixture.replacement"
-                   in replaced.stdout, f"Substitution was missed at {stage}")
-       report["inventories"]["replacement"] = inventory(replaced.stdout)
-
-       bad = compile_file("bad-claim", "BadClaim.lean")
-       require(bad.returncode != 0 and "Unexpected axiom BadClaim.untrusted" in bad.stdout,
-               "Axiom fixture did not fail for the intended reason")
-       report["verdict"] = "capture checks passed; manual IR and primitive audit required"
-       print(report["verdict"])
-   finally:
-       if created_temp:
-           TEMP.unlink()
-       (OUT / "capture.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
-   ```
-
-   These checks establish capture and classification, not Go correctness.
-   The native C output is ignored diagnostic material. It is never a consumer
-   artifact or a fallback for the proposed pure-Go runtime.
-
-2. Run from `feasibility/`:
-
-   ```bash
-   python3 -m py_compile capture.py check_mutations.py
-   python3 check_mutations.py
-   python3 capture.py
-   ```
-
-   Expected: both proof mutations rejected; then
-   `capture checks passed; manual IR and primitive audit required`.
-   Inspect `.evidence/capture.json` and every version, build, and fixture log.
-   Every successful root capture must have a nonempty implementation body,
-   complete classified dependency closure, and original constructor metadata.
-   For the same-file run, locate the normalizer's actual body in each raw stage
-   trace; a trace marker emitted for another definition does not meet this gate.
-   Imported definitions need available bodies, not re-emitted compilation traces.
-
-   A nonzero probe result is evidence to investigate. Missing saved bodies,
-   unsupported indirect calls, unexpected substitutions, and unavailable
-   dependencies must stay visible in the report. If pretty-print formatting
-   alone differs, record the exact difference before correcting a marker parser;
-   never delete a semantic check to obtain success.
-
-3. Verify determinism with an unchanged source tree:
-
-   ```bash
-   cp .evidence/capture.json .evidence/capture-first.json
-   python3 capture.py
-   cmp .evidence/capture-first.json .evidence/capture.json
-   ```
-
-   Expected: `cmp` exits zero. The JSON uses relative paths, input hashes,
-   exit statuses, and sorted inventories; raw logs retain the complete bodies.
-   Explain any nondeterministic names or inventories before adopting this
-   representation as an extraction boundary.
-
-4. Read the captured bodies against pinned compiler source. Record all observed
-   `Code` and `LetValue` forms, local functions/join points, recursion edges,
-   allocations, constructor fields, erased values, and external leaves in the
-   report from Task 7. Check whether specialization introduces helper declarations
-   that must be exported with the root. Follow each dependency until a body,
-   constructor, or explicitly described primitive is accounted for.
-
-   The runtime collector is intentionally narrow: an unmodeled IR form or
-   runtime operation blocks the extraction decision. Do not use its successful
-   exit as evidence that all compiler forms are supported.
-
-5. Commit only the harness:
-
-   ```bash
-   git add feasibility/capture.py
-   git diff --cached --check
-   git commit -m "test: capture compiler stages and audit fixtures"
-   ```
+Observed final result: 16 input hashes, ten subprocess entries, equal 129-record
+same-file/imported inventories, and byte-identical repeated manifests. Only
+bad-claim and bad-csimp exit 1 intentionally. The report records the exact hash
+and readable curated bodies/schema/closure. Capture's literal successful verdict
+still requires manual IR and primitive audit; it does not admit every LCNF form
+or prove Go extraction. Keep raw evidence ignored and review the complete three
+actual function bodies in each stage before selecting the adapter.
 
 ## Task 6: Assess a bounded reuse candidate without importing its implementation
 
@@ -1073,7 +607,8 @@ Use ignored `feasibility/.evidence/lean4-prod/` only for source inspection.
 ## Task 7: Write the evidence report and make the adapter decision
 
 **Files:** Create `docs/research/extraction-feasibility.md`; update `README.md`
-with a link to the report and its actual conclusion. Do not claim a Go package
+with a link to the report and its actual conclusion. Reconcile this plan and
+the design status with the observed evidence. Do not claim a Go package
 or a verified compiler exists at this point.
 
 1. Write a report with these exact section responsibilities, using the captured
@@ -1082,8 +617,8 @@ or a verified compiler exists at this point.
    | Section | Required evidence |
    | --- | --- |
    | Scope and toolchain | Exported root, Lean version/commit, host platform, source hashes, rerun commands, candidate revision |
-   | Source claims | Exact two theorem types, transitive axiom lists, smoke results, both targeted proof-mutation failures |
-   | Source versus runtime | Original `extern`/`implemented_by` attributes, actual stage substitutions, excluded proof/evaluation declarations, both fixtures' results |
+   | Source claims | Exact two theorem types, transitive axiom lists, smoke results, both targeted proof-mutation failures and strict rejection diagnostics |
+   | Source versus runtime | Original `extern`/`implemented_by` attributes, actual stage substitutions, excluded proof/evaluation declarations, all substitution/foreign fixtures' results |
    | Stage comparison | Base and mono root bodies, same-file/imported results, helper declarations, semantic differences introduced by each stage |
    | Representation | Original `Tri` and `Expr` constructor names/tags/field types, lowered field positions, erasure, `UInt32` identity and range |
    | Runtime closure | One row per reachable declaration/constructor/external leaf with its stage, callers, body or primitive contract, and planned pure-Go mapping |
@@ -1161,14 +696,14 @@ or a verified compiler exists at this point.
 
 5. Check the public boundary and commit the report. The README addition must
    use the observed decision and link to
-   `docs/research/extraction-feasibility.md`; keep its current design-only claims
-   accurate. Review every staged line for original generic content, identity,
+   `docs/research/extraction-feasibility.md`; describe its producer-prototype status
+   accurately. Review every staged line for original generic content, identity,
    and source attribution:
 
    ```bash
    git status --short
    git diff --check
-   git add README.md docs/research/extraction-feasibility.md
+   git add README.md docs/research/extraction-feasibility.md docs/superpowers/plans/2026-11-11-lean-go-feasibility.md docs/superpowers/specs/2026-11-11-lean-go-extraction-design.md
    git diff --cached --check
    git diff --cached
    git commit -m "docs: record Lean extraction feasibility decision"
@@ -1215,6 +750,9 @@ by a successful producer probe.
 - [Pinned transitive axiom collector](https://github.com/leanprover/lean4/blob/v4.35.0/src/Lean/Util/CollectAxioms.lean).
 - [Reuse candidate at the inspected commit](https://github.com/auser/lean4-prod/tree/991956fe427bb646498fd0912c89b71be71e7beb).
 
-These links document compiler facts and the reuse assessment. The feasibility
-code listings are proposed original implementation, pending execution against
-the pinned version.
+These links document compiler facts and the reuse assessment. Execution results
+and the bounded adapter decision are recorded in the
+[feasibility report](../../research/extraction-feasibility.md). Task 1/2 listings
+retain the approved workspace/model; Task 3–5 source links identify the corrected
+implementation used for the evidence. Future Go and release requirements remain
+unexecuted.

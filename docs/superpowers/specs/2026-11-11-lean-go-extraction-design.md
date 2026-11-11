@@ -6,7 +6,10 @@ Maintainer: franchb <hello@franchb.com>
 
 Working project name: lean-go
 
-Status: approved for the bounded feasibility investigation
+Status: approved design; bounded feasibility completed on 2026-11-11.
+The [evidence report](../../research/extraction-feasibility.md) selects pure mono
+LCNF for the controlled normalizer subset. Go backend and release work remain
+future milestones.
 
 ## Purpose and scope
 
@@ -172,8 +175,13 @@ Unsupported executable effects include IO, task scheduling, arbitrary foreign
 functions, and runtime-dependent values without an explicit representation.
 Partial or unsafe computational definitions are rejected unless they are an
 identified standard primitive with an admitted, documented semantic mapping.
-Compiler replacements such as `implemented_by` must be audited; a proved
-logical definition does not by itself justify a different compiled body.
+Compiler replacements such as `implemented_by` and `csimp` must be audited; a
+proved logical definition does not by itself justify a different compiled body.
+Rewrite theorem kind and transitive axioms must be checked separately from the
+public claims. Current-environment CSimp lookup cannot reconstruct arbitrary
+earlier scoped rules: a general adapter needs compile-time provenance or
+explicit history restrictions/rejection. The feasibility report records the
+concrete Bool.not rewrite and its separate admitted proof basis.
 
 ### Go input boundary
 
@@ -303,8 +311,11 @@ The release is accepted only when all of the following evidence exists:
   procedure. Examples and artifacts contain only public, independently authored
   material.
 
-No validation above has been executed at the design stage. These are acceptance
-requirements for the future implementation and release.
+The feasibility report records completed Lean source proofs, truth-table/shape
+checks, native Lean smoke, targeted proof mutations, and compiler/source audit
+controls. These are bounded producer evidence. The generated-Go, differential,
+boundary, two-platform runtime, external-consumer, and release requirements
+above remain acceptance requirements for the future implementation and release.
 
 ## Compatibility, maintenance, and collaboration
 
