@@ -66,7 +66,10 @@ The runtime source is [Quota.lean](../libraries/quota/source/Quota.lean). Its
 | `reserve_exact`, `release_exact` | Accepted natural-number arithmetic is exact, with unchanged capacity |
 | `remaining_exact` | Remaining units plus used units equals capacity for valid states |
 
-The checker rebuilds the exact runtime and proof sources in a fresh,
+Quota uses the shared [proof-contract workflow](proof-contracts.md). Its
+[contract](../libraries/quota/proof-contract.json) maps the theorems to raw
+[expected propositions](../libraries/quota/proof/QuotaContract.lean), maintained
+separately from the proofs. The checker rebuilds the exact runtime and proof sources in a fresh,
 dependency-free Lean 4.35.0 project. It compares each theorem's type with an
 independently written expected proposition and collects its axiom dependencies.
 Only `propext`, `Classical.choice` and `Quot.sound` are allowed; current proofs use
@@ -74,8 +77,9 @@ only `propext` and `Quot.sound`. Admitted proofs, custom axioms and compiler-tru
 axioms are rejected. No project build scripts or precompiled local proofs are
 reused.
 
-[Proof evidence](../libraries/quota/proof-evidence.json) records exact theorem
-statements, axiom lists, Lean identity, source/proof/checker hashes and the
+[Proof evidence](../libraries/quota/proof-evidence.json) uses the shared
+`lean-go-proof-evidence/v1` schema. It records exact theorem statements, expected
+definition names, axiom lists, Lean identity, contract/source/proof/checker hashes and the
 generated manifest hash. Checking also verifies the selected roots, runtime
 source hash and hashes of the four generated Go files. The normal module IR
 does not acquire application theorem claims; this is separate source evidence.

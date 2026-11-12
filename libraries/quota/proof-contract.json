@@ -1,0 +1,54 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Quota",
+  "roots": [
+    "Quota.create",
+    "Quota.release",
+    "Quota.remaining",
+    "Quota.reserve"
+  ],
+  "claims": [
+    {
+      "theorem": "QuotaProofs.create_valid",
+      "expected": "QuotaContract.expectedCreate"
+    },
+    {
+      "theorem": "QuotaProofs.reserve_accepted",
+      "expected": "QuotaContract.expectedReserveAccepted"
+    },
+    {
+      "theorem": "QuotaProofs.reserve_preserves",
+      "expected": "QuotaContract.expectedReservePreserves"
+    },
+    {
+      "theorem": "QuotaProofs.reserve_rejected",
+      "expected": "QuotaContract.expectedReserveRejected"
+    },
+    {
+      "theorem": "QuotaProofs.reserve_exact",
+      "expected": "QuotaContract.expectedReserveExact"
+    },
+    {
+      "theorem": "QuotaProofs.release_accepted",
+      "expected": "QuotaContract.expectedReleaseAccepted"
+    },
+    {
+      "theorem": "QuotaProofs.release_preserves",
+      "expected": "QuotaContract.expectedReleasePreserves"
+    },
+    {
+      "theorem": "QuotaProofs.release_rejected",
+      "expected": "QuotaContract.expectedReleaseRejected"
+    },
+    {
+      "theorem": "QuotaProofs.release_exact",
+      "expected": "QuotaContract.expectedReleaseExact"
+    },
+    {
+      "theorem": "QuotaProofs.remaining_exact",
+      "expected": "QuotaContract.expectedRemaining"
+    }
+  ]
+}

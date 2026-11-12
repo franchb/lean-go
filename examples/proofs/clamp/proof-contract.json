@@ -1,0 +1,12 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Clamp",
+  "roots": ["Clamp.clamp"],
+  "claims": [
+    {"theorem": "ClampProofs.bounded", "expected": "ClampContract.bounded"},
+    {"theorem": "ClampProofs.preserves", "expected": "ClampContract.preserves"},
+    {"theorem": "ClampProofs.idempotent", "expected": "ClampContract.idempotent"}
+  ]
+}
