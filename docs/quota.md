@@ -1,9 +1,9 @@
 # Bounded quota accounting
 
 `github.com/franchb/lean-go/quota` is an immutable counter with a fixed `uint64`
-capacity. It is available in this source checkout; the published
-`v0.1.0-alpha.2` preview predates it. Consumers need Go 1.27.4 and can build with
-`CGO_ENABLED=0`. They do not need Lean, Python, a C compiler or a native library.
+capacity. It is available starting with `v0.1.0-alpha.3`. Consumers need Go 1.27.4
+and can build with `CGO_ENABLED=0`. They do not need Lean, Python, a C compiler or
+a native library.
 
 ```go
 import "github.com/franchb/lean-go/quota"

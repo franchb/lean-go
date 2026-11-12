@@ -2,12 +2,11 @@
 
 The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
 and a C compiler are not needed by a consumer. The preview version is
-`v0.1.0-alpha.2`; its API is experimental.
+`v0.1.0-alpha.3`; its API is experimental.
 
-The unpublished alpha.3 candidate adds multi-root extraction, quota and reusable
-proof contracts. Use the [candidate walkthrough](release-candidate.md) to try
-those features from a recorded checkout; the commands below target published
-alpha.2.
+Alpha.3 adds multi-root extraction, quota and reusable proof contracts. Use the
+[proof-to-Go walkthrough](release-candidate.md) to check source theorems and
+extract a fresh Go package from the pinned release.
 
 ## Run a generated package
 
@@ -17,7 +16,7 @@ Create a fresh directory and initialize a Go module:
 mkdir lean-go-example
 cd lean-go-example
 go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.2
+go get github.com/franchb/lean-go@v0.1.0-alpha.3
 ```
 
 Save this as `main.go`:
@@ -61,7 +60,7 @@ declares that requirement and has a locked dependency set. Clone the pinned
 preview into a separate directory:
 
 ```sh
-git clone --branch v0.1.0-alpha.2 https://github.com/franchb/lean-go.git
+git clone --branch v0.1.0-alpha.3 https://github.com/franchb/lean-go.git
 cd lean-go
 uv python install 3.15
 ```

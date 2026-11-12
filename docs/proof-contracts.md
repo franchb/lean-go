@@ -2,8 +2,8 @@
 
 A proof contract lets a Lean library use the same checked-evidence workflow as
 the [quota library](quota.md). It works with current single-root v6 and multi-root
-v7 generated packages. The checker is available in this source checkout and is
-not part of the published `v0.1.0-alpha.2` preview.
+v7 generated packages. The checker is included starting with the
+`v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
 propositions. The checker rebuilds them with pinned Lean, verifies the exact

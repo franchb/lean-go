@@ -1,9 +1,9 @@
-# Try the alpha.3 release candidate
+# From Lean source proofs to Go with alpha.3
 
-`v0.1.0-alpha.3` is an **unpublished release candidate**. The published preview
-is still `v0.1.0-alpha.2`; there is no alpha.3 tag to install yet. This candidate
-brings together multi-root extraction, the quota library and reusable source-proof
-contracts. Its API remains experimental.
+This walkthrough uses the `v0.1.0-alpha.3` experimental preview, which brings
+together multi-root extraction, the quota library and reusable source-proof
+contracts. It checks source theorems, extracts fresh Go and exercises an isolated
+consumer. Its API remains experimental.
 
 ## Start from a clean checkout
 
@@ -11,15 +11,15 @@ Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.
 Make Go, Lean and Lake available on `PATH`. Clone into a new directory:
 
 ```sh
-git clone --branch codex/alpha3-release-candidate --single-branch \
+git clone --branch v0.1.0-alpha.3 --single-branch \
   https://github.com/franchb/lean-go.git lean-go-alpha3
 cd lean-go-alpha3
 git rev-parse HEAD
 uv python install 3.15
 ```
 
-The branch can advance during preparation. Record the full commit printed above
-alongside your verification output. The verifier operates on its current source
+Record the full commit printed above alongside your verification output. The tag
+pins the release sources. The verifier operates on its current source
 checkout; it does not establish that a working tree is clean. CI runs it from a
 fresh checkout, and release preparation also checks a clean tracked snapshot.
 
@@ -48,18 +48,29 @@ uv run --locked python scripts/check_release_candidate.py > ../alpha3-walkthroug
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
-the source workflow; the candidate's exact-version module consumer is a separate
-check:
+the source workflow; verify the public Go module separately:
+
+```sh
+CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.3 \
+  go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
+```
+
+That test downloads the exact tag through the public Go proxy and checksum
+database, verifies its version without a local `replace`, then runs tree,
+UInt64, quota and multi-root checks offline with only Go on `PATH`.
+
+For checks before publishing a tag, the candidate test remains available:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
   go test -count=1 -run '^TestReleaseCandidateConsumer$' -v ./integration
 ```
 
-That test exercises candidate Go packages through a temporary module proxy,
+The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
-`replace`. It is prepublication evidence. The public exact-tag consumer check
-runs after an actual release tag exists.
+`replace`. It is prepublication evidence; it does not establish public tag
+availability or the checksum of the published module archive.
 
 ## Inspect the individual stages
 

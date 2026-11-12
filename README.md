@@ -13,14 +13,13 @@ arithmetic, comparisons, local joins and source record names for typed Go APIs.
 Multiple roots use `pure-module/v5` with v7 IR and share one generated package.
 Earlier v2–v6 IR remain accepted with their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
-preview is `v0.1.0-alpha.2`; APIs and supported compiler forms may change before
+preview is `v0.1.0-alpha.3`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
-[preview notes](docs/releases/v0.1.0-alpha.2.md).
+[preview notes](docs/releases/v0.1.0-alpha.3.md).
 
-The next preview is being prepared as an unpublished **alpha.3 candidate**, which
-includes multi-root extraction, quota and reusable proof contracts. See the
-[candidate walkthrough](docs/release-candidate.md) and
-[candidate release notes](docs/releases/v0.1.0-alpha.3.md).
+Alpha.3 includes multi-root extraction, quota and reusable proof contracts. The
+[proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
+extracts fresh Go and exercises an isolated consumer.
 
 ## Extract a module
 
@@ -120,8 +119,7 @@ names are deterministic; the manifest records collision resolutions. See the
 
 ## Export several functions together
 
-Multi-root extraction is available in this checkout; the published
-`v0.1.0-alpha.2` preview predates it.
+Multi-root extraction is available starting with `v0.1.0-alpha.3`.
 
 Repeat `--root` to share types, constructors and runtime across selected functions:
 
@@ -175,7 +173,7 @@ uv run --locked python scripts/check_quota.py
 The proof evidence is bound to the source and generated package hashes. These
 are proofs of the Lean rules; extraction and Go execution remain tested and
 trusted. See the [quota guide](docs/quota.md) for the Go API, checks and limits.
-This library is available in this checkout and is not in `v0.1.0-alpha.2`.
+This library is available starting with `v0.1.0-alpha.3`.
 
 Other libraries can use the same proof gate through a small JSON contract that
 maps named theorems to independently authored expected propositions. The checker
