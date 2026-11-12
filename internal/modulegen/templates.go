@@ -20,7 +20,8 @@ func (g *generator) renderTemplate(name string) ([]byte, error) {
 	data := struct {
 		Wide       bool
 		UInt64Type int
-	}{g.program.Schema == moduleir.SchemaV6, g.types["UInt64"]}
+		MultiRoot  bool
+	}{moduleir.HasUInt64(g.program.Schema), g.types["UInt64"], g.program.Schema == moduleir.SchemaV7}
 	var out bytes.Buffer
 	if err := parsed.Execute(&out, data); err != nil {
 		return nil, err

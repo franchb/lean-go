@@ -18,6 +18,7 @@ import json
 MAX_FILES = 256
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_IR_BYTES = 4 * 1024 * 1024
+MAX_ROOTS = 64
 PRODUCER_INPUTS = ("producer/LeanGo/Module/Audit.lean", "producer/LeanGo/Module/Export.lean",
                    "producer/LeanGo/Module/Primitives.lean",
                    "producer/LeanGo/Module/Records.lean",
@@ -41,6 +42,20 @@ def validate_name(name):
     if not IDENTIFIER.fullmatch(name):
         raise ExportError(f"invalid ASCII Lean name: {name!r}")
     return name
+
+
+def select_roots(entry):
+    """Canonicalize explicit roots without silently accepting duplicate requests."""
+    entries = [entry] if isinstance(entry, str) else entry
+    if not isinstance(entries, (list, tuple)) or not 1 <= len(entries) <= MAX_ROOTS:
+        raise ExportError(f'expected between 1 and {MAX_ROOTS} roots')
+    for name in entries:
+        if not isinstance(name, str):
+            raise ExportError('root names must be strings')
+        validate_name(name)
+    if len(set(entries)) != len(entries):
+        raise ExportError('duplicate roots are not allowed')
+    return sorted(entries)
 
 
 def source_snapshot(source_dir):
@@ -186,10 +201,33 @@ def lake_config(sources):
             ''.join(f'\n[[lean_lib]]\nname = "{name}"\n' for name in roots)).encode()
 
 
+def export_harness(module, entries):
+    if len(entries) == 1:
+        command = f'#lean_go_export "ir.json" {entries[0]} "{module}"\n'
+    else:
+        command = f'#lean_go_export_roots "ir.json" [{", ".join(entries)}] "{module}"\n'
+    return f'import LeanGo.Module.Export\nimport {module}\n' + command
+
+
+def complete_program(raw, module, entries, identities):
+    program = parse_json(raw)
+    multi = len(entries) > 1
+    selection = 'roots' if multi else 'root'
+    fields = {'module', selection, 'types', 'functions', 'claims', 'rewrites', 'provenance', 'api'}
+    if not isinstance(program, dict) or set(program) != fields:
+        raise ExportError('unexpected module producer result fields')
+    if program['module'] != module or program[selection] != (entries if multi else entries[0]):
+        raise ExportError('module producer returned a different module or roots')
+    program.update(schema='lean-go-ir/v7' if multi else 'lean-go-ir/v6',
+                   profile='pure-module/v5' if multi else 'pure-module/v4', stage='pure-mono',
+                   lean_version='4.35.0', lean_commit=COMMIT, inputs=identities)
+    return program
+
+
 def export_module(root, source_dir, module, entry, output):
     check_python()
     validate_name(module)
-    validate_name(entry)
+    entries = select_roots(entry)
     root, source_dir = Path(root), Path(source_dir)
     validate_output(output, source_dir, root)
     sources = source_snapshot(source_dir)
@@ -230,21 +268,12 @@ def export_module(root, source_dir, module, entry, output):
             raise ExportError("producer dependency lock must have no packages")
         run([lake, "build", "LeanGo.Module.Export", *sorted(sources)], workspace, env)
         harness = workspace / "LeanGo/Module/Harness.lean"
-        harness.write_text(f'import LeanGo.Module.Export\nimport {module}\n'
-                           f'#lean_go_export "ir.json" {entry} "{module}"\n')
+        harness.write_text(export_harness(module, entries))
         run([lake, "env", "lean", str(harness.relative_to(workspace))], workspace, env)
         raw = (workspace / "ir.json").read_bytes()
         if len(raw) > MAX_IR_BYTES:
             raise ExportError("producer IR exceeds 4 MiB")
-        program = parse_json(raw)
-        fields = {"module", "root", "types", "functions", "claims", "rewrites", "provenance", "api"}
-        if not isinstance(program, dict) or set(program) != fields:
-            raise ExportError("unexpected module producer result fields")
-        if program["module"] != module or program["root"] != entry:
-            raise ExportError("module producer returned a different module or root")
-        program.update(schema="lean-go-ir/v6", profile="pure-module/v4", stage="pure-mono",
-                       lean_version="4.35.0", lean_commit=COMMIT,
-                       inputs=input_digests(sources, producer))
+        program = complete_program(raw, module, entries, input_digests(sources, producer))
         result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
         if len(result) > MAX_IR_BYTES:
             raise ExportError("complete IR exceeds 4 MiB")
@@ -256,7 +285,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-dir", required=True, type=Path)
     parser.add_argument("--module", required=True)
-    parser.add_argument("--root", required=True)
+    parser.add_argument("--root", required=True, action='append',
+                        help='fully qualified root; repeat for a shared multi-root package')
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
     try:

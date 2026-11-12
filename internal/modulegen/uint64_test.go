@@ -56,7 +56,7 @@ func TestUInt64Manifest(t *testing.T) {
 	if err = json.Unmarshal(files["manifest.json"], &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Schema != "lean-go-manifest/v6" || m.Generator != "lean-go-modulegen/v5" || len(m.Primitives) != 7 || m.GoAPI == nil || m.GoAPI.Types["UInt64"] != "uint64" || m.GoAPI.Types["UInt32"] != "uint32" {
+	if m.Schema != "lean-go-manifest/v6" || m.Generator != Version || len(m.Primitives) != 7 || m.GoAPI == nil || m.GoAPI.Types["UInt64"] != "uint64" || m.GoAPI.Types["UInt32"] != "uint32" {
 		t.Fatal("wide manifest", m)
 	}
 	for _, primitive := range m.Primitives {

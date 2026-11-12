@@ -13,7 +13,8 @@ import (
 
 // goAPI is also the manifest's complete mapping of the emitted public facade.
 type goAPI struct {
-	Entrypoint   string                       `json:"entrypoint"`
+	Entrypoint   string                       `json:"entrypoint,omitempty"`
+	Entrypoints  map[string]string            `json:"entrypoints,omitempty"`
 	Types        map[string]string            `json:"types"`
 	Constructors map[string]string            `json:"constructors"`
 	Accessors    map[string]map[string]string `json:"accessors"`
@@ -76,10 +77,7 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 		Entrypoint: "RunTyped", Types: map[string]string{}, Constructors: map[string]string{},
 		Accessors: map[string]map[string]string{}, Destructors: map[string]apiDestructor{},
 	}
-	packageNames := apiNameAllocator{}
-	for _, name := range strings.Fields(apiReservedNames) {
-		packageNames[name] = true
-	}
+	packageNames := reservedAPINames(p.Schema)
 	scalars := apiScalars(p)
 	for name, scalar := range scalars {
 		api.Types[name] = scalar.GoType
@@ -119,5 +117,30 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 	for _, ctor := range constructors {
 		api.Constructors[ctor.lean] = packageNames.allocate(ctor.preferred)
 	}
+	api.allocateEntrypoints(p, packageNames)
 	return api
+}
+
+func reservedAPINames(schema string) apiNameAllocator {
+	names := apiNameAllocator{}
+	for _, name := range strings.Fields(apiReservedNames) {
+		names[name] = true
+	}
+	if schema == moduleir.SchemaV7 {
+		for _, name := range []string{"RunRoot", "rootSignature"} {
+			names[name] = true
+		}
+	}
+	return names
+}
+
+func (api *goAPI) allocateEntrypoints(p *moduleir.Program, names apiNameAllocator) {
+	if p.Schema != moduleir.SchemaV7 {
+		return
+	}
+	api.Entrypoint = ""
+	api.Entrypoints = map[string]string{}
+	for _, root := range moduleir.RootNames(p) {
+		api.Entrypoints[root] = names.allocate("Run" + exportedAPIName(root))
+	}
 }

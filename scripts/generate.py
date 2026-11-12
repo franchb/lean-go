@@ -12,7 +12,7 @@ import tempfile
 
 from export import ExportError
 from export_module import (check_python, verify_inputs as verify_module_inputs,
-                           validate_name, validate_output, source_snapshot, PRODUCER_INPUTS)
+                           select_roots, validate_name, validate_output, source_snapshot, PRODUCER_INPUTS)
 
 INPUT_FILES = (
     'feasibility/LeanGo/Feasibility/Model.lean',
@@ -22,7 +22,7 @@ INPUT_FILES = (
 
 
 def verify_inputs(root, program, source_dir=None):
-    if program.get("schema") in {"lean-go-ir/v2", "lean-go-ir/v3", "lean-go-ir/v4", "lean-go-ir/v5", "lean-go-ir/v6"}:
+    if program.get("schema") in {"lean-go-ir/v2", "lean-go-ir/v3", "lean-go-ir/v4", "lean-go-ir/v5", "lean-go-ir/v6", "lean-go-ir/v7"}:
         if source_dir is None:
             raise ValueError("module source directory is required for module freshness checks")
         verify_module_inputs(root, source_dir, program)
@@ -67,7 +67,8 @@ def main():
     parser.add_argument('--ir-output', type=Path)
     parser.add_argument('--source-dir', type=Path)
     parser.add_argument('--module')
-    parser.add_argument('--root')
+    parser.add_argument('--root', action='append',
+                        help='fully qualified root; repeat for a shared multi-root package')
     args = parser.parse_args()
     check_python()
     selected = (args.source_dir is not None, args.module is not None, args.root is not None)
@@ -84,7 +85,7 @@ def main():
     validate_output_paths(output, ir_output)
     if module_mode:
         validate_name(args.module)
-        validate_name(args.root)
+        entries = select_roots(args.root)
         sources = source_snapshot(args.source_dir)
         if args.module not in sources:
             raise ValueError('requested source module does not exist')
@@ -106,8 +107,9 @@ def main():
         script = 'export_module.py' if module_mode else 'export.py'
         command = [sys.executable, str(root / 'scripts' / script), '--output', str(ir_path)]
         if module_mode:
-            command += ['--source-dir', str(args.source_dir.resolve()), '--module', args.module,
-                        '--root', args.root]
+            command += ['--source-dir', str(args.source_dir.resolve()), '--module', args.module]
+            for entry in entries:
+                command += ['--root', entry]
         subprocess.run(command, cwd=root, env=environment, check=True, timeout=300)
         content = ir_path.read_bytes()
         program = json.loads(content)

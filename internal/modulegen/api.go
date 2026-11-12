@@ -16,7 +16,7 @@ type apiScalar struct {
 
 func apiScalars(p *moduleir.Program) map[string]apiScalar {
 	scalars := map[string]apiScalar{"UInt32": {"uint32", "0", "apiUInt32Node", "apiReadUInt32"}}
-	if p.Schema == moduleir.SchemaV6 {
+	if moduleir.HasUInt64(p.Schema) {
 		scalars["UInt64"] = apiScalar{"uint64", "0", "apiUInt64Node", "apiReadUInt64"}
 	}
 	for _, typ := range p.Types {
@@ -57,7 +57,7 @@ func (g *generator) emitAPI() ([]byte, error) {
 		typ := g.types["Bool"]
 		fmt.Fprintf(w, "func apiBoolNode(value bool)*node{tag:=0;if value{tag=1};return &node{typ:%d,tag:tag,size:1,depth:1}}\n", typ)
 		inactive := ""
-		if g.program.Schema == moduleir.SchemaV6 {
+		if moduleir.HasUInt64(g.program.Schema) {
 			inactive = "||n.scalar64!=0"
 		}
 		fmt.Fprintf(w, "func apiReadBool(n *node)(bool,bool){if !apiNode(n,%d)||len(n.fields)!=0||n.scalar!=0%s||n.size!=1||n.depth!=1||(n.tag!=0&&n.tag!=1){return false,false};return n.tag==1,true}\n", typ, inactive)
@@ -76,7 +76,9 @@ func (g *generator) emitAPI() ([]byte, error) {
 			}
 		}
 	}
-	e.run(w)
+	for _, root := range moduleir.RootNames(g.program) {
+		e.run(w, root)
+	}
 	return w.Bytes(), nil
 }
 
@@ -151,13 +153,18 @@ func (e *apiEmitter) destructor(w *bytes.Buffer, typ moduleir.TypeDecl, ctor mod
 	fmt.Fprintf(w, "return %s,true}\n", strings.Join(values, ","))
 }
 
-func (e *apiEmitter) run(w *bytes.Buffer) {
-	root := e.g.functions[e.g.program.Root].decl
+func (e *apiEmitter) run(w *bytes.Buffer, name string) {
+	root := e.g.functions[name].decl
 	fields := make([]string, len(root.Params))
 	for i, param := range root.Params {
 		fields[i] = param.Type
 	}
-	fmt.Fprintf(w, "// RunTyped invokes the selected Lean root through Run and its existing limits.\nfunc RunTyped(%sl Limits)(%s,error){out,err:=Run([]Value{", e.parameters(fields), e.names.Types[root.Result])
+	if e.g.program.Schema == moduleir.SchemaV7 {
+		entry := e.names.Entrypoints[name]
+		fmt.Fprintf(w, "// %s invokes its selected Lean root through RunRoot and its existing limits.\nfunc %s(%sl Limits)(%s,error){out,err:=RunRoot(%q,[]Value{", entry, entry, e.parameters(fields), e.names.Types[root.Result], name)
+	} else {
+		fmt.Fprintf(w, "// RunTyped invokes the selected Lean root through Run and its existing limits.\nfunc RunTyped(%sl Limits)(%s,error){out,err:=Run([]Value{", e.parameters(fields), e.names.Types[root.Result])
+	}
 	for i, field := range fields {
 		fmt.Fprintf(w, "{n:%s},", e.node(field, fmt.Sprintf("a%d", i)))
 	}

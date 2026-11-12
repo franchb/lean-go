@@ -63,15 +63,17 @@ func (b *budget) make(typ,tag int,fields []*node)(*node,error){
  size,depth,err:=measure(fields,b.limits.MaxOutputNodes,b.limits.MaxDepth);if err!=nil{return nil,err};b.allocations++
  return &node{typ:typ,tag:tag,fields:fields,size:size,depth:depth},nil
 }
-// Run invokes the selected Lean root. Argument occurrences share one input-node
+[[if .MultiRoot]]// RunRoot invokes an explicitly exported Lean root by its full source name.
+// Each call has independent resource budgets. Unknown and internal names fail.
+[[else]]// Run invokes the selected Lean root. Argument occurrences share one input-node
 // budget. Errors return an invalid Value and never a partial result.
-func Run(args []Value,l Limits)(Value,error){
+[[end]]func [[if .MultiRoot]]RunRoot(root string,args []Value,l Limits)[[else]]Run(args []Value,l Limits)[[end]](Value,error){
  if err:=checkLimits(l);err!=nil{return Value{},err}
- expected:=rootParameters();if len(args)!=len(expected){return Value{},ErrMalformed}
+ [[if .MultiRoot]]entry,resultType,expected,ok:=rootSignature(root);if !ok{return Value{},ErrMalformed};[[else]]expected:=rootParameters();[[end]]if len(args)!=len(expected){return Value{},ErrMalformed}
  nodes:=make([]*node,len(args));var total uint64
  for i,v:=range args{if v.n==nil||v.n.typ!=expected[i]||v.n.size==0||v.n.depth==0{return Value{},ErrMalformed};if v.n.size>l.MaxNodes-total||v.n.depth>l.MaxDepth{return Value{},ErrResource};total+=v.n.size;nodes[i]=v.n}
- b:=&budget{limits:l};result,err:=execute(b,nodes);if err!=nil{return Value{},err}
- if result==nil||result.typ!=rootResult()||result.size==0||result.depth==0{return Value{},ErrMalformed}
+ b:=&budget{limits:l};result,err:=execute(b,[[if .MultiRoot]]entry,[[end]]nodes);if err!=nil{return Value{},err}
+ if result==nil||result.typ!=[[if .MultiRoot]]resultType[[else]]rootResult()[[end]]||result.size==0||result.depth==0{return Value{},ErrMalformed}
  if result.size>l.MaxOutputNodes||result.depth>l.MaxDepth{return Value{},ErrResource}
  return Value{result},nil
 }

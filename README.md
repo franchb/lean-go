@@ -8,9 +8,10 @@ use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python a
 needed for regeneration, not deployment.
 
 The original audited normalizer remains available as a separate v1 profile.
-Module exports now use `pure-module/v4` with v6 IR, including UInt32 and UInt64
+Single-root module exports use `pure-module/v4` with v6 IR, including UInt32 and UInt64
 arithmetic, comparisons, local joins and source record names for typed Go APIs.
-Earlier v2–v5 IR remain accepted with their original restrictions and APIs.
+Multiple roots use `pure-module/v5` with v7 IR and share one generated package.
+Earlier v2–v6 IR remain accepted with their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
 preview is `v0.1.0-alpha.2`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
@@ -111,6 +112,48 @@ Constructors reject invalid zero wrappers and enforce input node/depth limits.
 `RunTyped` delegates to the same runtime and resource limits as `Run`. Generated
 names are deterministic; the manifest records collision resolutions. See the
 [typed API report](docs/research/extraction-typed-api.md) for the complete contract.
+
+## Export several functions together
+
+Multi-root extraction is available in this checkout; the published
+`v0.1.0-alpha.2` preview predates it.
+
+Repeat `--root` to share types, constructors and runtime across selected functions:
+
+```sh
+uv run --locked python scripts/generate.py \
+  --source-dir examples/modules --module Counters \
+  --root Counters.initial --root Counters.advance \
+  --root Counters.read --root Counters.total \
+  --out generated/counters --ir-output testdata/counters.ir.json
+```
+
+The generated typed functions compose directly:
+
+```go
+import (
+    "fmt"
+    c "github.com/franchb/lean-go/generated/counters"
+)
+
+limits := c.DefaultLimits()
+state, err := c.RunInitial(10, 9007199254740993, true, limits)
+if err != nil { panic(err) }
+delta, err := c.NewCount(3, limits)
+if err != nil { panic(err) }
+next, err := c.RunAdvance(state, delta, limits)
+if err != nil { panic(err) }
+value, err := c.RunRead(next, limits)
+if err != nil { panic(err) }
+fmt.Println(value) // 13
+```
+
+Each call starts fresh resource budgets; `state` remains unchanged. Raw callers
+use `RunRoot("Counters.read", args, limits)`. Only selected roots are exposed.
+The manifest maps full Lean names to typed entrypoints, including collision
+suffixes. Selection order is irrelevant; duplicates and more than 64 roots fail.
+Multi-root packages have no default `Run`/`RunTyped`; single-root packages retain
+both. See [multi-root extraction](docs/research/extraction-multiroot.md).
 
 ## Raw module API
 

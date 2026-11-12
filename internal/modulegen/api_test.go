@@ -125,7 +125,7 @@ func TestTypedManifestAndLegacyCompatibility(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Schema != "lean-go-manifest/v5" || m.Generator != "lean-go-modulegen/v5" || m.API.Entrypoint != "RunTyped" || m.API.Types["UInt32"] != "uint32" || m.API.Types["Bool"] != "bool" || m.API.Constructors["Example.Count.mk"] != "NewCount" || m.API.Accessors["Example.Count"]["value"] != "Value" {
+	if m.Schema != "lean-go-manifest/v5" || m.Generator != Version || m.API.Entrypoint != "RunTyped" || m.API.Types["UInt32"] != "uint32" || m.API.Types["Bool"] != "bool" || m.API.Constructors["Example.Count.mk"] != "NewCount" || m.API.Accessors["Example.Count"]["value"] != "Value" {
 		t.Fatalf("wrong typed manifest: %+v", m)
 	}
 	for _, legacy := range []*moduleir.Program{testProgram(), numericProgram(), joinTestProgram()} {

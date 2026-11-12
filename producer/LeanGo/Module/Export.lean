@@ -475,9 +475,16 @@ def rejectMutualRecursion (graph : List (Name × List Name)) : CoreM Unit := do
         if let some (_, calls) := graph.find? (·.1 == n) then
           pending := calls.filter (· != n) ++ pending
 
-def exportProgram (moduleName : String) (root : Name) : CoreM Json := do
-  discard <| auditSource [root]
-  let mut pending := [root]
+def exportProgramRoots (moduleName : String) (requested : Array Name) : CoreM Json := do
+  unless requested.size > 0 && requested.size <= 64 do
+    throwError "Expected between 1 and 64 roots"
+  let roots := requested.qsort (fun a b => a.toString < b.toString)
+  let mut selected : NameSet := {}
+  for root in roots do
+    if selected.contains root then throwError "Duplicate root: {root}"
+    selected := selected.insert root
+  discard <| auditSource roots.toList
+  let mut pending := roots.toList
   let mut seen : NameSet := {}
   let mut functions := #[]
   let mut graph := []
@@ -499,12 +506,24 @@ def exportProgram (moduleName : String) (root : Name) : CoreM Json := do
   let (provenance, rewrites) ← auditSource (graph.map Prod.fst)
   let exportedTypes ← exportTypes types
   let api ← exportAPI exportedTypes
-  return obj [("module", str moduleName), ("root", str root.toString),
+  let selection := if roots.size == 1 then ("root", str roots[0]!.toString)
+    else ("roots", toJson (roots.map Name.toString))
+  return obj [("module", str moduleName), selection,
     ("types", exportedTypes), ("api", api), ("functions", .arr (sortByName functions)),
     ("claims", .arr #[]), ("rewrites", rewrites), ("provenance", provenance)]
+
+def exportProgram (moduleName : String) (root : Name) : CoreM Json :=
+  exportProgramRoots moduleName #[root]
 
 elab "#lean_go_export " output:str root:ident moduleName:str : command => do
   let root ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo root
   let json ← liftCoreM <| exportProgram moduleName.getString root
+  IO.FS.writeFile output.getString (json.pretty ++ "\n")
+
+elab "#lean_go_export_roots " output:str "[" roots:ident,* "]" moduleName:str : command => do
+  let mut names := #[]
+  for root in roots.getElems do
+    names := names.push (← liftCoreM <| realizeGlobalConstNoOverloadWithInfo root)
+  let json ← liftCoreM <| exportProgramRoots moduleName.getString names
   IO.FS.writeFile output.getString (json.pretty ++ "\n")
 end LeanGo.Module

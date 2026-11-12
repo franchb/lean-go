@@ -9,8 +9,10 @@ const (
 	SchemaV4        = "lean-go-ir/v4"
 	SchemaV5        = "lean-go-ir/v5"
 	SchemaV6        = "lean-go-ir/v6"
+	SchemaV7        = "lean-go-ir/v7"
 	ProfileV3       = "pure-module/v3"
 	ProfileV4       = "pure-module/v4"
+	ProfileV5       = "pure-module/v5"
 	Stage           = "pure-mono"
 	LeanVersion     = "4.35.0"
 	LeanCommit      = "eb6cafb7290e8bd5f2937522d8d804f58f02bafc"
@@ -19,6 +21,7 @@ const (
 	MaxCodeDepth    = 256
 	MaxTypes        = 256
 	MaxFunctions    = 256
+	MaxRoots        = 64
 	MaxConstructors = 256
 	MaxArity        = 64
 	MaxNameBytes    = 512
@@ -100,7 +103,8 @@ type Program struct {
 	LeanVersion string            `json:"lean_version"`
 	LeanCommit  string            `json:"lean_commit"`
 	Module      string            `json:"module"`
-	Root        string            `json:"root"`
+	Root        string            `json:"root,omitempty"`
+	Roots       []string          `json:"roots,omitempty"`
 	Inputs      map[string]string `json:"inputs"`
 	Types       []TypeDecl        `json:"types"`
 	Claims      []Claim           `json:"claims"`

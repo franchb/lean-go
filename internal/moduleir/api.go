@@ -26,7 +26,7 @@ func checkAPIShape(value any) error {
 }
 
 func (v *validator) validateAPI(p *Program) error {
-	if p.Schema != SchemaV5 && p.Schema != SchemaV6 {
+	if !HasTypedAPI(p.Schema) {
 		if p.API != nil {
 			return fmt.Errorf("api metadata requires %s", SchemaV5)
 		}

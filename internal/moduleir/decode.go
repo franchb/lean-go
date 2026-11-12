@@ -144,8 +144,9 @@ func checkShape(value any, kind string) error {
 		}
 	}
 	fields := objectFields[kind]
-	if kind == "program" && (obj["schema"] == SchemaV5 || obj["schema"] == SchemaV6) {
-		fields = append(append([]string{}, fields...), "api")
+	if kind == "program" {
+		schema, _ := obj["schema"].(string)
+		fields = programFields(schema)
 	}
 	if len(obj) != len(fields) {
 		return fmt.Errorf("%s has missing or irrelevant fields", kind)

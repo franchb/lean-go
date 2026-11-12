@@ -87,7 +87,7 @@ func Validate(p *Program) error {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
 	}
-	if err := v.validateClosure(p.Root); err != nil {
+	if err := v.validateClosure(RootNames(p)); err != nil {
 		return err
 	}
 	records := map[string]bool{}
@@ -102,12 +102,15 @@ func Validate(p *Program) error {
 	return v.validateTypeClosure()
 }
 func (v *validator) validateMetadata(p *Program) error {
-	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) || !validName(p.Root) {
+	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
-	v.numeric = p.Profile == ProfileV2 || p.Profile == ProfileV3 || p.Profile == ProfileV4
-	v.wide = p.Schema == SchemaV6
-	v.joins = p.Profile == ProfileV3 || p.Profile == ProfileV4
+	if err := validateRoots(p); err != nil {
+		return err
+	}
+	v.numeric = p.Profile == ProfileV2 || p.Profile == ProfileV3 || p.Profile == ProfileV4 || p.Profile == ProfileV5
+	v.wide = HasUInt64(p.Schema)
+	v.joins = p.Profile == ProfileV3 || p.Profile == ProfileV4 || p.Profile == ProfileV5
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}
@@ -117,7 +120,7 @@ func (v *validator) validateMetadata(p *Program) error {
 	if len(p.Inputs) == 0 || len(p.Inputs) > MaxNodes {
 		return fmt.Errorf("invalid source identity set")
 	}
-	if err := v.addNodes(1 + len(p.Inputs) + len(p.Types) + len(p.Functions) + len(p.Provenance) + 2*len(p.Rewrites)); err != nil {
+	if err := v.addNodes(1 + len(p.Roots) + len(p.Inputs) + len(p.Types) + len(p.Functions) + len(p.Provenance) + 2*len(p.Rewrites)); err != nil {
 		return err
 	}
 	for key, hash := range p.Inputs {
@@ -221,9 +224,11 @@ func (v *validator) validateTypes(types []TypeDecl) error {
 	}
 	return nil
 }
-func (v *validator) validateClosure(root string) error {
-	if _, ok := v.functions[root]; !ok {
-		return fmt.Errorf("root not in function closure")
+func (v *validator) validateClosure(roots []string) error {
+	for _, root := range roots {
+		if _, ok := v.functions[root]; !ok {
+			return fmt.Errorf("root %s not in function closure", root)
+		}
 	}
 	reached, active := map[string]bool{}, map[string]bool{}
 	var visit func(string) error
@@ -252,8 +257,10 @@ func (v *validator) validateClosure(root string) error {
 		active[name] = false
 		return nil
 	}
-	if err := visit(root); err != nil {
-		return err
+	for _, root := range roots {
+		if err := visit(root); err != nil {
+			return err
+		}
 	}
 	if len(reached) != len(v.functions) {
 		return fmt.Errorf("unreachable runtime functions")

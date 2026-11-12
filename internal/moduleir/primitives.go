@@ -57,6 +57,8 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV3
 	case SchemaV6:
 		return profile == ProfileV4
+	case SchemaV7:
+		return profile == ProfileV5
 	default:
 		return false
 	}
