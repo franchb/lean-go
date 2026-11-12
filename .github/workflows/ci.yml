@@ -57,6 +57,7 @@ jobs:
       LEAN_GO_REGENERATE: '1'
       LEAN_GO_MODULES: '1'
       LEAN_GO_DIFFERENTIAL: '1'
+      LEAN_GO_QUOTA: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,6 +102,8 @@ jobs:
           assert sys.version_info[:3] == (3, 15, 1)
           check_version(subprocess.check_output(['lean', '--version'], text=True))
           PY
+      - name: Check quota source proofs and generated binding
+        run: uv run --locked python scripts/check_quota.py
       - name: Native Lean comparison and fresh regeneration
         run: go test -count=1 -timeout=60m ./...
       - name: Python source admission tests

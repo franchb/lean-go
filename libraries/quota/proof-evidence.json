@@ -1,0 +1,99 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "propext"
+      ],
+      "name": "QuotaProofs.create_valid",
+      "statement": "∀ (capacity : UInt64), (Quota.create capacity).used ≤ (Quota.create capacity).capacity"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "name": "QuotaProofs.reserve_accepted",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.reserve state amount).accepted = true ↔ state.used ≤ state.capacity ∧ amount ≤ state.capacity - state.used"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "name": "QuotaProofs.reserve_preserves",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  state.used ≤ state.capacity → (Quota.reserve state amount).state.used ≤ (Quota.reserve state amount).state.capacity"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "name": "QuotaProofs.reserve_rejected",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.reserve state amount).accepted = false → (Quota.reserve state amount).state = state"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "name": "QuotaProofs.reserve_exact",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.reserve state amount).accepted = true →\n    (Quota.reserve state amount).state.capacity = state.capacity ∧\n      (Quota.reserve state amount).state.used.toNat = state.used.toNat + amount.toNat"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "name": "QuotaProofs.release_accepted",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.release state amount).accepted = true ↔ state.used ≤ state.capacity ∧ amount ≤ state.used"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "name": "QuotaProofs.release_preserves",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  state.used ≤ state.capacity → (Quota.release state amount).state.used ≤ (Quota.release state amount).state.capacity"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "name": "QuotaProofs.release_rejected",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.release state amount).accepted = false → (Quota.release state amount).state = state"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "name": "QuotaProofs.release_exact",
+      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.release state amount).accepted = true →\n    (Quota.release state amount).state.capacity = state.capacity ∧\n      (Quota.release state amount).state.used.toNat + amount.toNat = state.used.toNat"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "name": "QuotaProofs.remaining_exact",
+      "statement": "∀ (state : Quota.State),\n  state.used ≤ state.capacity → (Quota.remaining state).toNat + state.used.toNat = state.capacity.toNat"
+    }
+  ],
+  "generated_manifest_sha256": "489bcacf9cee76ecdce91ab64a692ddc2ab63ebcfacd1e520b61cb235ba08dd8",
+  "inputs": {
+    "libraries/quota/proof/Check.lean": "b8abc0c82917e2c1d3728e2c4b5c5ecc209b067fd99ed9498c8ee45544e89739",
+    "libraries/quota/proof/QuotaProofs.lean": "f4d22f858e66aac0cedd842d382bd34c52207a3961fd05daedc39b964d4bab61",
+    "libraries/quota/source/Quota.lean": "f88a8e9b5809a79cf0147472b17f4300d2645d941d406d25879e068e49dfce0e",
+    "producer/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+    "scripts/check_quota.py": "24dedeaa52179ae02205291e7c1cafdb66abf7bcb9d50e2cc578712a6a9b3673",
+    "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
+    "scripts/export_module.py": "e6dcb08a1cf8d06ec263105c8d8584498ecb443b5b07290e10fdcb325db672c1"
+  },
+  "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+  "lean_version": "4.35.0",
+  "roots": [
+    "Quota.create",
+    "Quota.release",
+    "Quota.remaining",
+    "Quota.reserve"
+  ],
+  "schema": "lean-go-quota-proofs/v1"
+}

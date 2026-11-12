@@ -155,6 +155,23 @@ suffixes. Selection order is irrelevant; duplicates and more than 64 roots fail.
 Multi-root packages have no default `Run`/`RunTyped`; single-root packages retain
 both. See [multi-root extraction](docs/research/extraction-multiroot.md).
 
+## A library with Lean-proved quota rules
+
+The `quota` package provides immutable bounded accounting: create a quota,
+reserve units, release units and read remaining capacity. Its four operations
+share generated types, and its Lean source has ten checked theorems covering
+acceptance, invariant preservation, rejection identity and exact arithmetic.
+
+```sh
+CGO_ENABLED=0 go run ./examples/quota
+uv run --locked python scripts/check_quota.py
+```
+
+The proof evidence is bound to the source and generated package hashes. These
+are proofs of the Lean rules; extraction and Go execution remain tested and
+trusted. See the [quota guide](docs/quota.md) for the Go API, checks and limits.
+This library is available in this checkout and is not in `v0.1.0-alpha.2`.
+
 ## Raw module API
 
 The selected root is exposed as `Run`. Full Lean names identify values, avoiding
