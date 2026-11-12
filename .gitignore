@@ -5,3 +5,4 @@
 /scripts/__pycache__/
 /producer/.lake/
 /.venv/
+/.differential/

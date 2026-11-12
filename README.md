@@ -162,6 +162,18 @@ native Lean references, rebuild both profiles, and test changed source modules.
 Generated packages can be copied into independent Go modules without producer
 files or tools. Extraction remains tested and trusted, not formally verified.
 
+To compare newly generated programs against an independent source model, native
+Lean, and raw/typed Go, run:
+
+```sh
+uv run --locked python scripts/differential.py
+```
+
+The default corpus combines two seeds, both unsigned widths and 32 input pairs
+per program. Full program artifacts support replay and bounded failure shrinking.
+See [program differential testing](docs/research/differential-testing.md) for
+the grammar, commands and evidence limits.
+
 ## Run the pilot
 
 Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.35.0** toolchain named in

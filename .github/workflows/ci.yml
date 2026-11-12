@@ -56,6 +56,7 @@ jobs:
       LEAN_GO_NATIVE: '1'
       LEAN_GO_REGENERATE: '1'
       LEAN_GO_MODULES: '1'
+      LEAN_GO_DIFFERENTIAL: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -106,6 +107,35 @@ jobs:
         run: |
           printf '%s\0' scripts/test_*.py |
             xargs -0 -n 1 -P 3 uv run --locked python
+      - name: Generated-program semantic comparison
+        run: |
+          uv run --locked python scripts/differential.py \
+            --seed 0 --seed 1 --width 32 --width 64 --cases 32 \
+            --shrink --shrink-attempts 12 \
+            --artifacts "$RUNNER_TEMP/lean-go-differential"
+      - name: Preserve differential evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: differential-evidence
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/lean-go-differential/**/report.json
+            ${{ runner.temp }}/lean-go-differential/**/case-*/**
+            ${{ runner.temp }}/lean-go-differential/**/commands.jsonl
+            ${{ runner.temp }}/lean-go-differential/**/toolchain.json
+            ${{ runner.temp }}/lean-go-differential/**/inputs.json
+            ${{ runner.temp }}/lean-go-differential/**/results.json
+            ${{ runner.temp }}/lean-go-differential/**/program.ir.json
+            ${{ runner.temp }}/lean-go-differential/**/source/*.lean
+            ${{ runner.temp }}/lean-go-differential/**/native/*.lean
+            ${{ runner.temp }}/lean-go-differential/**/native/lakefile.toml
+            ${{ runner.temp }}/lean-go-differential/**/native/lean-toolchain
+            ${{ runner.temp }}/lean-go-differential/**/consumer/go.mod
+            ${{ runner.temp }}/lean-go-differential/**/consumer/*.go
+            ${{ runner.temp }}/lean-go-differential/**/consumer/extracted/*.go
+            ${{ runner.temp }}/lean-go-differential/**/consumer/extracted/manifest.json
 
   tagged-consumer:
     name: Tagged consumer (${{ matrix.os }})
