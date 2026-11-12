@@ -17,6 +17,11 @@ preview is `v0.1.0-alpha.2`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
 [preview notes](docs/releases/v0.1.0-alpha.2.md).
 
+The next preview is being prepared as an unpublished **alpha.3 candidate**, which
+includes multi-root extraction, quota and reusable proof contracts. See the
+[candidate walkthrough](docs/release-candidate.md) and
+[candidate release notes](docs/releases/v0.1.0-alpha.3.md).
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.

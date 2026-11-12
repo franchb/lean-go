@@ -105,6 +105,8 @@ jobs:
           PY
       - name: Check quota source proofs and generated binding
         run: uv run --locked python scripts/check_quota.py
+      - name: Verify release-candidate proof-to-Go walkthrough
+        run: uv run --locked python scripts/check_release_candidate.py > "$RUNNER_TEMP/lean-go-candidate-receipt.json"
       - name: Native Lean comparison and fresh regeneration
         run: go test -count=1 -timeout=60m ./...
       - name: Python source admission tests
@@ -140,6 +142,14 @@ jobs:
             ${{ runner.temp }}/lean-go-differential/**/consumer/*.go
             ${{ runner.temp }}/lean-go-differential/**/consumer/extracted/*.go
             ${{ runner.temp }}/lean-go-differential/**/consumer/extracted/manifest.json
+      - name: Preserve candidate walkthrough receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-walkthrough-receipt
+          retention-days: 14
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/lean-go-candidate-receipt.json
 
   tagged-consumer:
     name: Tagged consumer (${{ matrix.os }})

@@ -4,6 +4,11 @@ The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
 and a C compiler are not needed by a consumer. The preview version is
 `v0.1.0-alpha.2`; its API is experimental.
 
+The unpublished alpha.3 candidate adds multi-root extraction, quota and reusable
+proof contracts. Use the [candidate walkthrough](release-candidate.md) to try
+those features from a recorded checkout; the commands below target published
+alpha.2.
+
 ## Run a generated package
 
 Create a fresh directory and initialize a Go module:
