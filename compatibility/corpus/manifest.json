@@ -92,5 +92,13 @@
       "run"
     ],
     "reject": "source_audit"
+  },
+  {
+    "name": "custom_csimp",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit"
   }
 ]

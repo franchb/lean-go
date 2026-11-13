@@ -391,7 +391,10 @@ def exportFunction (name : Name) : CoreM (Json × List Name × List String) := w
 def rewriteJson (r : Rewrite) : CoreM Json := do
   unless r.source == ``Bool.not && r.target == ``Bool.Internal.not &&
       r.theoremName == ``Bool.not_eq_internalNot do
-    throwError "Unsupported historical compiler rewrite: {r.source} -> {r.target} via {r.theoremName}"
+    withDeclaration r.source do
+      reject "source_audit" "Remove the custom csimp rewrite from the selected root's dependency closure."
+        m!"Unsupported historical compiler rewrite: {r.source} -> {r.target} via {r.theoremName}"
+        (some "csimp")
   let info ← getConstInfo r.theoremName
   unless info matches .thmInfo _ do throwError "Compiler rewrite witness is not a theorem"
   let some (_, .const lhs [], .const rhs []) := info.type.eq? | throwError "Invalid compiler rewrite theorem"

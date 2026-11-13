@@ -69,7 +69,7 @@ are never adapted by this runner.
 
 Producer compilation is a separate first gate. A failure there is
 `producer_build_failed`; every candidate corpus case remains `not_run`.
-Successful producer compilation enables four accepted cases and five rejection
+Successful producer compilation enables four accepted cases and six rejection
 cases:
 
 | Case | Independent expectation |
@@ -83,6 +83,7 @@ cases:
 | `unsafe` | `admission` / `source_audit` |
 | `folded_numeric` | `admission` / `source_audit`, even for division by one |
 | `custom_pass` | `admission` / `source_audit` for a no-op custom compiler pass |
+| `custom_csimp` | `admission` / `source_audit` for a valid custom compiler rewrite |
 
 Accepted source must produce valid IR and a Go package, then pass a separate
 checked-in Go consumer with hand-written expected constants. Fixture files use
@@ -155,12 +156,14 @@ the primitive, signature, axiom, source-closure and replacement checks. The
 research runner deliberately does not patch the audit to hide differences.
 Consult the current production pin and a fresh report for current support.
 
-A separate [CustomCsimpDiagnostic.lean](../compatibility/reproducers/CustomCsimpDiagnostic.lean)
-probe records a diagnostic coverage gap: a valid custom `csimp` rewrite in the
-original producer reports an unstructured historical-rewrite error as
-`build` / `producer_failed`. It is deliberately outside the negative corpus;
-the harness does not relabel it an admission rejection. `custom_pass` covers
-the deliberate structured compiler-pass rejection instead.
+The [CustomCsimpDiagnostic.lean](../compatibility/reproducers/CustomCsimpDiagnostic.lean)
+probe originally exposed a diagnostic coverage gap: a valid custom `csimp`
+rewrite reported an unstructured historical-rewrite error as
+`build` / `producer_failed`. The producer now emits `admission` / `source_audit`
+at that explicit rejection site, with `compiler_form: csimp`, the rewritten
+source declaration and its location when available. The `custom_csimp` corpus
+case checks this rejection. Malformed Lean and invalid built-in rewrite
+witnesses remain build failures; the harness does not relabel compiler errors.
 
 ## Trust scope
 
