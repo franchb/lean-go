@@ -87,9 +87,9 @@ Lean commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`. Then run from this direc
 
 ```sh
 lean-go doctor
-lean-go generate   --source-dir source --module Clamp --root Clamp.clamp   --out clamp --ir-output clamp.ir.json
-lean-go check-proofs   --contract proof-contract.json --manifest clamp/manifest.json   --output proof-evidence.json
-lean-go check-proofs   --contract proof-contract.json --manifest clamp/manifest.json   --evidence proof-evidence.json
+lean-go generate --source-dir source --module Clamp --root Clamp.clamp --out clamp --ir-output clamp.ir.json
+lean-go check-proofs --contract proof-contract.json --manifest clamp/manifest.json --output proof-evidence.json
+lean-go check-proofs --contract proof-contract.json --manifest clamp/manifest.json --evidence proof-evidence.json
 ```
 
 Both proof commands rebuild and check the source proofs. `--output` writes

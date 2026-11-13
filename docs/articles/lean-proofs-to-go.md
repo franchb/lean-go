@@ -88,9 +88,9 @@ run these commands inside the copy:
 
 ```sh
 lean-go doctor
-lean-go generate   --source-dir source --module Clamp --root Clamp.clamp   --out clamp --ir-output clamp.ir.json
-lean-go check-proofs   --contract proof-contract.json --manifest clamp/manifest.json   --output proof-evidence.json
-lean-go check-proofs   --contract proof-contract.json --manifest clamp/manifest.json   --evidence proof-evidence.json
+lean-go generate --source-dir source --module Clamp --root Clamp.clamp --out clamp --ir-output clamp.ir.json
+lean-go check-proofs --contract proof-contract.json --manifest clamp/manifest.json --output proof-evidence.json
+lean-go check-proofs --contract proof-contract.json --manifest clamp/manifest.json --evidence proof-evidence.json
 ```
 
 Generation compiles snapshotted source in a fresh producer workspace, validates

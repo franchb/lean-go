@@ -20,13 +20,16 @@ lean-go --version
 lean-go doctor
 ```
 
-Replace `/path/to/lean-go` with the local checkout containing this CLI. To install
-an exact published commit instead, replace `FULL_COMMIT_SHA` below with its full
-40-character commit ID; it is a placeholder, not a release tag:
+Replace `/path/to/lean-go` with the local checkout containing this CLI. The
+complete development snapshot, including the standalone example and measured
+frame-storage improvement, is pinned to commit
+`68c4fa6af78c46256ce911a7bf256c9209de6aa1`:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@FULL_COMMIT_SHA"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@68c4fa6af78c46256ce911a7bf256c9209de6aa1"
 ```
+
+This installs `0.1.0a4.dev0` from source; it is not an alpha.4 release tag.
 
 `uv tool update-shell` adds uv's tool executable directory to your shell setup
 if `lean-go` is not found. These commands also work in PowerShell; command
