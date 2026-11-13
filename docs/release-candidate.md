@@ -1,19 +1,22 @@
-# From Lean source proofs to Go in development
+# From Lean source proofs to Go in alpha.5
 
-This walkthrough checks the unreleased `0.1.0a5.dev0` development package:
-fresh source theorems, generated Go and an isolated consumer. It does not
-publish an alpha.5 release. The published `v0.1.0-alpha.4` remains paired with
-Lean 4.35.0; its [tagged walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/release-candidate.md)
+This walkthrough checks `v0.1.0-alpha.5`, Python package `0.1.0a5`: fresh source
+theorems, generated Go and an isolated consumer. The verifier operates locally;
+the separate exact-tag check below verifies the public Go module. Alpha.4 remains
+paired with Lean 4.35.0; its
+[tagged walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/release-candidate.md)
 reproduces that release. APIs remain experimental.
 
-## Start from a clean development checkout
+## Start from a clean release checkout
 
 Use Go **1.27.4**, pinned Lean **4.36.0-rc2** at commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and **uv** with Python **3.15**.
-Make Go, Lean and Lake available on `PATH`. From a development checkout
-containing this guide:
+Make Go, Lean and Lake available on `PATH`. Clone the release into a new
+directory:
 
 ```sh
+git clone --branch v0.1.0-alpha.5 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha5
+cd lean-go-alpha5
 git rev-parse HEAD
 uv python install 3.15
 ```
@@ -24,17 +27,18 @@ establish that the working tree is clean. CI uses a fresh checkout.
 
 ## Check the installed CLI and standalone demo
 
-Install this development checkout and check the exact producer toolchain:
+Install the same release tag and check the exact producer toolchain (`--force`
+also upgrades an existing installation):
 
 ```sh
-uv tool install --force --python 3.15 .
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
 lean-go --version
 lean-go doctor
 clamp_cli=$(command -v lean-go)
 uv run --locked python scripts/check_clamp_demo.py --cli "$clamp_cli"
 ```
 
-The CLI reports `lean-go 0.1.0a5.dev0`. If it is not on `PATH`, follow the
+The CLI reports `lean-go 0.1.0a5`. If it is not on `PATH`, follow the
 [installation guide](cli.md). The POSIX commands above capture the installed CLI
 path before `uv run` adds the checkout environment to `PATH`; in PowerShell,
 use `$clamp_cli = (Get-Command lean-go).Source` before the verifier command.
@@ -59,24 +63,24 @@ tool path, uses `CGO_ENABLED=0`, and disables module network access. It compares
 values above 2^53 and `math.MaxUint64`.
 
 Success prints a JSON receipt with `"status": "passed"`,
-`"candidate": "0.1.0a5.dev0"`, tool identities,
+`"candidate": "0.1.0a5"`, tool identities,
 checked claims, source/proof/tool hashes, the generated manifest and IR hashes,
 and the consumer case count. It contains no machine-specific absolute paths.
 All temporary projects and caches owned by the verifier are removed. To retain
 the receipt and commit identity outside the checkout:
 
 ```sh
-git rev-parse HEAD > ../development-walkthrough.commit
-uv run --locked python scripts/check_release_candidate.py > ../development-walkthrough.json
+git rev-parse HEAD > ../alpha5-walkthrough.commit
+uv run --locked python scripts/check_release_candidate.py > ../alpha5-walkthrough.json
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
-the development source workflow. The following separate test checks the
-existing alpha.4 public Go module; it does not publish or validate a new tag:
+the current source workflow. After the release tag is public, the following
+separate test checks the exact alpha.5 Go module:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
-  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.4 \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.5 \
   go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
 ```
 
@@ -93,7 +97,8 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
-`replace`. It is prepublication evidence; it does not establish public tag
+`replace`. It serves a synthetic archive as `v0.1.0-alpha.5` from that local
+proxy. This is prepublication evidence; it does not establish public tag
 availability or the checksum of the published module archive.
 
 ## Inspect the individual stages

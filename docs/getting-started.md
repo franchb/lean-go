@@ -2,12 +2,12 @@
 
 The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
 and a C compiler are not needed by a consumer. The preview version is
-`v0.1.0-alpha.4`; its API is experimental.
+`v0.1.0-alpha.5`; its API is experimental.
 
-Alpha.4 includes the CLI, multi-root extraction, quota and reusable proof
-contracts. Its producer uses Lean 4.35.0. The
-[proof-to-Go walkthrough](release-candidate.md) follows current development on
-Lean 4.36.0-rc2; generated Go consumers do not require either compiler.
+Alpha.5 includes the CLI, structured extraction diagnostics, multi-root
+extraction, quota and reusable proof contracts. Its producer uses Lean
+4.36.0-rc2. The [proof-to-Go walkthrough](release-candidate.md) reproduces this
+release; generated Go consumers do not require the producer compiler.
 
 ## Run a generated package
 
@@ -17,7 +17,7 @@ Create a fresh directory and initialize a Go module:
 mkdir lean-go-example
 cd lean-go-example
 go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.4
+go get github.com/franchb/lean-go@v0.1.0-alpha.5
 ```
 
 Save this as `main.go`:
@@ -56,13 +56,14 @@ recursive trees, record updates, joins and compiler-generated local helpers.
 
 ## Extract your own Lean module
 
-Use Go 1.27.4, Lean 4.36.0-rc2 and uv for the current development checkout.
+Use Go 1.27.4, Lean 4.36.0-rc2 and uv for a checkout of `v0.1.0-alpha.5`.
+The exact Lean commit is `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
 Use Python 3.15 through uv; the repository declares that requirement and has a
-locked dependency set. From a development checkout containing this guide:
+locked dependency set. From the release checkout:
 
 ```sh
 uv python install 3.15
-uv sync --reinstall-package lean-go-tools
+uv sync --locked --reinstall-package lean-go-tools
 uv run --locked lean-go doctor
 ```
 

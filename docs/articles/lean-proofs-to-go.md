@@ -83,10 +83,9 @@ mistaken for a complete application specification.
 ## Produce artifacts that can be checked again
 
 Use Go **1.27.4**, Python **3.15** and the pinned Lean/Lake **4.36.0-rc2** toolchain.
-These are development artifacts; the published alpha.4 demo still uses Lean
-4.35.0. Follow the [development CLI instructions](../cli.md#development-checkout),
-copy the example directory, and
-run these commands inside the copy:
+These artifacts belong to `v0.1.0-alpha.5`. Follow the
+[CLI installation instructions](../cli.md), copy the example directory from the
+same release tag, and run these commands inside the copy:
 
 ```sh
 lean-go doctor

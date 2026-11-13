@@ -13,18 +13,18 @@ arithmetic, comparisons, local joins and source record names for typed Go APIs.
 Multiple roots use `pure-module/v5` with v7 IR and share one generated package.
 Earlier v2–v6 IR remain accepted with their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
-preview is `v0.1.0-alpha.4`; APIs and supported compiler forms may change before
+preview is `v0.1.0-alpha.5`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
-[preview notes](docs/releases/v0.1.0-alpha.4.md).
-Post-alpha.4 development (`0.1.0a5.dev0`) adds
-[structured extraction diagnostics](docs/diagnostics.md) and supports Lean
-**4.36.0-rc2**. The published alpha.4 release requires Lean **4.35.0** and does
-not include the diagnostics option. Later compiler releases are qualified with
-the [compatibility harness](docs/compiler-compatibility.md) before promotion;
-production extraction continues to require the exact supported version and commit.
+[preview notes](docs/releases/v0.1.0-alpha.5.md).
+Alpha.5 adds [structured extraction diagnostics](docs/diagnostics.md) and supports
+Lean **4.36.0-rc2**, commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
+The [compatibility harness](docs/compiler-compatibility.md) is research tooling
+included in the Git checkout, separate from the installed CLI and wheel. Later
+compiler releases require fresh qualification and review before promotion;
+production extraction requires the exact supported version and commit.
 
-Alpha.4 adds an installable CLI, recursive frame-storage reuse and a standalone
-proved-clamp demo to the multi-root extraction, quota and proof-contract tools. The
+The installable CLI, recursive frame-storage reuse and standalone proved-clamp
+demo remain available alongside multi-root extraction, quota and proof contracts. The
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
@@ -32,7 +32,7 @@ Install the [`lean-go` CLI](docs/cli.md) to generate and check proofs from any
 working directory without keeping a checkout beside your project:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.4"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
 ```
 
 Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
@@ -44,9 +44,8 @@ for the three claims, reproducible commands and extraction boundary.
 
 Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.
 Python dependencies are managed by `uv.lock`; currently the tooling uses only the
-standard library. These commands use the development checkout; install its CLI
-with the [development instructions](docs/cli.md#development-checkout). From the
-repository root:
+standard library. These commands use a checkout of `v0.1.0-alpha.5`; for an
+installed command, follow the [CLI guide](docs/cli.md). From the repository root:
 
 ```sh
 uv run --locked python scripts/generate.py \

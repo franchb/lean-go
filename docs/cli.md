@@ -1,28 +1,38 @@
 # Install the lean-go CLI
 
 `lean-go-tools` installs the `lean-go` command for generation and source-proof
-checks. Install the alpha.4 preview from its pinned Git tag; no PyPI release is
+checks. Install the alpha.5 preview from its pinned Git tag; no PyPI release is
 required.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then use
-Python 3.15. The published alpha.4 producer requires Go **1.27.4** and Lean/Lake **4.35.0** on `PATH`.
-Lean must report commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`; a matching
-version string alone is insufficient. Use the upstream
-[Go downloads](https://go.dev/dl/) and
-[Lean 4.35.0 release](https://github.com/leanprover/lean4/releases/tag/v4.35.0).
-With Elan, install the pin with `elan toolchain install leanprover/lean4:v4.35.0`.
+Python 3.15. The alpha.5 producer requires Go **1.27.4** and Lean/Lake
+**4.36.0-rc2** on `PATH`. Lean must report commit
+`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`; a matching version string alone is
+insufficient. Use the upstream [Go downloads](https://go.dev/dl/) and
+[Lean 4.36.0-rc2 release](https://github.com/leanprover/lean4/releases/tag/v4.36.0-rc2).
+With Elan, install the pin with `elan toolchain install leanprover/lean4:v4.36.0-rc2`.
 The CLI selects that pin even if the calling project selects another version.
 
 ```sh
 uv python install 3.15
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.4"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
 lean-go --version
 lean-go doctor
 ```
 
-This installs Python package version `0.1.0a4` from release tag
-`v0.1.0-alpha.4`. Keep this release paired with Lean 4.35.0; current development
-uses a newer compiler as described below.
+This installs Python package version `0.1.0a5` from release tag
+`v0.1.0-alpha.5`. To upgrade an existing alpha.4 installation:
+
+```sh
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
+lean-go --version
+lean-go doctor
+```
+
+Alpha.4 remains paired with Lean 4.35.0; use its
+[tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/cli.md)
+when reproducing that release. After upgrading, regenerate artifacts and source-proof
+evidence together; the compiler and producer identities have changed.
 
 `uv tool update-shell` adds uv's tool executable directory to your shell setup
 if `lean-go` is not found. These commands also work in PowerShell; command
@@ -33,12 +43,9 @@ it returns nonzero if any check fails.
 
 ## Development checkout
 
-The current development package is `0.1.0a5.dev0` and requires Lean
-**4.36.0-rc2**, commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, with Go
-**1.27.4** and Python **3.15**. Use the upstream
-[Lean 4.36.0-rc2 release](https://github.com/leanprover/lean4/releases/tag/v4.36.0-rc2),
-or install it with `elan toolchain install leanprover/lean4:v4.36.0-rc2`.
-There is no need to change Elan's global default. From the development checkout:
+A checkout at `v0.1.0-alpha.5` uses the same package and toolchain versions
+listed above. There is no need to change Elan's global default. To install the
+current local checkout, including any uncommitted changes:
 
 ```sh
 uv python install 3.15
@@ -47,8 +54,8 @@ lean-go --version
 lean-go doctor
 ```
 
-This replaces the installed `lean-go` command with this checkout's development
-version. For checkout-local use, run `uv sync --reinstall-package lean-go-tools`
+This replaces the installed `lean-go` command with this checkout's version.
+For checkout-local use, run `uv sync --locked --reinstall-package lean-go-tools`
 and `uv run --locked lean-go doctor` instead. Pair generated artifacts with the
 same checkout and toolchain when reproducing their hashes. Later compiler
 versions need explicit [compatibility qualification](compiler-compatibility.md);
@@ -84,13 +91,15 @@ paths must not overlap. With no module arguments, `lean-go generate` runs the
 audited normalizer profile and defaults to `./generated/normalizer` and
 `./testdata/normalizer.ir.json` in the invoking directory.
 
-## Development diagnostics
+## Extraction diagnostics
 
-Post-alpha.4 development (`0.1.0a5.dev0`) adds readable extraction errors and
-`--diagnostics=json` to `lean-go generate` and the generation/export scripts.
-See the [diagnostics guide and schema](diagnostics.md) for codes, source locations
-and process behavior. The alpha.4 installation command above does not include
-this option.
+Alpha.5 includes readable extraction errors and `--diagnostics=json` for
+`lean-go generate` and the generation/export scripts. Reports use the
+`lean-go-diagnostics/v1` schema with stage/code, rejection reason, known compiler
+form, source location and a next-step hint. See the
+[diagnostics guide and schema](diagnostics.md) for fields and process behavior.
+The [compiler compatibility harness](compiler-compatibility.md) uses these reports
+from a Git checkout; it is not included in the installed CLI or wheel.
 
 ## Check proofs
 

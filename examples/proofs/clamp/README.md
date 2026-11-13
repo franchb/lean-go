@@ -80,10 +80,10 @@ exercise the extraction boundary; they are not proofs for all Go executions.
 
 ## Regenerate and check proofs
 
-This development demo uses `0.1.0a5.dev0`; the published alpha.4 demo and CLI
-remain on Lean 4.35.0. Install the CLI from the matching development checkout
-using the repository's
-[installation guide](https://github.com/franchb/lean-go/blob/main/docs/cli.md#development-checkout).
+This demo belongs to `v0.1.0-alpha.5`, Python package `0.1.0a5`. Install the
+CLI from the same release tag using the
+[installation guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.5/docs/cli.md).
+To reproduce alpha.4 with Lean 4.35.0, use that release tag's demo and CLI.
 The producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake **4.36.0-rc2** with
 Lean commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Then run from this directory:
 
