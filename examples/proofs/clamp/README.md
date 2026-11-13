@@ -81,7 +81,7 @@ exercise the extraction boundary; they are not proofs for all Go executions.
 ## Regenerate and check proofs
 
 Install the CLI using the repository's
-[installation guide](https://github.com/franchb/lean-go/blob/main/docs/cli.md).
+[installation guide](https://github.com/franchb/lean-go/blob/773c245bb4966d2edda158e5c03da811e2ec7e84/docs/cli.md).
 The producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake **4.35.0** with
 Lean commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`. Then run from this directory:
 
@@ -122,7 +122,7 @@ its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The installed CLI smoke
 runs the complete verifier on Linux and Windows in CI. See the
-[article](https://github.com/franchb/lean-go/blob/main/docs/articles/lean-proofs-to-go.md)
+[article](https://github.com/franchb/lean-go/blob/773c245bb4966d2edda158e5c03da811e2ec7e84/docs/articles/lean-proofs-to-go.md)
 for the design and assurance boundary. The public
 [issue tracker](https://github.com/franchb/lean-go/issues) accepts reproducible
 unsupported-source and integration reports.
