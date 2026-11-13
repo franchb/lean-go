@@ -5,9 +5,11 @@ Copy this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives. Lean, Python and
 lean-go are needed only to regenerate the package and check the source proofs.
 
-This example is **unreleased**, available in the current development checkout.
-The published `v0.1.0-alpha.5` CLI does not support bitwise extraction. The
-checked-in Go package runs without installing any producer tools.
+This example is included in `v0.1.0-alpha.6`. The checked-in Go package runs
+without installing any producer tools. Release reproduction pairs the
+[tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.6/examples/proofs/flags)
+with the [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.6/docs/cli.md);
+development artifacts use the CLI from the same checkout.
 
 ## Run with Go alone
 
@@ -115,11 +117,12 @@ check invalid limits and exhausted budgets for all four functions, including
 the absence of partial results. Finite Go tests are extraction regressions, not
 universal proofs of Go executions.
 
-## Regenerate from the development checkout
+## Regenerate and check proofs
 
 Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at Lean
-commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Install the development CLI
-from an absolute path to this checkout, replacing the example path:
+commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. For the tagged example,
+install the alpha.6 CLI using the tagged guide above. For a development checkout,
+install the CLI from that same checkout, replacing the example absolute path:
 
 ```sh
 uv tool install --force --python 3.15 /absolute/path/to/lean-go
@@ -147,8 +150,8 @@ describes the trust boundary and evidence binding.
 
 ## Verify the complete handoff
 
-From the repository root, capture the installed development CLI before `uv run`
-adds the checkout environment to `PATH`:
+From the same checkout or release tag used to install the CLI, capture its path
+before `uv run` adds the checkout environment to `PATH`:
 
 ```sh
 flags_cli=$(command -v lean-go)

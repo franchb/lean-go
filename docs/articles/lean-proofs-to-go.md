@@ -3,8 +3,8 @@
 A small function is enough to show the whole handoff: write ordinary Lean code,
 state its requirements independently, check the proofs, generate Go, and call
 that Go from an application with no Lean runtime. The
-[standalone clamp example](../../examples/proofs/clamp) includes every artifact
-needed to inspect that process and a module that runs offline with Go alone.
+[alpha.6 standalone clamp example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.6/examples/proofs/clamp)
+includes every artifact needed to inspect that process and a module that runs offline with Go alone.
 
 This is an experimental extraction tool with **tested, trusted extraction**.
 Lean checks source theorems; the tool does not provide an end-to-end proof that
@@ -83,9 +83,10 @@ mistaken for a complete application specification.
 ## Produce artifacts that can be checked again
 
 Use Go **1.27.4**, Python **3.15** and the pinned Lean/Lake **4.36.0-rc2** toolchain.
-These artifacts belong to `v0.1.0-alpha.5`. Follow the
-[CLI installation instructions](../cli.md), copy the example directory from the
-same release tag, and run these commands inside the copy:
+These artifacts belong to `v0.1.0-alpha.6`. Follow the
+[alpha.6 CLI installation instructions](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.6/docs/cli.md),
+copy the example directory from the same release tag, and run these commands
+inside the copy:
 
 ```sh
 lean-go doctor
@@ -97,7 +98,7 @@ lean-go check-proofs --contract proof-contract.json --manifest clamp/manifest.js
 Generation compiles snapshotted source in a fresh producer workspace, validates
 the supported compiler representation, and emits a Go package plus manifest.
 It records IR in `clamp.ir.json`. The manifest identifies profile
-`pure-module/v4`, IR `lean-go-ir/v6`, and generator `lean-go-modulegen/v7`, with
+`pure-module/v4`, IR `lean-go-ir/v6`, and generator `lean-go-modulegen/v8`, with
 hashes of the generator, validator, source inputs and generated files. The pinned
 Lean identity is commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, not merely a
 matching version string.

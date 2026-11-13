@@ -1,8 +1,7 @@
-# Bitwise extraction (unreleased)
+# Bitwise extraction
 
-The current checkout adds exact bitwise operations on `UInt32` and `UInt64`.
-This feature is not part of the published `v0.1.0-alpha.5` release. It uses the
-same production compiler pin: Lean 4.36.0-rc2, commit
+Alpha.6 adds exact bitwise operations on `UInt32` and `UInt64`.
+It retains alpha.5's production compiler pin: Lean 4.36.0-rc2, commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, with Go 1.27.4 and Python 3.15.
 Generated consumers use the Go standard library with `CGO_ENABLED=0`.
 
@@ -108,8 +107,11 @@ Full AST serialization remains replayable, including unary operations.
 
 The compatibility corpus includes an accepted `bitwise` case with both widths,
 all ten leaves and an independently authored arithmetic Go consumer, executed
-with producer tools absent from its runtime PATH. The existing `custom_csimp`
-rejection case remains present.
+with producer tools absent from its runtime PATH. The complete corpus has 11
+cases: five accepted and six expected rejections. The `custom_csimp` case checks
+that a valid custom compiler rewrite yields `admission` / `source_audit` with
+the source owner and location; genuine Lean build and invalid primitive failures
+retain the `build` stage.
 
 Reproduce the focused checks from the current checkout:
 
@@ -128,6 +130,6 @@ test's full AST, inputs, commands, generated package and results for replay.
 The focused checks passed on Linux. The expanded random grammar also passed the
 default deterministic campaign: seeds 0 and 1 at both widths, 32 inputs per
 program. This is tested, trusted extraction, not an end-to-end proof of Go
-correctness. Whole-project fixture/evidence refresh and release validation are
-separate integration gates; no published alpha.5 artifacts are changed by this
-report.
+correctness. The [alpha.6 release notes](../releases/v0.1.0-alpha.6.md) describe
+the standalone proved-flags example and the separate release validation gates.
+Existing published alpha.5 artifacts remain reproducible from their tag.
