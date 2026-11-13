@@ -43,18 +43,22 @@ it returns nonzero if any check fails.
 
 ## Development checkout
 
-A checkout at `v0.1.0-alpha.5` uses the same package and toolchain versions
-listed above. There is no need to change Elan's global default. To install the
-current local checkout, including any uncommitted changes:
+The current checkout is an unreleased development version. Regenerate its
+tracked artifacts and proof evidence with the CLI installed from that same
+checkout, including any uncommitted changes. It uses the Python, Go and Lean
+versions listed above; there is no need to change Elan's global default.
+Replace the example path with the checkout's absolute path:
 
 ```sh
 uv python install 3.15
-uv tool install --force --python 3.15 .
+uv tool install --force --python 3.15 /absolute/path/to/lean-go
 lean-go --version
 lean-go doctor
 ```
 
 This replaces the installed `lean-go` command with this checkout's version.
+To reproduce alpha.5, use its tagged examples with the alpha.5 CLI described
+above; its CLI does not reproduce current development artifact hashes.
 For checkout-local use, run `uv sync --locked --reinstall-package lean-go-tools`
 and `uv run --locked lean-go doctor` instead. Pair generated artifacts with the
 same checkout and toolchain when reproducing their hashes. Later compiler

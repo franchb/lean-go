@@ -13,6 +13,7 @@ MAX_DEPTH = 24
 MAX_LITERAL = (1 << 65) - 1
 _ARITY = {
     "a": 0, "b": 0, "lit": 0, "add": 2, "sub": 2, "mul": 2,
+    "land": 2, "lor": 2, "xor": 2, "complement": 1, "shr": 2,
     "shl": 2, "if": 3, "helper": 2, "wrap": 1, "record": 2,
     "update": 3, "eq": 2, "lt": 2, "le": 2,
 }
@@ -94,7 +95,18 @@ def _eval(expr, a, b, modulus, width, helper):
         return values[0]
     if op == "update":
         return (values[2] + values[1]) % modulus
+    if op == "complement":
+        return modulus - 1 - values[0]
     left, right = values
+    if op in ("land", "lor", "xor"):
+        # Per-bit arithmetic is independent of both Lean and the Go operators.
+        selected = {"land": lambda x, y: x * y,
+                    "lor": lambda x, y: min(1, x + y),
+                    "xor": lambda x, y: (x + y) % 2}[op]
+        return sum(selected((left // 2**i) % 2, (right // 2**i) % 2) * 2**i
+                   for i in range(width))
+    if op == "shr":
+        return left // pow(2, right % width)
     if op in ("add", "record"):
         return (left + right) % modulus
     if op == "sub":
@@ -133,7 +145,8 @@ def _leaf(rng, width):
 def _generate_expr(rng, width, depth):
     if depth == 0 or rng.randrange(5) == 0:
         return _leaf(rng, width)
-    op = rng.choice(("add", "sub", "mul", "shl", "if", "wrap", "record", "update"))
+    op = rng.choice(("add", "sub", "mul", "shl", "land", "lor", "xor", "complement", "shr",
+                     "if", "wrap", "record", "update"))
     if op == "if":
         condition = Expr(rng.choice(tuple(sorted(_PREDICATES))),
                          (_generate_expr(rng, width, depth - 1), _leaf(rng, width)))
@@ -235,9 +248,12 @@ def _render(expr, scalar):
     if expr.op == "lit":
         return f"({expr.value} : {scalar})"
     args = [_render(arg, scalar) for arg in expr.args]
+    if expr.op == "complement":
+        return f"(~~~{args[0]})"
     if expr.op == "shl":
         return f"({scalar}.shiftLeft {args[0]} {args[1]})"
     operator = {"add": "+", "sub": "-", "mul": "*",
+                "land": "&&&", "lor": "|||", "xor": "^^^", "shr": ">>>",
                 "eq": "==", "lt": "<", "le": "<="}.get(expr.op)
     if operator is not None:
         body = f"({args[0]} {operator} {args[1]})"

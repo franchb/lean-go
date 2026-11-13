@@ -1,5 +1,8 @@
 # From Lean source proofs to Go in alpha.5
 
+The tagged commands below reproduce alpha.5. The current development checkout
+reports Python package `0.1.0a6.dev0`; that version is not a published release.
+
 This walkthrough checks `v0.1.0-alpha.5`, Python package `0.1.0a5`: fresh source
 theorems, generated Go and an isolated consumer. The verifier operates locally;
 the separate exact-tag check below verifies the public Go module. Alpha.4 remains
@@ -97,8 +100,9 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
-`replace`. It serves a synthetic archive as `v0.1.0-alpha.5` from that local
-proxy. This is prepublication evidence; it does not establish public tag
+`replace`. The development checkout serves a synthetic archive as
+`v0.1.0-alpha.6-dev.0` from that local proxy; the alpha.5 tag uses
+`v0.1.0-alpha.5`. This is prepublication evidence; it does not establish public tag
 availability or the checksum of the published module archive.
 
 ## Inspect the individual stages

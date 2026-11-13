@@ -1,0 +1,114 @@
+package compatconsumer
+
+import (
+	x "compatconsumer/extracted"
+	"testing"
+)
+
+// Compute each bit arithmetically, independently of the emitter's Go operators.
+func bitModel(a, b uint64, width int) [5]uint64 {
+	var result [5]uint64
+	bit := uint64(1)
+	for i := 0; i < width; i++ {
+		left, right := (a/bit)%2, (b/bit)%2
+		if left+right == 2 {
+			result[0] += bit
+		}
+		if left+right > 0 {
+			result[1] += bit
+		}
+		if left+right == 1 {
+			result[2] += bit
+		}
+		if left == 0 {
+			result[3] += bit
+		}
+		bit *= 2
+	}
+	divisor := uint64(1)
+	for i := uint64(0); i < b%uint64(width); i++ {
+		divisor *= 2
+	}
+	result[4] = a / divisor
+	return result
+}
+
+func TestBitwise(t *testing.T) {
+	l := x.DefaultLimits()
+	for _, width := range []int{32, 64} {
+		maximum, high, alternating := uint64(4294967295), uint64(2147483648), uint64(2863311530)
+		name, root := "UInt32", "Bitwise.calc32"
+		if width == 64 {
+			maximum, high, alternating = 18446744073709551615, 9223372036854775808, 12297829382473034410
+			name, root = "UInt64", "Bitwise.calc64"
+		}
+		values := []uint64{0, 1, maximum, high, alternating, maximum - alternating}
+		for _, a := range values {
+			for _, b := range append([]uint64{uint64(width - 1), uint64(width), uint64(width + 1)}, values...) {
+				args := make([]x.Value, 2)
+				for i, n := range []uint64{a, b} {
+					input := &x.Input{Type: name}
+					if width == 32 {
+						input.UInt32 = uint32(n)
+					} else {
+						input.UInt64 = n
+					}
+					value, e := x.Import(input, l)
+					if e != nil {
+						t.Fatal(e)
+					}
+					args[i] = value
+				}
+				raw, e := x.RunRoot(root, args, l)
+				if e != nil {
+					t.Fatal(e)
+				}
+				fields := raw.Fields()
+				if len(fields) != 5 {
+					t.Fatal("record shape", raw)
+				}
+				expected := bitModel(a, b, width)
+				var typed [5]uint64
+				if width == 32 {
+					value, e := x.RunCalc32(uint32(a), uint32(b), l)
+					if e != nil {
+						t.Fatal(e)
+					}
+					for i, get := range []func() (uint32, bool){value.Masked, value.Merged, value.Toggled, value.Inverted, value.Shifted} {
+						n, ok := get()
+						if !ok {
+							t.Fatal("typed shape")
+						}
+						typed[i] = uint64(n)
+					}
+				} else {
+					value, e := x.RunCalc64(a, b, l)
+					if e != nil {
+						t.Fatal(e)
+					}
+					for i, get := range []func() (uint64, bool){value.Masked, value.Merged, value.Toggled, value.Inverted, value.Shifted} {
+						n, ok := get()
+						if !ok {
+							t.Fatal("typed shape")
+						}
+						typed[i] = n
+					}
+				}
+				for i, want := range expected {
+					var n uint64
+					var ok bool
+					if width == 32 {
+						var narrow uint32
+						narrow, ok = fields[i].UInt32()
+						n = uint64(narrow)
+					} else {
+						n, ok = fields[i].UInt64()
+					}
+					if !ok || n != want || typed[i] != want {
+						t.Fatal(width, a, b, i, n, typed[i], want)
+					}
+				}
+			}
+		}
+	}
+}

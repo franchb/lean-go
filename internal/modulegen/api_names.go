@@ -126,7 +126,7 @@ func reservedAPINames(schema string) apiNameAllocator {
 	for _, name := range strings.Fields(apiReservedNames) {
 		names[name] = true
 	}
-	if schema == moduleir.SchemaV7 {
+	if moduleir.HasMultipleRoots(schema) {
 		for _, name := range []string{"RunRoot", "rootSignature"} {
 			names[name] = true
 		}
@@ -135,7 +135,7 @@ func reservedAPINames(schema string) apiNameAllocator {
 }
 
 func (api *goAPI) allocateEntrypoints(p *moduleir.Program, names apiNameAllocator) {
-	if p.Schema != moduleir.SchemaV7 {
+	if !moduleir.HasMultipleRoots(p.Schema) {
 		return
 	}
 	api.Entrypoint = ""

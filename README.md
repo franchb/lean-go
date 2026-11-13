@@ -11,7 +11,10 @@ The original audited normalizer remains available as a separate v1 profile.
 Single-root module exports use `pure-module/v4` with v6 IR, including UInt32 and UInt64
 arithmetic, comparisons, local joins and source record names for typed Go APIs.
 Multiple roots use `pure-module/v5` with v7 IR and share one generated package.
-Earlier v2–v6 IR remain accepted with their original restrictions and APIs.
+The current checkout also supports bitwise AND, OR, XOR, complement and logical
+right shift for both widths. This feature is **unreleased** and uses v8/v9 IR only
+when a new primitive survives compilation; see the [bitwise report](docs/research/extraction-bitwise.md).
+Earlier v2–v7 IR retain their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
 preview is `v0.1.0-alpha.5`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
@@ -28,8 +31,8 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
-Install the [`lean-go` CLI](docs/cli.md) to generate and check proofs from any
-working directory without keeping a checkout beside your project:
+Install the published preview [`lean-go` CLI](docs/cli.md) to generate and check
+proofs from any working directory without keeping a checkout beside your project:
 
 ```sh
 uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
@@ -39,13 +42,23 @@ Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
 example offline with Go alone, or read
 [From Lean source proofs to a Go package you can copy](docs/articles/lean-proofs-to-go.md)
 for the three claims, reproducible commands and extraction boundary.
+To regenerate the current checkout's examples and proof evidence, install the
+CLI from that same [development checkout](docs/cli.md#development-checkout).
+Published-release reproduction requires the example and CLI from the same tag.
+
+The unreleased [standalone flag-mask module](examples/proofs/flags) demonstrates
+four `UInt32` bitwise operations with eight universally quantified source proofs
+and independent Go tests. Its checked-in package runs with Go alone; regeneration
+requires the development CLI from a local checkout, as described in its guide.
+The published alpha.5 CLI does not include bitwise extraction.
 
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.
 Python dependencies are managed by `uv.lock`; currently the tooling uses only the
-standard library. These commands use a checkout of `v0.1.0-alpha.5`; for an
-installed command, follow the [CLI guide](docs/cli.md). From the repository root:
+standard library. These commands use the current development checkout and its
+tracked artifacts. For an installed command, use the CLI from that same
+[checkout](docs/cli.md#development-checkout). From the repository root:
 
 ```sh
 uv run --locked python scripts/generate.py \
@@ -63,9 +76,11 @@ required; differing existing package contents are preserved and rejected.
 Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
 functions, saturated calls, exhaustive matches, and self recursion. `UInt32` and `UInt64`
 supports literals, addition, subtraction, multiplication, left shift, equality,
-and unsigned less-than/less-or-equal comparisons. Arithmetic wraps modulo 2^32 or
+and unsigned less-than/less-or-equal comparisons. In the unreleased checkout,
+`&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
+Arithmetic wraps modulo 2^32 or
 2^64 respectively; shift counts are reduced modulo 32 or 64. Conversions between
-widths, division, remainder, other bit operations,
+widths, division, remainder, and other numeric operations,
 other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.

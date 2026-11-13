@@ -15,11 +15,32 @@ structure NumericPrimitive where
   result : Name
   externalSymbol : String
   operand : Name := ``UInt32
+  arity : Nat := 2
   axioms : Array Name := #[]
   deriving Inhabited
 
 -- Runtime admission is this exact table, never all extern declarations.
 def numericPrimitives : Array NumericPrimitive := #[
+  { name := ``UInt32.land, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_land", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt32.lor, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_lor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt32.xor, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_xor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt32.complement, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt32.shiftRight, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_shift_right", axioms := #[``propext] },
+  { name := ``UInt64.land, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_land", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt64.lor, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_lor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt64.xor, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_xor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt64.complement, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt64.shiftRight, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_shift_right", axioms := #[``propext] },
   { name := ``UInt32.add, result := ``UInt32, externalSymbol := "lean_uint32_add" },
   { name := ``UInt32.sub, result := ``UInt32, externalSymbol := "lean_uint32_sub" },
   { name := ``UInt32.mul, result := ``UInt32, externalSymbol := "lean_uint32_mul" },
@@ -54,6 +75,12 @@ def numericSourceSupport : Array Name := #[
   ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt32, ``instAddUInt64,
   ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt32, ``instSubUInt64,
   ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt32, ``instMulUInt64, ``outParam,
+  ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``instAndOpUInt32, ``instAndOpUInt64,
+  ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt32, ``instOrOpUInt64,
+  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt32, ``instXorOpUInt64,
+  ``Complement.complement, ``instComplementUInt32, ``instComplementUInt64,
+  ``HShiftRight.hShiftRight, ``instHShiftRightOfShiftRight, ``ShiftRight.shiftRight,
+  ``instShiftRightUInt32, ``instShiftRightUInt64,
   ``BEq.beq, ``Std.PreorderPackage.toBEq,
   ``Std.LinearPreorderPackage.toPreorderPackage,
   ``Std.LinearOrderPackage.toLinearPreorderPackage, numericOrderPackage, numericWideOrderPackage,
@@ -135,6 +162,10 @@ def expectedNumericAxioms (n : Name) : Array Name :=
     #[``propext, ``Classical.choice, ``Quot.sound]
   else if n == ``Std.LinearPreorderPackage.toPreorderPackage ||
       n == ``Std.LinearOrderPackage.toLinearPreorderPackage then #[``propext]
+  else if #[``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt32, ``instOrOpUInt64,
+      ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt32,
+      ``instComplementUInt64].contains n then #[``propext, ``Quot.sound]
+  else if n == ``instShiftRightUInt32 || n == ``instShiftRightUInt64 then #[``propext]
   else (numericPrimitive? n).map (·.axioms) |>.getD #[]
 
 def sameNames (a b : Array Name) : Bool :=
@@ -189,10 +220,15 @@ def validateNumericPrimitive (primitive : NumericPrimitive) : CoreM Unit := do
   unless issues.isEmpty do throwError "Numeric primitive audit rejected: {issues}"
   let some decl ← LCNF.getMonoDecl? primitive.name
     | throwError "Missing numeric pure-mono declaration: {primitive.name}"
-  let .forallE _ (.const u₁ []) (.forallE _ (.const u₂ []) (.const result []) _) _ := decl.type
-    | throwError "Invalid numeric primitive signature: {primitive.name}"
-  unless u₁ == primitive.operand && u₂ == primitive.operand && result == primitive.result &&
-      decl.safe && decl.levelParams.isEmpty && decl.params.size == 2 &&
+  let mut resultType := decl.type
+  for _ in [:primitive.arity] do
+    let .forallE _ operand body _ := resultType
+      | throwError "Invalid numeric primitive signature: {primitive.name}"
+    unless operand == .const primitive.operand [] do
+      throwError "Invalid numeric primitive operand: {primitive.name}"
+    resultType := body
+  unless resultType == .const primitive.result [] &&
+      decl.safe && decl.levelParams.isEmpty && decl.params.size == primitive.arity &&
       decl.params.all (·.type == .const primitive.operand []) do
     throwError "Numeric primitive signature/safety mismatch: {primitive.name}"
   let .extern data := decl.value | throwError "Numeric primitive is not external: {primitive.name}"
