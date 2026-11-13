@@ -1,9 +1,9 @@
 {
   "schema": "lean-go-manifest/v7",
-  "generator": "lean-go-modulegen/v7",
-  "generator_source_sha256": "6837785d8297ceff807188e18a7bf3b6d87e1d2be5bf9ebd93c07d5aafaa328d",
-  "validator_source_sha256": "22f8368950ae8058b6998706f7e0e0950a311e26d9ffcf8e05849db6d0c3bc25",
-  "ir_sha256": "6f2f021bbb70cbf49c18ed3998ad7fd45db98736506b1661c8c4cfda5d06771e",
+  "generator": "lean-go-modulegen/v8",
+  "generator_source_sha256": "c3c696fdf12df7f4f711c3bd98a8d9e604b6bd776f409ebe55858f3217bc62e1",
+  "validator_source_sha256": "ede133d8c98bc9854c7ac2dea7f9ece9e787437b2bcdfac927b181f826c6bb60",
+  "ir_sha256": "5ae1d421bd27baaeb63dd8c361af8e23ed7b25b2335966da5049bfe7c3f61828",
   "program": {
     "schema": "lean-go-ir/v7",
     "profile": "pure-module/v5",
@@ -20,16 +20,16 @@
     "inputs": {
       "producer/LeanGo/Module/Audit.lean": "c46164850f3e4ed3f0c09b252351b5710454f92edb329fb66d2334a7d67b9e7c",
       "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
-      "producer/LeanGo/Module/Export.lean": "f09e96943fae65fa04bebfd373a44b8efe8fa731d85b68f682ef75dd9db87a6a",
+      "producer/LeanGo/Module/Export.lean": "cc9094a7cc75170dbb27eb7a149916e3800c35653d1a23ef3d76612ea27f4c31",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "5f258daf638ea0f63a8ad5729c9c4873b119400a55e3c2aa928fd0ee6ba6db52",
-      "producer/LeanGo/Module/Primitives.lean": "d8e3a8208d17bebe774a0d404114e8a8d5b04c53f91c4404e73ee5b29c78fb13",
+      "producer/LeanGo/Module/Primitives.lean": "bc4feba34308b7c6a38883f156687aa67fd426a0736fdcf3597be14e25d44d78",
       "producer/LeanGo/Module/Records.lean": "3fdd5962ceceb38e7872d6601b1b860376175df2d2d0921b9fcecb96936e3311",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
       "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
-      "scripts/export_module.py": "0bb5e21fcc6d880a6b1782893fed6b61ac79588643404e84c9a911999e51d733",
+      "scripts/export_module.py": "f94236a4e033f962fcb2c20c0b8b12418b950cd7fc99af95cde17ecf31f523d1",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
       "source/Quota.lean": "f88a8e9b5809a79cf0147472b17f4300d2645d941d406d25879e068e49dfce0e"
