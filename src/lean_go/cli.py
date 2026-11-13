@@ -39,7 +39,8 @@ def workspace():
     """Keep installed resources immutable, even when Go or Lake writes build state."""
     payload = metadata.distribution('lean-go-tools').locate_file('lean_go/_payload')
     with resources.as_file(payload) as source, tempfile.TemporaryDirectory(prefix='lean-go-cli-') as directory:
-        destination = Path(directory) / 'tool'
+        # Tool-owned paths may contain a Windows short-name alias.
+        destination = Path(directory).resolve() / 'tool'
         shutil.copytree(source, destination, copy_function=shutil.copyfile)
         for path in [destination, *(path for path in destination.rglob('*') if path.is_dir())]:
             path.chmod(0o700)
@@ -47,12 +48,15 @@ def workspace():
 
 
 def environment(root):
+    temporary = root / '.cache/tmp'
+    temporary.mkdir(parents=True, exist_ok=True)
     env = {key: value for key, value in os.environ.items()
            if not key.startswith(('LEAN_', 'LAKE_', 'PYTHON'))}
     env.update(CGO_ENABLED='0', GOTOOLCHAIN='local', GOWORK='off', GOENV='off',
                GOFLAGS='', GOPROXY='off', GOSUMDB='off', PYTHONDONTWRITEBYTECODE='1',
                GOPATH=str(root / '.cache/gopath'), GOMODCACHE=str(root / '.cache/modules'),
-               GOCACHE=str(root / '.cache/go'))
+               GOCACHE=str(root / '.cache/go'), TMPDIR=str(temporary),
+               TEMP=str(temporary), TMP=str(temporary), GOTMPDIR=str(temporary))
     env['ELAN_TOOLCHAIN'] = (root / 'producer/lean-toolchain').read_text().strip()
     return env
 

@@ -13,6 +13,7 @@ import unittest
 from unittest.mock import patch
 
 from lean_go import cli
+import check_cli_install
 from export import COMMIT
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +50,50 @@ class PackageTests(unittest.TestCase):
         self.assertFalse(workspace.exists())
         with cli.workspace() as another:
             self.assertEqual((another / 'scripts/export.py').read_bytes(), original)
+
+
+class TemporaryWorkspaceTests(unittest.TestCase):
+    def test_owned_workspace_and_child_temporary_paths_are_canonical(self):
+        with tempfile.TemporaryDirectory(prefix='lean-go-temp-path-') as directory:
+            parent = Path(directory).resolve()
+            managed = parent / 'managed'
+            managed.mkdir()
+            alias = managed / '..' / managed.name
+            variables = ('TMPDIR', 'TEMP', 'TMP', 'GOTMPDIR')
+            with patch.object(cli.tempfile, 'TemporaryDirectory') as create:
+                create.return_value.__enter__.return_value = str(alias)
+                with patch.dict(os.environ, {name: str(alias) for name in variables}):
+                    with cli.workspace() as workspace:
+                        self.assertEqual(workspace, workspace.resolve())
+                        env = cli.environment(workspace)
+                        temporary = Path(env['TMPDIR'])
+                        self.assertTrue(temporary.is_dir())
+                        self.assertTrue(temporary.is_relative_to(workspace))
+                        for name in variables:
+                            self.assertEqual(env[name], str(temporary.resolve()))
+                        command = ('import json, tempfile; from pathlib import Path; '
+                                   'p = Path(tempfile.mkdtemp()); '
+                                   'print(json.dumps([str(p), str(p.resolve()), str(p.parent)]))')
+                        completed = subprocess.run([sys.executable, '-B', '-c', command], env=env,
+                                                   capture_output=True, text=True, check=True)
+                        actual, resolved, owner = json.loads(completed.stdout)
+                        self.assertEqual(actual, resolved)
+                        self.assertEqual(Path(owner), temporary)
+
+    def test_smoke_canonicalizes_its_owned_root_before_copying_fixture(self):
+        with tempfile.TemporaryDirectory(prefix='lean-go-smoke-path-') as directory:
+            parent = Path(directory).resolve()
+            managed = parent / 'managed'
+            managed.mkdir()
+            alias = managed / '..' / managed.name
+            def copy(workspace, without_lean):
+                check_cli_install.copy_fixture(ROOT, workspace / 'project')
+                self.assertEqual(workspace, workspace.resolve())
+            with patch.object(check_cli_install.tempfile, 'TemporaryDirectory') as create, \
+                    patch.object(check_cli_install, 'smoke', side_effect=copy), \
+                    patch.object(sys, 'argv', ['check_cli_install.py', '--without-lean']):
+                create.return_value.__enter__.return_value = str(alias)
+                check_cli_install.main()
 
 
 class CommandTests(unittest.TestCase):

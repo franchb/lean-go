@@ -219,7 +219,7 @@ def main():
     args = parser.parse_args()
     check_python()
     with tempfile.TemporaryDirectory(prefix='lean-go-install-smoke-') as directory:
-        smoke(Path(directory), args.without_lean)
+        smoke(Path(directory).resolve(), args.without_lean)
 
 
 if __name__ == '__main__':
