@@ -3,6 +3,7 @@ name: Installed CLI
 on:
   push:
     branches: ['**']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -22,7 +23,6 @@ defaults:
 jobs:
   cli-package:
     name: Installed CLI (${{ matrix.os }})
-    if: github.ref_type != 'tag'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -73,3 +73,27 @@ jobs:
           uv run --locked python scripts/test_clamp_demo.py
       - name: Build, audit and exercise installed wheels and standalone demo
         run: uv run --locked python scripts/check_cli_install.py
+      - name: Install and exercise the exact public CLI tag
+        if: github.ref_type == 'tag'
+        env:
+          LEAN_GO_RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          export UV_TOOL_DIR="$RUNNER_TEMP/public-cli-tools"
+          export UV_TOOL_BIN_DIR="$RUNNER_TEMP/public-cli-bin"
+          uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@$LEAN_GO_RELEASE_VERSION"
+          uv run --locked python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tomllib
+
+          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+          release, alpha = version.split('a')
+          assert os.environ['LEAN_GO_RELEASE_VERSION'] == f'v{release}-alpha.{alpha}'
+          cli = Path(os.environ['UV_TOOL_BIN_DIR']) / ('lean-go.exe' if os.name == 'nt' else 'lean-go')
+          actual = subprocess.check_output([str(cli), '--version'], text=True).strip()
+          assert actual == f'lean-go {version}', actual
+          subprocess.run([str(cli), 'doctor'], check=True)
+          subprocess.run([sys.executable, 'scripts/check_clamp_demo.py', '--cli', str(cli)], check=True)
+          PYTHON

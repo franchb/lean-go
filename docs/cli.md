@@ -1,8 +1,8 @@
 # Install the lean-go CLI
 
 `lean-go-tools` installs the `lean-go` command for generation and source-proof
-checks. This development version is installed from a checkout or pinned Git
-commit; no PyPI release is required.
+checks. Install the alpha.4 preview from its pinned Git tag; no PyPI release is
+required.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then use
 Python 3.15. The producer requires Go **1.27.4** and Lean/Lake **4.35.0** on `PATH`.
@@ -15,21 +15,14 @@ The CLI selects that pin even if the calling project selects another version.
 
 ```sh
 uv python install 3.15
-uv tool install --python 3.15 /path/to/lean-go
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.4"
 lean-go --version
 lean-go doctor
 ```
 
-Replace `/path/to/lean-go` with the local checkout containing this CLI. The
-complete development snapshot, including the standalone example and measured
-frame-storage improvement, is pinned to commit
-`68c4fa6af78c46256ce911a7bf256c9209de6aa1`:
-
-```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@68c4fa6af78c46256ce911a7bf256c9209de6aa1"
-```
-
-This installs `0.1.0a4.dev0` from source; it is not an alpha.4 release tag.
+This installs Python package version `0.1.0a4` from release tag
+`v0.1.0-alpha.4`. For local development, replace the Git URL with the path to
+your checkout.
 
 `uv tool update-shell` adds uv's tool executable directory to your shell setup
 if `lean-go` is not found. These commands also work in PowerShell; command

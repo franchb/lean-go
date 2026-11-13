@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-const releaseCandidateVersion = "v0.1.0-alpha.3"
+const releaseCandidateVersion = "v0.1.0-alpha.4"
 
 func TestReleaseCandidateConsumer(t *testing.T) {
 	// This checks the candidate's public Go libraries without publishing a tag.

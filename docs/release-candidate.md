@@ -1,9 +1,10 @@
-# From Lean source proofs to Go with alpha.3
+# From Lean source proofs to Go with alpha.4
 
-This walkthrough uses the `v0.1.0-alpha.3` experimental preview, which brings
-together multi-root extraction, the quota library and reusable source-proof
-contracts. It checks source theorems, extracts fresh Go and exercises an isolated
-consumer. Its API remains experimental.
+This walkthrough uses the `v0.1.0-alpha.4` experimental preview, which brings
+together the installable CLI, frame-storage reuse and a standalone clamp demo
+with multi-root extraction, the quota library and reusable source-proof contracts.
+It checks source theorems, extracts fresh Go and exercises an isolated consumer.
+Its API remains experimental.
 
 ## Start from a clean checkout
 
@@ -11,9 +12,9 @@ Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.
 Make Go, Lean and Lake available on `PATH`. Clone into a new directory:
 
 ```sh
-git clone --branch v0.1.0-alpha.3 --single-branch \
-  https://github.com/franchb/lean-go.git lean-go-alpha3
-cd lean-go-alpha3
+git clone --branch v0.1.0-alpha.4 --single-branch \
+  https://github.com/franchb/lean-go.git lean-go-alpha4
+cd lean-go-alpha4
 git rev-parse HEAD
 uv python install 3.15
 ```
@@ -22,6 +23,29 @@ Record the full commit printed above alongside your verification output. The tag
 pins the release sources. The verifier operates on its current source
 checkout; it does not establish that a working tree is clean. CI runs it from a
 fresh checkout, and release preparation also checks a clean tracked snapshot.
+
+## Check the installed CLI and standalone demo
+
+Install the public tag and check the exact producer toolchain:
+
+```sh
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.4"
+lean-go --version
+lean-go doctor
+clamp_cli=$(command -v lean-go)
+uv run --locked python scripts/check_clamp_demo.py --cli "$clamp_cli"
+```
+
+The CLI reports `lean-go 0.1.0a4`. If it is not on `PATH`, follow the
+[installation guide](cli.md). The POSIX commands above capture the installed CLI
+path before `uv run` adds the checkout environment to `PATH`; in PowerShell,
+use `$clamp_cli = (Get-Command lean-go).Source` before the verifier command.
+The demo verifier copies the standalone module,
+generates fresh artifacts through the installed CLI, compares package, IR and
+evidence bytes, and rechecks three source claims. It then runs the copied Go-only
+tests and executable offline, including 681 finite input pairs checked against
+an independent model. See the [standalone demo](../examples/proofs/clamp) and
+[article](articles/lean-proofs-to-go.md) for the claims and trust boundary.
 
 ## Run the complete source-to-Go check
 
@@ -43,8 +67,8 @@ All temporary projects and caches owned by the verifier are removed. To retain
 the receipt and commit identity outside the checkout:
 
 ```sh
-git rev-parse HEAD > ../alpha3-walkthrough.commit
-uv run --locked python scripts/check_release_candidate.py > ../alpha3-walkthrough.json
+git rev-parse HEAD > ../alpha4-walkthrough.commit
+uv run --locked python scripts/check_release_candidate.py > ../alpha4-walkthrough.json
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
@@ -52,7 +76,7 @@ the source workflow; verify the public Go module separately:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
-  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.3 \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.4 \
   go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
 ```
 

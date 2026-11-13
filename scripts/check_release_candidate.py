@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the alpha.3 source-proof-to-Go walkthrough and print a JSON receipt."""
+"""Exercise the alpha.4 source-proof-to-Go walkthrough and print a JSON receipt."""
 from __future__ import annotations
 
 import argparse
@@ -18,7 +18,7 @@ from proof_contract import digest, load_contract, read_regular, snapshot
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = 'examples/proofs/clamp/proof-contract.json'
 GO_VERSION = 'go1.27.4'
-CANDIDATE = 'v0.1.0-alpha.3'
+CANDIDATE = 'v0.1.0-alpha.4'
 
 
 def base_environment():
