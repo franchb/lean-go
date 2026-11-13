@@ -1,8 +1,139 @@
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "lean-go-tools"
-version = "0.0.0"
+version = "0.1.0a4.dev0"
+description = "Pinned Lean-to-Go extraction and source-proof tools"
+readme = "README.md"
 requires-python = ">=3.15,<3.16"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "franchb", email = "hello@franchb.com"}]
 dependencies = []
 
-[tool.uv]
-package = false
+[project.scripts]
+lean-go = "lean_go.cli:main"
+
+[project.urls]
+Repository = "https://github.com/franchb/lean-go"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src/lean_go/__init__.py", "src/lean_go/__main__.py", "src/lean_go/cli.py"]
+sources = ["src"]
+
+# Each source is copied byte-for-byte. Additions require an explicit review.
+[tool.hatch.build.targets.wheel.force-include]
+"cmd/lean-go/main.go" = "lean_go/_payload/cmd/lean-go/main.go"
+"feasibility/LeanGo/Feasibility/Model.lean" = "lean_go/_payload/feasibility/LeanGo/Feasibility/Model.lean"
+"go.mod" = "lean_go/_payload/go.mod"
+"internal/gogen/emit.go" = "lean_go/_payload/internal/gogen/emit.go"
+"internal/gogen/identity.go" = "lean_go/_payload/internal/gogen/identity.go"
+"internal/gogen/publish.go" = "lean_go/_payload/internal/gogen/publish.go"
+"internal/gogen/templates/runtime.go.tmpl" = "lean_go/_payload/internal/gogen/templates/runtime.go.tmpl"
+"internal/ir/decode.go" = "lean_go/_payload/internal/ir/decode.go"
+"internal/ir/identity.go" = "lean_go/_payload/internal/ir/identity.go"
+"internal/ir/types.go" = "lean_go/_payload/internal/ir/types.go"
+"internal/ir/validate.go" = "lean_go/_payload/internal/ir/validate.go"
+"internal/modulegen/api.go" = "lean_go/_payload/internal/modulegen/api.go"
+"internal/modulegen/api_names.go" = "lean_go/_payload/internal/modulegen/api_names.go"
+"internal/modulegen/emit.go" = "lean_go/_payload/internal/modulegen/emit.go"
+"internal/modulegen/identity.go" = "lean_go/_payload/internal/modulegen/identity.go"
+"internal/modulegen/joins.go" = "lean_go/_payload/internal/modulegen/joins.go"
+"internal/modulegen/primitives.go" = "lean_go/_payload/internal/modulegen/primitives.go"
+"internal/modulegen/roots.go" = "lean_go/_payload/internal/modulegen/roots.go"
+"internal/modulegen/templates.go" = "lean_go/_payload/internal/modulegen/templates.go"
+"internal/modulegen/templates/api.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/api.go.tmpl"
+"internal/modulegen/templates/runtime.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/runtime.go.tmpl"
+"internal/moduleir/api.go" = "lean_go/_payload/internal/moduleir/api.go"
+"internal/moduleir/code.go" = "lean_go/_payload/internal/moduleir/code.go"
+"internal/moduleir/decode.go" = "lean_go/_payload/internal/moduleir/decode.go"
+"internal/moduleir/identity.go" = "lean_go/_payload/internal/moduleir/identity.go"
+"internal/moduleir/joins.go" = "lean_go/_payload/internal/moduleir/joins.go"
+"internal/moduleir/primitives.go" = "lean_go/_payload/internal/moduleir/primitives.go"
+"internal/moduleir/roots.go" = "lean_go/_payload/internal/moduleir/roots.go"
+"internal/moduleir/types.go" = "lean_go/_payload/internal/moduleir/types.go"
+"internal/moduleir/unicode.go" = "lean_go/_payload/internal/moduleir/unicode.go"
+"internal/moduleir/validate.go" = "lean_go/_payload/internal/moduleir/validate.go"
+"producer/Export.lean" = "lean_go/_payload/producer/Export.lean"
+"producer/LeanGo/Module/Audit.lean" = "lean_go/_payload/producer/LeanGo/Module/Audit.lean"
+"producer/LeanGo/Module/Export.lean" = "lean_go/_payload/producer/LeanGo/Module/Export.lean"
+"producer/LeanGo/Module/Local.lean" = "lean_go/_payload/producer/LeanGo/Module/Local.lean"
+"producer/LeanGo/Module/LocalObserve.lean" = "lean_go/_payload/producer/LeanGo/Module/LocalObserve.lean"
+"producer/LeanGo/Module/LocalSource.lean" = "lean_go/_payload/producer/LeanGo/Module/LocalSource.lean"
+"producer/LeanGo/Module/Primitives.lean" = "lean_go/_payload/producer/LeanGo/Module/Primitives.lean"
+"producer/LeanGo/Module/Records.lean" = "lean_go/_payload/producer/LeanGo/Module/Records.lean"
+"producer/LeanGo/Module/Reduced.lean" = "lean_go/_payload/producer/LeanGo/Module/Reduced.lean"
+"producer/LeanGo/Pilot/Export.lean" = "lean_go/_payload/producer/LeanGo/Pilot/Export.lean"
+"producer/LeanGo/Proofs/Check.lean" = "lean_go/_payload/producer/LeanGo/Proofs/Check.lean"
+"producer/Reference.lean" = "lean_go/_payload/producer/Reference.lean"
+"producer/lakefile.toml" = "lean_go/_payload/producer/lakefile.toml"
+"producer/lean-toolchain" = "lean_go/_payload/producer/lean-toolchain"
+"scripts/check_proofs.py" = "lean_go/_payload/scripts/check_proofs.py"
+"scripts/export.py" = "lean_go/_payload/scripts/export.py"
+"scripts/export_module.py" = "lean_go/_payload/scripts/export_module.py"
+"scripts/generate.py" = "lean_go/_payload/scripts/generate.py"
+"scripts/proof_contract.py" = "lean_go/_payload/scripts/proof_contract.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/.gitignore",
+  "/pyproject.toml",
+  "/README.md",
+  "/LICENSE",
+  "/uv.lock",
+  "/src/lean_go/__init__.py",
+  "/src/lean_go/__main__.py",
+  "/src/lean_go/cli.py",
+  "/cmd/lean-go/main.go",
+  "/feasibility/LeanGo/Feasibility/Model.lean",
+  "/go.mod",
+  "/internal/gogen/emit.go",
+  "/internal/gogen/identity.go",
+  "/internal/gogen/publish.go",
+  "/internal/gogen/templates/runtime.go.tmpl",
+  "/internal/ir/decode.go",
+  "/internal/ir/identity.go",
+  "/internal/ir/types.go",
+  "/internal/ir/validate.go",
+  "/internal/modulegen/api.go",
+  "/internal/modulegen/api_names.go",
+  "/internal/modulegen/emit.go",
+  "/internal/modulegen/identity.go",
+  "/internal/modulegen/joins.go",
+  "/internal/modulegen/primitives.go",
+  "/internal/modulegen/roots.go",
+  "/internal/modulegen/templates.go",
+  "/internal/modulegen/templates/api.go.tmpl",
+  "/internal/modulegen/templates/runtime.go.tmpl",
+  "/internal/moduleir/api.go",
+  "/internal/moduleir/code.go",
+  "/internal/moduleir/decode.go",
+  "/internal/moduleir/identity.go",
+  "/internal/moduleir/joins.go",
+  "/internal/moduleir/primitives.go",
+  "/internal/moduleir/roots.go",
+  "/internal/moduleir/types.go",
+  "/internal/moduleir/unicode.go",
+  "/internal/moduleir/validate.go",
+  "/producer/Export.lean",
+  "/producer/LeanGo/Module/Audit.lean",
+  "/producer/LeanGo/Module/Export.lean",
+  "/producer/LeanGo/Module/Local.lean",
+  "/producer/LeanGo/Module/LocalObserve.lean",
+  "/producer/LeanGo/Module/LocalSource.lean",
+  "/producer/LeanGo/Module/Primitives.lean",
+  "/producer/LeanGo/Module/Records.lean",
+  "/producer/LeanGo/Module/Reduced.lean",
+  "/producer/LeanGo/Pilot/Export.lean",
+  "/producer/LeanGo/Proofs/Check.lean",
+  "/producer/Reference.lean",
+  "/producer/lakefile.toml",
+  "/producer/lean-toolchain",
+  "/scripts/check_proofs.py",
+  "/scripts/export.py",
+  "/scripts/export_module.py",
+  "/scripts/generate.py",
+  "/scripts/proof_contract.py",
+]

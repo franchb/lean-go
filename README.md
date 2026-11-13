@@ -21,6 +21,9 @@ Alpha.3 includes multi-root extraction, quota and reusable proof contracts. The
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
+Install the [`lean-go` CLI](docs/cli.md) to generate and check proofs from any
+working directory without keeping a checkout beside your project.
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.
