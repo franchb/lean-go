@@ -73,4 +73,3 @@ jobs:
           uv run --locked python scripts/test_clamp_demo.py
       - name: Build, audit and exercise installed wheels and standalone demo
         run: uv run --locked python scripts/check_cli_install.py
-
