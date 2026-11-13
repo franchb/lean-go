@@ -33,6 +33,10 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 func primitiveExpression(name, left, right string) string {
 	operator := ""
 	switch name {
+	case "UInt32.toUInt64":
+		return "uint64(" + left + ")"
+	case "UInt64.toUInt32":
+		return "uint32(" + left + ")"
 	case "UInt32.add", "UInt64.add":
 		operator = "+"
 	case "UInt32.sub", "UInt64.sub":

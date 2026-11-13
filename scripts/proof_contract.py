@@ -130,7 +130,7 @@ def verify_manifest(path, contract, project):
     raw = read_regular(path)
     manifest = parse_json(raw)
     multi = len(contract.roots) > 1
-    pairs = {'v7': 'v5', 'v9': 'v7'} if multi else {'v6': 'v4', 'v8': 'v6'}
+    pairs = {'v7': 'v5', 'v9': 'v7', 'v11': 'v9'} if multi else {'v6': 'v4', 'v8': 'v6', 'v10': 'v8'}
     if not isinstance(manifest, dict):
         raise ExportError('generated manifest schema does not match root count')
     versions = {'lean-go-manifest/' + version: (version, profile)

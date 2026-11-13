@@ -3,6 +3,9 @@
 A proof contract lets a Lean library use the same checked-evidence workflow as
 the [quota library](quota.md). It works with single-root v6 and multi-root v7
 generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
+The current checkout also accepts exact v10/`pure-module/v8` single-root and
+v11/`pure-module/v9` multiple-root
+[width-conversion packages](research/extraction-width-conversions.md).
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected

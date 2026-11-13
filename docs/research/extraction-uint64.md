@@ -2,7 +2,7 @@
 
 Ordinary module exports use IR v6 and `pure-module/v4` to add exact UInt64
 computation. Consumers remain Go standard-library packages with `CGO_ENABLED=0`.
-Regeneration uses Lean 4.35.0, Go 1.27.4 and Python 3.15 through uv.
+Current regeneration uses pinned Lean 4.36.0-rc2, Go 1.27.4 and Python 3.15 through uv.
 
 ## Semantics and admission
 
@@ -10,8 +10,10 @@ The supported operations are addition, subtraction, multiplication, left shift,
 equality and unsigned less-than/less-or-equal. Arithmetic wraps modulo 2^64;
 shift counts are reduced modulo 64. Literals are canonical decimal strings in IR,
 including values above 2^53 and the maximum 18446744073709551615. They never pass
-through floating-point storage. Width conversions, division, remainder, other bit
-operations and additional numeric types remain unsupported.
+through floating-point storage. [Bitwise operations](extraction-bitwise.md) and,
+in the development checkout, [two width conversions](extraction-width-conversions.md)
+use their own capability schemas. Division, remainder and additional numeric
+types remain unsupported.
 
 The producer checks exact primitive names, extern symbols, signatures and axiom
 sets against the pinned compiler. It audits operator wrappers and the UInt64 order

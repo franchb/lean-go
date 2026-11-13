@@ -34,8 +34,9 @@ def highBits (state amount : UInt64) : UInt64 := state >>> amount
 
 Each primitive still executes through the existing bounded runtime, allocates
 one scalar value, and uses the existing step, slot, input and output checks.
-Both raw and typed API failures return zero results. Division, remainder, width
-conversions, other numeric widths and arbitrary foreign calls remain unsupported.
+Both raw and typed API failures return zero results. The development checkout
+adds [two width conversions](extraction-width-conversions.md). Division,
+remainder, other numeric widths and arbitrary foreign calls remain unsupported.
 
 ## Exact audit boundary
 
@@ -69,7 +70,7 @@ Custom instances follow their actual audited implementation.
 | New bitwise leaf, single root | v8 | `pure-module/v6` | v8 | `root` |
 | New bitwise leaf, multiple roots | v9 | `pure-module/v7` | v9 | `roots` |
 
-The producer selects v8/v9 only by traversing emitted primitive nodes in every
+The producer selects v8/v9 for bitwise-only capability by traversing emitted primitive nodes in every
 function, join body, continuation and case branch. Source strings, provenance,
 erased operations and function names cannot select the new schema. A source-only
 bitwise use can therefore retain v6/v7. Existing v2–v7 IR keep their original
@@ -77,7 +78,8 @@ primitive restrictions. The v8/v9 schemas inherit UInt64, joins and required
 typed API metadata. Single-root and multi-root field shapes remain exact;
 multi-root exports still require 2–64 sorted unique roots.
 
-The generator identity is `lean-go-modulegen/v8`. Manifests list the exact used
+Alpha.6 used generator identity `lean-go-modulegen/v8`; the current
+width-conversion development generator uses `lean-go-modulegen/v9`. Manifests list the exact used
 primitive subset with signatures and semantics. Proof-contract verification
 accepts only the compatible triples in the table, including the contract's
 root cardinality, and rejects crossed manifest/IR/profile versions.

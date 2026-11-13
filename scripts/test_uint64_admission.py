@@ -207,7 +207,7 @@ def run (a b : UInt64) : Result := ⟨a + b, UInt64.add a b⟩
             'remainder': 'def run (a b : UInt64) : UInt64 := a % b\n',
             'folded_division': 'def run (a : UInt64) : UInt64 := a / 1\n',
             'erased_remainder': 'def run (a b : UInt64) : UInt64 :=\n  let _unused := a % b\n  a\n',
-            'conversion': 'def run (a : UInt64) : UInt32 := a.toUInt32\n',
+            'conversion': 'def run (a : UInt64) : UInt16 := a.toUInt16\n',
             'custom_foreign_instance': '@[extern "lean_go_untrusted"] opaque foreign : UInt64 → UInt64 → UInt64\n'
                                        'instance : Add UInt64 := ⟨foreign⟩\n'
                                        'def run (a b : UInt64) : UInt64 := a + b\n',

@@ -17,6 +17,12 @@ type Primitive struct {
 
 // LookupPrimitive returns a fresh signature, so callers cannot mutate the catalog.
 func LookupPrimitive(name string) (Primitive, bool) {
+	switch name {
+	case "UInt32.toUInt64":
+		return Primitive{name, []string{"UInt32"}, "UInt64", "zero extension: a"}, true
+	case "UInt64.toUInt32":
+		return Primitive{name, []string{"UInt64"}, "UInt32", "a modulo 2^32"}, true
+	}
 	width, operation, ok := strings.Cut(name, ".")
 	if !ok || (width != "UInt32" && width != "UInt64") {
 		return Primitive{}, false
@@ -84,6 +90,10 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV6
 	case SchemaV9:
 		return profile == ProfileV7
+	case SchemaV10:
+		return profile == ProfileV8
+	case SchemaV11:
+		return profile == ProfileV9
 	default:
 		return false
 	}
@@ -122,6 +132,9 @@ func (v *validator) numericValue(value *Value) ([]string, string, error) {
 	primitive, ok := LookupPrimitive(value.Name)
 	if !ok {
 		return nil, "", fmt.Errorf("unknown primitive %s", value.Name)
+	}
+	if (value.Name == "UInt32.toUInt64" || value.Name == "UInt64.toUInt32") && !v.conversions {
+		return nil, "", fmt.Errorf("width conversions require %s or %s", ProfileV8, ProfileV9)
 	}
 	if primitive.Params[0] == "UInt64" && !v.wide {
 		return nil, "", fmt.Errorf("UInt64 primitives require %s", ProfileV4)

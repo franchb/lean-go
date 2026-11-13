@@ -1,0 +1,57 @@
+package compatconsumer
+
+import (
+	x "compatconsumer/extracted"
+	"testing"
+)
+
+func TestWidthConversions(t *testing.T) {
+	l := x.DefaultLimits()
+	for _, n := range []uint64{0, 1, 2147483648, 4294967295, 4294967296, 4294967297, 9223372036854775808, 18446744073709551615, 12297829382473034410, 6148914691236517205} {
+		low, high := n%4294967296, n/4294967296
+		narrow, e := x.RunNarrow(n, l)
+		if e != nil || uint64(narrow) != low {
+			t.Fatal(n, narrow, e)
+		}
+		widened, e := x.RunWiden(narrow, l)
+		if e != nil || widened != low {
+			t.Fatal(n, widened, e)
+		}
+		packed, e := x.RunPack(uint32(high), uint32(low), l)
+		if e != nil || packed != high*4294967296+low {
+			t.Fatal(n, packed, e)
+		}
+		upper, e := x.RunHigh(n, l)
+		if e != nil || uint64(upper) != high {
+			t.Fatal(n, upper, e)
+		}
+		lower, e := x.RunLow(n, l)
+		if e != nil || uint64(lower) != low {
+			t.Fatal(n, lower, e)
+		}
+		input, e := x.Import(&x.Input{Type: "UInt64", UInt64: n}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		raw, e := x.RunRoot("Widths.narrow", []x.Value{input}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		got, ok := raw.UInt32()
+		if !ok || uint64(got) != low {
+			t.Fatal(n, got)
+		}
+		small, e := x.Import(&x.Input{Type: "UInt32", UInt32: narrow}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		raw, e = x.RunRoot("Widths.widen", []x.Value{small}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		wide, ok := raw.UInt64()
+		if !ok || wide != low {
+			t.Fatal(n, wide)
+		}
+	}
+}

@@ -81,10 +81,10 @@ class BitwiseManifestTests(ContractFixture):
             self.document['roots'] = ['Example.identity', 'Example.second'] if multi else ['Example.identity']
             self.write_contract()
             self.write_manifest()
-            accepted = ((7, 5), (9, 7)) if multi else ((6, 4), (8, 6))
-            for manifest_version in (6, 7, 8, 9):
-                for ir_version in (6, 7, 8, 9):
-                    for profile in (4, 5, 6, 7):
+            accepted = ((7, 5), (9, 7), (11, 9)) if multi else ((6, 4), (8, 6), (10, 8))
+            for manifest_version in range(6, 12):
+                for ir_version in range(6, 12):
+                    for profile in range(4, 10):
                         self.manifest['schema'] = f'lean-go-manifest/v{manifest_version}'
                         self.manifest['program'].update(schema=f'lean-go-ir/v{ir_version}',
                                                         profile=f'pure-module/v{profile}')
@@ -134,7 +134,7 @@ class BitwiseAdmissionTests(unittest.TestCase):
         self.assertEqual(program['schema'], 'lean-go-ir/v6')
         # Provenance stops at the trusted wrapper; its pristine closure audits land.
         self.assertIn('instAndOpUInt32', {item['name'] for item in program['provenance']})
-        self.assertFalse(producer.emitted_bitwise(program))
+        self.assertFalse(producer.emitted_primitives(program) & producer.BITWISE_PRIMITIVES)
         (self.source / 'Numeric.lean').write_text('namespace Numeric\ndef run (a : UInt32) := ~~~a\ndef second (a : UInt64) := a >>> 64\nend Numeric\n')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.second', 'Numeric.run'], self.output)
         program = json.loads(self.output.read_bytes())
@@ -173,7 +173,7 @@ class BitwiseAdmissionTests(unittest.TestCase):
 
     def test_unsupported_width_conversions_division_remainder_and_forged_axiom(self):
         for source in ('def run (a b : UInt16) := a &&& b\n',
-                       'def run (a : UInt64) := (~~~a).toUInt32\n',
+                       'def run (a : UInt64) := (~~~a).toUInt16\n',
                        'def run (a b : UInt32) := (a &&& b) / b\n',
                        'def run (a b : UInt64) := (a ||| b) % b\n',
                        'axiom forged : UInt32\ndef run := ~~~forged\n'):

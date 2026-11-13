@@ -106,7 +106,8 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
-`replace`. The checkout serves a synthetic archive as `v0.1.0-alpha.6` from that
+`replace`. The current development checkout serves a synthetic archive as
+`v0.1.0-alpha.7-dev.0` from that
 local proxy. This is prepublication evidence; it does not establish public tag
 availability or the checksum of the published module archive.
 
