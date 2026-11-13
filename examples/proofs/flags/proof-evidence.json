@@ -79,7 +79,7 @@
     }
   ],
   "contract_sha256": "9e7848aed7edaaf624ba641a8e82d007689c969b4941437960ceaff4fad8780c",
-  "generated_manifest_sha256": "14d35addc8905444adfef1df8530344b6901a5b42955efb832f01a73b65c74a4",
+  "generated_manifest_sha256": "49339ad0eaa126cceb319138024a67b01496bc50a3bce0c159383c8333845919",
   "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
   "lean_version": "4.36.0-rc2",
   "module": "Flags",
@@ -101,9 +101,9 @@
     "scripts/check_proofs.py": "acc1b8c492508dd80afc141b5d5c50d12d1f8f1bdd262ad461865e9b015c5dae",
     "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
     "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
-    "scripts/export_module.py": "f94236a4e033f962fcb2c20c0b8b12418b950cd7fc99af95cde17ecf31f523d1",
+    "scripts/export_module.py": "a5180765386a73aca79646011fe19fbd9f4896baf91ecd7a378d3ad1316f3f21",
     "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "e5a1c962cd953c0b2d8400a0338c2edfe36a1429cbff81ba8d85402b19ccc8d9",
+    "scripts/proof_contract.py": "3ec3152f91a8c787b244d57c0388a63e24a66a9162bf5dfd5f07d90bddb41e98",
     "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
   }
 }
