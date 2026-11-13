@@ -66,6 +66,13 @@ same checkout and toolchain when reproducing their hashes. Later compiler
 versions need explicit [compatibility qualification](compiler-compatibility.md);
 the installed producer keeps its exact version and commit checks.
 
+The current checkout's [Words example](../examples/proofs/words) uses exact
+`UInt32.toUInt64` and `UInt64.toUInt32` conversions, five roots and seven source
+claims. Its v11 IR/manifest, `pure-module/v9` profile and
+`lean-go-modulegen/v9` artifacts require this development CLI; Words is not
+included in alpha.6. The [width-conversion report](research/extraction-width-conversions.md)
+records the selective version rules for single and multiple roots.
+
 ## Generate from your project
 
 Run from any working directory; every relative path belongs to that directory.
@@ -152,10 +159,10 @@ uv run --locked python scripts/check_cli_install.py
 The install smoke test audits a direct wheel and an sdist-rebuilt wheel, installs
 each in a fresh environment, verifies the actual installed imports, and runs
 external generation, proof checking and a Go-only consumer. It also checks
-read-only installed resources and paths containing spaces. The direct installed
-wheel also regenerates and rechecks the complete standalone clamp and flags
-demos, compares their tracked artifacts, and tests and runs both copied modules
-with Go alone. `--without-lean` explicitly restricts this smoke test to packaging,
+read-only installed resources and paths containing spaces. Both installed wheels
+regenerate and recheck the complete standalone clamp, flags and words demos,
+compare their tracked artifacts, and test and run all three copied modules with
+Go alone. `--without-lean` explicitly restricts this smoke test to packaging,
 help/version and missing-tool errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.
 

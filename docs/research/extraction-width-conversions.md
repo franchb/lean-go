@@ -49,6 +49,26 @@ exact: `root` for one root, `roots` for 2–64 sorted distinct roots. CLI dispat
 and proof manifests accept only matching version/profile/root combinations.
 The current generator identity is `lean-go-modulegen/v9`.
 
+## Standalone proved example
+
+The current checkout's [Words module](../../examples/proofs/words) is a copyable
+Go module with five selected roots: `widen`, `narrow`, `pack`, `high` and `low`.
+Its generated package uses v11 IR/manifest, `pure-module/v9` and
+`lean-go-modulegen/v9`. Seven independently specified universal source claims
+cover `toNat` preservation/modulo, both conversion round trips, the two packing
+projections and full unpack/repack. The exact source statements and axiom
+receipts are in its README and fresh proof evidence. `pack_bits` and remainder
+belong only to proofs; runtime packing uses the direct `UInt64.shiftLeft` leaf.
+
+The standalone Go tests compare all five typed/raw operations with an arithmetic
+model and check the seven laws over 699 triples (169 boundary pairs, 18 wide
+boundaries, 512 seeded triples), plus exact budgets, error results and input
+ownership. `scripts/check_words_demo.py` regenerates every artifact with the
+installed CLI, compares exact bytes, freshly checks all seven claims, and then
+tests and runs a Go-only deployment. Both direct and sdist-rebuilt wheel smoke
+paths include Words. Reproduction requires the CLI from the same development
+checkout; the published alpha.6 CLI and tag do not include Words.
+
 ## Bounded evidence
 
 Run the focused campaign with the pinned tools and Python 3.15 through uv:

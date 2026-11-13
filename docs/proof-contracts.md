@@ -146,6 +146,16 @@ propositions. It includes full-width Go regression tests and a fresh installed-C
 verifier. Pair its tagged example and CLI for release reproduction, or install
 the CLI from the same checkout for development artifacts.
 
+The development [Words example](../examples/proofs/words) selects five scalar
+roots with v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`. Seven
+independent expected propositions cover widening, modulo narrowing, both
+conversion round trips, low/high packing identities and full unpack/repack.
+The fresh checker records no axioms for the two `toNat` claims, `propext` for
+the conversion round trips, and `propext` plus `Quot.sound` for the three packing
+laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
+This example is available only in the current checkout and requires its paired
+CLI for reproduction; it is not in alpha.6.
+
 ## Evidence and assurance
 
 The fresh workspace uses fixed, dependency-free Lake scaffolding and the pinned
@@ -192,4 +202,8 @@ CGO_ENABLED=0 go test -count=1 ./...
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
-library-specific source and theorem regression checks.
+library-specific source and theorem regression checks. The standalone verifiers
+`check_clamp_demo.py`, `check_flags_demo.py` and `check_words_demo.py` additionally
+regenerate artifacts with an installed CLI, check exact evidence and deploy only
+Go sources. The installed-wheel smoke runs all three through both wheel builds;
+see the [CLI guide](cli.md#verify-an-installation-build).
