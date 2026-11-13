@@ -31,8 +31,8 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
-Install the [`lean-go` CLI](docs/cli.md) to generate and check proofs from any
-working directory without keeping a checkout beside your project:
+Install the published preview [`lean-go` CLI](docs/cli.md) to generate and check
+proofs from any working directory without keeping a checkout beside your project:
 
 ```sh
 uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
@@ -42,6 +42,9 @@ Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
 example offline with Go alone, or read
 [From Lean source proofs to a Go package you can copy](docs/articles/lean-proofs-to-go.md)
 for the three claims, reproducible commands and extraction boundary.
+To regenerate the current checkout's examples and proof evidence, install the
+CLI from that same [development checkout](docs/cli.md#development-checkout).
+Published-release reproduction requires the example and CLI from the same tag.
 
 The unreleased [standalone flag-mask module](examples/proofs/flags) demonstrates
 four `UInt32` bitwise operations with eight universally quantified source proofs
@@ -53,8 +56,9 @@ The published alpha.5 CLI does not include bitwise extraction.
 
 Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.
 Python dependencies are managed by `uv.lock`; currently the tooling uses only the
-standard library. These commands use a checkout of `v0.1.0-alpha.5`; for an
-installed command, follow the [CLI guide](docs/cli.md). From the repository root:
+standard library. These commands use the current development checkout and its
+tracked artifacts. For an installed command, use the CLI from that same
+[checkout](docs/cli.md#development-checkout). From the repository root:
 
 ```sh
 uv run --locked python scripts/generate.py \
