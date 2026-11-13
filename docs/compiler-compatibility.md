@@ -69,12 +69,13 @@ are never adapted by this runner.
 
 Producer compilation is a separate first gate. A failure there is
 `producer_build_failed`; every candidate corpus case remains `not_run`.
-Successful producer compilation enables four accepted cases and six rejection
+Successful producer compilation enables five accepted cases and six rejection
 cases:
 
 | Case | Independent expectation |
 | --- | --- |
 | `numeric` | UInt32 and UInt64 wrap arithmetic and comparisons, including exact values above 2^53 |
+| `bitwise` | Unreleased UInt32/UInt64 AND, OR, XOR, complement and masked logical right shift |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |
@@ -86,7 +87,8 @@ cases:
 | `custom_csimp` | `admission` / `source_audit` for a valid custom compiler rewrite |
 
 Accepted source must produce valid IR and a Go package, then pass a separate
-checked-in Go consumer with hand-written expected constants. Fixture files use
+checked-in Go consumer with independently authored expected constants or an
+arithmetic per-bit model. Fixture files use
 `consumer_test.go.txt` so ordinary repository Go test discovery skips them; the
 runner copies each into its isolated consumer module as `consumer_test.go`. The consumer is
 compiled with `CGO_ENABLED=0`, `GOPROXY=off`, `GOSUMDB=off`, `GOWORK=off` and

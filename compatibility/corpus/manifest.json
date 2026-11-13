@@ -8,6 +8,14 @@
     ]
   },
   {
+    "name": "bitwise",
+    "module": "Bitwise",
+    "roots": [
+      "Bitwise.calc32",
+      "Bitwise.calc64"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [

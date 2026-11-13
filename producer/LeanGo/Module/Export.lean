@@ -238,7 +238,7 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
     discard <| localEvidence? name
     let (kind, expected, target, allUnused) ← if let some primitive := numericPrimitive? name then do
       validateNumericPrimitive primitive
-      pure ("primitive", [primitive.operand.toString, primitive.operand.toString], primitive.result.toString, false)
+      pure ("primitive", (List.replicate primitive.arity primitive.operand.toString), primitive.result.toString, false)
     else do
       if (← getEnv).find? name matches some (.ctorInfo _) then
         let (target, fields) ← constructor name

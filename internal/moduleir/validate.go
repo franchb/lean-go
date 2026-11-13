@@ -19,6 +19,7 @@ type validator struct {
 	nodes        int
 	numeric      bool
 	wide         bool
+	bitwise      bool
 	joins        bool
 	functions    map[string]Function
 	constructors map[string]constructorInfo
@@ -108,9 +109,10 @@ func (v *validator) validateMetadata(p *Program) error {
 	if err := validateRoots(p); err != nil {
 		return err
 	}
-	v.numeric = p.Profile == ProfileV2 || p.Profile == ProfileV3 || p.Profile == ProfileV4 || p.Profile == ProfileV5
+	v.numeric = p.Schema != Schema
 	v.wide = HasUInt64(p.Schema)
-	v.joins = p.Profile == ProfileV3 || p.Profile == ProfileV4 || p.Profile == ProfileV5
+	v.joins = v.numeric && p.Schema != SchemaV3
+	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}

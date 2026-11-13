@@ -159,7 +159,7 @@ func (e *apiEmitter) run(w *bytes.Buffer, name string) {
 	for i, param := range root.Params {
 		fields[i] = param.Type
 	}
-	if e.g.program.Schema == moduleir.SchemaV7 {
+	if moduleir.HasMultipleRoots(e.g.program.Schema) {
 		entry := e.names.Entrypoints[name]
 		fmt.Fprintf(w, "// %s invokes its selected Lean root through RunRoot and its existing limits.\nfunc %s(%sl Limits)(%s,error){out,err:=RunRoot(%q,[]Value{", entry, entry, e.parameters(fields), e.names.Types[root.Result], name)
 	} else {

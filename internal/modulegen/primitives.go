@@ -16,7 +16,10 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 		result = primitive.Result
 		field := scalarField(primitive.Params[0])
 		left := fmt.Sprintf("f.slots[%d].%s", f.slots[c.Value.Args[0]], field)
-		right := fmt.Sprintf("f.slots[%d].%s", f.slots[c.Value.Args[1]], field)
+		right := ""
+		if len(primitive.Params) == 2 {
+			right = fmt.Sprintf("f.slots[%d].%s", f.slots[c.Value.Args[1]], field)
+		}
 		expression = primitiveExpression(c.Value.Name, left, right)
 	}
 	if result == "Bool" {
@@ -40,6 +43,18 @@ func primitiveExpression(name, left, right string) string {
 		return left + " << (" + right + " & 31)"
 	case "UInt64.shiftLeft":
 		return left + " << (" + right + " & 63)"
+	case "UInt32.land", "UInt64.land":
+		operator = "&"
+	case "UInt32.lor", "UInt64.lor":
+		operator = "|"
+	case "UInt32.xor", "UInt64.xor":
+		operator = "^"
+	case "UInt32.complement", "UInt64.complement":
+		return "^" + left
+	case "UInt32.shiftRight":
+		return left + " >> (" + right + " & 31)"
+	case "UInt64.shiftRight":
+		return left + " >> (" + right + " & 63)"
 	case "UInt32.decEq", "UInt64.decEq":
 		operator = "=="
 	case "UInt32.decLt", "UInt64.decLt":

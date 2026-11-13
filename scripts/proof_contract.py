@@ -130,9 +130,16 @@ def verify_manifest(path, contract, project):
     raw = read_regular(path)
     manifest = parse_json(raw)
     multi = len(contract.roots) > 1
-    version, profile = ('v7', 'v5') if multi else ('v6', 'v4')
-    if not isinstance(manifest, dict) or manifest.get('schema') != 'lean-go-manifest/' + version:
+    pairs = {'v7': 'v5', 'v9': 'v7'} if multi else {'v6': 'v4', 'v8': 'v6'}
+    if not isinstance(manifest, dict):
         raise ExportError('generated manifest schema does not match root count')
+    versions = {'lean-go-manifest/' + version: (version, profile)
+                for version, profile in pairs.items()}
+    schema = manifest.get('schema')
+    pair = versions.get(schema) if isinstance(schema, str) else None
+    if pair is None:
+        raise ExportError('generated manifest schema does not match root count')
+    version, profile = pair
     program = manifest.get('program')
     selection, forbidden = ('roots', 'root') if multi else ('root', 'roots')
     expected = dict(schema='lean-go-ir/' + version, profile='pure-module/' + profile,

@@ -11,7 +11,10 @@ The original audited normalizer remains available as a separate v1 profile.
 Single-root module exports use `pure-module/v4` with v6 IR, including UInt32 and UInt64
 arithmetic, comparisons, local joins and source record names for typed Go APIs.
 Multiple roots use `pure-module/v5` with v7 IR and share one generated package.
-Earlier v2–v6 IR remain accepted with their original restrictions and APIs.
+The current checkout also supports bitwise AND, OR, XOR, complement and logical
+right shift for both widths. This feature is **unreleased** and uses v8/v9 IR only
+when a new primitive survives compilation; see the [bitwise report](docs/research/extraction-bitwise.md).
+Earlier v2–v7 IR retain their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
 preview is `v0.1.0-alpha.5`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
@@ -63,9 +66,11 @@ required; differing existing package contents are preserved and rejected.
 Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
 functions, saturated calls, exhaustive matches, and self recursion. `UInt32` and `UInt64`
 supports literals, addition, subtraction, multiplication, left shift, equality,
-and unsigned less-than/less-or-equal comparisons. Arithmetic wraps modulo 2^32 or
+and unsigned less-than/less-or-equal comparisons. In the unreleased checkout,
+`&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
+Arithmetic wraps modulo 2^32 or
 2^64 respectively; shift counts are reduced modulo 32 or 64. Conversions between
-widths, division, remainder, other bit operations,
+widths, division, remainder, and other numeric operations,
 other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.

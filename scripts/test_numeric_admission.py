@@ -77,7 +77,7 @@ def run (a b : UInt32) : UInt32 := a + b
                 'def run (a b : UInt32) : UInt32 := a + b\n',
             'division': 'def run (a b : UInt32) : UInt32 := a / b\n',
             'folded_division': 'def run (a : UInt32) : UInt32 := a / 1\n',
-            'bitwise': 'def run (a b : UInt32) : UInt32 := a &&& b\n',
+            'remainder': 'def run (a b : UInt32) : UInt32 := a % b\n',
             'foreign': '@[extern "lean_go_untrusted"] opaque foreign : UInt32 → UInt32\n'
                        'def run (a : UInt32) : UInt32 := foreign a\n',
             'axiom': 'axiom forged : UInt32\ndef run : UInt32 := forged\n',
