@@ -15,6 +15,10 @@ from export import (COMMIT, TOOLCHAIN, ExportError, check_version, parse_json,
                     publish_files, run)
 import json
 
+from diagnostics import emit, stage, unexpected
+from source_locations import SourceMap
+from module_diagnostics import run_compiler
+
 MAX_FILES = 256
 MAX_SOURCE_BYTES = 8 * 1024 * 1024
 MAX_IR_BYTES = 4 * 1024 * 1024
@@ -26,7 +30,9 @@ PRODUCER_INPUTS = ("producer/LeanGo/Module/Audit.lean", "producer/LeanGo/Module/
                    "producer/LeanGo/Module/Local.lean",
                    "producer/LeanGo/Module/LocalSource.lean",
                    "producer/LeanGo/Module/LocalObserve.lean",
-                   "scripts/export_module.py", "scripts/export.py")
+                   "producer/LeanGo/Module/Diagnostics.lean",
+                   "scripts/diagnostics.py", "scripts/source_locations.py",
+                   "scripts/module_diagnostics.py", "scripts/export_module.py", "scripts/export.py")
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*\Z", re.ASCII)
 RESERVED = {"Lean", "Init", "Std", "LeanGo", "Lake"}
 IGNORED = {".git", ".lake", ".venv", "__pycache__"}
@@ -125,7 +131,7 @@ def header_tokens(text):
             i = end
 
 
-def instrument_source(data):
+def instrument_source(data, *, with_mapping=False):
     try:
         text = data.decode("utf-8")
     except UnicodeError as exc:
@@ -156,7 +162,10 @@ def instrument_source(data):
         token = next(tokens, None)
     audit = "public meta import" if modern else "import"
     injection = f"\n{audit} LeanGo.Module.Audit\nset_option compiler.postponeCompile false\n"
-    return (text[:end] + injection + text[end:]).encode(), imports
+    instrumented = (text[:end] + injection + text[end:]).encode()
+    if with_mapping:
+        return SourceMap(data, instrumented, len(text[:end].encode()), len(injection.encode())), imports
+    return instrumented, imports
 
 
 def producer_snapshot(root):
@@ -224,8 +233,27 @@ def complete_program(raw, module, entries, identities):
     return program
 
 
+def stage_sources(sources, workspace, prefix):
+    """Stage original snapshots and retain their exact instrumentation mappings."""
+    mapped_sources = {}
+    for name, (relative, data) in sources.items():
+        mapping, imports = instrument_source(data, with_mapping=True)
+        mapped_sources[name] = (relative, mapping)
+        for imported in imports:
+            if imported in sources:
+                continue
+            if imported.split(".")[0] not in {"Lean", "Init", "Std"} or not (
+                    prefix / "lib/lean" / (imported.replace(".", "/") + ".olean")).is_file():
+                raise ExportError(f"unsupported or missing local import: {imported}")
+        target = workspace / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(mapping.instrumented)
+    return mapped_sources
+
+
 def export_module(root, source_dir, module, entry, output):
-    check_python()
+    with stage("toolchain", "toolchain_mismatch"):
+        check_python()
     validate_name(module)
     entries = select_roots(entry)
     root, source_dir = Path(root), Path(source_dir)
@@ -238,47 +266,44 @@ def export_module(root, source_dir, module, entry, output):
            if not key.startswith(("LEAN_", "LAKE_"))}
     env.update(ELAN_TOOLCHAIN=TOOLCHAIN.decode().strip(), CGO_ENABLED="0", GOTOOLCHAIN="local")
     lean, lake = shutil.which("lean"), shutil.which("lake")
-    if not lean or not lake:
-        raise ExportError("pinned Lean and Lake executables must be available on PATH")
+    with stage("toolchain", "toolchain_unavailable"):
+        if not lean or not lake:
+            raise ExportError("pinned Lean and Lake executables must be available on PATH")
     with tempfile.TemporaryDirectory(prefix="lean-go-module-") as directory:
         workspace = Path(directory)
         (workspace / "lean-toolchain").write_bytes(TOOLCHAIN)
         (workspace / "lakefile.toml").write_bytes(lake_config(sources))
-        check_version(run([lean, "--version"], workspace, env))
-        prefix = Path(run([lean, "--print-prefix"], workspace, env).strip())
-        for name, (relative, data) in sources.items():
-            instrumented, imports = instrument_source(data)
-            for imported in imports:
-                if imported in sources:
-                    continue
-                if imported.split(".")[0] not in {"Lean", "Init", "Std"} or not (
-                        prefix / "lib/lean" / (imported.replace(".", "/") + ".olean")).is_file():
-                    raise ExportError(f"unsupported or missing local import: {imported}")
-            target = workspace / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(instrumented)
+        with stage("toolchain", "toolchain_mismatch"):
+            check_version(run([lean, "--version"], workspace, env))
+            prefix = Path(run([lean, "--print-prefix"], workspace, env).strip())
+        mapped_sources = stage_sources(sources, workspace, prefix)
         for name, data in producer.items():
             if name.startswith("producer/"):
                 target = workspace / name.removeprefix("producer/")
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
-        check_version(run([lake, "env", "lean", "--version"], workspace, env))
+        with stage("toolchain", "toolchain_mismatch"):
+            check_version(run([lake, "env", "lean", "--version"], workspace, env))
         manifest = parse_json((workspace / "lake-manifest.json").read_bytes())
         if manifest.get("packages") != []:
             raise ExportError("producer dependency lock must have no packages")
-        run([lake, "build", "LeanGo.Module.Export", *sorted(sources)], workspace, env)
+        run_compiler(run, [lake, "build", "LeanGo.Module.Export", *sorted(sources)],
+                     workspace, env, mapped_sources)
         harness = workspace / "LeanGo/Module/Harness.lean"
         harness.write_text(export_harness(module, entries))
-        run([lake, "env", "lean", str(harness.relative_to(workspace))], workspace, env)
-        raw = (workspace / "ir.json").read_bytes()
-        if len(raw) > MAX_IR_BYTES:
-            raise ExportError("producer IR exceeds 4 MiB")
-        program = complete_program(raw, module, entries, input_digests(sources, producer))
-        result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
-        if len(result) > MAX_IR_BYTES:
-            raise ExportError("complete IR exceeds 4 MiB")
+        run_compiler(run, [lake, "env", "lean", str(harness.relative_to(workspace))],
+                     workspace, env, mapped_sources, admission=True)
+        with stage("build", "producer_protocol"):
+            raw = (workspace / "ir.json").read_bytes()
+            if len(raw) > MAX_IR_BYTES:
+                raise ExportError("producer IR exceeds 4 MiB")
+            program = complete_program(raw, module, entries, input_digests(sources, producer))
+            result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
+            if len(result) > MAX_IR_BYTES:
+                raise ExportError("complete IR exceeds 4 MiB")
         verify_inputs(root, source_dir, program)
-    publish_files([(output, result)])
+    with stage("emission", "output_failed"):
+        publish_files([(output, result)])
 
 
 def main():
@@ -288,12 +313,16 @@ def main():
     parser.add_argument("--root", required=True, action='append',
                         help='fully qualified root; repeat for a shared multi-root package')
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--diagnostics", choices=("text", "json"), default="text")
     args = parser.parse_args()
     try:
         export_module(Path(__file__).resolve().parents[1], args.source_dir,
                       args.module, args.root, args.output)
     except (ExportError, OSError) as exc:
-        print(f"module export failed: {exc}", file=sys.stderr)
+        emit(exc, args.diagnostics)
+        return 1
+    except Exception as exc:
+        unexpected(exc, args.diagnostics)
         return 1
     return 0
 

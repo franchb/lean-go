@@ -16,6 +16,9 @@ There is no fixed model hash or application name allowlist. The experimental
 preview is `v0.1.0-alpha.4`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
 [preview notes](docs/releases/v0.1.0-alpha.4.md).
+Post-alpha.4 development (`0.1.0a5.dev0`) adds
+[structured extraction diagnostics](docs/diagnostics.md); the alpha.4 release
+does not include the diagnostics option.
 
 Alpha.4 adds an installable CLI, recursive frame-storage reuse and a standalone
 proved-clamp demo to the multi-root extraction, quota and proof-contract tools. The

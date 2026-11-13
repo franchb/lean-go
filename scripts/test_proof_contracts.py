@@ -329,6 +329,8 @@ class EvidenceProtocolTests(ContractFixture):
         self.assertEqual(evidence['schema'], 'lean-go-proof-evidence/v1')
         self.assertEqual(evidence['contract_sha256'], sha(self.contract_path.read_bytes()))
         self.assertEqual(evidence['project_inputs'], {name: sha(data) for name, data in project.inputs.items()})
+        self.assertTrue({'scripts/diagnostics.py', 'scripts/source_locations.py',
+                         'scripts/module_diagnostics.py'} <= evidence['tool_inputs'].keys())
         self.assertEqual(evidence['tool_inputs'], {name: sha(data) for name, data in proofs.tool_snapshot().items()})
         self.assertEqual(evidence['generated_manifest_sha256'], sha(self.manifest_path.read_bytes()))
         self.assertNotIn(str(self.root).encode(), raw)

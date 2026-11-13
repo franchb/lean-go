@@ -163,12 +163,16 @@ def producer_workflow(cli, directory, env, *, multiple_roots):
         multi_root_workflow(cli, directory, contract, go, env)
     # The selected unsupported source must not replace any successful output.
     previous_ir, previous_proof = ir.read_bytes(), proof.read_bytes()
-    (contract.source_dir / 'Unsupported.lean').write_text('def bad (x : Nat) : Nat := x\n')
-    rejected = [cli, 'generate', '--source-dir', relative(contract.source_dir),
+    (contract.source_dir / 'Unsupported.lean').write_text('def bad {α : Type} (x : α) : α := x\n')
+    rejected = [cli, 'generate', '--diagnostics=json', '--source-dir', relative(contract.source_dir),
                 '--module', 'Unsupported', '--root', 'bad',
                 '--out', relative(package), '--ir-output', relative(ir)]
     failure = run(rejected, caller, env, succeeds=False)
-    assert 'generation failed' in failure
+    report = json.loads(failure)
+    assert report['schema'] == 'lean-go-diagnostics/v1' and report['success'] is False
+    item, = report['diagnostics']
+    assert item['stage'] == 'admission' and item['code'] == 'unsupported_type'
+    assert item['declaration'] == 'bad' and item['location']['path'] == 'Unsupported.lean'
     assert snapshot(package) == before and ir.read_bytes() == previous_ir
     run([*checker, '--evidence', relative(proof)], caller, env, succeeds=False)
     assert proof.read_bytes() == previous_proof

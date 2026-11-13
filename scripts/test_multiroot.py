@@ -68,16 +68,20 @@ class RootSelectionTests(unittest.TestCase):
                 commands.append(command)
                 if command[-1] == 'version':
                     return subprocess.CompletedProcess(command, 0, 'go version go1.27.4 linux/amd64\n')
-                if '--output' in command:
-                    Path(command[command.index('--output') + 1]).write_text('{"schema":"lean-go-ir/v7"}')
                 return subprocess.CompletedProcess(command, 0)
+            def export(root, source_dir, module, entries, output):
+                self.assertEqual(source_dir, source.resolve())
+                self.assertEqual((module, entries), ('Example', ['Example.a', 'Example.z']))
+                output.write_text('{"schema":"lean-go-ir/v7"}')
             with mock.patch.object(generate.sys, 'argv', arguments), \
                     mock.patch.object(generate.shutil, 'which', return_value='go'), \
                     mock.patch.object(generate.subprocess, 'run', side_effect=process), \
+                    mock.patch.object(generate, 'export_module', side_effect=export) as exported, \
                     mock.patch.object(generate, 'verify_inputs'), mock.patch('builtins.print'):
                 generate.main()
-            export = commands[1]
-            self.assertEqual(export[-4:], ['--root', 'Example.a', '--root', 'Example.z'])
+            exported.assert_called_once()
+            self.assertEqual(len(commands), 2)
+            self.assertIn('./cmd/lean-go', commands[1])
             self.assertEqual(json.loads((work / 'program.json').read_text())['schema'], 'lean-go-ir/v7')
 
 

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lean-go-tools"
-version = "0.1.0a4"
+version = "0.1.0a5.dev0"
 description = "Pinned Lean-to-Go extraction and source-proof tools"
 readme = "README.md"
 requires-python = ">=3.15,<3.16"
@@ -76,8 +76,20 @@ sources = ["src"]
 "scripts/generate.py" = "lean_go/_payload/scripts/generate.py"
 "scripts/proof_contract.py" = "lean_go/_payload/scripts/proof_contract.py"
 
+"scripts/diagnostics.py" = "lean_go/_payload/scripts/diagnostics.py"
+
+"scripts/source_locations.py" = "lean_go/_payload/scripts/source_locations.py"
+
+"scripts/module_diagnostics.py" = "lean_go/_payload/scripts/module_diagnostics.py"
+
+"producer/LeanGo/Module/Diagnostics.lean" = "lean_go/_payload/producer/LeanGo/Module/Diagnostics.lean"
+
 [tool.hatch.build.targets.sdist]
 include = [
+  "/producer/LeanGo/Module/Diagnostics.lean",
+  "/scripts/module_diagnostics.py",
+  "/scripts/source_locations.py",
+  "/scripts/diagnostics.py",
   "/.gitignore",
   "/pyproject.toml",
   "/README.md",

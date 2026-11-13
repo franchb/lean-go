@@ -36,7 +36,7 @@ def exportTypes (used : List String) : CoreM Json := do
     unless seen.contains name || name == "UInt32" || name == "UInt64" do
       seen := name :: seen
       let n := name.toName
-      discard <| typeKey (.const n [])
+      discard <| withDeclaration n <| typeKey (.const n [])
       let info ← getConstInfoInduct n
       if info.isUnsafe then throwError "Unsafe ADT: {n}"
       let mut ctors := #[]
@@ -226,8 +226,12 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
       return obj [("op", str "let"), ("bind", param), ("value", value),
         ("next", ← encode next scope joins result (depth + 1))]
     let .const name levels args _ := decl.value
-      | throwError "Unsupported let value (only UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)"
-    unless levels.isEmpty do throwError "Universe arguments unsupported"
+      | reject "unsupported_lcnf_value" "Use UInt32/UInt64 literals, admitted primitive calls, first-order functions or constructors."
+          m!"Unsupported let value (only UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)"
+          (some (valueForm decl.value))
+    unless levels.isEmpty do
+      reject "unsupported_signature" "Use a monomorphic function without universe arguments."
+        m!"Universe arguments unsupported" (some "LCNF.LetValue.const")
     -- A later kernel collision must fail before it can be mistaken for a
     -- constructor or another independently admitted constant kind.
     discard <| reducedEvidence? name
@@ -338,9 +342,12 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
         ("body", prepend steps branchBody)])
     return obj [("op", str "cases"), ("var", toJson id), ("type", str ty),
       ("result", str result), ("alts", .arr branches)]
-  | _ => throwError "Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)"
+  | _ =>
+    reject "unsupported_lcnf_control" "Use first-order calls, exhaustive matches and local joins; retained closures are outside this profile."
+      m!"Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)"
+      (some (controlForm code))
 
-def exportFunction (name : Name) : CoreM (Json × List Name × List String) := do
+def exportFunction (name : Name) : CoreM (Json × List Name × List String) := withDeclaration name do
   let shape ← resolveFunction name
   let domains := shape.domains
   let result := shape.result
@@ -397,7 +404,9 @@ def rewriteJson (r : Rewrite) : CoreM Json := do
 def auditSource (roots : List Name) : CoreM (Json × Json) := do
   let env ← getEnv
   let records := provenanceExt.getState env
-  unless (customPasses env).isEmpty do throwError "custom compiler passes unsupported: {customPasses env}"
+  unless (customPasses env).isEmpty do
+    reject "source_audit" "Remove custom compiler passes from the source environment."
+      m!"custom compiler passes unsupported: {customPasses env}"
   let mut pending := roots
   let mut seen : NameSet := {}
   let mut provenance := #[]
@@ -410,51 +419,59 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
     pending := pending.tail!
     unless seen.contains n do
       seen := seen.insert n
-      validateReducedOwner n
-      validateLocalOwner n
-      if isNumericSourceBoundary n then
-        let issues := numericBoundaryIssues env n
-        unless issues.isEmpty do throwError "Numeric source audit rejected: {issues}"
-      else if (getExternAttrData? env n).isSome then throwError "extern source dependency: {n}"
-      if (Lean.Compiler.getImplementedBy? env n).isSome then throwError "implemented_by source dependency: {n}"
-      if Lean.hasInitAttr env n then throwError "initialized source dependency: {n}"
-      let activeRewrite? := ((Lean.Compiler.CSimp.ext.getState env).map.find? n).map fun e =>
-        { source := n, target := e.toDeclName, theoremName := e.thmName : Rewrite }
-      for rewrite in activeRewrite?.toList do
-        discard <| rewriteJson rewrite
-      if let some rawInfo := env.find? (Lean.Compiler.mkUnsafeRecName n) then
-        unless (rawInfo matches .defnInfo { safety := .partial, .. }) &&
-            (env.find? n matches some (.defnInfo { safety := .safe, .. })) do
-          throwError "Unverified recursive implementation override: {n}"
-      if let some evidence ← localSource? n then
-        provenance := provenance.push <| obj [("name", str n.toString),
-          ("dependencies", toJson #[evidence.sourceOwner.toString]), ("rewrites", .arr #[])]
-        pending := evidence.sourceOwner :: pending
-      else if let some evidence ← reducedSource? n then
-        provenance := provenance.push <| obj [("name", str n.toString),
-          ("dependencies", toJson #[evidence.owner.toString]), ("rewrites", .arr #[])]
-        pending := evidence.owner :: pending
-      else if let some record := records.find? n then
-        unless record.issues.isEmpty do throwError "Source audit rejected {n}: {record.issues}"
-        let mut evidence := #[]
-        for rewrite in sortRewrites record.rewrites do
-          evidence := evidence.push (← rewriteJson rewrite)
-          unless rewrites.contains rewrite do rewrites := rewrites.push rewrite
-          pending := rewrite.target :: pending
-        provenance := provenance.push <| obj [("name", str n.toString),
-          ("dependencies", toJson (sortedDependencies record.dependencies)), ("rewrites", .arr evidence)]
-        pending := record.dependencies.toList ++ pending
-      else if isPrimitiveDefinition n || isNumericSourceBoundary n then
-        provenance := provenance.push <| obj [("name", str n.toString),
-          ("dependencies", .arr #[]), ("rewrites", .arr #[])]
-      else if isCompilerSupport n then pure ()
-      else
-        match env.find? n with
-        | some (.ctorInfo _) | some (.recInfo _) | some (.inductInfo _) => pure ()
-        | some (.thmInfo _) =>
-          let axioms ← collectAxioms n
-          unless axioms.isEmpty do throwError "Axiomatic source proof: {n}: {axioms}"
-        | _ => throwError "Source dependency lacks fresh compilation provenance: {n}"
+      let (newPending, newProvenance, newRewrites) ← withDeclaration n do
+        let mut pending := pending
+        let mut provenance := provenance
+        let mut rewrites := rewrites
+        validateReducedOwner n
+        validateLocalOwner n
+        if isNumericSourceBoundary n then
+          let issues := numericBoundaryIssues env n
+          unless issues.isEmpty do reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"Numeric source audit rejected: {issues}"
+        else if (getExternAttrData? env n).isSome then reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"extern source dependency: {n}"
+        if (Lean.Compiler.getImplementedBy? env n).isSome then reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"implemented_by source dependency: {n}"
+        if Lean.hasInitAttr env n then reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"initialized source dependency: {n}"
+        let activeRewrite? := ((Lean.Compiler.CSimp.ext.getState env).map.find? n).map fun e =>
+          { source := n, target := e.toDeclName, theoremName := e.thmName : Rewrite }
+        for rewrite in activeRewrite?.toList do
+          discard <| rewriteJson rewrite
+        if let some rawInfo := env.find? (Lean.Compiler.mkUnsafeRecName n) then
+          unless (rawInfo matches .defnInfo { safety := .partial, .. }) &&
+              (env.find? n matches some (.defnInfo { safety := .safe, .. })) do
+            reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"Unverified recursive implementation override: {n}"
+        if let some evidence ← localSource? n then
+          provenance := provenance.push <| obj [("name", str n.toString),
+            ("dependencies", toJson #[evidence.sourceOwner.toString]), ("rewrites", .arr #[])]
+          pending := evidence.sourceOwner :: pending
+        else if let some evidence ← reducedSource? n then
+          provenance := provenance.push <| obj [("name", str n.toString),
+            ("dependencies", toJson #[evidence.owner.toString]), ("rewrites", .arr #[])]
+          pending := evidence.owner :: pending
+        else if let some record := records.find? n then
+          unless record.issues.isEmpty do withDeclaration (record.issueOrigin.getD n) do reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"Source audit rejected {n}: {record.issues}"
+          let mut evidence := #[]
+          for rewrite in sortRewrites record.rewrites do
+            evidence := evidence.push (← rewriteJson rewrite)
+            unless rewrites.contains rewrite do rewrites := rewrites.push rewrite
+            pending := rewrite.target :: pending
+          provenance := provenance.push <| obj [("name", str n.toString),
+            ("dependencies", toJson (sortedDependencies record.dependencies)), ("rewrites", .arr evidence)]
+          pending := record.dependencies.toList ++ pending
+        else if isPrimitiveDefinition n || isNumericSourceBoundary n then
+          provenance := provenance.push <| obj [("name", str n.toString),
+            ("dependencies", .arr #[]), ("rewrites", .arr #[])]
+        else if isCompilerSupport n then pure ()
+        else
+          match env.find? n with
+          | some (.ctorInfo _) | some (.recInfo _) | some (.inductInfo _) => pure ()
+          | some (.thmInfo _) =>
+            let axioms ← collectAxioms n
+            unless axioms.isEmpty do reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"Axiomatic source proof: {n}: {axioms}"
+          | _ => reject "source_audit" "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile." m!"Source dependency lacks fresh compilation provenance: {n}"
+        return (pending, provenance, rewrites)
+      pending := newPending
+      provenance := newProvenance
+      rewrites := newRewrites
   return (.arr (sortByName provenance), .arr (← (sortRewrites rewrites).mapM rewriteJson))
 
 -- Self recursion is supported; a path through a different function back to the
@@ -515,15 +532,41 @@ def exportProgramRoots (moduleName : String) (requested : Array Name) : CoreM Js
 def exportProgram (moduleName : String) (root : Name) : CoreM Json :=
   exportProgramRoots moduleName #[root]
 
+-- Ranges are available after imports. Generated helper ownership comes only
+-- from validated compiler evidence; a suffix is never a source-location guess.
+def failureLocation (extra : KVMap) : CoreM Json := do
+  let name := extra.getName `declaration
+  if name.isAnonymous then return .null
+  let location ← declarationLocation name "declaration"
+  if location != .null then return location
+  try
+    if let some evidence ← localSource? name then
+      return ← declarationLocation evidence.sourceOwner "source_owner"
+    if let some evidence ← reducedSource? name then
+      return ← declarationLocation evidence.owner "source_owner"
+  catch _ => pure ()
+  return .null
+
+def reportAdmission (action : CoreM Json) : CoreM Json := do
+  try action catch error =>
+    match error with
+    | .internal id extra =>
+      if id == admissionException then
+        let json := diagnosticJson extra (← failureLocation extra)
+        IO.FS.writeFile "lean-go-diagnostic.json" (json.compress ++ "\n")
+        throwError "{extra.getString `message}"
+      throw error
+    | _ => throw error
+
 elab "#lean_go_export " output:str root:ident moduleName:str : command => do
   let root ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo root
-  let json ← liftCoreM <| exportProgram moduleName.getString root
+  let json ← liftCoreM <| reportAdmission (exportProgram moduleName.getString root)
   IO.FS.writeFile output.getString (json.pretty ++ "\n")
 
 elab "#lean_go_export_roots " output:str "[" roots:ident,* "]" moduleName:str : command => do
   let mut names := #[]
   for root in roots.getElems do
     names := names.push (← liftCoreM <| realizeGlobalConstNoOverloadWithInfo root)
-  let json ← liftCoreM <| exportProgramRoots moduleName.getString names
+  let json ← liftCoreM <| reportAdmission (exportProgramRoots moduleName.getString names)
   IO.FS.writeFile output.getString (json.pretty ++ "\n")
 end LeanGo.Module

@@ -10,8 +10,9 @@ import subprocess
 import sys
 import tempfile
 
-from export import ExportError
-from export_module import (check_python, verify_inputs as verify_module_inputs,
+from export import ExportError, TOOLCHAIN, check_version
+from diagnostics import emit, requested_mode, stage, diagnostic, unexpected
+from export_module import (export_module, check_python, verify_inputs as verify_module_inputs,
                            select_roots, validate_name, validate_output, source_snapshot, PRODUCER_INPUTS)
 
 INPUT_FILES = (
@@ -61,7 +62,21 @@ def publish_ir(path, content):
             os.unlink(temporary)
 
 
-def main():
+
+def run_process(command, root, environment, phase):
+    """Capture all child output so JSON errors remain a single stderr report."""
+    with stage(phase, 'toolchain_mismatch' if phase == 'toolchain' else phase + '_failed'):
+        result = subprocess.run(command, cwd=root, env=environment, check=False,
+                                text=True, capture_output=True, timeout=300)
+        if result.returncode:
+            error = subprocess.CalledProcessError(result.returncode, command,
+                                                   result.stdout, result.stderr)
+            error.diagnostic = diagnostic(result.stderr.strip() or result.stdout.strip() or str(error),
+                                          stage=phase, code=phase + '_failed')
+            raise error
+        return result.stdout
+
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path)
     parser.add_argument('--ir-output', type=Path)
@@ -69,8 +84,10 @@ def main():
     parser.add_argument('--module')
     parser.add_argument('--root', action='append',
                         help='fully qualified root; repeat for a shared multi-root package')
-    args = parser.parse_args()
-    check_python()
+    parser.add_argument("--diagnostics", choices=("text", "json"), default="text")
+    args = parser.parse_args(argv)
+    with stage("toolchain", "toolchain_mismatch"):
+        check_python()
     selected = (args.source_dir is not None, args.module is not None, args.root is not None)
     if any(selected) and not all(selected):
         raise ValueError('--source-dir, --module and --root must be supplied together')
@@ -94,36 +111,51 @@ def main():
         protected.extend(root / name for name in PRODUCER_INPUTS)
         if any(path.resolve().is_relative_to(output.resolve()) for path in protected):
             raise ValueError('package output overlaps source or trusted producer inputs')
-    go = shutil.which('go')
-    if go is None:
-        raise ValueError('Go is unavailable; put the pinned Go executable on PATH')
-    environment = dict(os.environ, CGO_ENABLED='0', GOTOOLCHAIN='local')
-    version = subprocess.run([go, 'version'], env=environment, check=True,
-                             text=True, capture_output=True, timeout=30).stdout.strip()
-    if not version.startswith('go version go1.27.4 '):
-        raise ValueError(f'expected Go 1.27.4, got {version}')
+    with stage('toolchain', 'toolchain_mismatch'):
+        go = shutil.which('go')
+        if go is None:
+            raise ValueError('Go is unavailable; put the pinned Go executable on PATH')
+        environment = dict(os.environ, CGO_ENABLED='0', GOTOOLCHAIN='local',
+                           ELAN_TOOLCHAIN=TOOLCHAIN.decode().strip())
+        version = run_process([go, 'version'], root, environment, 'toolchain').strip()
+        if not version.startswith('go version go1.27.4 '):
+            raise ValueError(f'expected Go 1.27.4, got {version}')
     with tempfile.TemporaryDirectory(prefix='lean-go-generate-') as temporary:
         ir_path = Path(temporary) / 'program.json'
-        script = 'export_module.py' if module_mode else 'export.py'
-        command = [sys.executable, str(root / 'scripts' / script), '--output', str(ir_path)]
         if module_mode:
-            command += ['--source-dir', str(args.source_dir.resolve()), '--module', args.module]
-            for entry in entries:
-                command += ['--root', entry]
-        subprocess.run(command, cwd=root, env=environment, check=True, timeout=300)
+            export_module(root, args.source_dir.resolve(), args.module, entries, ir_path)
+        else:
+            with stage('toolchain', 'toolchain_unavailable'):
+                lean, lake = shutil.which('lean'), shutil.which('lake')
+                if not lean or not lake:
+                    raise ExportError('pinned Lean and Lake executables must be available on PATH')
+            with stage('toolchain', 'toolchain_mismatch'):
+                check_version(run_process([lean, '--version'], root, environment, 'toolchain'))
+            run_process([sys.executable, str(root / 'scripts/export.py'), '--output', str(ir_path)],
+                        root, environment, 'build')
         content = ir_path.read_bytes()
         program = json.loads(content)
         verify_inputs(root, program, args.source_dir)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run([go, 'run', './cmd/lean-go', '-in', str(ir_path),
-                        '-out', str(output)], cwd=root, env=environment, check=True, timeout=300)
-        publish_ir(ir_output, content)
+        with stage("emission", "emission_failed"):
+            output.parent.mkdir(parents=True, exist_ok=True)
+        run_process([go, 'run', './cmd/lean-go', '-in', str(ir_path),
+                        '-out', str(output)], root, environment, 'emission')
+        with stage('emission', 'emission_failed'):
+            publish_ir(ir_output, content)
     print(f'Generated {output}; recorded producer IR in {ir_output}')
 
 
-if __name__ == '__main__':
+def cli():
     try:
         main()
     except (ValueError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired, ExportError) as error:
-        print(f'generation failed: {error}', file=sys.stderr)
-        sys.exit(1)
+        emit(error, requested_mode(sys.argv[1:]))
+        return 1
+    except Exception as error:
+        unexpected(error, requested_mode(sys.argv[1:]))
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(cli())

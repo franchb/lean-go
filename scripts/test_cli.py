@@ -28,7 +28,8 @@ class PackageTests(unittest.TestCase):
         expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / 'producer').rglob('*.lean')
                         if '.lake' not in path.parts)
         expected.update('scripts/' + name + '.py' for name in
-                        ['generate', 'export', 'export_module', 'check_proofs', 'proof_contract'])
+                        ['generate', 'export', 'export_module', 'check_proofs', 'proof_contract',
+                         'diagnostics', 'source_locations', 'module_diagnostics'])
         for directory in ['cmd/lean-go', 'internal/ir', 'internal/gogen',
                           'internal/moduleir', 'internal/modulegen']:
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory).glob('*.go')
@@ -221,6 +222,40 @@ class InvocationTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('symlinked input', result.stderr)
             self.assertEqual(output.read_bytes(), b'preserve evidence')
+
+
+class JSONDiagnosticTests(unittest.TestCase):
+    def test_preflight_and_module_arguments_are_json(self):
+        installed = Path(cli.__file__).parent
+        cases = [(['generate', '--diagnostics=json', '--out', str(installed)], 'installed'),
+                 (['generate', '--diagnostics', 'json', '--module', 'Example'], 'together')]
+        for args, message in cases:
+            result = subprocess.run([sys.executable, '-B', '-m', 'lean_go', *args],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.stdout, '')
+            report = json.loads(result.stderr)
+            self.assertEqual(report['schema'], 'lean-go-diagnostics/v1')
+            item, = report['diagnostics']
+            self.assertEqual(item['stage'], 'input')
+            self.assertIn(message, item['message'])
+
+    def test_child_crash_is_a_single_build_report(self):
+        result = subprocess.CompletedProcess([], 1, 'child stdout', 'unstructured child failure')
+        output = io.StringIO()
+        with patch.object(cli.subprocess, 'run', return_value=result), redirect_stderr(output):
+            self.assertEqual(cli.main(['generate', '--diagnostics=json']), 1)
+        item, = json.loads(output.getvalue())['diagnostics']
+        self.assertEqual((item['stage'], item['code']), ('build', 'pipeline_failed'))
+        self.assertEqual(item['message'], 'unstructured child failure')
+
+    def test_success_keeps_stdout_and_stderr_empty(self):
+        result = subprocess.CompletedProcess([], 0, 'Generated package\n', '')
+        output, errors = io.StringIO(), io.StringIO()
+        with patch.object(cli.subprocess, 'run', return_value=result), redirect_stdout(output), redirect_stderr(errors):
+            self.assertEqual(cli.main(['generate', '--diagnostics=json']), 0)
+        self.assertEqual(output.getvalue(), 'Generated package\n')
+        self.assertEqual(errors.getvalue(), '')
 
 
 class DoctorTests(unittest.TestCase):

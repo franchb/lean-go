@@ -61,6 +61,14 @@ paths must not overlap. With no module arguments, `lean-go generate` runs the
 audited normalizer profile and defaults to `./generated/normalizer` and
 `./testdata/normalizer.ir.json` in the invoking directory.
 
+## Development diagnostics
+
+Post-alpha.4 development (`0.1.0a5.dev0`) adds readable extraction errors and
+`--diagnostics=json` to `lean-go generate` and the generation/export scripts.
+See the [diagnostics guide and schema](diagnostics.md) for codes, source locations
+and process behavior. The alpha.4 installation command above does not include
+this option.
+
 ## Check proofs
 
 Use a [proof contract](proof-contracts.md) selecting the same module and roots

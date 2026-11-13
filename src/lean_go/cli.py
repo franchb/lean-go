@@ -25,6 +25,7 @@ def parser():
     generate.add_argument('--root', action='append', help='fully qualified root; repeat to share types')
     generate.add_argument('--out', type=Path, help='Go package output directory')
     generate.add_argument('--ir-output', type=Path, help='separate producer IR output file')
+    generate.add_argument('--diagnostics', choices=('text', 'json'), default='text')
     proofs = commands.add_parser('check-proofs', help='freshly check and bind source proofs')
     proofs.add_argument('--contract', type=Path, required=True)
     proofs.add_argument('--manifest', type=Path, required=True)
@@ -99,6 +100,8 @@ def pipeline_arguments(args):
         command.extend(['--module', args.module])
     for entry in args.root or []:
         command.extend(['--root', entry])
+    if args.diagnostics != 'text':
+        command.extend(['--diagnostics', args.diagnostics])
     return 'generate.py', command
 
 
@@ -145,6 +148,15 @@ def doctor(root, env):
     return 0 if healthy else 1
 
 
+
+def diagnostic_formatter():
+    formatter = metadata.distribution('lean-go-tools').locate_file('lean_go/_payload/scripts/diagnostics.py')
+    return runpy.run_path(str(formatter))
+
+
+def render_failure(error, mode):
+    diagnostic_formatter()['emit'](error, mode)
+
 def main(argv=None):
     args = parser().parse_args(argv)
     try:
@@ -153,10 +165,17 @@ def main(argv=None):
             env = environment(root)
             if args.command == 'doctor':
                 return doctor(root, env)
-            return subprocess.run([sys.executable, '-B', str(root / 'scripts' / script), *arguments],
-                                  cwd=root, env=env, check=False).returncode
+            command = [sys.executable, '-B', str(root / 'scripts' / script), *arguments]
+            if getattr(args, 'diagnostics', 'text') == 'json':
+                result = subprocess.run(command, cwd=root, env=env, check=False,
+                                        capture_output=True, text=True)
+                return diagnostic_formatter()['forward_process'](result)
+            return subprocess.run(command, cwd=root, env=env, check=False).returncode
     except (OSError, ValueError) as error:
-        print(f'lean-go: {error}', file=sys.stderr)
+        render_failure(error, getattr(args, 'diagnostics', 'text'))
+        return 1
+    except Exception as error:
+        diagnostic_formatter()['unexpected'](error, getattr(args, 'diagnostics', 'text'))
         return 1
     except KeyboardInterrupt:
         return 130

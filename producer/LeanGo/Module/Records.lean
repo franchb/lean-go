@@ -1,16 +1,19 @@
 module
-public meta import Lean.Compiler.LCNF
+public meta import LeanGo.Module.Diagnostics
 public meta section
 open Lean Lean.Compiler.LCNF
 namespace LeanGo.Module
 
 def typeKey (e : Expr) : CoreM String := do
-  let .const n [] := e | throwError "Unsupported first-order monomorphic type: {e}"
+  let .const n [] := e | reject "unsupported_type" "Use a concrete first-order data type; polymorphism and function-valued types are outside this profile." m!"Unsupported first-order monomorphic type: {e}"
   if n == ``UInt32 || n == ``UInt64 then return n.toString
-  let info ← getConstInfoInduct n
+  let some info ← isInductive? n
+    | reject "unsupported_type" "Use UInt32, UInt64 or a concrete admitted inductive data type."
+        m!"`{.ofConstName n}` is not an inductive type"
   unless info.numParams == 0 && info.numIndices == 0 && info.levelParams.isEmpty &&
       info.type == .sort (.succ .zero) do
-    throwError "Unsupported ADT type: {n}"
+    withDeclaration n do
+      reject "unsupported_type" "Use an inductive data type without parameters, indices or universe parameters." m!"Unsupported ADT type: {n}"
   return n.toString
 
 def signature (e : Expr) : CoreM (List String × String) := do
@@ -21,10 +24,10 @@ def signature (e : Expr) : CoreM (List String × String) := do
     return (domain :: domains, result)
   | _ => return ([], ← typeKey e)
 
-def constructor (name : Name) : CoreM (String × List String) := do
+def constructor (name : Name) : CoreM (String × List String) := withDeclaration name do
   let ctor ← getConstInfoCtor name
   unless ctor.numParams == 0 && ctor.levelParams.isEmpty do
-    throwError "Unsupported constructor: {name}"
+    reject "unsupported_signature" "Use a constructor without parameters or universe arguments." m!"Unsupported constructor: {name}"
   let (fields, result) ← signature ctor.type
   unless ctor.numFields == fields.length do throwError "Dependent constructor: {name}"
   return (result, fields)
