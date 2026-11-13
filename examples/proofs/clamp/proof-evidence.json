@@ -31,7 +31,7 @@
     }
   ],
   "contract_sha256": "fcfe62273f3dc4e23cd5c5f87ebb0a6e8b5e464f6d148cb540bca02eb0c1990d",
-  "generated_manifest_sha256": "3d47c1bbab2c90f92bff6326537355868e5dbf337ad4d2860b729765ca8025f5",
+  "generated_manifest_sha256": "fcec465b06fa24e069edecb9d824b4f8bff0bfe407bcb7de8ec1f37a9258f2c7",
   "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
   "lean_version": "4.36.0-rc2",
   "module": "Clamp",
