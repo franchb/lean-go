@@ -86,8 +86,12 @@ The source model is bounded to 2048 nodes and depth 24 on replay, with generatio
 depth limited to 0..4. It excludes recursion, effects, escaping closures,
 polymorphism, generic collections and multi-root exports. A compiler rejection
 is a campaign failure to investigate, even if the source model is well typed.
-The renderer uses the already admitted direct shift primitive rather than the
-unaudited `HShiftLeft` notation.
+The renderer uses ordinary `<<<` notation. Its five exact source wrappers are
+audited against the pinned compiler and lower to the existing `UInt32.shiftLeft`
+and `UInt64.shiftLeft` leaves. Left shift alone retains v6/v7 IR with
+`pure-module/v4` or `pure-module/v5`; it does not activate bitwise v8/v9.
+The focused `test_shift_left.py` suite compares notation and direct calls against
+native Lean, raw Go, typed Go and the arithmetic oracle at boundary and seeded inputs.
 
 `scripts/differential_backend.py` builds the native reference with Lake and the
 extracted consumer with Go. IO reference code stays outside extraction sources.

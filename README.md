@@ -97,7 +97,8 @@ and unsigned less-than/less-or-equal comparisons. Since alpha.6,
 `&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
 Arithmetic wraps modulo 2^32 or
 2^64 respectively; shift counts are reduced modulo 32 or 64. The development
-checkout supports `UInt32.toUInt64` and `UInt64.toUInt32`. Other width conversions,
+checkout supports ordinary `<<<` notation, `UInt32.toUInt64` and `UInt64.toUInt32`.
+Left shift alone keeps v6/v7 IR and `pure-module/v4` or `pure-module/v5`. Other width conversions,
 division, remainder, and other numeric operations,
 other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler

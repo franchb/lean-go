@@ -11,6 +11,25 @@ import test_numeric_admission as numeric
 import test_reduced_admission as reduced
 
 
+def definition_baseline_probe(name, safety):
+    # Isolate the exact-name definition from imported constants and axiom caches.
+    return f'''open Lean LeanGo.Module
+run_cmd Lean.Elab.Command.liftCoreM do
+  withEnv (← mkEmptyEnvironment) do
+    addDecl <| .axiomDecl {{ name := `Forged, levelParams := [], type := .sort .zero, isUnsafe := false }}
+    addDecl <| .defnDecl {{ name := ``{name}, levelParams := [], type := .sort .zero, value := .const `Forged [], hints := .opaque, safety := .{safety} }}
+    validateNumericDefinition ``{name}
+'''
+
+
+def rewrite_sources(prelude, call, erased):
+    """Place the same valid replacement at each relevant compilation boundary."""
+    return [prelude + 'section\nattribute [local csimp] replacement_eq\n' + call + 'end\n',
+            prelude + 'namespace Scope\nattribute [scoped csimp] replacement_eq\nend Scope\nopen scoped Scope\n' + call,
+            prelude + call + 'attribute [csimp] replacement_eq\n',
+            prelude + erased + 'attribute [csimp] replacement_eq\n']
+
+
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1',
                      'set LEAN_GO_MODULES=1 for fresh Lean admission builds')
 class UInt64AdmissionTests(unittest.TestCase):

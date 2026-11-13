@@ -128,13 +128,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
         for name, operand, _ in CASTS:
             for safety, diagnostic in (('unsafe', 'Unsafe numeric boundary'),
                                        ('safe', 'Unexpected numeric boundary axioms')):
-                probe = f'''open Lean LeanGo.Module
-run_cmd Lean.Elab.Command.liftCoreM do
-  withEnv (← mkEmptyEnvironment) do
-    addDecl <| .axiomDecl {{ name := `Forged, levelParams := [], type := .sort .zero, isUnsafe := false }}
-    addDecl <| .defnDecl {{ name := ``{name}, levelParams := [], type := .sort .zero, value := .const `Forged [], hints := .opaque, safety := .{safety} }}
-    validateNumericDefinition ``{name}
-'''
+                probe = wide.definition_baseline_probe(name, safety)
                 with self.subTest(primitive=name, safety=safety):
                     self.assert_rejected(f'def run (a : {operand}) := {name} a\n', diagnostic, probe=probe)
 
@@ -144,10 +138,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
                        f'theorem replacement_eq : {name} = replacement := rfl\n')
             call = f'def run (a : {operand}) := {name} a\n'
             erased = f'def run (a : {operand}) :=\n  let _unused := {name} a\n  a\n'
-            cases = [prelude + 'section\nattribute [local csimp] replacement_eq\n' + call + 'end\n',
-                     prelude + 'namespace Scope\nattribute [scoped csimp] replacement_eq\nend Scope\nopen scoped Scope\n' + call,
-                     prelude + call + 'attribute [csimp] replacement_eq\n',
-                     prelude + erased + 'attribute [csimp] replacement_eq\n']
+            cases = wide.rewrite_sources(prelude, call, erased)
             for body in cases:
                 self.assert_rejected(body, 'rewrite|replacement|repeated compilation')
             # A replacement outside the compilation interval must not poison a clean root.

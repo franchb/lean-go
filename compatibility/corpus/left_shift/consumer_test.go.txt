@@ -1,0 +1,57 @@
+package compatconsumer
+
+import (
+	x "compatconsumer/extracted"
+	"math/big"
+	"math/rand"
+	"testing"
+)
+
+// Use exact arithmetic independently of the generator's shift expression.
+func shiftModel(word, count uint64, width uint64) uint64 {
+	factor := new(big.Int).Exp(big.NewInt(2), new(big.Int).SetUint64(count%width), nil)
+	modulus := new(big.Int).Exp(big.NewInt(2), new(big.Int).SetUint64(width), nil)
+	result := new(big.Int).Mul(new(big.Int).SetUint64(word), factor)
+	return result.Mod(result, modulus).Uint64()
+}
+
+func TestLeftShift(t *testing.T) {
+	limits := x.DefaultLimits()
+	for _, width := range []uint64{32, 64} {
+		maximum := ^uint64(0)
+		if width == 32 {
+			maximum = 4294967295
+		}
+		alternating := uint64(6148914691236517205) & maximum
+		values := []uint64{0, 1, maximum, maximum/2 + 1, alternating, maximum - alternating}
+		var pairs [][2]uint64
+		for _, word := range values {
+			for _, count := range []uint64{0, width - 1, width, width + 1, maximum} {
+				pairs = append(pairs, [2]uint64{word, count})
+			}
+		}
+		rng := rand.New(rand.NewSource(int64(3072 + width)))
+		for range 32 {
+			pairs = append(pairs, [2]uint64{rng.Uint64() & maximum, rng.Uint64() & maximum})
+		}
+		for _, pair := range pairs {
+			word, count := pair[0], pair[1]
+			want := shiftModel(word, count, width)
+			if width == 32 {
+				for _, run := range []func(uint32, uint32, x.Limits) (uint32, error){x.RunNotation32, x.RunDirect32} {
+					got, err := run(uint32(word), uint32(count), limits)
+					if err != nil || uint64(got) != want {
+						t.Fatal(width, word, count, got, want, err)
+					}
+				}
+			} else {
+				for _, run := range []func(uint64, uint64, x.Limits) (uint64, error){x.RunNotation64, x.RunDirect64} {
+					got, err := run(word, count, limits)
+					if err != nil || got != want {
+						t.Fatal(width, word, count, got, want, err)
+					}
+				}
+			}
+		}
+	}
+}

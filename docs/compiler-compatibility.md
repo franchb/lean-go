@@ -69,13 +69,14 @@ are never adapted by this runner.
 
 Producer compilation is a separate first gate. A failure there is
 `producer_build_failed`; every candidate corpus case remains `not_run`.
-Successful producer compilation enables five accepted cases and six rejection
+Successful producer compilation enables seven accepted cases and six rejection
 cases:
 
 | Case | Independent expectation |
 | --- | --- |
 | `numeric` | UInt32 and UInt64 wrap arithmetic and comparisons, including exact values above 2^53 |
 | `bitwise` | UInt32/UInt64 AND, OR, XOR, complement and masked logical right shift |
+| `left_shift` | UInt32/UInt64 ordinary `<<<` and direct controls, checked with exact exponent/multiply/modulo arithmetic |
 | `width_conversions` | Development UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |

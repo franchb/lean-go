@@ -83,6 +83,8 @@ def numericSourceSupport : Array Name := #[
   ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt32, ``instOrOpUInt64,
   ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt32, ``instXorOpUInt64,
   ``Complement.complement, ``instComplementUInt32, ``instComplementUInt64,
+  ``HShiftLeft.hShiftLeft, ``instHShiftLeftOfShiftLeft, ``ShiftLeft.shiftLeft,
+  ``instShiftLeftUInt32, ``instShiftLeftUInt64,
   ``HShiftRight.hShiftRight, ``instHShiftRightOfShiftRight, ``ShiftRight.shiftRight,
   ``instShiftRightUInt32, ``instShiftRightUInt64,
   ``BEq.beq, ``Std.PreorderPackage.toBEq,
@@ -169,7 +171,8 @@ def expectedNumericAxioms (n : Name) : Array Name :=
   else if #[``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt32, ``instOrOpUInt64,
       ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt32,
       ``instComplementUInt64].contains n then #[``propext, ``Quot.sound]
-  else if n == ``instShiftRightUInt32 || n == ``instShiftRightUInt64 then #[``propext]
+  else if #[``instShiftLeftUInt32, ``instShiftLeftUInt64,
+      ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]
   else (numericPrimitive? n).map (·.axioms) |>.getD #[]
 
 def sameNames (a b : Array Name) : Bool :=
