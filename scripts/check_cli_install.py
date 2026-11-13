@@ -16,6 +16,7 @@ import tomllib
 import zipfile
 
 from check_clamp_demo import verify_demo
+from check_flags_demo import verify_demo as verify_flags_demo
 from check_release_candidate import base_environment, copy_fixture, pinned_go, run_consumer
 from export_module import check_python
 
@@ -213,6 +214,9 @@ def smoke(workspace, without_lean):
                 demo = directory / 'standalone demo'
                 demo.mkdir()
                 verify_demo(cli, demo, env)
+                flags_demo = directory / 'standalone flags demo'
+                flags_demo.mkdir()
+                verify_flags_demo(cli, flags_demo, env)
             assert snapshot(payload) == expected, 'installed payload was changed'
         finally:
             for path, mode in permissions:

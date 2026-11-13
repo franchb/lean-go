@@ -121,7 +121,8 @@ the verifier command.
 The verifier copies this entire directory into a fresh external temporary
 project, generates new artifacts with the installed CLI, compares every generated
 file, IR and evidence byte, rechecks all three proofs, and runs the copied tests
-and executable with only Go's binary directory on `PATH`. Module download and
+and executable after deploying only Go sources and `go.mod` to a second directory,
+with only Go's binary directory on `PATH`. Module download and
 checksum lookup are disabled, cgo is disabled, and Go caches are isolated.
 
 Ordinary root `go test ./...` separately copies only `go.mod`, the consumer and

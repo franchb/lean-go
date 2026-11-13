@@ -43,6 +43,12 @@ example offline with Go alone, or read
 [From Lean source proofs to a Go package you can copy](docs/articles/lean-proofs-to-go.md)
 for the three claims, reproducible commands and extraction boundary.
 
+The unreleased [standalone flag-mask module](examples/proofs/flags) demonstrates
+four `UInt32` bitwise operations with eight universally quantified source proofs
+and independent Go tests. Its checked-in package runs with Go alone; regeneration
+requires the development CLI from a local checkout, as described in its guide.
+The published alpha.5 CLI does not include bitwise extraction.
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.

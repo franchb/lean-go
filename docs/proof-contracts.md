@@ -133,6 +133,12 @@ Go consumers use only generated code and the standard library with
 `CGO_ENABLED=0`. Lean and Python are needed to regenerate/check evidence, not to
 deploy the Go package.
 
+The unreleased [standalone flag-mask example](../examples/proofs/flags) selects four
+`UInt32` bitwise roots and checks eight universal laws against independent expected
+propositions. It includes full-width Go regression tests and a fresh installed-CLI
+verifier. Use its development-checkout installation instructions; alpha.5 does not
+support bitwise extraction.
+
 ## Evidence and assurance
 
 The fresh workspace uses fixed, dependency-free Lake scaffolding and the pinned
