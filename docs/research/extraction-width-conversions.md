@@ -12,8 +12,8 @@ Operand and result use separate scalar payload fields in the existing immutable
 raw and typed APIs. Each conversion allocates one result node. Existing resource
 limits and zero-result error behavior apply. Other widths, identity casts,
 lookalike names, division/remainder runtime primitives and generic collections
-remain unsupported. This change does not admit `<<<` notation wrappers; direct
-`UInt64.shiftLeft` is used by the packing test.
+remain unsupported. The development checkout also admits ordinary `<<<` notation
+for UInt32 and UInt64; the packing example uses this audited notation.
 
 ## Audited source boundary
 
@@ -58,7 +58,7 @@ Its generated package uses v11 IR/manifest, `pure-module/v9` and
 cover `toNat` preservation/modulo, both conversion round trips, the two packing
 projections and full unpack/repack. The exact source statements and axiom
 receipts are in its README and fresh proof evidence. `pack_bits` and remainder
-belong only to proofs; runtime packing uses the direct `UInt64.shiftLeft` leaf.
+belong only to proofs; runtime packing uses `<<<`, lowered to `UInt64.shiftLeft`.
 
 The standalone Go tests compare all five typed/raw operations with an arithmetic
 model and check the seven laws over 699 triples (169 boundary pairs, 18 wide

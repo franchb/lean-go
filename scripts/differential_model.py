@@ -250,10 +250,8 @@ def _render(expr, scalar):
     args = [_render(arg, scalar) for arg in expr.args]
     if expr.op == "complement":
         return f"(~~~{args[0]})"
-    if expr.op == "shl":
-        return f"({scalar}.shiftLeft {args[0]} {args[1]})"
     operator = {"add": "+", "sub": "-", "mul": "*",
-                "land": "&&&", "lor": "|||", "xor": "^^^", "shr": ">>>",
+                "land": "&&&", "lor": "|||", "xor": "^^^", "shl": "<<<", "shr": ">>>",
                 "eq": "==", "lt": "<", "le": "<="}.get(expr.op)
     if operator is not None:
         body = f"({args[0]} {operator} {args[1]})"

@@ -16,6 +16,16 @@
     ]
   },
   {
+    "name": "left_shift",
+    "module": "LeftShift",
+    "roots": [
+      "LeftShift.notation32",
+      "LeftShift.direct32",
+      "LeftShift.notation64",
+      "LeftShift.direct64"
+    ]
+  },
+  {
     "name": "width_conversions",
     "module": "Widths",
     "roots": [

@@ -118,11 +118,11 @@ class GeneratedProgramTests(unittest.TestCase):
             self.assertIn(fragment, source)
         self.assertNotIn("Float", source)
 
-    def test_shift_rendering_uses_the_audited_direct_primitive(self):
+    def test_shift_rendering_uses_ordinary_notation(self):
         for width in (32, 64):
             source = render_lean(program(Expr("shl", (A, B)), width))
-            self.assertIn(f"(UInt{width}.shiftLeft a b)", source)
-            self.assertNotIn("<<<", source)
+            self.assertIn("(a <<< b)", source)
+            self.assertNotIn(f"UInt{width}.shiftLeft", source)
 
 
 class SerializationTests(unittest.TestCase):

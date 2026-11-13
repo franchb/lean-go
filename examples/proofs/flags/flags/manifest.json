@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v9",
   "generator_source_sha256": "72de2e6276da6e7a152a6b824ebf186e3c9d68fae9afe870af1e8d135af781ba",
   "validator_source_sha256": "4587c2645709f8e99a98e30a5ecb7480a21ade3b23b7f909c5a3c20556165975",
-  "ir_sha256": "8dcba128d70e6f36e543441b1a30b2bb2b1d7a6a94b9e47b78ba6ca08306014c",
+  "ir_sha256": "a26554ccf7abc07b839066fec2ee82b654e753be3a5e6c602aa7443597d64bc2",
   "program": {
     "schema": "lean-go-ir/v9",
     "profile": "pure-module/v7",
@@ -24,7 +24,7 @@
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "5f258daf638ea0f63a8ad5729c9c4873b119400a55e3c2aa928fd0ee6ba6db52",
-      "producer/LeanGo/Module/Primitives.lean": "e42c85f424552426fad5317a25ab720ad7512b9592d5e60aa29a2fa59d4ce252",
+      "producer/LeanGo/Module/Primitives.lean": "d26e448d534543ca01a5d1f97078a0588dce0d8b4c51f37abacf512da50c3fdd",
       "producer/LeanGo/Module/Records.lean": "3fdd5962ceceb38e7872d6601b1b860376175df2d2d0921b9fcecb96936e3311",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",

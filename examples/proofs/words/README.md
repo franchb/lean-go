@@ -43,8 +43,8 @@ narrow(0x80000001ffffffff) = 0xffffffff
 
 Packing places `high` in bits 32–63 and `low` in bits 0–31; all input values are
 allowed. This is a numeric word operation, without a byte-order or serialization
-contract. The runtime source calls `UInt64.shiftLeft` directly: this example does
-not add support for `<<<` notation wrappers. Remainder appears only in the
+contract. The runtime source uses ordinary `<<<` notation, which lowers to the
+audited `UInt64.shiftLeft` primitive. Remainder appears only in the
 proofs' specification and the independent Go tests; no runtime division or
 remainder primitive is extracted. Other widths and generic collections remain
 deferred.

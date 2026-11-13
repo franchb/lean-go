@@ -109,8 +109,9 @@ Full AST serialization remains replayable, including unary operations.
 
 The compatibility corpus includes an accepted `bitwise` case with both widths,
 all ten leaves and an independently authored arithmetic Go consumer, executed
-with producer tools absent from its runtime PATH. The complete corpus has 11
-cases: five accepted and six expected rejections. The `custom_csimp` case checks
+with producer tools absent from its runtime PATH. The current development corpus
+also includes width conversions and ordinary left-shift notation, for 13 cases:
+seven accepted and six expected rejections. The `custom_csimp` case checks
 that a valid custom compiler rewrite yields `admission` / `source_audit` with
 the source owner and location; genuine Lean build and invalid primitive failures
 retain the `build` stage.
