@@ -24,6 +24,11 @@ extracts fresh Go and exercises an isolated consumer.
 Install the [`lean-go` CLI](docs/cli.md) to generate and check proofs from any
 working directory without keeping a checkout beside your project.
 
+Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
+example offline with Go alone, or read
+[From Lean source proofs to a Go package you can copy](docs/articles/lean-proofs-to-go.md)
+for the three claims, reproducible commands and extraction boundary.
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.

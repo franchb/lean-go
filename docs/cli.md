@@ -69,7 +69,9 @@ audited normalizer profile and defaults to `./generated/normalizer` and
 
 Use a [proof contract](proof-contracts.md) selecting the same module and roots
 as the generated manifest. The reusable
-[clamp example](../examples/proofs/clamp) includes source, proofs and a contract.
+[standalone clamp example](../examples/proofs/clamp) includes source, proofs,
+a contract, generated artifacts and a copyable Go module. The
+[article](articles/lean-proofs-to-go.md) walks through the complete handoff.
 
 ```sh
 lean-go check-proofs \
@@ -106,7 +108,9 @@ uv run --locked python scripts/check_cli_install.py
 The install smoke test audits a direct wheel and an sdist-rebuilt wheel, installs
 each in a fresh environment, verifies the actual installed imports, and runs
 external generation, proof checking and a Go-only consumer. It also checks
-read-only installed resources and paths containing spaces. `--without-lean`
+read-only installed resources and paths containing spaces. The direct installed
+wheel also regenerates and rechecks the complete standalone clamp demo, compares
+its tracked artifacts, and tests and runs a copied module with Go alone. `--without-lean`
 explicitly restricts this smoke test to packaging, help/version and missing-tool
 errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.

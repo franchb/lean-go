@@ -1,0 +1,56 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClampContract.bounded",
+      "name": "ClampProofs.bounded",
+      "statement": "∀ (value limit : UInt64), Clamp.clamp value limit ≤ limit"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClampContract.idempotent",
+      "name": "ClampProofs.idempotent",
+      "statement": "∀ (value limit : UInt64), Clamp.clamp (Clamp.clamp value limit) limit = Clamp.clamp value limit"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ClampContract.preserves",
+      "name": "ClampProofs.preserves",
+      "statement": "∀ (value limit : UInt64), value ≤ limit → Clamp.clamp value limit = value"
+    }
+  ],
+  "contract_sha256": "fcfe62273f3dc4e23cd5c5f87ebb0a6e8b5e464f6d148cb540bca02eb0c1990d",
+  "generated_manifest_sha256": "3a76022ba8dafb7a0e631028e03201500c08b4274f0b9511027329a32ecef35b",
+  "lean_commit": "eb6cafb7290e8bd5f2937522d8d804f58f02bafc",
+  "lean_version": "4.35.0",
+  "module": "Clamp",
+  "project_inputs": {
+    "proof/ClampContract.lean": "8cded06b63d5501dcb63a239f878de388a52861ca77ac8caf6c2f3a825c26d7c",
+    "proof/ClampProofs.lean": "9f371e869cb21fe693a600acd1975411aa7e32ce00a1a7df43bb560faf9e22d5",
+    "source/Clamp.lean": "86e818cb6fef89f81c399ac1375bde9984f884523a268ed72b8a963dadfcb90f",
+    "source/Clamp/Bounds.lean": "4b77e0660bb47c5806631b36b19e9c0d73b944dbb56a9bb3e246a6699a0c97c7"
+  },
+  "roots": [
+    "Clamp.clamp"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "ca5f1f601d34c49079e38d7e7041eb0f2a9c227fbc1df0f404820069a052330c",
+    "scripts/check_proofs.py": "b295bbdb28e2bd87928cfc56202fd80685dd5d0e02b47cc16f39bf94680a39cd",
+    "scripts/export.py": "72d139c98a55756c1d1d352c76e687c7b8f983c5b69c9258efe70c43bce0b062",
+    "scripts/export_module.py": "e6dcb08a1cf8d06ec263105c8d8584498ecb443b5b07290e10fdcb325db672c1",
+    "scripts/proof_contract.py": "26579bc65a9b26ca87cbc3c947f1a67ae1573476960197fe63381139cc309244"
+  }
+}

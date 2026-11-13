@@ -15,6 +15,7 @@ import tempfile
 import tomllib
 import zipfile
 
+from check_clamp_demo import verify_demo
 from check_release_candidate import base_environment, copy_fixture, pinned_go, run_consumer
 from export_module import check_python
 
@@ -204,6 +205,10 @@ def smoke(workspace, without_lean):
             missing = run([cli, 'doctor'], directory, dict(env, PATH=''), succeeds=False)
             assert 'missing from PATH' in missing
             count = None if without_lean else producer_workflow(cli, directory, env, multiple_roots=index == 0)
+            if not without_lean and index == 0:
+                demo = directory / 'standalone demo'
+                demo.mkdir()
+                verify_demo(cli, demo, env)
             assert snapshot(payload) == expected, 'installed payload was changed'
         finally:
             for path, mode in permissions:

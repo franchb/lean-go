@@ -68,7 +68,9 @@ jobs:
           unzip -q "$archive" -d "$RUNNER_TEMP"
           printf '%s\n' "$RUNNER_TEMP/lean-4.35.0-windows/bin" >> "$GITHUB_PATH"
       - name: Check CLI boundary and payload parity
-        run: uv run --locked python scripts/test_cli.py
-      - name: Build, audit and exercise isolated installed wheels
+        run: |
+          uv run --locked python scripts/test_cli.py
+          uv run --locked python scripts/test_clamp_demo.py
+      - name: Build, audit and exercise installed wheels and standalone demo
         run: uv run --locked python scripts/check_cli_install.py
 
