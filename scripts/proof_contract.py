@@ -137,7 +137,7 @@ def verify_manifest(path, contract, project):
     selection, forbidden = ('roots', 'root') if multi else ('root', 'roots')
     expected = dict(schema='lean-go-ir/' + version, profile='pure-module/' + profile,
                     stage='pure-mono', module=contract.module,
-                    lean_version='4.35.0', lean_commit=COMMIT)
+                    lean_version='4.36.0-rc2', lean_commit=COMMIT)
     expected[selection] = list(contract.roots) if multi else contract.roots[0]
     if (not isinstance(program, dict) or forbidden in program or
             any(program.get(key) != value for key, value in expected.items())):

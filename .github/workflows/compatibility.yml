@@ -1,0 +1,107 @@
+name: Compiler compatibility research
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: Existing release to install explicitly for this research run
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - 4.36.0-rc2
+
+permissions:
+  contents: read
+
+env:
+  CGO_ENABLED: '0'
+  GOTOOLCHAIN: local
+  GOWORK: 'off'
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.5'
+          python-version: '3.15.1'
+          enable-cache: false
+      - name: Install explicit baseline and candidate releases
+        env:
+          CANDIDATE: ${{ inputs.candidate }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline=$(sed -n 's|^leanprover/lean4:v||p' producer/lean-toolchain)
+          candidate="$CANDIDATE"
+          if [ "$candidate" = production ]; then candidate="$baseline"; fi
+          install_release() {
+            local version="$1" destination="$2" checksum
+            case "$version" in
+              4.35.0) checksum=7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d ;;
+              4.36.0-rc2) checksum=0a0a3208617e9eab92f1041efa83ad94d405e69d172fb654a62dbfa9fbc5313b ;;
+              *) echo "No reviewed archive checksum for $version" >&2; exit 2 ;;
+            esac
+            local archive="$RUNNER_TEMP/lean-$version.tar.zst"
+            curl --fail --location --retry 3 \
+              "https://github.com/leanprover/lean4/releases/download/v$version/lean-$version-linux.tar.zst" \
+              --output "$archive"
+            printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --strict
+            mkdir "$destination"
+            tar --zstd -xf "$archive" -C "$destination" --strip-components=1
+          }
+          install_release "$baseline" "$RUNNER_TEMP/baseline-lean"
+          candidate_bin="$RUNNER_TEMP/baseline-lean/bin"
+          if [ "$candidate" != "$baseline" ]; then
+            install_release "$candidate" "$RUNNER_TEMP/candidate-lean"
+            candidate_bin="$RUNNER_TEMP/candidate-lean/bin"
+          fi
+          printf 'BASELINE_BIN=%s\nCANDIDATE_BIN=%s\n' \
+            "$RUNNER_TEMP/baseline-lean/bin" "$candidate_bin" >> "$GITHUB_ENV"
+      - name: Harness unit tests
+        run: uv run --locked python scripts/test_compatibility.py
+      - name: Compare independent corpus
+        # Differences intentionally fail this research job; inspect the artifact.
+        run: >-
+          uv run --locked python scripts/check_compatibility.py
+          --baseline-bin "$BASELINE_BIN"
+          --candidate-bin "$CANDIDATE_BIN"
+          --artifacts "$RUNNER_TEMP/compiler-compatibility"
+      - name: Preserve compatibility report and replay evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compiler-compatibility
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/compiler-compatibility/report.json
+            ${{ runner.temp }}/compiler-compatibility/inputs.json
+            ${{ runner.temp }}/compiler-compatibility/commands.jsonl
+            ${{ runner.temp }}/compiler-compatibility/replay.py
+            ${{ runner.temp }}/compiler-compatibility/source/**
+            ${{ runner.temp }}/compiler-compatibility/differences/**
+            ${{ runner.temp }}/compiler-compatibility/*/identity.json
+            ${{ runner.temp }}/compiler-compatibility/*/adaptations.json
+            ${{ runner.temp }}/compiler-compatibility/*/adaptation.patch
+            ${{ runner.temp }}/compiler-compatibility/*/result.json
+            ${{ runner.temp }}/compiler-compatibility/*/commands.jsonl
+            ${{ runner.temp }}/compiler-compatibility/*/NumericBoundaryName.lean
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/commands.jsonl
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/result.json
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/program*.json
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/source/**
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/consumer/go.mod
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/consumer/*.go
+            ${{ runner.temp }}/compiler-compatibility/*/cases/**/consumer/extracted/**

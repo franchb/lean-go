@@ -19,7 +19,8 @@ from proof_contract import (digest, load_contract, read_regular,
 TOOL_ROOT = Path(__file__).resolve().parents[1]
 CHECKER = 'producer/LeanGo/Proofs/Check.lean'
 TOOL_INPUTS = ('scripts/check_proofs.py', 'scripts/proof_contract.py', 'scripts/export.py',
-               'scripts/export_module.py', 'producer/lean-toolchain', CHECKER)
+               'scripts/export_module.py', 'scripts/diagnostics.py', 'scripts/source_locations.py',
+               'scripts/module_diagnostics.py', 'producer/lean-toolchain', CHECKER)
 AXIOMS = frozenset({'propext', 'Classical.choice', 'Quot.sound'})
 
 
@@ -127,7 +128,7 @@ def evidence(contract_path, manifest_path, tool_root=TOOL_ROOT):
         raise ExportError('proof inputs or generated package changed during checking')
     result = {
         'schema': 'lean-go-proof-evidence/v1',
-        'lean_version': '4.35.0', 'lean_commit': COMMIT,
+        'lean_version': '4.36.0-rc2', 'lean_commit': COMMIT,
         'module': contract.module, 'roots': list(contract.roots),
         'contract_sha256': digest(contract.raw),
         'project_inputs': {name: digest(data) for name, data in project.inputs.items()},

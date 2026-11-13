@@ -87,7 +87,7 @@ class ProcessTests(unittest.TestCase):
         with mock.patch.object(backend.shutil, "which", side_effect=["/tools/go", None]), self.assertRaisesRegex(backend.BackendError, "unavailable"):
             self.runner._preflight()
         self.assertEqual(self.runner._tools, {})
-        lean = f"Lean (version 4.35.0, x86_64, commit {COMMIT}, Release)"
+        lean = f"Lean (version 4.36.0-rc2, x86_64, commit {COMMIT}, Release)"
         with mock.patch.object(backend.shutil, "which", side_effect=lambda name: "/tools/" + name), \
              mock.patch.object(self.runner, "_run", side_effect=[lean, "go version go1.26.0 linux/amd64"]), \
              self.assertRaisesRegex(backend.BackendError, "expected Go"):

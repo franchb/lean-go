@@ -34,6 +34,7 @@ structure Provenance where
   dependencies : Array Name
   rewrites : Array Rewrite
   issues : Array String
+  issueOrigin : Option Name := none
   compiled : Bool := false
   sourceModule : Name
   safeDefinition : Bool
@@ -151,6 +152,7 @@ def capture (n : Name) : CoreM Provenance := do
   let mut seen : NameSet := {}
   let mut rewrites := #[]
   let mut issues := if variantIssue then #[s!"unverified recursive implementation: {rawName}"] else #[]
+  let mut issueOrigin := if variantIssue then some rawName else none
   let passes := customPasses env
   unless passes.isEmpty do issues := issues.push s!"custom compiler passes: {passes}"
   let mut fuel := 20000
@@ -163,6 +165,7 @@ def capture (n : Name) : CoreM Provenance := do
     pending := pending.pop
     unless seen.contains current do
       seen := seen.insert current
+      let issueCount := issues.size
       if let some e := (CSimp.ext.getState env).map.find? current then
         let rewrite := { source := current, target := e.toDeclName, theoremName := e.thmName : Rewrite }
         unless rewrites.contains rewrite do rewrites := rewrites.push rewrite
@@ -193,6 +196,7 @@ def capture (n : Name) : CoreM Provenance := do
             -- graph here for context-sensitive replacements as well, including
             -- dependencies whose imported bodies are intentionally unavailable.
             for dep in ← recordedClosure prior record do
+              let dependencyIssueCount := issues.size
               if let some e := (CSimp.ext.getState env).map.find? dep then
                 let rewrite := { source := dep, target := e.toDeclName, theoremName := e.thmName : Rewrite }
                 unless rewrites.contains rewrite do rewrites := rewrites.push rewrite
@@ -205,6 +209,8 @@ def capture (n : Name) : CoreM Provenance := do
                 issues := issues.push s!"implemented_by source dependency: {dep}"
               if hasInitAttr env dep then
                 issues := issues.push s!"initialized source dependency: {dep}"
+              if issueOrigin.isNone && issues.size > dependencyIssueCount then
+                issueOrigin := some dep
           else issues := issues.push s!"axiom source dependency: {current}"
         | some (.thmInfo _) =>
           let axioms ← collectAxioms current
@@ -214,8 +220,9 @@ def capture (n : Name) : CoreM Provenance := do
           if let some r := prior.find? current then
             pending := pending ++ r.dependencies
           else issues := issues.push s!"missing source dependency: {current}"
+      if issueOrigin.isNone && issues.size > issueCount then issueOrigin := some current
   let safeDefinition := info matches .defnInfo { safety := .safe, .. }
-  return { name := n, dependencies, rewrites, issues, sourceModule := env.mainModule, safeDefinition }
+  return { name := n, dependencies, rewrites, issues, issueOrigin, sourceModule := env.mainModule, safeDefinition }
 
 initialize
   let original ← compileDeclsRef.get

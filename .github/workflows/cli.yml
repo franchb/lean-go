@@ -1,0 +1,99 @@
+name: Installed CLI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CGO_ENABLED: '0'
+  GOTOOLCHAIN: local
+  GOWORK: 'off'
+  PYTHONDONTWRITEBYTECODE: '1'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cli-package:
+    name: Installed CLI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: '0.13.5'
+          python-version: '3.15.1'
+          enable-cache: false
+      - name: Install pinned Lean release (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          archive="$RUNNER_TEMP/lean-4.36.0-rc2-linux.tar.zst"
+          curl --fail --location --retry 3 \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-linux.tar.zst \
+            --output "$archive"
+          printf '%s  %s\n' \
+            0a0a3208617e9eab92f1041efa83ad94d405e69d172fb654a62dbfa9fbc5313b \
+            "$archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/lean"
+          tar --zstd -xf "$archive" -C "$RUNNER_TEMP/lean" --strip-components=1
+          printf '%s\n' "$RUNNER_TEMP/lean/bin" >> "$GITHUB_PATH"
+      - name: Install pinned Lean release (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          archive="$RUNNER_TEMP/lean-4.36.0-rc2-windows.zip"
+          curl --fail --location --retry 3 \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-windows.zip \
+            --output "$archive"
+          printf '%s  %s\n' \
+            ad1ed478bbde27cb178c46d8dfd4721d0d5424729280991a8d54537589e1949e \
+            "$archive" | sha256sum --check --strict
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          printf '%s\n' "$RUNNER_TEMP/lean-4.36.0-rc2-windows/bin" >> "$GITHUB_PATH"
+      - name: Check CLI boundary and payload parity
+        run: |
+          uv run --locked python scripts/test_cli.py
+          uv run --locked python scripts/test_clamp_demo.py
+      - name: Build, audit and exercise installed wheels and standalone demo
+        run: uv run --locked python scripts/check_cli_install.py
+      - name: Install and exercise the exact public CLI tag
+        if: github.ref_type == 'tag'
+        env:
+          LEAN_GO_RELEASE_VERSION: ${{ github.ref_name }}
+        run: |
+          export UV_TOOL_DIR="$RUNNER_TEMP/public-cli-tools"
+          export UV_TOOL_BIN_DIR="$RUNNER_TEMP/public-cli-bin"
+          uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@$LEAN_GO_RELEASE_VERSION"
+          uv run --locked python - <<'PYTHON'
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tomllib
+
+          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+          release, alpha = version.split('a')
+          assert os.environ['LEAN_GO_RELEASE_VERSION'] == f'v{release}-alpha.{alpha}'
+          cli = Path(os.environ['UV_TOOL_BIN_DIR']) / ('lean-go.exe' if os.name == 'nt' else 'lean-go')
+          actual = subprocess.check_output([str(cli), '--version'], text=True).strip()
+          assert actual == f'lean-go {version}', actual
+          subprocess.run([str(cli), 'doctor'], check=True)
+          subprocess.run([sys.executable, 'scripts/check_clamp_demo.py', '--cli', str(cli)], check=True)
+          PYTHON

@@ -79,7 +79,7 @@ class ContractFixture(unittest.TestCase):
         multiple = len(contract.roots) > 1
         program = dict(schema='lean-go-ir/v7' if multiple else 'lean-go-ir/v6',
                        profile='pure-module/v5' if multiple else 'pure-module/v4',
-                       stage='pure-mono', module=contract.module, lean_version='4.35.0', lean_commit=COMMIT,
+                       stage='pure-mono', module=contract.module, lean_version='4.36.0-rc2', lean_commit=COMMIT,
                        inputs={'source/' + relative: sha(data) for relative, data in project.runtime.values()})
         program['roots' if multiple else 'root'] = list(contract.roots) if multiple else contract.roots[0]
         self.manifest = dict(schema='lean-go-manifest/v7' if multiple else 'lean-go-manifest/v6', program=program,
@@ -329,6 +329,8 @@ class EvidenceProtocolTests(ContractFixture):
         self.assertEqual(evidence['schema'], 'lean-go-proof-evidence/v1')
         self.assertEqual(evidence['contract_sha256'], sha(self.contract_path.read_bytes()))
         self.assertEqual(evidence['project_inputs'], {name: sha(data) for name, data in project.inputs.items()})
+        self.assertTrue({'scripts/diagnostics.py', 'scripts/source_locations.py',
+                         'scripts/module_diagnostics.py'} <= evidence['tool_inputs'].keys())
         self.assertEqual(evidence['tool_inputs'], {name: sha(data) for name, data in proofs.tool_snapshot().items()})
         self.assertEqual(evidence['generated_manifest_sha256'], sha(self.manifest_path.read_bytes()))
         self.assertNotIn(str(self.root).encode(), raw)
@@ -424,7 +426,7 @@ class EvidenceProtocolTests(ContractFixture):
             self.assertEqual(env['ELAN_TOOLCHAIN'], TOOLCHAIN.decode().strip())
             (workspace / 'lake-manifest.json').write_text('{"packages":[]}')
             if command[-1] == '--version':
-                return f'Lean (version 4.35.0, test, commit {COMMIT}, Release)'
+                return f'Lean (version 4.36.0-rc2, test, commit {COMMIT}, Release)'
             if command[-1].endswith('.lean'):
                 (workspace / 'claims.json').write_text(json.dumps(self.sample_claims()))
             return ''
@@ -442,7 +444,7 @@ class EvidenceProtocolTests(ContractFixture):
             def fake_run(command, workspace, _env):
                 if command[-1] == '--version':
                     (workspace / 'lake-manifest.json').write_text('{"packages":[]}')
-                    return f'Lean (version 4.35.0, test, commit {COMMIT}, Release)'
+                    return f'Lean (version 4.36.0-rc2, test, commit {COMMIT}, Release)'
                 if 'build' in command:
                     data = '{"packages":[{"name":"unexpected"}]}' if target == 'lake-manifest.json' else 'changed input'
                     (workspace / target).write_text(data)

@@ -91,7 +91,7 @@ copies the theorem type to manufacture an expectation.
 
 ## Generate and check an external project
 
-Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.35.0
+Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0-rc2
 and Python 3.15 through `uv`. Replace `/path/to/my-library` with your project:
 
 ```sh
@@ -119,8 +119,10 @@ generated package. Use fresh candidate paths when changing extracted source.
 
 Tooling is loaded from the lean-go checkout; your project does not need copies
 of checker scripts or Lean checking infrastructure. The
-[clamp example](../examples/proofs/clamp/proof-contract.json) is a complete
-single-root project with an imported local runtime module. Quota demonstrates
+[standalone clamp example](../examples/proofs/clamp) is a complete
+single-root project with an imported local runtime module, generated package and
+independent Go tests. The [article](articles/lean-proofs-to-go.md) explains its
+three source claims and the tested extraction boundary. Quota demonstrates
 multiple roots and keeps its existing command:
 
 ```sh

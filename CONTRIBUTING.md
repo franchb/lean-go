@@ -3,8 +3,10 @@
 The preview focuses on a small, explicit subset of ordinary Lean and generated
 Go packages that work with `CGO_ENABLED=0`. Reproducible unsupported examples,
 compiler-version investigations and focused tests are useful contributions.
+The [compatibility harness](docs/compiler-compatibility.md) qualifies later Lean
+releases before any production pin change.
 
-Use Go 1.27.4, Lean 4.35.0 and Python 3.15 through uv. Start with the
+Use Go 1.27.4, Lean 4.36.0-rc2 and Python 3.15 through uv. Start with the
 [walkthrough](docs/getting-started.md) and the [README](README.md). Run:
 
 ```sh

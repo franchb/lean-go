@@ -18,7 +18,7 @@ structure LocalObservation where
   issues : Array (Name × String) := #[]
 
 private def addIssue (ref : IO.Ref LocalObservation) (owner : Name) (ex : Exception) : CoreM Unit := do
-  let message ← ex.toMessageData.toString
+  let message ← rejectionMessage ex
   ref.modify fun s => { s with issues := s.issues.push (owner, message) }
 
 private def observeInit (ref : IO.Ref LocalObservation) (decls : Array (Decl .pure)) : CompilerM Unit := do

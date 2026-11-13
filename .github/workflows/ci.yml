@@ -74,12 +74,12 @@ jobs:
           enable-cache: false
       - name: Install pinned Lean release
         run: |
-          archive="$RUNNER_TEMP/lean-4.35.0-linux.tar.zst"
+          archive="$RUNNER_TEMP/lean-4.36.0-rc2-linux.tar.zst"
           curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-linux.tar.zst \
             --output "$archive"
           printf '%s  %s\n' \
-            7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d \
+            0a0a3208617e9eab92f1041efa83ad94d405e69d172fb654a62dbfa9fbc5313b \
             "$archive" | sha256sum --check --strict
           mkdir -p "$RUNNER_TEMP/lean"
           tar --zstd -xf "$archive" -C "$RUNNER_TEMP/lean" --strip-components=1
@@ -103,6 +103,27 @@ jobs:
           assert sys.version_info[:3] == (3, 15, 1)
           check_version(subprocess.check_output(['lean', '--version'], text=True))
           PY
+      - name: Qualify the production compiler against the compatibility corpus
+        run: |
+          uv run --locked python scripts/check_compatibility.py \
+            --baseline-bin "$RUNNER_TEMP/lean/bin" \
+            --candidate-bin "$RUNNER_TEMP/lean/bin" \
+            --artifacts "$RUNNER_TEMP/lean-go-compatibility"
+      - name: Preserve compiler compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compiler-compatibility-evidence
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/lean-go-compatibility/report.json
+            ${{ runner.temp }}/lean-go-compatibility/**/commands.jsonl
+            ${{ runner.temp }}/lean-go-compatibility/inputs.json
+            ${{ runner.temp }}/lean-go-compatibility/**/result.json
+            ${{ runner.temp }}/lean-go-compatibility/**/identity.json
+            ${{ runner.temp }}/lean-go-compatibility/**/adaptations.json
+            ${{ runner.temp }}/lean-go-compatibility/differences/**
       - name: Check quota source proofs and generated binding
         run: uv run --locked python scripts/check_quota.py
       - name: Verify release-candidate proof-to-Go walkthrough

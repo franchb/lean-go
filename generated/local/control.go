@@ -6,6 +6,21 @@ type frame struct {
 	slots                     []*node
 }
 
+// frameForCall reuses only the retired frame at the next depth. Clear its old
+// slot length before shrinking so the unused tail does not retain earlier nodes.
+func frameForCall(stack []frame, function, destination, count int) frame {
+	var slots []*node
+	if len(stack) < cap(stack) {
+		slots = stack[:len(stack)+1][len(stack)].slots
+	}
+	if cap(slots) < count {
+		slots = make([]*node, count)
+	} else {
+		clear(slots)
+		slots = slots[:count]
+	}
+	return frame{function: function, destination: destination, slots: slots}
+}
 func execute(b *budget, args []*node) (*node, error) {
 	if err := b.enter(9, 0); err != nil {
 		return nil, err
@@ -70,7 +85,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(15, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 2, destination: 5, slots: make([]*node, 15)}
+				next := frameForCall(stack, 2, 5, 15)
 				next.slots[0] = f.slots[0]
 				next.slots[1] = f.slots[2]
 				f.pc = 3
@@ -79,7 +94,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(15, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 2, destination: 6, slots: make([]*node, 15)}
+				next := frameForCall(stack, 2, 6, 15)
 				next.slots[0] = f.slots[0]
 				next.slots[1] = f.slots[4]
 				f.pc = 4
@@ -88,7 +103,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 7, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 7, 3)
 				next.slots[0] = f.slots[5]
 				next.slots[1] = f.slots[6]
 				f.pc = 5
@@ -119,7 +134,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 3, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 3, 3)
 				next.slots[0] = f.slots[1]
 				next.slots[1] = f.slots[2]
 				f.pc = 2
@@ -128,7 +143,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 4, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 4, 3)
 				next.slots[0] = f.slots[3]
 				next.slots[1] = f.slots[2]
 				f.pc = 3
@@ -137,7 +152,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 5, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 5, 3)
 				next.slots[0] = f.slots[4]
 				next.slots[1] = f.slots[2]
 				f.pc = 4
@@ -146,7 +161,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 6, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 6, 3)
 				next.slots[0] = f.slots[5]
 				next.slots[1] = f.slots[2]
 				f.pc = 5
@@ -155,7 +170,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 7, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 7, 3)
 				next.slots[0] = f.slots[6]
 				next.slots[1] = f.slots[2]
 				f.pc = 6
@@ -164,7 +179,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 8, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 8, 3)
 				next.slots[0] = f.slots[7]
 				next.slots[1] = f.slots[2]
 				f.pc = 7
@@ -173,7 +188,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 9, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 9, 3)
 				next.slots[0] = f.slots[8]
 				next.slots[1] = f.slots[2]
 				f.pc = 8
@@ -182,7 +197,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 10, slots: make([]*node, 3)}
+				next := frameForCall(stack, 0, 10, 3)
 				next.slots[0] = f.slots[9]
 				next.slots[1] = f.slots[2]
 				f.pc = 9

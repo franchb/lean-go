@@ -1,0 +1,47 @@
+package compatconsumer
+
+import (
+	x "compatconsumer/extracted"
+	"testing"
+)
+
+func TestHelpers(t *testing.T) {
+	l := x.DefaultLimits()
+	scalar := func(n uint32) x.Value {
+		v, e := x.Import(&x.Input{Type: "UInt32", UInt32: n}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		return v
+	}
+	for _, tc := range []struct {
+		flag                     string
+		unused, a, b, bias, want uint32
+	}{
+		{"Bool.true", 0, 2, 9, 3, 14}, {"Bool.false", 4294967295, 2, 9, 3, 21},
+		{"Bool.true", 7, 4294967295, 0, 1, 3},
+	} {
+		flag, e := x.Import(&x.Input{Type: "Bool", Constructor: tc.flag}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		out, e := x.RunRoot("Helpers.reduced", []x.Value{flag, scalar(tc.unused), scalar(tc.a), scalar(tc.b), scalar(tc.bias)}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		n, ok := out.UInt32()
+		if !ok || n != tc.want {
+			t.Fatal(tc, n)
+		}
+	}
+	for _, tc := range []struct{ bias, a, b, want uint32 }{{0, 2, 9, 11}, {3, 2, 9, 59}, {1, 4294967295, 0, 15}} {
+		out, e := x.RunRoot("Helpers.captured", []x.Value{scalar(tc.bias), scalar(tc.a), scalar(tc.b)}, l)
+		if e != nil {
+			t.Fatal(e)
+		}
+		n, ok := out.UInt32()
+		if !ok || n != tc.want {
+			t.Fatal(tc, n)
+		}
+	}
+}

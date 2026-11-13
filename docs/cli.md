@@ -1,0 +1,158 @@
+# Install the lean-go CLI
+
+`lean-go-tools` installs the `lean-go` command for generation and source-proof
+checks. Install the alpha.5 preview from its pinned Git tag; no PyPI release is
+required.
+
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then use
+Python 3.15. The alpha.5 producer requires Go **1.27.4** and Lean/Lake
+**4.36.0-rc2** on `PATH`. Lean must report commit
+`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`; a matching version string alone is
+insufficient. Use the upstream [Go downloads](https://go.dev/dl/) and
+[Lean 4.36.0-rc2 release](https://github.com/leanprover/lean4/releases/tag/v4.36.0-rc2).
+With Elan, install the pin with `elan toolchain install leanprover/lean4:v4.36.0-rc2`.
+The CLI selects that pin even if the calling project selects another version.
+
+```sh
+uv python install 3.15
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
+lean-go --version
+lean-go doctor
+```
+
+This installs Python package version `0.1.0a5` from release tag
+`v0.1.0-alpha.5`. To upgrade an existing alpha.4 installation:
+
+```sh
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
+lean-go --version
+lean-go doctor
+```
+
+Alpha.4 remains paired with Lean 4.35.0; use its
+[tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/cli.md)
+when reproducing that release. After upgrading, regenerate artifacts and source-proof
+evidence together; the compiler and producer identities have changed.
+
+`uv tool update-shell` adds uv's tool executable directory to your shell setup
+if `lean-go` is not found. These commands also work in PowerShell; command
+examples below use POSIX line continuation, so put each command on one line in
+PowerShell. Help and version do not require Go, Lean or Lake. `doctor` checks
+Python, Go, Lean's exact commit and the Lean executable selected by `lake env`;
+it returns nonzero if any check fails.
+
+## Development checkout
+
+A checkout at `v0.1.0-alpha.5` uses the same package and toolchain versions
+listed above. There is no need to change Elan's global default. To install the
+current local checkout, including any uncommitted changes:
+
+```sh
+uv python install 3.15
+uv tool install --force --python 3.15 .
+lean-go --version
+lean-go doctor
+```
+
+This replaces the installed `lean-go` command with this checkout's version.
+For checkout-local use, run `uv sync --locked --reinstall-package lean-go-tools`
+and `uv run --locked lean-go doctor` instead. Pair generated artifacts with the
+same checkout and toolchain when reproducing their hashes. Later compiler
+versions need explicit [compatibility qualification](compiler-compatibility.md);
+the installed producer keeps its exact version and commit checks.
+
+## Generate from your project
+
+Run from any working directory; every relative path belongs to that directory.
+Paths containing spaces are supported. The source directory must contain
+ordinary `.lean` sources and cannot contain symlinks. Existing source admission,
+import restrictions and resource limits are unchanged; see
+[the supported subset](getting-started.md).
+
+```sh
+lean-go generate \
+  --source-dir ./project/source --module Clamp --root Clamp.clamp \
+  --out ./generated/clamp --ir-output ./clamp.ir.json
+```
+
+The module, source directory and roots must be supplied together. Module
+extraction requires explicit package and IR output paths. Repeat `--root` to
+expose multiple functions in one package with shared generated types:
+
+```sh
+lean-go generate \
+  --source-dir ./project/source --module Clamp \
+  --root Clamp.clamp --root Clamp.Bounds.cap \
+  --out ./generated/clamp-multi --ir-output ./clamp-multi.ir.json
+```
+
+Existing differing package output is rejected and preserved. Package and IR
+paths must not overlap. With no module arguments, `lean-go generate` runs the
+audited normalizer profile and defaults to `./generated/normalizer` and
+`./testdata/normalizer.ir.json` in the invoking directory.
+
+## Extraction diagnostics
+
+Alpha.5 includes readable extraction errors and `--diagnostics=json` for
+`lean-go generate` and the generation/export scripts. Reports use the
+`lean-go-diagnostics/v1` schema with stage/code, rejection reason, known compiler
+form, source location and a next-step hint. See the
+[diagnostics guide and schema](diagnostics.md) for fields and process behavior.
+The [compiler compatibility harness](compiler-compatibility.md) uses these reports
+from a Git checkout; it is not included in the installed CLI or wheel.
+
+## Check proofs
+
+Use a [proof contract](proof-contracts.md) selecting the same module and roots
+as the generated manifest. The reusable
+[standalone clamp example](../examples/proofs/clamp) includes source, proofs,
+a contract, generated artifacts and a copyable Go module. The
+[article](articles/lean-proofs-to-go.md) walks through the complete handoff.
+
+```sh
+lean-go check-proofs \
+  --contract ./project/proof-contract.json \
+  --manifest ./generated/clamp/manifest.json --output ./proof-evidence.json
+lean-go check-proofs \
+  --contract ./project/proof-contract.json \
+  --manifest ./generated/clamp/manifest.json --evidence ./proof-evidence.json
+```
+
+Both modes recheck source proofs freshly. Evidence binds theorem statements,
+source inputs and generated bytes; stale evidence fails. It belongs outside
+source, proof and generated directories. These are Lean source proofs with
+**tested, trusted extraction**, not an end-to-end compiler-correctness proof.
+
+The package bundles only the audited pipeline scripts, producer sources and
+pins, the Go emitter/validators/templates, and the audited pilot model.
+It copies them into a temporary writable workspace per invocation; installed
+files remain unchanged. Go runs with `CGO_ENABLED=0`, `GOTOOLCHAIN=local`,
+`GOWORK=off` and isolated caches. User Go flags and Lean/Lake path overrides do
+not change the pinned producer. Generated consumers need only Go and its
+standard library; they do not need Python, Lean, Lake, uv or a C compiler.
+
+## Verify an installation build
+
+From a checkout, the standard build backend is managed by uv:
+
+```sh
+uv build
+uv run --locked python scripts/test_cli.py
+uv run --locked python scripts/check_cli_install.py
+```
+
+The install smoke test audits a direct wheel and an sdist-rebuilt wheel, installs
+each in a fresh environment, verifies the actual installed imports, and runs
+external generation, proof checking and a Go-only consumer. It also checks
+read-only installed resources and paths containing spaces. The direct installed
+wheel also regenerates and rechecks the complete standalone clamp demo, compares
+its tracked artifacts, and tests and runs a copied module with Go alone. `--without-lean`
+explicitly restricts this smoke test to packaging, help/version and missing-tool
+errors; it does not claim producer validation. CI runs the full smoke on Linux
+and Windows.
+
+For editable development, refresh bundled assets after pipeline source changes
+with `uv sync --reinstall-package lean-go-tools`. Legacy commands such as
+`uv run --locked python scripts/generate.py` and
+`uv run --locked python scripts/check_proofs.py` remain supported, including
+their original path conventions.

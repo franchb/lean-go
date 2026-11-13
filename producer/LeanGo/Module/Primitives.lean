@@ -42,10 +42,10 @@ def numericPrimitive? (n : Name) : Option NumericPrimitive :=
   numericPrimitives.find? (·.name == n)
 
 def numericOrderPackage : Name :=
-  "_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt32".toName
+  ``instLinearOrderPackageUInt32
 
 def numericWideOrderPackage : Name :=
-  "_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt64".toName
+  ``instLinearOrderPackageUInt64
 
 -- Source-only wrappers support ordinary notation and erased decision proofs.
 -- None of these names authorizes an executable call in exported IR.

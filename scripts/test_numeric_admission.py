@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 import export_module as producer
+from test_record_admission import ELABORATION_FAILURE
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1', 'set LEAN_GO_MODULES=1 for fresh Lean admission builds')
@@ -55,9 +56,9 @@ def run (a b : UInt32) : Result :=
                 self.assertEqual(program['functions'][0]['result'], 'UInt32')
                 self.assertIn('Bool', {item['name'] for item in program['types']})
                 records = {item['name'] for item in program['provenance']}
-                expected = ('instBEqOfDecidableEq' if modern else
-                            '_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt32')
-                self.assertIn(expected, records)
+                self.assertIn('instLinearOrderPackageUInt32', records)
+                self.assertFalse(any(name.startswith('_private.Init.Data.UInt.Package.')
+                                     for name in records))
 
     def test_custom_operator_instance_follows_its_audited_implementation(self):
         program = self.export('''instance : Add UInt32 := ⟨fun a b => UInt32.sub a b⟩
@@ -86,7 +87,7 @@ def run (a b : UInt32) : UInt32 := a + b
                 self.output.write_bytes(b'previous output\n')
                 with self.assertRaisesRegex(producer.ExportError, 'extern|axiom|opaque|provenance|Unsupported|not supported by code generator') as rejected:
                     self.export(body)
-                self.assertNotRegex(str(rejected.exception), 'unexpected token|unknown identifier|unknown attribute')
+                self.assertNotRegex(str(rejected.exception), ELABORATION_FAILURE)
                 self.assertEqual(self.output.read_bytes(), b'previous output\n')
 
     def test_context_sensitive_primitive_and_wrapper_replacements_are_rejected(self):
@@ -127,7 +128,7 @@ theorem replacement_eq : instAddUInt32 = replacement := rfl
                 self.output.write_bytes(b'previous output\n')
                 with self.assertRaisesRegex(producer.ExportError, 'rewrite|extern|implemented_by|replacement|repeated compilation') as rejected:
                     self.export(body)
-                self.assertNotRegex(str(rejected.exception), 'unexpected token|unknown identifier|unknown attribute')
+                self.assertNotRegex(str(rejected.exception), ELABORATION_FAILURE)
                 self.assertEqual(self.output.read_bytes(), b'previous output\n')
 
 
