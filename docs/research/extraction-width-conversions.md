@@ -1,7 +1,7 @@
 # UInt32 and UInt64 width conversions
 
-The current development checkout (`0.1.0a7.dev0`) admits exactly two new unary
-runtime leaves. The published alpha.6 CLI retains its earlier capability set.
+The alpha.7 candidate (`0.1.0a7`) admits exactly two new unary runtime leaves.
+The earlier alpha.6 CLI retains its earlier capability set.
 
 | Lean leaf | Signature | Exact extern | Go expression | Arithmetic meaning |
 | --- | --- | --- | --- | --- |
@@ -12,7 +12,7 @@ Operand and result use separate scalar payload fields in the existing immutable
 raw and typed APIs. Each conversion allocates one result node. Existing resource
 limits and zero-result error behavior apply. Other widths, identity casts,
 lookalike names, division/remainder runtime primitives and generic collections
-remain unsupported. The development checkout also admits ordinary `<<<` notation
+remain unsupported. Alpha.7 also admits ordinary `<<<` notation
 for UInt32 and UInt64; the packing example uses this audited notation.
 
 ## Audited source boundary
@@ -51,7 +51,7 @@ The current generator identity is `lean-go-modulegen/v9`.
 
 ## Standalone proved example
 
-The current checkout's [Words module](../../examples/proofs/words) is a copyable
+The alpha.7 [Words module](../../examples/proofs/words) is a copyable
 Go module with five selected roots: `widen`, `narrow`, `pack`, `high` and `low`.
 Its generated package uses v11 IR/manifest, `pure-module/v9` and
 `lean-go-modulegen/v9`. Seven independently specified universal source claims
@@ -66,8 +66,9 @@ boundaries, 512 seeded triples), plus exact budgets, error results and input
 ownership. `scripts/check_words_demo.py` regenerates every artifact with the
 installed CLI, compares exact bytes, freshly checks all seven claims, and then
 tests and runs a Go-only deployment. Both direct and sdist-rebuilt wheel smoke
-paths include Words. Reproduction requires the CLI from the same development
-checkout; the published alpha.6 CLI and tag do not include Words.
+paths include Words. Reproduction pairs the example and CLI from the same
+alpha.7 tag, or from this same checkout before publication; see the
+[candidate walkthrough](../release-candidate.md).
 
 ## Bounded evidence
 

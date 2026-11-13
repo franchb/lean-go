@@ -88,9 +88,9 @@ uv tool install --force --python 3.15 /absolute/path/to/lean-go
 ```
 
 See the [development installation guide](../../../docs/cli.md#development-checkout).
-To reproduce alpha.6, use its
-[tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.6/examples/proofs/clamp)
-and [tagged CLI guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.6/docs/cli.md)
+After alpha.7 is published, reproduce it using its
+[tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/clamp)
+and [tagged CLI guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
 together. Alpha.4 likewise requires its tagged demo and CLI with Lean 4.35.0.
 
 The current producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake
@@ -140,8 +140,8 @@ its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The installed CLI smoke
 runs the complete clamp, flags and words verifiers through both direct and
-sdist-rebuilt wheels on Linux and Windows in CI. Words is available in the
-current checkout, not the alpha.6 tag. See the
+sdist-rebuilt wheels on Linux and Windows in CI. All three demos are included in
+the alpha.7 candidate; pair them with the CLI from the same checkout or tag. See the
 [article](../../../docs/articles/lean-proofs-to-go.md)
 for the design and assurance boundary. The public
 [issue tracker](https://github.com/franchb/lean-go/issues) accepts reproducible

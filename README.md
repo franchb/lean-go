@@ -16,15 +16,16 @@ Alpha.6 adds bitwise AND, OR, XOR, complement and logical right shift for both
 widths. Emitted bitwise operations select v8/v9 IR with `pure-module/v6` or
 `pure-module/v7`; see the [bitwise report](docs/research/extraction-bitwise.md).
 Earlier v2–v7 IR retain their original restrictions and APIs.
-The current development checkout adds exact `UInt32.toUInt64` zero extension and
+The alpha.7 candidate adds exact `UInt32.toUInt64` zero extension and
 `UInt64.toUInt32` truncation modulo 2^32. Emitted conversions select v10/v11 IR
 with `pure-module/v8` or `pure-module/v9`; see the
 [width-conversion report](docs/research/extraction-width-conversions.md). The
 current module generator is `lean-go-modulegen/v9`.
-There is no fixed model hash or application name allowlist. The experimental
-preview is `v0.1.0-alpha.6`; APIs and supported compiler forms may change before
-a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
-[preview notes](docs/releases/v0.1.0-alpha.6.md).
+There is no fixed model hash or application name allowlist. This checkout
+prepares the experimental `v0.1.0-alpha.7` release, Python package `0.1.0a7`. Tag commands below are for use after publication; candidate checks do
+not establish public tag availability. APIs and supported compiler forms may
+change before a stable release. Start with the [walkthrough](docs/getting-started.md)
+or read the [candidate notes](docs/releases/v0.1.0-alpha.7.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -40,11 +41,13 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
-Install the published preview [`lean-go` CLI](docs/cli.md) to generate and check
-proofs from any working directory without keeping a checkout beside your project:
+Before publication, use the [checkout installation](docs/cli.md#development-checkout).
+After the tag is published, install the alpha.7 [`lean-go` CLI](docs/cli.md) to
+generate and check proofs from any working directory without keeping a checkout
+beside your project:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.6"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.7"
 ```
 
 Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
@@ -61,13 +64,13 @@ source proofs and independent Go tests over 4,752 input pairs. Its checked-in
 package runs with Go alone. Use the example and CLI from the same tag, or install
 from the same checkout when regenerating development artifacts.
 
-The current checkout also includes a [standalone word-packing module](examples/proofs/words)
+Alpha.7 includes a [standalone word-packing module](examples/proofs/words)
 with five scalar roots and seven universal source proofs: value-preserving
 widening, modulo narrowing, both conversion round trips, and packing/unpacking
 identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
-Words uses v11 IR/manifest and `pure-module/v9`; regenerate it with this checkout's
-CLI. It is not part of alpha.6. Other numeric widths and broad generic collections
-remain deferred.
+Words uses v11 IR/manifest and `pure-module/v9`; pair its example and CLI from
+the same alpha.7 tag, or from this same checkout before publication. Other
+numeric widths and broad generic collections remain deferred.
 
 ## Extract a module
 
@@ -96,8 +99,8 @@ supports literals, addition, subtraction, multiplication, left shift, equality,
 and unsigned less-than/less-or-equal comparisons. Since alpha.6,
 `&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
 Arithmetic wraps modulo 2^32 or
-2^64 respectively; shift counts are reduced modulo 32 or 64. The development
-checkout supports ordinary `<<<` notation, `UInt32.toUInt64` and `UInt64.toUInt32`.
+2^64 respectively; shift counts are reduced modulo 32 or 64. Alpha.7 adds ordinary
+`<<<` notation, `UInt32.toUInt64` and `UInt64.toUInt32`.
 Left shift alone keeps v6/v7 IR and `pure-module/v4` or `pure-module/v5`. Other width conversions,
 division, remainder, and other numeric operations,
 other numeric types, generic collections, polymorphism,

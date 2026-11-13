@@ -3,7 +3,7 @@
 A proof contract lets a Lean library use the same checked-evidence workflow as
 the [quota library](quota.md). It works with single-root v6 and multi-root v7
 generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
-The current checkout also accepts exact v10/`pure-module/v8` single-root and
+Alpha.7 also accepts exact v10/`pure-module/v8` single-root and
 v11/`pure-module/v9` multiple-root
 [width-conversion packages](research/extraction-width-conversions.md).
 The checker is included starting with the `v0.1.0-alpha.3` source release.
@@ -140,21 +140,22 @@ Go consumers use only generated code and the standard library with
 `CGO_ENABLED=0`. Lean and Python are needed to regenerate/check evidence, not to
 deploy the Go package.
 
-The alpha.6 [standalone flag-mask example](../examples/proofs/flags) selects four
+The [standalone flag-mask example](../examples/proofs/flags) selects four
 `UInt32` bitwise roots and checks eight universal laws against independent expected
 propositions. It includes full-width Go regression tests and a fresh installed-CLI
 verifier. Pair its tagged example and CLI for release reproduction, or install
 the CLI from the same checkout for development artifacts.
 
-The development [Words example](../examples/proofs/words) selects five scalar
+The alpha.7 [Words example](../examples/proofs/words) selects five scalar
 roots with v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`. Seven
 independent expected propositions cover widening, modulo narrowing, both
 conversion round trips, low/high packing identities and full unpack/repack.
 The fresh checker records no axioms for the two `toNat` claims, `propext` for
 the conversion round trips, and `propext` plus `Quot.sound` for the three packing
 laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
-This example is available only in the current checkout and requires its paired
-CLI for reproduction; it is not in alpha.6.
+Pair all three demos with the CLI from the same alpha.7 tag. Before publication,
+use the examples and CLI from this same checkout; see the
+[candidate walkthrough](release-candidate.md).
 
 ## Evidence and assurance
 

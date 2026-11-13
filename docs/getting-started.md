@@ -1,14 +1,16 @@
 # Try the experimental preview
 
 The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
-and a C compiler are not needed by a consumer. The preview version is
-`v0.1.0-alpha.6`; its API is experimental.
+and a C compiler are not needed by a consumer. This checkout prepares
+`v0.1.0-alpha.7`; its API is experimental. Tagged commands below apply after
+publication. Before then, use this checkout and its
+[paired CLI](cli.md#development-checkout).
 
-Alpha.6 adds bitwise operations at both unsigned widths, a standalone proved
-flag-mask example and more precise compiler-rewrite diagnostics. The CLI,
+Alpha.7 adds exact UInt32/UInt64 width conversions, ordinary left-shift notation
+and a standalone proved word-packing example. Bitwise operations, the CLI,
 multi-root extraction, quota and reusable proof contracts remain available.
 Its producer uses Lean 4.36.0-rc2. The
-[proof-to-Go walkthrough](release-candidate.md) reproduces this release; generated
+[proof-to-Go walkthrough](release-candidate.md) checks this candidate; generated
 Go consumers do not require the producer compiler.
 
 ## Run a generated package
@@ -19,7 +21,7 @@ Create a fresh directory and initialize a Go module:
 mkdir lean-go-example
 cd lean-go-example
 go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.6
+go get github.com/franchb/lean-go@v0.1.0-alpha.7
 ```
 
 Save this as `main.go`:
@@ -56,14 +58,13 @@ larger literal remains exact. The source is
 [`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
 recursive trees, record updates, joins and compiler-generated local helpers.
 
-## Pack words from the development checkout
+## Pack words with alpha.7
 
-The current checkout includes a [copyable Words module](../examples/proofs/words),
-which is not in alpha.6. It packs two `UInt32` values into a `UInt64`, unpacks both
-halves, widens without loss and narrows modulo 2^32. Seven universal Lean source
+Alpha.7 includes a [copyable Words module](../examples/proofs/words). It packs
+two `UInt32` values into a `UInt64`, unpacks both halves, widens without loss and narrows modulo 2^32. Seven universal Lean source
 proofs accompany independent Go checks over 699 boundary and seeded triples.
 
-From the current checkout, run the generated example offline:
+From the alpha.7 checkout, run the generated example offline:
 
 ```sh
 cd examples/proofs/words
@@ -72,15 +73,16 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
 ```
 
 The copyable module needs only Go. To regenerate its v11 artifacts or recheck
-proof evidence, install the [CLI from the same checkout](cli.md#development-checkout)
-and follow the example's verifier instructions. The extraction and Go runtime
-remain tested and trusted; the proofs establish the selected Lean statements.
+proof evidence, pair the example and [CLI](cli.md) from the same alpha.7 tag, or
+use the same checkout before publication, and follow the example's verifier
+instructions. The extraction and Go runtime remain tested and trusted; the proofs
+establish the selected Lean statements.
 Runtime division/remainder, other numeric widths and broad generic collections
-remain deferred. The release workflow below continues to use alpha.6.
+remain deferred.
 
 ## Extract your own Lean module
 
-Use Go 1.27.4, Lean 4.36.0-rc2 and uv for a checkout of `v0.1.0-alpha.6`.
+Use Go 1.27.4, Lean 4.36.0-rc2 and uv for a checkout of `v0.1.0-alpha.7`.
 The exact Lean commit is `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
 Use Python 3.15 through uv; the repository declares that requirement and has a
 locked dependency set. From the release checkout:

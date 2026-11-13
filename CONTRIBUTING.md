@@ -34,10 +34,11 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The current checkout's copyable proof demos are clamp (three claims), flags
-(eight) and [words](examples/proofs/words) (seven). Words uses conversion-capable
-v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`; alpha.6 does not
-include it. Pair development artifacts with the CLI built from the same checkout.
+The alpha.7 candidate includes three copyable proof demos: clamp (three claims),
+flags (eight) and [words](examples/proofs/words) (seven). Words uses
+conversion-capable v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`.
+Pair tagged examples with the CLI from the same tag; before publication and for
+development artifacts, build the CLI from the same checkout.
 After changing a demo or CLI handoff, run the relevant verifier unit tests and
 the complete installed-wheel smoke:
 
