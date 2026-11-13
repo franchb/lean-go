@@ -6,6 +6,21 @@ type frame struct {
 	slots                     []*node
 }
 
+// frameForCall reuses only the retired frame at the next depth. Clear its old
+// slot length before shrinking so the unused tail does not retain earlier nodes.
+func frameForCall(stack []frame, function, destination, count int) frame {
+	var slots []*node
+	if len(stack) < cap(stack) {
+		slots = stack[:len(stack)+1][len(stack)].slots
+	}
+	if cap(slots) < count {
+		slots = make([]*node, count)
+	} else {
+		clear(slots)
+		slots = slots[:count]
+	}
+	return frame{function: function, destination: destination, slots: slots}
+}
 func execute(b *budget, entry int, args []*node) (*node, error) {
 	var initial frame
 	switch entry {

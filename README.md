@@ -247,6 +247,9 @@ per program. Full program artifacts support replay and bounded failure shrinking
 See [program differential testing](docs/research/differential-testing.md) for
 the grammar, commands and evidence limits.
 
+See [generated Go performance](docs/research/generated-go-performance.md) for
+maintained handwritten/typed/raw benchmarks and measured frame-slot reuse results.
+
 ## Run the pilot
 
 Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.35.0** toolchain named in

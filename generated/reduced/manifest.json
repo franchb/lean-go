@@ -1,7 +1,7 @@
 {
   "schema": "lean-go-manifest/v6",
-  "generator": "lean-go-modulegen/v6",
-  "generator_source_sha256": "ba900d4bdfd255a70ef48c1d443103b2301230cf77aa986ee069f25677517acf",
+  "generator": "lean-go-modulegen/v7",
+  "generator_source_sha256": "6837785d8297ceff807188e18a7bf3b6d87e1d2be5bf9ebd93c07d5aafaa328d",
   "validator_source_sha256": "8ad8ed042c5b1442389f2fc6058d918ffa123e595eb662fa979f0177b27032d6",
   "ir_sha256": "6e918a1e66d39aa2109a3757ef51dc67c3bc056cc1aad59419a657356d73a3c5",
   "program": {
@@ -833,7 +833,7 @@
   },
   "generated_files": {
     "api.go": "e4ba88668075d357ea4b6bedb5dd18776c6b1cac7233d38d461737a1feed58a9",
-    "control.go": "fdf441cc100df264c3a11c0069172975e00f2c4b13a01a019cb411a9d0b71279",
+    "control.go": "0203a53fb05ff2be3360622c99234bf2a38ffd35c675e33b8c729929f2a62fa1",
     "runtime.go": "9d4666dcb48b93904cb02beec91b750d21cec4f85f0b883a8f716c787cba071f",
     "schema.go": "174ec201d308133e4873e58aaf06387a80cce972fd075afdcf4315012daf2dad"
   },

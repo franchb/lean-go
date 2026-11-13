@@ -6,6 +6,21 @@ type frame struct {
 	slots                     []*node
 }
 
+// frameForCall reuses only the retired frame at the next depth. Clear its old
+// slot length before shrinking so the unused tail does not retain earlier nodes.
+func frameForCall(stack []frame, function, destination, count int) frame {
+	var slots []*node
+	if len(stack) < cap(stack) {
+		slots = stack[:len(stack)+1][len(stack)].slots
+	}
+	if cap(slots) < count {
+		slots = make([]*node, count)
+	} else {
+		clear(slots)
+		slots = slots[:count]
+	}
+	return frame{function: function, destination: destination, slots: slots}
+}
 func execute(b *budget, args []*node) (*node, error) {
 	if err := b.enter(9, 0); err != nil {
 		return nil, err
@@ -40,7 +55,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 1, destination: 2, slots: make([]*node, 3)}
+				next := frameForCall(stack, 1, 2, 3)
 				next.slots[0] = f.slots[1]
 				f.pc = 2
 				stack = append(stack, next)
@@ -63,7 +78,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(9, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 6, slots: make([]*node, 9)}
+				next := frameForCall(stack, 0, 6, 9)
 				next.slots[0] = f.slots[5]
 				f.pc = 5
 				stack = append(stack, next)
@@ -71,7 +86,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				if err := b.enter(9, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frame{function: 0, destination: 7, slots: make([]*node, 9)}
+				next := frameForCall(stack, 0, 7, 9)
 				next.slots[0] = f.slots[4]
 				f.pc = 6
 				stack = append(stack, next)
