@@ -218,24 +218,28 @@ def export_harness(module, entries):
     return f'import LeanGo.Module.Export\nimport {module}\n' + command
 
 
-def emitted_bitwise(program):
-    """Select capabilities from executable nodes, never provenance or source names."""
-    names = {f'UInt{width}.{operation}' for width in (32, 64)
-             for operation in ('land', 'lor', 'xor', 'complement', 'shiftRight')}
+BITWISE_PRIMITIVES = {f'UInt{width}.{operation}' for width in (32, 64)
+                      for operation in ('land', 'lor', 'xor', 'complement', 'shiftRight')}
+WIDTH_CONVERSIONS = {'UInt32.toUInt64', 'UInt64.toUInt32'}
+
+
+def emitted_primitives(program):
+    """Collect executable leaves once, ignoring provenance and ordinary call names."""
+    names = set()
     pending = [function['body'] for function in program['functions']]
     while pending:
         node = pending.pop()
         if node['op'] == 'let':
             value = node['value']
-            if value['kind'] == 'primitive' and value['name'] in names:
-                return True
+            if value['kind'] == 'primitive':
+                names.add(value['name'])
         if node['op'] in ('let', 'join'):
             pending.append(node['next'])
         if node['op'] == 'join':
             pending.append(node['join']['body'])
         if node['op'] == 'cases':
             pending.extend(alt['body'] for alt in node['alts'])
-    return False
+    return names
 
 
 def complete_program(raw, module, entries, identities):
@@ -248,11 +252,13 @@ def complete_program(raw, module, entries, identities):
     if program['module'] != module or program[selection] != (entries if multi else entries[0]):
         raise ExportError('module producer returned a different module or roots')
     try:
-        bitwise = emitted_bitwise(program)
+        primitives = emitted_primitives(program)
     except (KeyError, TypeError) as exc:
         raise ExportError('unexpected module producer executable fields') from exc
-    version, profile = {(False, False): (6, 4), (True, False): (7, 5),
-                        (False, True): (8, 6), (True, True): (9, 7)}[multi, bitwise]
+    capability = 2 if primitives & WIDTH_CONVERSIONS else int(bool(primitives & BITWISE_PRIMITIVES))
+    version, profile = ((6, 4), (8, 6), (10, 8))[capability]
+    if multi:
+        version, profile = version + 1, profile + 1
     program.update(schema=f'lean-go-ir/v{version}',
                    profile=f'pure-module/v{profile}', stage='pure-mono',
                    lean_version='4.36.0-rc2', lean_commit=COMMIT, inputs=identities)

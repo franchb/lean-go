@@ -56,6 +56,28 @@ larger literal remains exact. The source is
 [`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
 recursive trees, record updates, joins and compiler-generated local helpers.
 
+## Pack words from the development checkout
+
+The current checkout includes a [copyable Words module](../examples/proofs/words),
+which is not in alpha.6. It packs two `UInt32` values into a `UInt64`, unpacks both
+halves, widens without loss and narrows modulo 2^32. Seven universal Lean source
+proofs accompany independent Go checks over 699 boundary and seeded triples.
+
+From the current checkout, run the generated example offline:
+
+```sh
+cd examples/proofs/words
+CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
+CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
+```
+
+The copyable module needs only Go. To regenerate its v11 artifacts or recheck
+proof evidence, install the [CLI from the same checkout](cli.md#development-checkout)
+and follow the example's verifier instructions. The extraction and Go runtime
+remain tested and trusted; the proofs establish the selected Lean statements.
+Runtime division/remainder, other numeric widths and broad generic collections
+remain deferred. The release workflow below continues to use alpha.6.
+
 ## Extract your own Lean module
 
 Use Go 1.27.4, Lean 4.36.0-rc2 and uv for a checkout of `v0.1.0-alpha.6`.

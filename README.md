@@ -16,6 +16,11 @@ Alpha.6 adds bitwise AND, OR, XOR, complement and logical right shift for both
 widths. Emitted bitwise operations select v8/v9 IR with `pure-module/v6` or
 `pure-module/v7`; see the [bitwise report](docs/research/extraction-bitwise.md).
 Earlier v2–v7 IR retain their original restrictions and APIs.
+The current development checkout adds exact `UInt32.toUInt64` zero extension and
+`UInt64.toUInt32` truncation modulo 2^32. Emitted conversions select v10/v11 IR
+with `pure-module/v8` or `pure-module/v9`; see the
+[width-conversion report](docs/research/extraction-width-conversions.md). The
+current module generator is `lean-go-modulegen/v9`.
 There is no fixed model hash or application name allowlist. The experimental
 preview is `v0.1.0-alpha.6`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
@@ -56,6 +61,14 @@ source proofs and independent Go tests over 4,752 input pairs. Its checked-in
 package runs with Go alone. Use the example and CLI from the same tag, or install
 from the same checkout when regenerating development artifacts.
 
+The current checkout also includes a [standalone word-packing module](examples/proofs/words)
+with five scalar roots and seven universal source proofs: value-preserving
+widening, modulo narrowing, both conversion round trips, and packing/unpacking
+identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
+Words uses v11 IR/manifest and `pure-module/v9`; regenerate it with this checkout's
+CLI. It is not part of alpha.6. Other numeric widths and broad generic collections
+remain deferred.
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.
@@ -83,8 +96,9 @@ supports literals, addition, subtraction, multiplication, left shift, equality,
 and unsigned less-than/less-or-equal comparisons. Since alpha.6,
 `&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
 Arithmetic wraps modulo 2^32 or
-2^64 respectively; shift counts are reduced modulo 32 or 64. Conversions between
-widths, division, remainder, and other numeric operations,
+2^64 respectively; shift counts are reduced modulo 32 or 64. The development
+checkout supports `UInt32.toUInt64` and `UInt64.toUInt32`. Other width conversions,
+division, remainder, and other numeric operations,
 other numeric types, generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.

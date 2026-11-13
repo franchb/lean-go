@@ -18,7 +18,7 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v8"
+const Version = "lean-go-modulegen/v9"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 

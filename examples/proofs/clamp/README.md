@@ -139,7 +139,9 @@ Ordinary root `go test ./...` separately copies only `go.mod`, the consumer and
 its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The installed CLI smoke
-runs the complete verifier on Linux and Windows in CI. See the
+runs the complete clamp, flags and words verifiers through both direct and
+sdist-rebuilt wheels on Linux and Windows in CI. Words is available in the
+current checkout, not the alpha.6 tag. See the
 [article](../../../docs/articles/lean-proofs-to-go.md)
 for the design and assurance boundary. The public
 [issue tracker](https://github.com/franchb/lean-go/issues) accepts reproducible

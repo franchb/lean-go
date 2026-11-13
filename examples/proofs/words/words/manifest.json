@@ -1,0 +1,459 @@
+{
+  "schema": "lean-go-manifest/v11",
+  "generator": "lean-go-modulegen/v9",
+  "generator_source_sha256": "72de2e6276da6e7a152a6b824ebf186e3c9d68fae9afe870af1e8d135af781ba",
+  "validator_source_sha256": "4587c2645709f8e99a98e30a5ecb7480a21ade3b23b7f909c5a3c20556165975",
+  "ir_sha256": "f66044b829ab55dc0751f2e8bfecb9f38ed15f3e03b56693ed5f70a902777aec",
+  "program": {
+    "schema": "lean-go-ir/v11",
+    "profile": "pure-module/v9",
+    "stage": "pure-mono",
+    "lean_version": "4.36.0-rc2",
+    "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
+    "module": "Words",
+    "roots": [
+      "Words.high",
+      "Words.low",
+      "Words.narrow",
+      "Words.pack",
+      "Words.widen"
+    ],
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "c46164850f3e4ed3f0c09b252351b5710454f92edb329fb66d2334a7d67b9e7c",
+      "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
+      "producer/LeanGo/Module/Export.lean": "cc9094a7cc75170dbb27eb7a149916e3800c35653d1a23ef3d76612ea27f4c31",
+      "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
+      "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
+      "producer/LeanGo/Module/LocalSource.lean": "5f258daf638ea0f63a8ad5729c9c4873b119400a55e3c2aa928fd0ee6ba6db52",
+      "producer/LeanGo/Module/Primitives.lean": "e42c85f424552426fad5317a25ab720ad7512b9592d5e60aa29a2fa59d4ce252",
+      "producer/LeanGo/Module/Records.lean": "3fdd5962ceceb38e7872d6601b1b860376175df2d2d0921b9fcecb96936e3311",
+      "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
+      "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+      "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
+      "scripts/export_module.py": "a5180765386a73aca79646011fe19fbd9f4896baf91ecd7a378d3ad1316f3f21",
+      "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+      "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
+      "source/Words.lean": "42fa9bb5af12447126a5cef7f2123ad548a86bca3e84f4d1ab44bf2e43228f56"
+    },
+    "types": [],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "HOr.hOr",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftRight.hShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "OfNat.ofNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.toUInt64",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt64.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt64.shiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt64.toUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Words.high",
+        "dependencies": [
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt64",
+          "UInt64.instOfNat",
+          "UInt64.toUInt32",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt64"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Words.low",
+        "dependencies": [
+          "UInt64",
+          "UInt64.toUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Words.narrow",
+        "dependencies": [
+          "UInt64",
+          "UInt64.toUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Words.pack",
+        "dependencies": [
+          "HOr.hOr",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.toUInt64",
+          "UInt64",
+          "UInt64.instOfNat",
+          "UInt64.shiftLeft",
+          "instHOrOfOrOp",
+          "instOrOpUInt64"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Words.widen",
+        "dependencies": [
+          "UInt32",
+          "UInt32.toUInt64"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "instHOrOfOrOp",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHShiftRightOfShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instOrOpUInt64",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftRightUInt64",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Words.high",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt64"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt64"
+          },
+          "value": {
+            "kind": "uint64",
+            "name": "32",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt64"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt64.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt64.toUInt32",
+                "args": [
+                  3
+                ]
+              },
+              "next": {
+                "op": "return",
+                "var": 4
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Words.low",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt64"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt64.toUInt32",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "return",
+            "var": 2
+          }
+        }
+      },
+      {
+        "name": "Words.narrow",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt64"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt64.toUInt32",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "return",
+            "var": 2
+          }
+        }
+      },
+      {
+        "name": "Words.pack",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          },
+          {
+            "id": 2,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt64",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt64"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt32.toUInt64",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 4,
+              "type": "UInt64"
+            },
+            "value": {
+              "kind": "uint64",
+              "name": "32",
+              "args": []
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 5,
+                "type": "UInt64"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt64.shiftLeft",
+                "args": [
+                  3,
+                  4
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt64"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.toUInt64",
+                  "args": [
+                    2
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "UInt64"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt64.lor",
+                    "args": [
+                      5,
+                      6
+                    ]
+                  },
+                  "next": {
+                    "op": "return",
+                    "var": 7
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Words.widen",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt64",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt64"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt32.toUInt64",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "return",
+            "var": 2
+          }
+        }
+      }
+    ],
+    "api": {
+      "records": {}
+    }
+  },
+  "function_ids": {
+    "Words.high": 0,
+    "Words.low": 1,
+    "Words.narrow": 2,
+    "Words.pack": 3,
+    "Words.widen": 4
+  },
+  "constructor_ids": {},
+  "generated_files": {
+    "api.go": "89fd76ec3fc711e52cac4ce797ecae7a3ac2d7e96e82c04b2c1c54234a08dd12",
+    "control.go": "dcfb27844ac084b5c8101ee6ad558c1c0ceac596354b1e8d9fc6c1a48393ab7a",
+    "runtime.go": "92798e3f5b5810f3bac87dae41b8e42ae9a775c1d676d4f420828003121f16f7",
+    "schema.go": "b029a9ba75f714602de1a1e48bcca67dd746ea37696409b2b7c62c001adb26c0"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt32.toUInt64",
+      "params": [
+        "UInt32"
+      ],
+      "result": "UInt64",
+      "semantics": "zero extension: a"
+    },
+    {
+      "name": "UInt64.lor",
+      "params": [
+        "UInt64",
+        "UInt64"
+      ],
+      "result": "UInt64",
+      "semantics": "bitwise OR of 64-bit operands"
+    },
+    {
+      "name": "UInt64.shiftLeft",
+      "params": [
+        "UInt64",
+        "UInt64"
+      ],
+      "result": "UInt64",
+      "semantics": "(a * 2^(b modulo 64)) modulo 2^64"
+    },
+    {
+      "name": "UInt64.shiftRight",
+      "params": [
+        "UInt64",
+        "UInt64"
+      ],
+      "result": "UInt64",
+      "semantics": "floor(a / 2^(b modulo 64))"
+    },
+    {
+      "name": "UInt64.toUInt32",
+      "params": [
+        "UInt64"
+      ],
+      "result": "UInt32",
+      "semantics": "a modulo 2^32"
+    }
+  ],
+  "go_api": {
+    "entrypoints": {
+      "Words.high": "RunHigh",
+      "Words.low": "RunLow",
+      "Words.narrow": "RunNarrow",
+      "Words.pack": "RunPack",
+      "Words.widen": "RunWiden"
+    },
+    "types": {
+      "UInt32": "uint32",
+      "UInt64": "uint64"
+    },
+    "constructors": {},
+    "accessors": {},
+    "destructors": {}
+  }
+}

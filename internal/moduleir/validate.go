@@ -20,6 +20,7 @@ type validator struct {
 	numeric      bool
 	wide         bool
 	bitwise      bool
+	conversions  bool
 	joins        bool
 	functions    map[string]Function
 	constructors map[string]constructorInfo
@@ -112,7 +113,8 @@ func (v *validator) validateMetadata(p *Program) error {
 	v.numeric = p.Schema != Schema
 	v.wide = HasUInt64(p.Schema)
 	v.joins = v.numeric && p.Schema != SchemaV3
-	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9
+	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11
+	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9 || v.conversions
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}

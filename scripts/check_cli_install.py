@@ -17,6 +17,7 @@ import zipfile
 
 from check_clamp_demo import verify_demo
 from check_flags_demo import verify_demo as verify_flags_demo
+from check_words_demo import verify_demo as verify_words_demo
 from check_release_candidate import base_environment, copy_fixture, pinned_go, run_consumer
 from export_module import check_python
 
@@ -210,13 +211,11 @@ def smoke(workspace, without_lean):
             missing = run([cli, 'doctor'], directory, dict(env, PATH=''), succeeds=False)
             assert 'missing from PATH' in missing
             count = None if without_lean else producer_workflow(cli, directory, env, multiple_roots=index == 0)
-            if not without_lean and index == 0:
-                demo = directory / 'standalone demo'
-                demo.mkdir()
-                verify_demo(cli, demo, env)
-                flags_demo = directory / 'standalone flags demo'
-                flags_demo.mkdir()
-                verify_flags_demo(cli, flags_demo, env)
+            if not without_lean:
+                for name, verify in [('clamp', verify_demo), ('flags', verify_flags_demo), ('words', verify_words_demo)]:
+                    demo = directory / ('standalone ' + name + ' demo')
+                    demo.mkdir()
+                    verify(cli, demo, env)
             assert snapshot(payload) == expected, 'installed payload was changed'
         finally:
             for path, mode in permissions:

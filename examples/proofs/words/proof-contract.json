@@ -1,0 +1,22 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Words",
+  "roots": [
+    "Words.high",
+    "Words.low",
+    "Words.narrow",
+    "Words.pack",
+    "Words.widen"
+  ],
+  "claims": [
+    {"theorem": "WordsProofs.widen_preserves", "expected": "WordsContract.widen_preserves"},
+    {"theorem": "WordsProofs.narrow_truncates", "expected": "WordsContract.narrow_truncates"},
+    {"theorem": "WordsProofs.narrow_widen", "expected": "WordsContract.narrow_widen"},
+    {"theorem": "WordsProofs.widen_narrow", "expected": "WordsContract.widen_narrow"},
+    {"theorem": "WordsProofs.low_pack", "expected": "WordsContract.low_pack"},
+    {"theorem": "WordsProofs.high_pack", "expected": "WordsContract.high_pack"},
+    {"theorem": "WordsProofs.pack_unpack", "expected": "WordsContract.pack_unpack"}
+  ]
+}

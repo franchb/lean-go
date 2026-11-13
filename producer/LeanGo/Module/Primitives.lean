@@ -21,6 +21,10 @@ structure NumericPrimitive where
 
 -- Runtime admission is this exact table, never all extern declarations.
 def numericPrimitives : Array NumericPrimitive := #[
+  { name := ``UInt32.toUInt64, operand := ``UInt32, result := ``UInt64,
+    externalSymbol := "lean_uint32_to_uint64", arity := 1 },
+  { name := ``UInt64.toUInt32, operand := ``UInt64, result := ``UInt32,
+    externalSymbol := "lean_uint64_to_uint32", arity := 1 },
   { name := ``UInt32.land, operand := ``UInt32, result := ``UInt32,
     externalSymbol := "lean_uint32_land", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt32.lor, operand := ``UInt32, result := ``UInt32,

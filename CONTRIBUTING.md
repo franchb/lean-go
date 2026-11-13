@@ -34,6 +34,27 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
+The current checkout's copyable proof demos are clamp (three claims), flags
+(eight) and [words](examples/proofs/words) (seven). Words uses conversion-capable
+v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`; alpha.6 does not
+include it. Pair development artifacts with the CLI built from the same checkout.
+After changing a demo or CLI handoff, run the relevant verifier unit tests and
+the complete installed-wheel smoke:
+
+```sh
+uv run --locked python scripts/test_clamp_demo.py
+uv run --locked python scripts/test_flags_demo.py
+uv run --locked python scripts/test_words_demo.py
+uv run --locked python scripts/check_cli_install.py
+```
+
+The smoke regenerates all three examples, compares exact bytes, freshly checks
+all 18 source claims for each installed wheel, and deploys each using only Go
+sources and `go.mod`. Root Go tests also exercise all three nested modules by
+copying them into isolated Go-only environments. Tests inside a nested module
+can be run directly; they are otherwise excluded from root package discovery.
+Broad generic collections and further numeric widths remain deferred.
+
 CI executes ordinary Go tests on Linux and Windows, and extraction gates on Linux.
 Tag workflows also fetch the exact published version into separate Go-only
 consumers. A cross-compiled Windows binary alone is not Windows runtime evidence.

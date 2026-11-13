@@ -3,6 +3,9 @@
 A proof contract lets a Lean library use the same checked-evidence workflow as
 the [quota library](quota.md). It works with single-root v6 and multi-root v7
 generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
+The current checkout also accepts exact v10/`pure-module/v8` single-root and
+v11/`pure-module/v9` multiple-root
+[width-conversion packages](research/extraction-width-conversions.md).
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -143,6 +146,16 @@ propositions. It includes full-width Go regression tests and a fresh installed-C
 verifier. Pair its tagged example and CLI for release reproduction, or install
 the CLI from the same checkout for development artifacts.
 
+The development [Words example](../examples/proofs/words) selects five scalar
+roots with v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`. Seven
+independent expected propositions cover widening, modulo narrowing, both
+conversion round trips, low/high packing identities and full unpack/repack.
+The fresh checker records no axioms for the two `toNat` claims, `propext` for
+the conversion round trips, and `propext` plus `Quot.sound` for the three packing
+laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
+This example is available only in the current checkout and requires its paired
+CLI for reproduction; it is not in alpha.6.
+
 ## Evidence and assurance
 
 The fresh workspace uses fixed, dependency-free Lake scaffolding and the pinned
@@ -189,4 +202,8 @@ CGO_ENABLED=0 go test -count=1 ./...
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
-library-specific source and theorem regression checks.
+library-specific source and theorem regression checks. The standalone verifiers
+`check_clamp_demo.py`, `check_flags_demo.py` and `check_words_demo.py` additionally
+regenerate artifacts with an installed CLI, check exact evidence and deploy only
+Go sources. The installed-wheel smoke runs all three through both wheel builds;
+see the [CLI guide](cli.md#verify-an-installation-build).

@@ -16,6 +16,17 @@
     ]
   },
   {
+    "name": "width_conversions",
+    "module": "Widths",
+    "roots": [
+      "Widths.widen",
+      "Widths.narrow",
+      "Widths.pack",
+      "Widths.high",
+      "Widths.low"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [

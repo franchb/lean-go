@@ -168,6 +168,7 @@ only Go's binary directory on `PATH`, isolated caches, disabled module downloads
 and checksum lookup, and cgo disabled.
 
 Root `go test ./...` includes the same Go-only deployment on Linux and Windows.
-The installed-CLI workflow runs fresh flags and clamp verification through the
-direct wheel, also audits the wheel rebuilt from the source distribution, and
-checks that the installed producer payload remains unchanged.
+The current checkout's installed-CLI workflow runs fresh clamp, flags and words
+verification through both the direct wheel and a wheel rebuilt from the source
+distribution, and checks that the installed producer payload remains unchanged.
+Words is a development example and is not included in the alpha.6 tag.

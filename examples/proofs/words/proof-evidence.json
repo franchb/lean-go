@@ -1,0 +1,89 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "WordsContract.high_pack",
+      "name": "WordsProofs.high_pack",
+      "statement": "∀ (hi lo : UInt32), Words.high (Words.pack hi lo) = hi"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "WordsContract.low_pack",
+      "name": "WordsProofs.low_pack",
+      "statement": "∀ (hi lo : UInt32), Words.low (Words.pack hi lo) = lo"
+    },
+    {
+      "axioms": [],
+      "expected": "WordsContract.narrow_truncates",
+      "name": "WordsProofs.narrow_truncates",
+      "statement": "∀ (word : UInt64), (Words.narrow word).toNat = word.toNat % 2 ^ 32"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "WordsContract.narrow_widen",
+      "name": "WordsProofs.narrow_widen",
+      "statement": "∀ (word : UInt32), Words.narrow (Words.widen word) = word"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "WordsContract.pack_unpack",
+      "name": "WordsProofs.pack_unpack",
+      "statement": "∀ (word : UInt64), Words.pack (Words.high word) (Words.low word) = word"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "WordsContract.widen_narrow",
+      "name": "WordsProofs.widen_narrow",
+      "statement": "∀ (word : UInt64), Words.widen (Words.narrow word) = word % 4294967296"
+    },
+    {
+      "axioms": [],
+      "expected": "WordsContract.widen_preserves",
+      "name": "WordsProofs.widen_preserves",
+      "statement": "∀ (word : UInt32), (Words.widen word).toNat = word.toNat"
+    }
+  ],
+  "contract_sha256": "8494cf05df9c4fac542270b442b7cba0c8ea286686420174f3c54c72a9cf52e0",
+  "generated_manifest_sha256": "21ca4ec7aa050df0720831e408408ce1b9d0b3b3e7c42547b096a2769410fda1",
+  "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
+  "lean_version": "4.36.0-rc2",
+  "module": "Words",
+  "project_inputs": {
+    "proof/WordsContract.lean": "f4eea023a5d53766c808a2f738b2bd2d0da6c188918674f2b44b23c99c25477d",
+    "proof/WordsProofs.lean": "5701dc81a85243997b6a76692f19f8a873351b911bbf38517c5fc54ca037bea2",
+    "source/Words.lean": "42fa9bb5af12447126a5cef7f2123ad548a86bca3e84f4d1ab44bf2e43228f56"
+  },
+  "roots": [
+    "Words.high",
+    "Words.low",
+    "Words.narrow",
+    "Words.pack",
+    "Words.widen"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "11c697aebe5b539d74f5069e497a588e7dfab1c4eeb74313f28357e351c55ca3",
+    "scripts/check_proofs.py": "acc1b8c492508dd80afc141b5d5c50d12d1f8f1bdd262ad461865e9b015c5dae",
+    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+    "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
+    "scripts/export_module.py": "a5180765386a73aca79646011fe19fbd9f4896baf91ecd7a378d3ad1316f3f21",
+    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+    "scripts/proof_contract.py": "3ec3152f91a8c787b244d57c0388a63e24a66a9162bf5dfd5f07d90bddb41e98",
+    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+  }
+}
