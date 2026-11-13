@@ -8,19 +8,23 @@ use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python a
 needed for regeneration, not deployment.
 
 The original audited normalizer remains available as a separate v1 profile.
-Single-root module exports use `pure-module/v4` with v6 IR, including UInt32 and UInt64
-arithmetic, comparisons, local joins and source record names for typed Go APIs.
-Multiple roots use `pure-module/v5` with v7 IR and share one generated package.
-The current checkout also supports bitwise AND, OR, XOR, complement and logical
-right shift for both widths. This feature is **unreleased** and uses v8/v9 IR only
-when a new primitive survives compilation; see the [bitwise report](docs/research/extraction-bitwise.md).
+Exports using existing operations retain `pure-module/v4` with v6 IR for one root,
+including UInt32 and UInt64 arithmetic, comparisons, local joins and source record
+names for typed Go APIs. Multiple roots use `pure-module/v5` with v7 IR and share
+one generated package.
+Alpha.6 adds bitwise AND, OR, XOR, complement and logical right shift for both
+widths. Emitted bitwise operations select v8/v9 IR with `pure-module/v6` or
+`pure-module/v7`; see the [bitwise report](docs/research/extraction-bitwise.md).
 Earlier v2–v7 IR retain their original restrictions and APIs.
 There is no fixed model hash or application name allowlist. The experimental
-preview is `v0.1.0-alpha.5`; APIs and supported compiler forms may change before
+preview is `v0.1.0-alpha.6`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
-[preview notes](docs/releases/v0.1.0-alpha.5.md).
-Alpha.5 adds [structured extraction diagnostics](docs/diagnostics.md) and supports
-Lean **4.36.0-rc2**, commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
+[preview notes](docs/releases/v0.1.0-alpha.6.md).
+[Structured extraction diagnostics](docs/diagnostics.md) are available since
+alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
+`source_audit` with the source owner and location; genuine build failures retain
+their `build` stage. The producer still requires Lean **4.36.0-rc2**, commit
+`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
 The [compatibility harness](docs/compiler-compatibility.md) is research tooling
 included in the Git checkout, separate from the installed CLI and wheel. Later
 compiler releases require fresh qualification and review before promotion;
@@ -35,7 +39,7 @@ Install the published preview [`lean-go` CLI](docs/cli.md) to generate and check
 proofs from any working directory without keeping a checkout beside your project:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.5"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.6"
 ```
 
 Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
@@ -46,11 +50,11 @@ To regenerate the current checkout's examples and proof evidence, install the
 CLI from that same [development checkout](docs/cli.md#development-checkout).
 Published-release reproduction requires the example and CLI from the same tag.
 
-The unreleased [standalone flag-mask module](examples/proofs/flags) demonstrates
-four `UInt32` bitwise operations with eight universally quantified source proofs
-and independent Go tests. Its checked-in package runs with Go alone; regeneration
-requires the development CLI from a local checkout, as described in its guide.
-The published alpha.5 CLI does not include bitwise extraction.
+The [standalone flag-mask module](examples/proofs/flags), included in alpha.6,
+demonstrates four `UInt32` bitwise operations with eight universally quantified
+source proofs and independent Go tests over 4,752 input pairs. Its checked-in
+package runs with Go alone. Use the example and CLI from the same tag, or install
+from the same checkout when regenerating development artifacts.
 
 ## Extract a module
 
@@ -76,7 +80,7 @@ required; differing existing package contents are preserved and rejected.
 Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
 functions, saturated calls, exhaustive matches, and self recursion. `UInt32` and `UInt64`
 supports literals, addition, subtraction, multiplication, left shift, equality,
-and unsigned less-than/less-or-equal comparisons. In the unreleased checkout,
+and unsigned less-than/less-or-equal comparisons. Since alpha.6,
 `&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
 Arithmetic wraps modulo 2^32 or
 2^64 respectively; shift counts are reduced modulo 32 or 64. Conversions between

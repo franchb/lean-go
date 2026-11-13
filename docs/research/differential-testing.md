@@ -71,7 +71,7 @@ neither compiler IR nor extraction implementation. Numeric semantics use Python
 arbitrary-precision integers with explicit reduction modulo 2^32 or 2^64 and
 shift counts modulo the selected width.
 
-Programs have two scalar inputs and a scalar result. The unreleased bitwise
+Programs have two scalar inputs and a scalar result. The alpha.6 bitwise
 extension adds AND, OR, XOR, unary complement and logical right shift at both
 widths; serialized ASTs preserve unary arity for replay. Expressions combine numeric
 literals, addition, subtraction, multiplication, left shift, equality and unsigned

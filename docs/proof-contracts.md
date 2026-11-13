@@ -2,7 +2,7 @@
 
 A proof contract lets a Lean library use the same checked-evidence workflow as
 the [quota library](quota.md). It works with single-root v6 and multi-root v7
-generated packages, plus the unreleased checkout's bitwise v8/v9 packages.
+generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -137,11 +137,11 @@ Go consumers use only generated code and the standard library with
 `CGO_ENABLED=0`. Lean and Python are needed to regenerate/check evidence, not to
 deploy the Go package.
 
-The unreleased [standalone flag-mask example](../examples/proofs/flags) selects four
+The alpha.6 [standalone flag-mask example](../examples/proofs/flags) selects four
 `UInt32` bitwise roots and checks eight universal laws against independent expected
 propositions. It includes full-width Go regression tests and a fresh installed-CLI
-verifier. Use its development-checkout installation instructions; alpha.5 does not
-support bitwise extraction.
+verifier. Pair its tagged example and CLI for release reproduction, or install
+the CLI from the same checkout for development artifacts.
 
 ## Evidence and assurance
 
