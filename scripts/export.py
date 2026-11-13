@@ -15,8 +15,8 @@ import tempfile
 
 MODEL = "feasibility/LeanGo/Feasibility/Model.lean"
 MODEL_SHA256 = "c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f"
-COMMIT = "eb6cafb7290e8bd5f2937522d8d804f58f02bafc"
-TOOLCHAIN = b"leanprover/lean4:v4.35.0\n"
+COMMIT = "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"
+TOOLCHAIN = b"leanprover/lean4:v4.36.0-rc2\n"
 CONFIG = b'''name = "lean_go_producer"
 version = "0.0.0"
 
@@ -83,7 +83,7 @@ def run(command, workspace, env):
 
 
 def check_version(text):
-    if not re.search(r"Lean \(version 4\.35\.0,.*commit " + COMMIT + r", Release\)", text):
+    if not re.search(r"Lean \(version 4\.36\.0\-rc2,.*commit " + COMMIT + r", Release\)", text):
         raise ExportError(f"unexpected Lean version or commit: {text.strip()}")
 
 
@@ -176,7 +176,7 @@ def export(root, output, reference_input=None, reference_output=None):
         if not isinstance(program, dict) or set(program) != {"types", "functions", "claims", "rewrites"}:
             raise ExportError("unexpected producer result fields")
         program.update(schema="lean-go-ir/v1", profile="audited-normalizer/v1",
-                       stage="pure-mono", lean_version="4.35.0", lean_commit=COMMIT,
+                       stage="pure-mono", lean_version="4.36.0-rc2", lean_commit=COMMIT,
                        model_sha256=MODEL_SHA256, root="LeanGo.Feasibility.normalize",
                        inputs={key: hashlib.sha256(data).hexdigest() for key, data in sources.items()})
         result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()

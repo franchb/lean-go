@@ -124,7 +124,7 @@ class ModuleExportTests(unittest.TestCase):
     def fake_run(self, command, workspace, env):
         if command[-1] == '--version':
             (workspace / 'lake-manifest.json').write_text('{"packages":[]}')
-            return f'Lean (version 4.35.0, x86_64, commit {producer.COMMIT}, Release)'
+            return f'Lean (version 4.36.0-rc2, x86_64, commit {producer.COMMIT}, Release)'
         if command[-1] == '--print-prefix':
             return str(self.root / 'stdlib')
         if 'build' in command:

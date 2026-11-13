@@ -5,7 +5,7 @@ checks. Install the alpha.4 preview from its pinned Git tag; no PyPI release is
 required.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then use
-Python 3.15. The producer requires Go **1.27.4** and Lean/Lake **4.35.0** on `PATH`.
+Python 3.15. The published alpha.4 producer requires Go **1.27.4** and Lean/Lake **4.35.0** on `PATH`.
 Lean must report commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`; a matching
 version string alone is insufficient. Use the upstream
 [Go downloads](https://go.dev/dl/) and
@@ -21,8 +21,8 @@ lean-go doctor
 ```
 
 This installs Python package version `0.1.0a4` from release tag
-`v0.1.0-alpha.4`. For local development, replace the Git URL with the path to
-your checkout.
+`v0.1.0-alpha.4`. Keep this release paired with Lean 4.35.0; current development
+uses a newer compiler as described below.
 
 `uv tool update-shell` adds uv's tool executable directory to your shell setup
 if `lean-go` is not found. These commands also work in PowerShell; command
@@ -30,6 +30,29 @@ examples below use POSIX line continuation, so put each command on one line in
 PowerShell. Help and version do not require Go, Lean or Lake. `doctor` checks
 Python, Go, Lean's exact commit and the Lean executable selected by `lake env`;
 it returns nonzero if any check fails.
+
+## Development checkout
+
+The current development package is `0.1.0a5.dev0` and requires Lean
+**4.36.0-rc2**, commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, with Go
+**1.27.4** and Python **3.15**. Use the upstream
+[Lean 4.36.0-rc2 release](https://github.com/leanprover/lean4/releases/tag/v4.36.0-rc2),
+or install it with `elan toolchain install leanprover/lean4:v4.36.0-rc2`.
+There is no need to change Elan's global default. From the development checkout:
+
+```sh
+uv python install 3.15
+uv tool install --force --python 3.15 .
+lean-go --version
+lean-go doctor
+```
+
+This replaces the installed `lean-go` command with this checkout's development
+version. For checkout-local use, run `uv sync --reinstall-package lean-go-tools`
+and `uv run --locked lean-go doctor` instead. Pair generated artifacts with the
+same checkout and toolchain when reproducing their hashes. Later compiler
+versions need explicit [compatibility qualification](compiler-compatibility.md);
+the installed producer keeps its exact version and commit checks.
 
 ## Generate from your project
 

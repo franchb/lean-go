@@ -3,6 +3,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import tomllib
 import unittest
 from unittest import mock
 
@@ -11,6 +12,11 @@ from export import ExportError
 
 
 class ReleaseWalkthroughTests(unittest.TestCase):
+    def test_receipt_identifies_the_current_unreleased_package(self):
+        metadata = tomllib.loads((walkthrough.ROOT / 'pyproject.toml').read_text())
+        self.assertEqual(walkthrough.CANDIDATE, metadata['project']['version'])
+        self.assertIn('.dev', walkthrough.CANDIDATE)
+
     def test_missing_or_wrong_go_stops_before_generation(self):
         with mock.patch.object(walkthrough.shutil, 'which', return_value=None), \
                 mock.patch.object(walkthrough, 'run') as run:

@@ -65,11 +65,14 @@ class LeanDiagnosticsTests(unittest.TestCase):
         self.assertEqual(item['location']['start']['column'], 4)
 
     def test_syntax_failure_has_original_location_and_is_not_admission(self):
-        item = self.reject('def run (x : UInt32) : UInt32 := )\n')
-        self.assertEqual((item['stage'], item['code']), ('build', 'producer_failed'))
-        self.assertIsNone(item['declaration'])
-        self.assertEqual(item['location']['path'], 'Example.lean')
-        self.assertEqual(item['location']['start']['line'], 1)
+        for expression, column in [(')', 32), ('missing', 33)]:
+            with self.subTest(expression=expression):
+                item = self.reject(f'def run (x : UInt32) : UInt32 := {expression}\n')
+                self.assertEqual((item['stage'], item['code']), ('build', 'producer_failed'))
+                self.assertIsNone(item['declaration'])
+                point = {'line': 1, 'column': column, 'utf16_column': column, 'byte_offset': column}
+                self.assertEqual(item['location'], {'path': 'Example.lean', 'kind': 'compiler',
+                    'declaration': None, 'start': point, 'end': point})
 
     def test_actual_encoder_control_and_value_rejections(self):
         probes = [

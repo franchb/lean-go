@@ -77,19 +77,19 @@ func execute(b *budget, args []*node) (*node, error) {
 					return nil, err
 				}
 				next := frameForCall(stack, 0, 9, 3)
-				next.slots[0] = f.slots[7]
-				next.slots[1] = f.slots[4]
+				next.slots[0] = f.slots[6]
+				next.slots[1] = f.slots[7]
 				f.pc = 3
 				stack = append(stack, next)
 			case 3:
-				value, err := b.make(2, 0, []*node{f.slots[6]})
+				value, err := b.make(2, 0, []*node{f.slots[5]})
 				if err != nil {
 					return nil, err
 				}
 				f.slots[10] = value
 				f.pc = 4
 			case 4:
-				value, err := b.make(2, 0, []*node{f.slots[5]})
+				value, err := b.make(2, 0, []*node{f.slots[4]})
 				if err != nil {
 					return nil, err
 				}
@@ -131,8 +131,8 @@ func execute(b *budget, args []*node) (*node, error) {
 					return nil, err
 				}
 				next := frameForCall(stack, 0, 19, 3)
-				next.slots[0] = f.slots[15]
-				next.slots[1] = f.slots[16]
+				next.slots[0] = f.slots[17]
+				next.slots[1] = f.slots[15]
 				f.pc = 11
 				stack = append(stack, next)
 			case 11:
@@ -143,7 +143,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[20] = value
 				f.pc = 12
 			case 12:
-				f.slots[4], f.slots[5], f.slots[6], f.slots[7], f.slots[8] = f.slots[15], f.slots[18], f.slots[19], f.slots[17], f.slots[20]
+				f.slots[4], f.slots[5], f.slots[6], f.slots[7], f.slots[8] = f.slots[18], f.slots[19], f.slots[16], f.slots[17], f.slots[20]
 				f.pc = 2
 			case 13:
 				f.pc = 23
@@ -180,14 +180,14 @@ func execute(b *budget, args []*node) (*node, error) {
 				}
 				next := frameForCall(stack, 0, 30, 3)
 				next.slots[0] = f.slots[29]
-				next.slots[1] = f.slots[25]
+				next.slots[1] = f.slots[23]
 				f.pc = 18
 				stack = append(stack, next)
 			case 18:
-				if f.slots[23] == nil {
+				if f.slots[21] == nil {
 					return nil, ErrMalformed
 				}
-				switch f.slots[23].tag {
+				switch f.slots[21].tag {
 				case 0:
 					f.pc = 19
 				case 1:
@@ -196,14 +196,14 @@ func execute(b *budget, args []*node) (*node, error) {
 					return nil, ErrMalformed
 				}
 			case 19:
-				f.slots[15], f.slots[16], f.slots[17], f.slots[18] = f.slots[21], f.slots[22], f.slots[25], f.slots[30]
+				f.slots[15], f.slots[16], f.slots[17], f.slots[18] = f.slots[22], f.slots[23], f.slots[25], f.slots[30]
 				f.pc = 10
 			case 20:
 				if err := b.enter(3, len(stack)); err != nil {
 					return nil, err
 				}
 				next := frameForCall(stack, 0, 31, 3)
-				next.slots[0] = f.slots[21]
+				next.slots[0] = f.slots[25]
 				next.slots[1] = f.slots[22]
 				f.pc = 21
 				stack = append(stack, next)
@@ -215,7 +215,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[32] = value
 				f.pc = 22
 			case 22:
-				f.slots[4], f.slots[5], f.slots[6], f.slots[7], f.slots[8] = f.slots[21], f.slots[30], f.slots[31], f.slots[25], f.slots[32]
+				f.slots[4], f.slots[5], f.slots[6], f.slots[7], f.slots[8] = f.slots[30], f.slots[31], f.slots[23], f.slots[25], f.slots[32]
 				f.pc = 2
 			case 23:
 				f.pc = 36
@@ -299,7 +299,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.pc = 31
 				stack = append(stack, next)
 			case 31:
-				f.slots[15], f.slots[16], f.slots[17], f.slots[18] = f.slots[33], f.slots[35], f.slots[41], f.slots[42]
+				f.slots[15], f.slots[16], f.slots[17], f.slots[18] = f.slots[35], f.slots[41], f.slots[33], f.slots[42]
 				f.pc = 10
 			case 32:
 				tag := 0
@@ -325,10 +325,10 @@ func execute(b *budget, args []*node) (*node, error) {
 					return nil, ErrMalformed
 				}
 			case 34:
-				f.slots[21], f.slots[22], f.slots[23], f.slots[24], f.slots[25], f.slots[26] = f.slots[33], f.slots[35], f.slots[40], f.slots[38], f.slots[41], f.slots[41]
+				f.slots[21], f.slots[22], f.slots[23], f.slots[24], f.slots[25], f.slots[26] = f.slots[40], f.slots[35], f.slots[41], f.slots[38], f.slots[33], f.slots[41]
 				f.pc = 14
 			case 35:
-				f.slots[21], f.slots[22], f.slots[23], f.slots[24], f.slots[25], f.slots[26] = f.slots[33], f.slots[35], f.slots[40], f.slots[38], f.slots[41], f.slots[33]
+				f.slots[21], f.slots[22], f.slots[23], f.slots[24], f.slots[25], f.slots[26] = f.slots[40], f.slots[35], f.slots[41], f.slots[38], f.slots[33], f.slots[33]
 				f.pc = 14
 			case 36:
 				if f.slots[3] == nil {

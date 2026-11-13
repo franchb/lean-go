@@ -56,10 +56,20 @@ class ProducerTests(unittest.TestCase):
         self.assertTrue(all(not path.exists() for path in workspaces))
         self.assertEqual(self.output.read_bytes(), b"previous success\n")
 
+    def test_version_pin_accepts_only_the_reviewed_release_and_commit(self):
+        current = f"Lean (version 4.36.0-rc2, test, commit {producer.COMMIT}, Release)"
+        producer.check_version(current)
+        rejected = [current.replace('4.36.0-rc2', version)
+                    for version in ('4.35.0', '4.36.0-rc1', '4.36.0', '4.37.0')]
+        rejected.append(current.replace(producer.COMMIT, '0' * 40))
+        for identity in rejected:
+            with self.subTest(identity=identity), self.assertRaises(producer.ExportError):
+                producer.check_version(identity)
+
     def test_fresh_workspace_contains_only_snapshots(self):
         (self.root / "producer/rogue.olean").write_bytes(b"untrusted compiled source")
         workspaces = []
-        version = f"Lean (version 4.35.0, test, commit {producer.COMMIT}, Release)"
+        version = f"Lean (version 4.36.0-rc2, test, commit {producer.COMMIT}, Release)"
         def fake_run(command, workspace, env):
             if workspace not in workspaces:
                 workspaces.append(workspace)
@@ -96,7 +106,7 @@ class ProducerTests(unittest.TestCase):
     def test_failed_lean_preserves_output_and_cleans_only_own_workspace(self):
         sentinel = self.root / "keep.txt"
         sentinel.write_text("keep")
-        version = f"Lean (version 4.35.0, test, commit {producer.COMMIT}, Release)"
+        version = f"Lean (version 4.36.0-rc2, test, commit {producer.COMMIT}, Release)"
         workspaces = []
         def fake_run(command, workspace, env):
             workspaces.append(workspace)

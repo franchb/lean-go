@@ -91,7 +91,7 @@ copies the theorem type to manufacture an expectation.
 
 ## Generate and check an external project
 
-Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.35.0
+Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0-rc2
 and Python 3.15 through `uv`. Replace `/path/to/my-library` with your project:
 
 ```sh

@@ -5,8 +5,8 @@ const (
 	Schema       = "lean-go-ir/v1"
 	Profile      = "audited-normalizer/v1"
 	Stage        = "pure-mono"
-	LeanVersion  = "4.35.0"
-	LeanCommit   = "eb6cafb7290e8bd5f2937522d8d804f58f02bafc"
+	LeanVersion  = "4.36.0-rc2"
+	LeanCommit   = "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"
 	ModelSHA256  = "c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f"
 	Root         = "LeanGo.Feasibility.normalize"
 	MaxBytes     = 4 << 20

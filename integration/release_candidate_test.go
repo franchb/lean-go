@@ -13,7 +13,8 @@ import (
 	"testing"
 )
 
-const releaseCandidateVersion = "v0.1.0-alpha.4"
+// Synthetic local-proxy version for development; no public tag is implied.
+const releaseCandidateVersion = "v0.1.0-alpha.5-dev.0"
 
 func TestReleaseCandidateConsumer(t *testing.T) {
 	// This checks the candidate's public Go libraries without publishing a tag.

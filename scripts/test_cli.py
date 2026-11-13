@@ -261,8 +261,8 @@ class JSONDiagnosticTests(unittest.TestCase):
 class DoctorTests(unittest.TestCase):
     def doctor(self, versions=None, missing=False):
         versions = versions or ['go version go1.27.4 linux/amd64',
-                                f'Lean (version 4.35.0, target, commit {COMMIT}, Release)',
-                                f'Lean (version 4.35.0, target, commit {COMMIT}, Release)']
+                                f'Lean (version 4.36.0-rc2, target, commit {COMMIT}, Release)',
+                                f'Lean (version 4.36.0-rc2, target, commit {COMMIT}, Release)']
         output = io.StringIO()
         commands = []
         def run(command, **kwargs):
@@ -287,7 +287,7 @@ class DoctorTests(unittest.TestCase):
 
     def test_wrong_go_and_lean_commit_fail(self):
         result, output, _ = self.doctor(['go version go1.27.3 linux/amd64',
-                                        'Lean (version 4.35.0, target, commit wrong, Release)',
+                                        'Lean (version 4.36.0-rc2, target, commit wrong, Release)',
                                         'Lean (version 4.34.0, target, commit wrong, Release)'])
         self.assertEqual(result, 1)
         self.assertIn('expected go1.27.4', output)

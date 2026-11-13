@@ -4,8 +4,17 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import export_module as producer
+
+
+ELABORATION_FAILURE = (
+    r'(?i)unexpected token|unknown (?:identifier|constant|attribute)|'
+    r'unsolved goals|type mismatch|maximum recursion depth|stack overflow|RecursionError|'
+    r'error\(lean\.(?:unknownIdentifier|unknownConstant|unknownAttribute|'
+    r'typeMismatch|unsolvedGoals|unexpectedToken)\)'
+)
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1',
@@ -93,11 +102,12 @@ class RecordAdmissionTests(unittest.TestCase):
         self.output.write_bytes(b'previous output\n')
         with self.assertRaisesRegex(producer.ExportError, diagnostic) as rejected:
             self.export(body)
-        self.assertNotRegex(str(rejected.exception),
-                            'unexpected token|unknown identifier|unknown attribute|'
-                            'unsolved goals|type mismatch|maximum recursion depth|'
-                            'stack overflow|RecursionError')
+        self.assertNotRegex(str(rejected.exception), ELABORATION_FAILURE)
         self.assertEqual(self.output.read_bytes(), b'previous output\n')
+
+    def test_rejection_helper_refuses_malformed_replacement_fixture(self):
+        with self.assertRaisesRegex(AssertionError, 'Regex matched'):
+            self.assert_rejected('def run (a b : UInt64) := replacement a b\n', 'replacement')
 
     def test_single_field_parameter_return_and_noinline_call_keep_source_types(self):
         program = self.export('''structure Count where
@@ -315,6 +325,32 @@ def run (x : Wide) : Wide := x
             for context, body in contexts.items():
                 with self.subTest(target=target, context=context):
                     self.assert_rejected(definitions + body, 'rewrite|replacement|repeated compilation')
+
+
+class RejectionGuardTests(unittest.TestCase):
+    def test_compiler_errors_cannot_masquerade_as_audit_rejections(self):
+        messages = [
+            'error(lean.unknownIdentifier): Unknown identifier `replacement`',
+            'error(lean.typeMismatch): replacement',
+            'error: Unknown attribute replacement',
+            'error: Unknown constant replacement',
+            'error: Type mismatch for replacement',
+            'error: unexpected token replacement',
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            self.output = Path(directory) / 'program.json'
+            for message in messages:
+                with self.subTest(message=message), mock.patch.object(
+                        self, 'export', create=True, side_effect=producer.ExportError(message)):
+                    with self.assertRaisesRegex(AssertionError, 'Regex matched'):
+                        RecordAdmissionTests.assert_rejected(self, '', 'replacement')
+
+    def test_unclassified_audit_rejection_remains_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            self.output = Path(directory) / 'program.json'
+            with mock.patch.object(self, 'export', create=True,
+                                   side_effect=producer.ExportError('Unsupported compiler replacement')):
+                RecordAdmissionTests.assert_rejected(self, '', 'replacement')
 
 
 if __name__ == '__main__':

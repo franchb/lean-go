@@ -117,14 +117,15 @@ def map_location(location, sources):
 def compiler_location(message, sources, workspace):
     """Match only explicit Lean/Lake position prefixes in the fresh workspace."""
     from pathlib import Path
+    error_prefix = r'error(?:\([A-Za-z][A-Za-z0-9_.]*\))?: '
     for module, (relative, _) in sources.items():
         absolute = str(workspace).rstrip('/\\') + '/' + relative
         paths = {relative, relative.replace('/', '\\'), absolute, absolute.replace('/', '\\')}
         # Path construction on the current host must also handle native separators.
         paths.add(str(Path(workspace) / relative))
         for path in paths:
-            prefix = r'(?:^|\n)(?P<lake>error: )?' + re.escape(path)
-            for match in re.finditer(prefix + r':(\d+):(\d+): (?P<direct>error: )?', message):
+            prefix = r'(?:^|\n)(?P<lake>' + error_prefix + r')?' + re.escape(path)
+            for match in re.finditer(prefix + r':(\d+):(\d+): (?P<direct>' + error_prefix + r')?', message):
                 if not match['lake'] and not match['direct']:
                     continue
                 point = {'line': int(match[2]), 'column': int(match[3])}

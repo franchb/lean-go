@@ -5,6 +5,7 @@ import tempfile
 import unittest
 
 import export_module as producer
+from test_record_admission import ELABORATION_FAILURE
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1', 'set LEAN_GO_MODULES=1 for fresh Lean admission builds')
@@ -72,7 +73,7 @@ class RealModuleAdmissionTests(unittest.TestCase):
                     output.write_bytes(b'original output\n')
                     with self.assertRaisesRegex(producer.ExportError, diagnostic) as rejected:
                         producer.export_module(root, source, 'Admission', 'Admission.run', output)
-                    self.assertNotRegex(str(rejected.exception), 'unexpected token|unknown identifier|unknown attribute')
+                    self.assertNotRegex(str(rejected.exception), ELABORATION_FAILURE)
                     self.assertEqual(output.read_bytes(), b'original output\n')
 
 

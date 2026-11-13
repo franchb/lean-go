@@ -1,42 +1,40 @@
-# From Lean source proofs to Go with alpha.4
+# From Lean source proofs to Go in development
 
-This walkthrough uses the `v0.1.0-alpha.4` experimental preview, which brings
-together the installable CLI, frame-storage reuse and a standalone clamp demo
-with multi-root extraction, the quota library and reusable source-proof contracts.
-It checks source theorems, extracts fresh Go and exercises an isolated consumer.
-Its API remains experimental.
+This walkthrough checks the unreleased `0.1.0a5.dev0` development package:
+fresh source theorems, generated Go and an isolated consumer. It does not
+publish an alpha.5 release. The published `v0.1.0-alpha.4` remains paired with
+Lean 4.35.0; its [tagged walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/release-candidate.md)
+reproduces that release. APIs remain experimental.
 
-## Start from a clean checkout
+## Start from a clean development checkout
 
-Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.
-Make Go, Lean and Lake available on `PATH`. Clone into a new directory:
+Use Go **1.27.4**, pinned Lean **4.36.0-rc2** at commit
+`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and **uv** with Python **3.15**.
+Make Go, Lean and Lake available on `PATH`. From a development checkout
+containing this guide:
 
 ```sh
-git clone --branch v0.1.0-alpha.4 --single-branch \
-  https://github.com/franchb/lean-go.git lean-go-alpha4
-cd lean-go-alpha4
 git rev-parse HEAD
 uv python install 3.15
 ```
 
-Record the full commit printed above alongside your verification output. The tag
-pins the release sources. The verifier operates on its current source
-checkout; it does not establish that a working tree is clean. CI runs it from a
-fresh checkout, and release preparation also checks a clean tracked snapshot.
+Record the full commit and any working-tree changes with your verification
+output. The verifier operates on the current source checkout; it does not
+establish that the working tree is clean. CI uses a fresh checkout.
 
 ## Check the installed CLI and standalone demo
 
-Install the public tag and check the exact producer toolchain:
+Install this development checkout and check the exact producer toolchain:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.4"
+uv tool install --force --python 3.15 .
 lean-go --version
 lean-go doctor
 clamp_cli=$(command -v lean-go)
 uv run --locked python scripts/check_clamp_demo.py --cli "$clamp_cli"
 ```
 
-The CLI reports `lean-go 0.1.0a4`. If it is not on `PATH`, follow the
+The CLI reports `lean-go 0.1.0a5.dev0`. If it is not on `PATH`, follow the
 [installation guide](cli.md). The POSIX commands above capture the installed CLI
 path before `uv run` adds the checkout environment to `PATH`; in PowerShell,
 use `$clamp_cli = (Get-Command lean-go).Source` before the verifier command.
@@ -60,19 +58,21 @@ tool path, uses `CGO_ENABLED=0`, and disables module network access. It compares
 177 boundary and seeded cases with an independent integer model, including
 values above 2^53 and `math.MaxUint64`.
 
-Success prints a JSON receipt with `"status": "passed"`, tool identities,
+Success prints a JSON receipt with `"status": "passed"`,
+`"candidate": "0.1.0a5.dev0"`, tool identities,
 checked claims, source/proof/tool hashes, the generated manifest and IR hashes,
 and the consumer case count. It contains no machine-specific absolute paths.
 All temporary projects and caches owned by the verifier are removed. To retain
 the receipt and commit identity outside the checkout:
 
 ```sh
-git rev-parse HEAD > ../alpha4-walkthrough.commit
-uv run --locked python scripts/check_release_candidate.py > ../alpha4-walkthrough.json
+git rev-parse HEAD > ../development-walkthrough.commit
+uv run --locked python scripts/check_release_candidate.py > ../development-walkthrough.json
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
-the source workflow; verify the public Go module separately:
+the development source workflow. The following separate test checks the
+existing alpha.4 public Go module; it does not publish or validate a new tag:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \

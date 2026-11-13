@@ -1,0 +1,110 @@
+package compatconsumer
+
+import (
+	x "compatconsumer/extracted"
+	"testing"
+)
+
+func TestNumeric(t *testing.T) {
+	tests := []struct {
+		a, b, want32, want64 uint64
+		eq, lt, le           bool
+	}{
+		{0, 0, 3, 3, true, false, true},
+		{0, 1, 0, 0, false, true, true},
+		{0, 4294967295, 6, 18446744060824649734, false, true, true},
+		{4294967295, 0, 0, 12884901888, false, false, false},
+		{2, 7, 4294967284, 18446744073709551604, false, true, true},
+	}
+	limits := x.DefaultLimits()
+	for _, tc := range tests {
+		for _, wide := range []bool{false, true} {
+			name, root := "UInt32", "Numeric.calc32"
+			if wide {
+				name, root = "UInt64", "Numeric.calc64"
+			}
+			args := make([]x.Value, 2)
+			for i, n := range []uint64{tc.a, tc.b} {
+				input := &x.Input{Type: name}
+				if wide {
+					input.UInt64 = n
+				} else {
+					input.UInt32 = uint32(n)
+				}
+				var err error
+				args[i], err = x.Import(input, limits)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			out, err := x.RunRoot(root, args, limits)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fields := out.Fields()
+			if len(fields) != 4 {
+				t.Fatal("record field count", out)
+			}
+			if wide {
+				n, ok := fields[0].UInt64()
+				if !ok || n != tc.want64 {
+					t.Fatalf("wide %d %d: %d", tc.a, tc.b, n)
+				}
+			} else {
+				n, ok := fields[0].UInt32()
+				if !ok || uint64(n) != tc.want32 {
+					t.Fatalf("narrow %d %d: %d", tc.a, tc.b, n)
+				}
+			}
+			for i, want := range []bool{tc.eq, tc.lt, tc.le} {
+				constructor := "Bool.false"
+				if want {
+					constructor = "Bool.true"
+				}
+				if fields[i+1].Constructor() != constructor {
+					t.Fatalf("comparison %d: %v", i, fields[i+1])
+				}
+			}
+		}
+	}
+	// Values above 2^53 and the UInt64 wrap boundary stay exact.
+	for _, tc := range []struct {
+		a, b, want uint64
+		eq, lt, le bool
+	}{
+		{18446744073709551615, 0, 0, false, false, false},
+		{0, 18446744073709551615, 6, false, true, true},
+		{18446744073709551615, 18446744073709551615, 3, true, false, true},
+		{9007199254740993, 9007199254740992, 6, false, false, false},
+	} {
+		a, err := x.Import(&x.Input{Type: "UInt64", UInt64: tc.a}, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := x.Import(&x.Input{Type: "UInt64", UInt64: tc.b}, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out, err := x.RunRoot("Numeric.calc64", []x.Value{a, b}, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fields := out.Fields()
+		if len(fields) != 4 {
+			t.Fatal("wide record field count", out)
+		}
+		got, ok := fields[0].UInt64()
+		if !ok || got != tc.want {
+			t.Fatal(tc, got)
+		}
+		for i, want := range []bool{tc.eq, tc.lt, tc.le} {
+			constructor := "Bool.false"
+			if want {
+				constructor = "Bool.true"
+			}
+			if fields[i+1].Constructor() != constructor {
+				t.Fatalf("wide %d %d comparison %d: %v", tc.a, tc.b, i, fields[i+1])
+			}
+		}
+	}
+}

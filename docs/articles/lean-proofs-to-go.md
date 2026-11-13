@@ -82,8 +82,10 @@ mistaken for a complete application specification.
 
 ## Produce artifacts that can be checked again
 
-Use Go **1.27.4**, Python **3.15** and the pinned Lean/Lake **4.35.0** toolchain.
-Follow the [CLI installation guide](../cli.md), copy the example directory, and
+Use Go **1.27.4**, Python **3.15** and the pinned Lean/Lake **4.36.0-rc2** toolchain.
+These are development artifacts; the published alpha.4 demo still uses Lean
+4.35.0. Follow the [development CLI instructions](../cli.md#development-checkout),
+copy the example directory, and
 run these commands inside the copy:
 
 ```sh
@@ -98,7 +100,7 @@ the supported compiler representation, and emits a Go package plus manifest.
 It records IR in `clamp.ir.json`. The manifest identifies profile
 `pure-module/v4`, IR `lean-go-ir/v6`, and generator `lean-go-modulegen/v7`, with
 hashes of the generator, validator, source inputs and generated files. The pinned
-Lean identity is commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`, not merely a
+Lean identity is commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, not merely a
 matching version string.
 
 Proof checking rebuilds runtime and proof sources and checks exact statements

@@ -128,7 +128,7 @@ def evidence(contract_path, manifest_path, tool_root=TOOL_ROOT):
         raise ExportError('proof inputs or generated package changed during checking')
     result = {
         'schema': 'lean-go-proof-evidence/v1',
-        'lean_version': '4.35.0', 'lean_commit': COMMIT,
+        'lean_version': '4.36.0-rc2', 'lean_commit': COMMIT,
         'module': contract.module, 'roots': list(contract.roots),
         'contract_sha256': digest(contract.raw),
         'project_inputs': {name: digest(data) for name, data in project.inputs.items()},

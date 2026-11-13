@@ -1,0 +1,48 @@
+package compatconsumer
+
+import (
+	x "compatconsumer/extracted"
+	"testing"
+)
+
+func TestImportedRecords(t *testing.T) {
+	l := x.DefaultLimits()
+	for _, tc := range []struct {
+		in, want uint32
+		flag     string
+	}{
+		{0, 1, "Bool.true"}, {41, 42, "Bool.false"}, {4294967295, 0, "Bool.true"},
+	} {
+		value, err := x.Import(&x.Input{Type: "Parts.Packet", Constructor: "Parts.Packet.mk", Fields: []*x.Input{
+			{Type: "Parts.Count", Constructor: "Parts.Count.mk", Fields: []*x.Input{{Type: "UInt32", UInt32: tc.in}}},
+			{Type: "Bool", Constructor: tc.flag},
+		}}, l)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out, err := x.RunRoot("Records.increment", []x.Value{value}, l)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if out.Type() != "Parts.Packet" || out.Constructor() != "Parts.Packet.mk" || len(out.Fields()) != 2 {
+			t.Fatal("packet shape", out)
+		}
+		fields := out.Fields()
+		if fields[0].Type() != "Parts.Count" || fields[0].Constructor() != "Parts.Count.mk" || len(fields[0].Fields()) != 1 {
+			t.Fatal("nested count", fields[0])
+		}
+		n, ok := fields[0].Fields()[0].UInt32()
+		if !ok || n != tc.want || fields[1].Constructor() != tc.flag {
+			t.Fatal(tc, n, fields[1])
+		}
+		// The same nominal packet is accepted by the second exported root.
+		scalar, err := x.RunRoot("Records.read", []x.Value{out}, l)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, ok = scalar.UInt32()
+		if !ok || n != tc.want {
+			t.Fatal(tc, n)
+		}
+	}
+}

@@ -80,10 +80,12 @@ exercise the extraction boundary; they are not proofs for all Go executions.
 
 ## Regenerate and check proofs
 
-Install the CLI using the repository's
-[installation guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/cli.md).
-The producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake **4.35.0** with
-Lean commit `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`. Then run from this directory:
+This development demo uses `0.1.0a5.dev0`; the published alpha.4 demo and CLI
+remain on Lean 4.35.0. Install the CLI from the matching development checkout
+using the repository's
+[installation guide](https://github.com/franchb/lean-go/blob/main/docs/cli.md#development-checkout).
+The producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake **4.36.0-rc2** with
+Lean commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Then run from this directory:
 
 ```sh
 lean-go doctor
@@ -127,7 +129,7 @@ its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The installed CLI smoke
 runs the complete verifier on Linux and Windows in CI. See the
-[article](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/articles/lean-proofs-to-go.md)
+[article](https://github.com/franchb/lean-go/blob/main/docs/articles/lean-proofs-to-go.md)
 for the design and assurance boundary. The public
 [issue tracker](https://github.com/franchb/lean-go/issues) accepts reproducible
 unsupported-source and integration reports.

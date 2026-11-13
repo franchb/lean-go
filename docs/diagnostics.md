@@ -4,7 +4,7 @@ Diagnostics are **post-alpha.4 development** functionality in `0.1.0a5.dev0`.
 The published `v0.1.0-alpha.4` installation does not include this interface.
 Use a checkout of this development revision and `uv sync --locked` (refresh an
 existing editable installation with `uv sync --locked --reinstall-package lean-go-tools`).
-The pinned Python 3.15, Go 1.27.4 and Lean 4.35.0 toolchains remain required.
+The pinned Python 3.15, Go 1.27.4 and Lean 4.36.0-rc2 toolchains remain required.
 
 Generation prints readable errors to stderr by default, including a known LCNF
 form, the original rejection reason and a next-step hint. Select one JSON report

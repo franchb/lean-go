@@ -70,7 +70,7 @@ Quota uses the shared [proof-contract workflow](proof-contracts.md). Its
 [contract](../libraries/quota/proof-contract.json) maps the theorems to raw
 [expected propositions](../libraries/quota/proof/QuotaContract.lean), maintained
 separately from the proofs. The checker rebuilds the exact runtime and proof sources in a fresh,
-dependency-free Lean 4.35.0 project. It compares each theorem's type with an
+dependency-free Lean 4.36.0-rc2 project. It compares each theorem's type with an
 independently written expected proposition and collects its axiom dependencies.
 Only `propext`, `Classical.choice` and `Quot.sound` are allowed; current proofs use
 only `propext` and `Quot.sound`. Admitted proofs, custom axioms and compiler-trust

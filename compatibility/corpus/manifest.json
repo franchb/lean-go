@@ -1,0 +1,96 @@
+[
+  {
+    "name": "numeric",
+    "module": "Numeric",
+    "roots": [
+      "Numeric.calc32",
+      "Numeric.calc64"
+    ]
+  },
+  {
+    "name": "records",
+    "module": "Records",
+    "roots": [
+      "Records.increment",
+      "Records.read"
+    ],
+    "shapes": {
+      "ops": [
+        "cases"
+      ]
+    }
+  },
+  {
+    "name": "helpers",
+    "module": "Helpers",
+    "roots": [
+      "Helpers.reduced",
+      "Helpers.captured"
+    ],
+    "shapes": {
+      "called_function_suffixes": [
+        "._redArg",
+        "._lam_0"
+      ],
+      "ops": [
+        "join",
+        "cases",
+        "jump"
+      ]
+    }
+  },
+  {
+    "name": "joins",
+    "module": "Joins",
+    "roots": [
+      "Joins.run"
+    ],
+    "shapes": {
+      "ops": [
+        "join",
+        "cases",
+        "jump"
+      ]
+    }
+  },
+  {
+    "name": "polymorphic",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "unsupported_type"
+  },
+  {
+    "name": "extern",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit"
+  },
+  {
+    "name": "unsafe",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit"
+  },
+  {
+    "name": "folded_numeric",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit"
+  },
+  {
+    "name": "custom_pass",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit"
+  }
+]

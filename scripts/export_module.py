@@ -229,7 +229,7 @@ def complete_program(raw, module, entries, identities):
         raise ExportError('module producer returned a different module or roots')
     program.update(schema='lean-go-ir/v7' if multi else 'lean-go-ir/v6',
                    profile='pure-module/v5' if multi else 'pure-module/v4', stage='pure-mono',
-                   lean_version='4.35.0', lean_commit=COMMIT, inputs=identities)
+                   lean_version='4.36.0-rc2', lean_commit=COMMIT, inputs=identities)
     return program
 
 

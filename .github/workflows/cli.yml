@@ -45,12 +45,12 @@ jobs:
       - name: Install pinned Lean release (Linux)
         if: runner.os == 'Linux'
         run: |
-          archive="$RUNNER_TEMP/lean-4.35.0-linux.tar.zst"
+          archive="$RUNNER_TEMP/lean-4.36.0-rc2-linux.tar.zst"
           curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-linux.tar.zst \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-linux.tar.zst \
             --output "$archive"
           printf '%s  %s\n' \
-            7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d \
+            0a0a3208617e9eab92f1041efa83ad94d405e69d172fb654a62dbfa9fbc5313b \
             "$archive" | sha256sum --check --strict
           mkdir -p "$RUNNER_TEMP/lean"
           tar --zstd -xf "$archive" -C "$RUNNER_TEMP/lean" --strip-components=1
@@ -58,15 +58,15 @@ jobs:
       - name: Install pinned Lean release (Windows)
         if: runner.os == 'Windows'
         run: |
-          archive="$RUNNER_TEMP/lean-4.35.0-windows.zip"
+          archive="$RUNNER_TEMP/lean-4.36.0-rc2-windows.zip"
           curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.35.0/lean-4.35.0-windows.zip \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-windows.zip \
             --output "$archive"
           printf '%s  %s\n' \
-            5fc033e93e1a7bc59c5ebf311103d2c9cd18d4b3eddda4ffa3414e8adb0ef79e \
+            ad1ed478bbde27cb178c46d8dfd4721d0d5424729280991a8d54537589e1949e \
             "$archive" | sha256sum --check --strict
           unzip -q "$archive" -d "$RUNNER_TEMP"
-          printf '%s\n' "$RUNNER_TEMP/lean-4.35.0-windows/bin" >> "$GITHUB_PATH"
+          printf '%s\n' "$RUNNER_TEMP/lean-4.36.0-rc2-windows/bin" >> "$GITHUB_PATH"
       - name: Check CLI boundary and payload parity
         run: |
           uv run --locked python scripts/test_cli.py

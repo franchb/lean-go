@@ -17,8 +17,11 @@ preview is `v0.1.0-alpha.4`; APIs and supported compiler forms may change before
 a stable release. Start with the [walkthrough](docs/getting-started.md) or read the
 [preview notes](docs/releases/v0.1.0-alpha.4.md).
 Post-alpha.4 development (`0.1.0a5.dev0`) adds
-[structured extraction diagnostics](docs/diagnostics.md); the alpha.4 release
-does not include the diagnostics option.
+[structured extraction diagnostics](docs/diagnostics.md) and supports Lean
+**4.36.0-rc2**. The published alpha.4 release requires Lean **4.35.0** and does
+not include the diagnostics option. Later compiler releases are qualified with
+the [compatibility harness](docs/compiler-compatibility.md) before promotion;
+production extraction continues to require the exact supported version and commit.
 
 Alpha.4 adds an installable CLI, recursive frame-storage reuse and a standalone
 proved-clamp demo to the multi-root extraction, quota and proof-contract tools. The
@@ -39,9 +42,11 @@ for the three claims, reproducible commands and extraction boundary.
 
 ## Extract a module
 
-Use Go **1.27.4**, the pinned Lean **4.35.0**, and **uv** with Python **3.15**.
+Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.
 Python dependencies are managed by `uv.lock`; currently the tooling uses only the
-standard library. From the repository root:
+standard library. These commands use the development checkout; install its CLI
+with the [development instructions](docs/cli.md#development-checkout). From the
+repository root:
 
 ```sh
 uv run --locked python scripts/generate.py \
@@ -265,9 +270,9 @@ maintained handwritten/typed/raw benchmarks and measured frame-slot reuse result
 
 ## Run the pilot
 
-Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.35.0** toolchain named in
+Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.36.0-rc2** toolchain named in
 [`producer/lean-toolchain`](producer/lean-toolchain). The exporter checks the
-exact Lean commit, `eb6cafb7290e8bd5f2937522d8d804f58f02bafc`. Run from the
+exact Lean commit, `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Run from the
 repository root, with these tools available on `PATH`:
 
 ```sh

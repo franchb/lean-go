@@ -115,6 +115,8 @@ class CompilerProtocolTests(unittest.TestCase):
         mapped, _ = export_module.instrument_source(b'def f := broken\n', with_mapping=True)
         sources = {'Example': ('Example.lean', mapped)}
         for message in ('Example.lean:4:9: error: unknown identifier',
+                        'Example.lean:4:9: error(lean.unknownIdentifier): Unknown identifier',
+                        'error(lean.unknownIdentifier): Example.lean:4:9: Unknown identifier',
                         'error: Example.lean:4:9: unknown identifier',
                         'error: /fresh/Example.lean:4:9: unexpected token'):
             location = diagnostics.compiler_location(message, sources, Path('/fresh'))
@@ -124,6 +126,11 @@ class CompilerProtocolTests(unittest.TestCase):
         self.assertEqual(location['start']['line'], 1)
         self.assertIsNone(diagnostics.compiler_location(
             'error: /unrelated/Example.lean:4:9: unexpected token', sources, Path('/fresh')))
+        for label in ('warning', 'warning(lean.unknownIdentifier)', 'error()',
+                      'error(lean unknownIdentifier)', 'information'):
+            self.assertIsNone(diagnostics.compiler_location(
+                f'Example.lean:4:9: {label}: message', sources, Path('/fresh')))
+
 
     def test_malformed_context_types_are_not_interpreted(self):
         valid = diagnostics.diagnostic('rejected', stage='admission', code='source_audit', hint='fix source')

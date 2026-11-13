@@ -196,9 +196,9 @@ def run (a b : UInt64) : Result := ⟨a + b, UInt64.add a b⟩
   if a == b then UInt64.shiftLeft a b else if a < b then a + b else a - b
 ''', modern=modern)
                 provenance = {item['name'] for item in program['provenance']}
-                expected = ('instBEqOfDecidableEq' if modern else
-                            '_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt64')
-                self.assertIn(expected, provenance)
+                self.assertIn('instLinearOrderPackageUInt64', provenance)
+                self.assertFalse(any(name.startswith('_private.Init.Data.UInt.Package.')
+                                     for name in provenance))
                 self.assertEqual(self.functions(program)['Numeric.run']['result'], 'UInt64')
 
     def test_unsupported_numeric_dependencies_reject_even_after_erasure(self):
@@ -265,11 +265,13 @@ theorem replacement_eq : instAddUInt64 = replacement := rfl
                     probe = self.imported_attribute_probe(attribute, 'UInt64.add', value)
                     self.assert_rejected(prefix + body, 'Numeric source .*changed|numeric primitive', probe=probe)
 
-    def test_literal_and_private_order_package_mutations_reject(self):
+    def test_literal_and_public_order_package_mutations_reject(self):
         cases = {
             'UInt64.ofNat': 'def run : UInt64 := 9007199254740993\n',
-            '_private.Init.Data.UInt.Package.0.instLinearOrderPackageUInt64':
+            'instLinearOrderPackageUInt64':
                 'def run (a b : UInt64) : Bool := a == b\n',
+            'instLinearOrderPackageUInt32':
+                'def run (a b : UInt32) : Bool := a == b\n',
         }
         for name, body in cases.items():
             with self.subTest(boundary=name):
