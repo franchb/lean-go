@@ -26,6 +26,7 @@ func LookupPrimitive(name string) (Primitive, bool) {
 		bits = "64"
 	}
 	result, semantics := width, ""
+	params := []string{width, width}
 	switch operation {
 	case "add":
 		semantics = "(a + b) modulo 2^" + bits
@@ -35,6 +36,17 @@ func LookupPrimitive(name string) (Primitive, bool) {
 		semantics = "(a * b) modulo 2^" + bits
 	case "shiftLeft":
 		semantics = "(a * 2^(b modulo " + bits + ")) modulo 2^" + bits
+	case "land":
+		semantics = "bitwise AND of " + bits + "-bit operands"
+	case "lor":
+		semantics = "bitwise OR of " + bits + "-bit operands"
+	case "xor":
+		semantics = "bitwise XOR of " + bits + "-bit operands"
+	case "complement":
+		params = []string{width}
+		semantics = "(2^" + bits + " - 1) - a"
+	case "shiftRight":
+		semantics = "floor(a / 2^(b modulo " + bits + "))"
 	case "decEq":
 		result, semantics = "Bool", "unsigned a == b"
 	case "decLt":
@@ -44,7 +56,16 @@ func LookupPrimitive(name string) (Primitive, bool) {
 	default:
 		return Primitive{}, false
 	}
-	return Primitive{name, []string{width, width}, result, semantics}, true
+	return Primitive{name, params, result, semantics}, true
+}
+
+func isBitwisePrimitive(name string) bool {
+	switch name {
+	case "UInt32.land", "UInt32.lor", "UInt32.xor", "UInt32.complement", "UInt32.shiftRight",
+		"UInt64.land", "UInt64.lor", "UInt64.xor", "UInt64.complement", "UInt64.shiftRight":
+		return true
+	}
+	return false
 }
 
 func validProfile(schema, profile string) bool {
@@ -59,6 +80,10 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV4
 	case SchemaV7:
 		return profile == ProfileV5
+	case SchemaV8:
+		return profile == ProfileV6
+	case SchemaV9:
+		return profile == ProfileV7
 	default:
 		return false
 	}
@@ -100,6 +125,9 @@ func (v *validator) numericValue(value *Value) ([]string, string, error) {
 	}
 	if primitive.Params[0] == "UInt64" && !v.wide {
 		return nil, "", fmt.Errorf("UInt64 primitives require %s", ProfileV4)
+	}
+	if isBitwisePrimitive(value.Name) && !v.bitwise {
+		return nil, "", fmt.Errorf("bitwise primitives require %s or %s", ProfileV6, ProfileV7)
 	}
 	if !v.validType(primitive.Result) {
 		return nil, "", fmt.Errorf("missing primitive result type %s", primitive.Result)

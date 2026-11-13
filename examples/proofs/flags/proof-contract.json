@@ -1,0 +1,46 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Flags",
+  "roots": [
+    "Flags.clear",
+    "Flags.contains",
+    "Flags.set",
+    "Flags.toggle"
+  ],
+  "claims": [
+    {
+      "theorem": "FlagsProofs.clear_idempotent",
+      "expected": "FlagsContract.clear_idempotent"
+    },
+    {
+      "theorem": "FlagsProofs.clear_untouched",
+      "expected": "FlagsContract.clear_untouched"
+    },
+    {
+      "theorem": "FlagsProofs.cleared_bits_absent",
+      "expected": "FlagsContract.cleared_bits_absent"
+    },
+    {
+      "theorem": "FlagsProofs.contains_set",
+      "expected": "FlagsContract.contains_set"
+    },
+    {
+      "theorem": "FlagsProofs.set_idempotent",
+      "expected": "FlagsContract.set_idempotent"
+    },
+    {
+      "theorem": "FlagsProofs.set_untouched",
+      "expected": "FlagsContract.set_untouched"
+    },
+    {
+      "theorem": "FlagsProofs.toggle_involution",
+      "expected": "FlagsContract.toggle_involution"
+    },
+    {
+      "theorem": "FlagsProofs.toggle_untouched",
+      "expected": "FlagsContract.toggle_untouched"
+    }
+  ]
+}

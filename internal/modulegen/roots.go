@@ -8,7 +8,7 @@ import (
 )
 
 func (g *generator) emitRootMetadata(w *bytes.Buffer) {
-	if g.program.Schema == moduleir.SchemaV7 {
+	if moduleir.HasMultipleRoots(g.program.Schema) {
 		g.emitRootSignatures(w)
 		return
 	}
@@ -37,7 +37,7 @@ func (g *generator) emitRootSignatures(w *bytes.Buffer) {
 }
 
 func (g *generator) emitInitialFrame(w *bytes.Buffer) {
-	if g.program.Schema != moduleir.SchemaV7 {
+	if !moduleir.HasMultipleRoots(g.program.Schema) {
 		root := g.functions[g.program.Root]
 		fmt.Fprintf(w, "func execute(b *budget,args []*node)(*node,error){if err:=b.enter(%d,0);err!=nil{return nil,err};initial:=frame{function:%d,destination:-1,slots:make([]*node,%d)}\n", len(root.slots), root.id, len(root.slots))
 		g.emitRootArguments(w, root)

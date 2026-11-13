@@ -5,25 +5,30 @@ import "fmt"
 // RootNames returns the selected roots of an already validated program.
 // The returned slice must not be modified by callers.
 func RootNames(p *Program) []string {
-	if p.Schema == SchemaV7 {
+	if HasMultipleRoots(p.Schema) {
 		return p.Roots
 	}
 	return []string{p.Root}
 }
 
+// HasMultipleRoots identifies schemas with an explicit roots array.
+func HasMultipleRoots(schema string) bool { return schema == SchemaV7 || schema == SchemaV9 }
+
 // HasUInt64 identifies schemas with scalar UInt64 semantics.
-func HasUInt64(schema string) bool { return schema == SchemaV6 || schema == SchemaV7 }
+func HasUInt64(schema string) bool {
+	return schema == SchemaV6 || schema == SchemaV7 || schema == SchemaV8 || schema == SchemaV9
+}
 
 // HasTypedAPI identifies schemas carrying source record metadata.
 func HasTypedAPI(schema string) bool {
-	return schema == SchemaV5 || schema == SchemaV6 || schema == SchemaV7
+	return schema == SchemaV5 || HasUInt64(schema)
 }
 
 // programFields keeps each schema's root representation exact at the JSON
 // boundary, including rejection of an irrelevant root field with an empty value.
 func programFields(schema string) []string {
 	fields := append([]string{}, objectFields["program"]...)
-	if schema == SchemaV7 {
+	if HasMultipleRoots(schema) {
 		for i, field := range fields {
 			if field == "root" {
 				fields[i] = "roots"
@@ -37,7 +42,7 @@ func programFields(schema string) []string {
 }
 
 func validateRoots(p *Program) error {
-	if p.Schema != SchemaV7 {
+	if !HasMultipleRoots(p.Schema) {
 		if !validName(p.Root) || p.Roots != nil {
 			return fmt.Errorf("legacy profile requires one root and no roots array")
 		}

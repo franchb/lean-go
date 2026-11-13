@@ -44,6 +44,41 @@ class LeanDiagnosticsTests(unittest.TestCase):
         self.assertEqual(item['location']['start']['line'], 3)
         self.assertEqual(item['location']['declaration'], 'foreign')
 
+    def test_custom_csimp_is_explicit_source_audit_rejection(self):
+        body = (ROOT / 'compatibility/reproducers/CustomCsimpDiagnostic.lean').read_text()
+        item = self.reject(body)
+        self.assertEqual((item['stage'], item['code'], item['declaration'], item['compiler_form']),
+                         ('admission', 'source_audit', 'original', 'csimp'))
+        self.assertIn('Unsupported historical compiler rewrite: original -> replacement via replacement_eq',
+                      item['message'])
+        self.assertEqual(item['location']['path'], 'Example.lean')
+        self.assertEqual(item['location']['declaration'], 'original')
+        self.assertEqual(item['location']['start']['line'], 1)
+
+    def test_malformed_custom_csimp_remains_build_failure(self):
+        body = (ROOT / 'compatibility/reproducers/CustomCsimpDiagnostic.lean').read_text()
+        item = self.reject(body + 'def broken : UInt32 := )\n')
+        self.assertEqual((item['stage'], item['code']), ('build', 'producer_failed'))
+        self.assertIsNone(item['declaration'])
+        self.assertIsNone(item['compiler_form'])
+        self.assertEqual(item['location']['path'], 'Example.lean')
+        self.assertEqual(item['location']['start']['line'], 6)
+
+    def test_rewrite_witness_integrity_failure_remains_build_failure(self):
+        harness = ('import LeanGo.Module.Export\nimport Example\nopen Lean LeanGo.Module\n'
+                   'run_cmd Lean.Elab.Command.liftCoreM do\n'
+                   '  withEnv (← mkEmptyEnvironment) do\n'
+                   '    addDecl <| .axiomDecl { name := ``Bool.not_eq_internalNot, '
+                   'levelParams := [], type := .sort .zero, isUnsafe := false }\n'
+                   '    discard <| reportAdmission <| rewriteJson { source := ``Bool.not, '
+                   'target := ``Bool.Internal.not, theoremName := ``Bool.not_eq_internalNot }\n')
+        with patch.object(producer, 'export_harness', return_value=harness):
+            item = self.reject('def run (x : UInt32) : UInt32 := x\n')
+        self.assertEqual((item['stage'], item['code']), ('build', 'producer_failed'))
+        self.assertIn('Compiler rewrite witness is not a theorem', item['message'])
+        self.assertIsNone(item['declaration'])
+        self.assertIsNone(item['compiler_form'])
+
     def test_polymorphic_signature_is_explicit_type_rejection(self):
         item = self.reject('def run {α : Type} (x : α) : α := x\n')
         self.assertEqual((item['stage'], item['code'], item['declaration']),

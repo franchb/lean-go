@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/format"
 	"sort"
+	"strings"
 
 	"github.com/franchb/lean-go/internal/moduleir"
 )
@@ -17,7 +18,7 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v7"
+const Version = "lean-go-modulegen/v8"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -282,23 +283,13 @@ func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
 		Evidence        string                `json:"evidence"`
 		Primitives      *[]moduleir.Primitive `json:"primitives,omitempty"`
 		GoAPI           *goAPI                `json:"go_api,omitempty"`
-	}{Schema: "lean-go-manifest/v2", Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
+	}{Schema: strings.Replace(g.program.Schema, "lean-go-ir/", "lean-go-manifest/", 1), Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
+	// Every validated module schema uses the corresponding manifest version.
 	if g.program.Schema != moduleir.Schema {
-		manifest.Schema = "lean-go-manifest/v3"
-		if g.program.Schema == moduleir.SchemaV4 {
-			manifest.Schema = "lean-go-manifest/v4"
-		}
 		primitives := g.primitiveCatalog()
 		manifest.Primitives = &primitives
 	}
 	if moduleir.HasTypedAPI(g.program.Schema) {
-		manifest.Schema = "lean-go-manifest/v5"
-		if g.program.Schema == moduleir.SchemaV6 {
-			manifest.Schema = "lean-go-manifest/v6"
-		}
-		if g.program.Schema == moduleir.SchemaV7 {
-			manifest.Schema = "lean-go-manifest/v7"
-		}
 		manifest.GoAPI = g.api
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")

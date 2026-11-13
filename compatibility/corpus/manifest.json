@@ -8,6 +8,14 @@
     ]
   },
   {
+    "name": "bitwise",
+    "module": "Bitwise",
+    "roots": [
+      "Bitwise.calc32",
+      "Bitwise.calc64"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [
@@ -87,6 +95,14 @@
   },
   {
     "name": "custom_pass",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit"
+  },
+  {
+    "name": "custom_csimp",
     "module": "Example",
     "roots": [
       "run"

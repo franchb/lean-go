@@ -12,10 +12,10 @@ from export import ExportError
 
 
 class ReleaseWalkthroughTests(unittest.TestCase):
-    def test_receipt_identifies_the_current_release_package(self):
+    def test_receipt_identifies_the_current_package(self):
         metadata = tomllib.loads((walkthrough.ROOT / 'pyproject.toml').read_text())
         self.assertEqual(walkthrough.CANDIDATE, metadata['project']['version'])
-        self.assertEqual(walkthrough.CANDIDATE, '0.1.0a5')
+        self.assertEqual(walkthrough.CANDIDATE, '0.1.0a6.dev0')
 
     def test_missing_or_wrong_go_stops_before_generation(self):
         with mock.patch.object(walkthrough.shutil, 'which', return_value=None), \

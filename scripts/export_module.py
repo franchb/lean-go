@@ -218,6 +218,26 @@ def export_harness(module, entries):
     return f'import LeanGo.Module.Export\nimport {module}\n' + command
 
 
+def emitted_bitwise(program):
+    """Select capabilities from executable nodes, never provenance or source names."""
+    names = {f'UInt{width}.{operation}' for width in (32, 64)
+             for operation in ('land', 'lor', 'xor', 'complement', 'shiftRight')}
+    pending = [function['body'] for function in program['functions']]
+    while pending:
+        node = pending.pop()
+        if node['op'] == 'let':
+            value = node['value']
+            if value['kind'] == 'primitive' and value['name'] in names:
+                return True
+        if node['op'] in ('let', 'join'):
+            pending.append(node['next'])
+        if node['op'] == 'join':
+            pending.append(node['join']['body'])
+        if node['op'] == 'cases':
+            pending.extend(alt['body'] for alt in node['alts'])
+    return False
+
+
 def complete_program(raw, module, entries, identities):
     program = parse_json(raw)
     multi = len(entries) > 1
@@ -227,8 +247,14 @@ def complete_program(raw, module, entries, identities):
         raise ExportError('unexpected module producer result fields')
     if program['module'] != module or program[selection] != (entries if multi else entries[0]):
         raise ExportError('module producer returned a different module or roots')
-    program.update(schema='lean-go-ir/v7' if multi else 'lean-go-ir/v6',
-                   profile='pure-module/v5' if multi else 'pure-module/v4', stage='pure-mono',
+    try:
+        bitwise = emitted_bitwise(program)
+    except (KeyError, TypeError) as exc:
+        raise ExportError('unexpected module producer executable fields') from exc
+    version, profile = {(False, False): (6, 4), (True, False): (7, 5),
+                        (False, True): (8, 6), (True, True): (9, 7)}[multi, bitwise]
+    program.update(schema=f'lean-go-ir/v{version}',
+                   profile=f'pure-module/v{profile}', stage='pure-mono',
                    lean_version='4.36.0-rc2', lean_commit=COMMIT, inputs=identities)
     return program
 
