@@ -19,6 +19,7 @@ type validator struct {
 	nodes        int
 	numeric      bool
 	wide         bool
+	bytes        bool
 	bitwise      bool
 	conversions  bool
 	joins        bool
@@ -112,8 +113,9 @@ func (v *validator) validateMetadata(p *Program) error {
 	}
 	v.numeric = p.Schema != Schema
 	v.wide = HasUInt64(p.Schema)
+	v.bytes = HasUInt8(p.Schema)
 	v.joins = v.numeric && p.Schema != SchemaV3
-	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11
+	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11 || v.bytes
 	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9 || v.conversions
 	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
@@ -203,7 +205,7 @@ func (v *validator) validateTypes(types []TypeDecl) error {
 	}
 	previous := ""
 	for _, t := range types {
-		if !validName(t.Name) || t.Name == "UInt32" || (v.wide && t.Name == "UInt64") || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
+		if !validName(t.Name) || t.Name == "UInt8" || t.Name == "UInt32" || (v.wide && t.Name == "UInt64") || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
 			return fmt.Errorf("invalid or unordered type %s", t.Name)
 		}
 		previous = t.Name
@@ -275,6 +277,9 @@ func (v *validator) validateTypeClosure() error {
 	used := map[string]bool{"UInt32": true}
 	if v.wide {
 		used["UInt64"] = true
+	}
+	if v.bytes {
+		used["UInt8"] = true
 	}
 	scalarCount := len(used)
 	pending := []string{}

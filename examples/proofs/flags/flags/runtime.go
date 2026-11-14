@@ -5,7 +5,7 @@ import "errors"
 
 // Input is mutable caller-owned data. Type and constructor names are Lean names.
 // Scalars use their type name, no constructor or fields, and only their active payload.
-// ADTs require both UInt32=0 and UInt64=0.
+// ADTs require UInt32=0 and UInt64=0.
 type Input struct {
 	Type, Constructor string
 	UInt32            uint32

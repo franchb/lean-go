@@ -73,7 +73,8 @@ jobs:
           uv run --locked python scripts/test_clamp_demo.py
           uv run --locked python scripts/test_flags_demo.py
           uv run --locked python scripts/test_words_demo.py
-      - name: Build, audit and exercise installed wheels and all three demos
+          uv run --locked python scripts/test_bytes_demo.py
+      - name: Build, audit and exercise installed wheels and all four demos
         run: uv run --locked python scripts/check_cli_install.py
       - name: Install and exercise the exact public CLI tag
         if: github.ref_type == 'tag'
@@ -97,6 +98,6 @@ jobs:
           actual = subprocess.check_output([str(cli), '--version'], text=True).strip()
           assert actual == f'lean-go {version}', actual
           subprocess.run([str(cli), 'doctor'], check=True)
-          for demo in ['clamp', 'flags', 'words']:
+          for demo in ['clamp', 'flags', 'words', 'bytes']:
               subprocess.run([sys.executable, f'scripts/check_{demo}_demo.py', '--cli', str(cli)], check=True)
           PYTHON

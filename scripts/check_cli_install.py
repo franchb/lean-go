@@ -16,6 +16,7 @@ import tomllib
 import zipfile
 
 from check_clamp_demo import verify_demo
+from check_bytes_demo import verify_demo as verify_bytes_demo
 from check_flags_demo import verify_demo as verify_flags_demo
 from check_words_demo import verify_demo as verify_words_demo
 from check_release_candidate import base_environment, copy_fixture, pinned_go, run_consumer
@@ -212,7 +213,8 @@ def smoke(workspace, without_lean):
             assert 'missing from PATH' in missing
             count = None if without_lean else producer_workflow(cli, directory, env, multiple_roots=index == 0)
             if not without_lean:
-                for name, verify in [('clamp', verify_demo), ('flags', verify_flags_demo), ('words', verify_words_demo)]:
+                for name, verify in [('clamp', verify_demo), ('flags', verify_flags_demo), ('words', verify_words_demo),
+                                     ('bytes', verify_bytes_demo)]:
                     demo = directory / ('standalone ' + name + ' demo')
                     demo.mkdir()
                     verify(cli, demo, env)

@@ -16,16 +16,23 @@ Alpha.6 adds bitwise AND, OR, XOR, complement and logical right shift for both
 widths. Emitted bitwise operations select v8/v9 IR with `pure-module/v6` or
 `pure-module/v7`; see the [bitwise report](docs/research/extraction-bitwise.md).
 Earlier v2–v7 IR retain their original restrictions and APIs.
-The alpha.7 candidate adds exact `UInt32.toUInt64` zero extension and
+Published alpha.7 adds exact `UInt32.toUInt64` zero extension and
 `UInt64.toUInt32` truncation modulo 2^32. Emitted conversions select v10/v11 IR
 with `pure-module/v8` or `pure-module/v9`; see the
-[width-conversion report](docs/research/extraction-width-conversions.md). The
-current module generator is `lean-go-modulegen/v9`.
-There is no fixed model hash or application name allowlist. This checkout
-prepares the experimental `v0.1.0-alpha.7` release, Python package `0.1.0a7`. Tag commands below are for use after publication; candidate checks do
-not establish public tag availability. APIs and supported compiler forms may
-change before a stable release. Start with the [walkthrough](docs/getting-started.md)
-or read the [candidate notes](docs/releases/v0.1.0-alpha.7.md).
+[width-conversion report](docs/research/extraction-width-conversions.md).
+
+This development checkout adds scalar `UInt8`, exact byte/word conversions and a
+[proved byte codec](examples/proofs/bytes). Byte-enabled exports use v12/v13 IR,
+`pure-module/v10` or `pure-module/v11`, and `lean-go-modulegen/v10`; see the
+[UInt8 report](docs/research/extraction-uint8.md). This feature is **unreleased**.
+The package version still reads `0.1.0a7`; the published `v0.1.0-alpha.7` tag uses
+module generator v9 and does not include UInt8 support. Regenerate this checkout's
+artifacts with the CLI from this same checkout.
+
+There is no fixed model hash or application name allowlist. APIs and supported
+compiler forms may change before a stable release. Start with the
+[walkthrough](docs/getting-started.md) or read the published
+[alpha.7 notes](docs/releases/v0.1.0-alpha.7.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -41,8 +48,9 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
-Before publication, use the [checkout installation](docs/cli.md#development-checkout).
-After the tag is published, install the alpha.7 [`lean-go` CLI](docs/cli.md) to
+Use the [checkout installation](docs/cli.md#development-checkout) for current
+artifacts and the new byte codec. To reproduce published alpha.7, install its
+[`lean-go` CLI](docs/cli.md) to
 generate and check proofs from any working directory without keeping a checkout
 beside your project:
 
@@ -69,8 +77,38 @@ with five scalar roots and seven universal source proofs: value-preserving
 widening, modulo narrowing, both conversion round trips, and packing/unpacking
 identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
 Words uses v11 IR/manifest and `pure-module/v9`; pair its example and CLI from
-the same alpha.7 tag, or from this same checkout before publication. Other
-numeric widths and broad generic collections remain deferred.
+the same alpha.7 tag, or from this same checkout. Current generated manifests and
+proof evidence use module generator v10, including demos whose IR schema stays
+unchanged.
+
+## Use the proved byte codec
+
+The development-only [byte codec module](examples/proofs/bytes) encodes a
+`uint32` into four byte fields and decodes them in either byte order. Its
+[Go application](examples/proofs/bytes/main.go) reads those fields into `[4]byte`
+and prints both round trips. From this checkout's root, run it offline:
+
+```sh
+(
+  cd examples/proofs/bytes
+  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
+  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
+)
+```
+
+```text
+LE(0x12345678) = [78 56 34 12] -> 0x12345678
+BE(0x12345678) = [12 34 56 78] -> 0x12345678
+```
+
+Twelve kernel-checked source claims establish both inverse directions for each
+order and all eight arithmetic byte positions. Independent raw/typed Go tests
+compare 652 cases with `encoding/binary` and check ownership, errors and resource
+budgets. The [byte codec walkthrough](docs/articles/proved-byte-codec.md) explains
+the application, proofs and fresh regeneration. The source uses a concrete
+four-field Lean record; broad generic collections remain deferred. Source proofs
+establish Lean behavior; compilation, extraction and Go execution remain tested
+and trusted.
 
 ## Extract a module
 
@@ -94,16 +132,19 @@ CLI names currently use ASCII Lean identifiers. Output package and IR paths are
 required; differing existing package contents are preserved and rejected.
 
 Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
-functions, saturated calls, exhaustive matches, and self recursion. `UInt32` and `UInt64`
-supports literals, addition, subtraction, multiplication, left shift, equality,
-and unsigned less-than/less-or-equal comparisons. Since alpha.6,
-`&&&`, `|||`, `^^^`, `~~~`, and `>>>` are also supported at both widths.
-Arithmetic wraps modulo 2^32 or
-2^64 respectively; shift counts are reduced modulo 32 or 64. Alpha.7 adds ordinary
-`<<<` notation, `UInt32.toUInt64` and `UInt64.toUInt32`.
-Left shift alone keeps v6/v7 IR and `pure-module/v4` or `pure-module/v5`. Other width conversions,
-division, remainder, and other numeric operations,
-other numeric types, generic collections, polymorphism,
+functions, saturated calls, exhaustive matches, and self recursion. `UInt8`,
+`UInt32` and `UInt64` support literals, addition, subtraction, multiplication,
+left shift, equality, unsigned less-than/less-or-equal comparisons, `&&&`, `|||`,
+`^^^`, `~~~` and logical right shift `>>>`. Arithmetic wraps modulo 2^8, 2^32 or
+2^64; shift counts are reduced modulo 8, 32 or 64 respectively. Ordinary `<<<`
+notation is supported. Exact casts are `UInt8.toUInt32`, `UInt32.toUInt8`,
+`UInt32.toUInt64` and `UInt64.toUInt32`; widening preserves the value and narrowing
+reduces it modulo 2^8 or 2^32 respectively.
+UInt8 is available only in this development checkout. Earlier schemas keep their
+restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
+`pure-module/v4` or `pure-module/v5`. Other conversions, including direct
+UInt8/UInt64 casts, division, remainder, other numeric operations and types,
+generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler
 forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.
 
@@ -149,8 +190,8 @@ describes exact wide values and mixed-width validation. See also the
 ## Typed module API
 
 New module exports include typed constructors, record getters, sum destructors and
-`RunTyped`. ADT wrappers own immutable values; `UInt32`, `UInt64` and `Bool` use Go
-`uint32`, `uint64` and `bool`. For example, the generated tree package can be called without Lean
+`RunTyped`. ADT wrappers own immutable values; `UInt8`, `UInt32`, `UInt64` and
+`Bool` use Go `uint8`, `uint32`, `uint64` and `bool`. For example, the generated tree package can be called without Lean
 names or field indexes:
 
 ```go
@@ -265,7 +306,9 @@ and shared acyclic subtrees are copied and charged per occurrence. `Value{}` is
 invalid. `Type`, `Constructor`, `UInt32`, `UInt64`, and `Fields` inspect owned values;
 `Fields` returns a fresh slice. A scalar input uses `Type: "UInt32"` and the
 `UInt32` field, with no constructor or children; a wide scalar uses `Type: "UInt64"`
-and the `UInt64` field. Nonzero inactive scalar payloads are rejected.
+and the `UInt64` field. Byte-enabled packages also expose `Value.UInt8()` and
+accept `Type: "UInt8"` with the `UInt8` field. Nonzero inactive scalar payloads are
+rejected.
 
 `Import` enforces the input node and depth budgets; the other five budgets apply
 to `Run`. All seven limit fields must be valid in both calls.

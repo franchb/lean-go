@@ -39,7 +39,7 @@ func TestWidthConversionGeneratedPayloads(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v11" || manifest.Generator != "lean-go-modulegen/v9" || len(manifest.Primitives) != 2 {
+	if manifest.Schema != "lean-go-manifest/v11" || manifest.Generator != Version || len(manifest.Primitives) != 2 {
 		t.Fatal(manifest)
 	}
 	runGenerated(t, files, `package extracted

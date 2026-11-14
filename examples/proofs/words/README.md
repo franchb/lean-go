@@ -5,10 +5,11 @@ two 32-bit words into one 64-bit word, and reads its high and low halves. Copy
 this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives.
 
-Words is included in the **alpha.7 candidate**. After publication, pair the
+Words is included in published alpha.7. For release reproduction, pair the
 [tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/words)
 and [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
-Before publication or for development artifacts, install the CLI from the same
+Current regenerated artifacts use module generator v10; published alpha.7 uses
+v9. For development artifacts, install the CLI from the same
 [checkout](../../../docs/cli.md#development-checkout). The checked-in Go package
 needs no Lean, Python, uv or C compiler to run.
 
@@ -79,7 +80,7 @@ Each function takes `Limits` as its last argument and returns `(result, error)`.
 Raw callers use `RunRoot` with the corresponding `Words.*` name and immutable
 `Value` arguments. The five selected roots share `lean-go-ir/v11`,
 `lean-go-manifest/v11`, profile `pure-module/v9` and generator
-`lean-go-modulegen/v9`. Only those roots are exported; proof helpers are absent
+`lean-go-modulegen/v10` in this checkout. Only those roots are exported; proof helpers are absent
 from the runtime package.
 
 Every call starts fresh logical budgets. `widen`, `narrow` and `low` need one
@@ -139,8 +140,8 @@ These are finite extraction checks, distinct from the universal Lean proofs.
 
 Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at
 commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. For the tagged example, install
-the alpha.7 CLI using the tagged guide above after publication. For a candidate
-or development checkout, install its CLI, replacing the example absolute path:
+the alpha.7 CLI using the tagged guide above. For a development checkout,
+install its CLI, replacing the example absolute path:
 
 ```sh
 uv tool install --force --python 3.15 /absolute/path/to/lean-go
@@ -179,7 +180,8 @@ external workspace, compares exact bytes, and freshly checks the tracked evidenc
 It then deploys only `go.mod` and Go sources, hides producer tools and C compilers
 from `PATH`, disables module/checksum downloads and cgo, and runs both tests and
 the executable with isolated caches. Root `go test ./...` includes the same
-Go-only copy check. Installed-CLI CI runs clamp, flags and words through both the
-direct wheel and a wheel rebuilt from the source distribution on Linux and
-Windows. The exact-tag installed-CLI workflow is configured to exercise all
-three examples after publication; local checks do not establish tag availability.
+Go-only copy check. Current installed-CLI CI runs clamp, flags, words and bytes
+through both the direct wheel and a wheel rebuilt from the source distribution
+on Linux and Windows, checking 30 source claims per wheel. Published alpha.7's
+exact-tag workflow covers its three demos; local checkout checks do not validate
+the published tag's artifact hashes.

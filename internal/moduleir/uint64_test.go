@@ -7,14 +7,18 @@ import (
 	"testing"
 )
 
-func uint64Program(value *Value, result string) *Program {
+func scalarProgram(value *Value, result string, metadata [3]string) *Program {
 	p := numericProgram(value, result)
-	p.Schema, p.Profile = "lean-go-ir/v6", "pure-module/v4"
+	p.Schema, p.Profile = metadata[0], metadata[1]
 	p.API = &APIMetadata{Records: map[string][]string{}}
 	for i := range p.Functions[0].Params {
-		p.Functions[0].Params[i].Type = "UInt64"
+		p.Functions[0].Params[i].Type = metadata[2]
 	}
 	return p
+}
+
+func uint64Program(value *Value, result string) *Program {
+	return scalarProgram(value, result, [3]string{SchemaV6, ProfileV4, "UInt64"})
 }
 
 func TestUInt64Literals(t *testing.T) {

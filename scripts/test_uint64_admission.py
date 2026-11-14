@@ -30,6 +30,19 @@ def rewrite_sources(prelude, call, erased):
             prelude + erased + 'attribute [csimp] replacement_eq\n']
 
 
+def check_primitive_history(case, primitives, schema):
+    for name, operand, unary in primitives:
+        arguments = 'a' if unary else 'a b'
+        prelude = (f'@[noinline] def replacement ({arguments} : {operand}) := {name} {arguments}\n'
+                   f'theorem replacement_eq : {name} = replacement := rfl\n')
+        call = f'def run ({arguments} : {operand}) := {name} {arguments}\n'
+        erased = f'def run ({arguments} : {operand}) :=\n  let _unused := {name} {arguments}\n  a\n'
+        for source in rewrite_sources(prelude, call, erased):
+            case.assert_rejected(source, 'rewrite|replacement|repeated compilation')
+        clean = case.export(prelude + 'section\nattribute [local csimp] replacement_eq\nend\n' + call)
+        case.assertEqual(clean['schema'], schema)
+
+
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1',
                      'set LEAN_GO_MODULES=1 for fresh Lean admission builds')
 class UInt64AdmissionTests(unittest.TestCase):

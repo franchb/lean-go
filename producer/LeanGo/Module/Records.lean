@@ -6,9 +6,9 @@ namespace LeanGo.Module
 
 def typeKey (e : Expr) : CoreM String := do
   let .const n [] := e | reject "unsupported_type" "Use a concrete first-order data type; polymorphism and function-valued types are outside this profile." m!"Unsupported first-order monomorphic type: {e}"
-  if n == ``UInt32 || n == ``UInt64 then return n.toString
+  if n == ``UInt8 || n == ``UInt32 || n == ``UInt64 then return n.toString
   let some info ← isInductive? n
-    | reject "unsupported_type" "Use UInt32, UInt64 or a concrete admitted inductive data type."
+    | reject "unsupported_type" "Use UInt8, UInt32, UInt64 or a concrete admitted inductive data type."
         m!"`{.ofConstName n}` is not an inductive type"
   unless info.numParams == 0 && info.numIndices == 0 && info.levelParams.isEmpty &&
       info.type == .sort (.succ .zero) do
@@ -51,7 +51,7 @@ private def wrapperChain (source : String) (seen : List String) (fuel : Nat) :
     CoreM (String × List Wrapper) := do
   let name := source.toName
   discard <| typeKey (.const name [])
-  if source == "UInt32" || source == "UInt64" then return (source, [])
+  if source == "UInt8" || source == "UInt32" || source == "UInt64" then return (source, [])
   if seen.contains source then throwError "Cyclic wrapper representation: {name}"
   let info ← getConstInfoInduct name
   if info.isUnsafe then throwError "Unsafe ADT: {name}"

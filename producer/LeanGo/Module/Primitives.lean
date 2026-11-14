@@ -21,6 +21,30 @@ structure NumericPrimitive where
 
 -- Runtime admission is this exact table, never all extern declarations.
 def numericPrimitives : Array NumericPrimitive := #[
+  { name := ``UInt8.toUInt32, operand := ``UInt8, result := ``UInt32,
+    externalSymbol := "lean_uint8_to_uint32", arity := 1 },
+  { name := ``UInt32.toUInt8, operand := ``UInt32, result := ``UInt8,
+    externalSymbol := "lean_uint32_to_uint8", arity := 1 },
+  { name := ``UInt8.land, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_land", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt8.lor, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_lor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt8.xor, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_xor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt8.complement, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt8.shiftRight, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_shift_right", axioms := #[``propext] },
+  { name := ``UInt8.add, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_add" },
+  { name := ``UInt8.sub, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_sub" },
+  { name := ``UInt8.mul, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_mul" },
+  { name := ``UInt8.decEq, operand := ``UInt8, result := ``Bool, externalSymbol := "lean_uint8_dec_eq" },
+  { name := ``UInt8.decLt, operand := ``UInt8, result := ``Bool, externalSymbol := "lean_uint8_dec_lt" },
+  { name := ``UInt8.decLe, operand := ``UInt8, result := ``Bool, externalSymbol := "lean_uint8_dec_le" },
+  -- The pinned compiler also introduces this when multiplying by a power of two.
+  { name := ``UInt8.shiftLeft, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_shift_left",
+    axioms := #[``propext] },
+
   { name := ``UInt32.toUInt64, operand := ``UInt32, result := ``UInt64,
     externalSymbol := "lean_uint32_to_uint64", arity := 1 },
   { name := ``UInt64.toUInt32, operand := ``UInt64, result := ``UInt32,
@@ -69,30 +93,33 @@ def numericPrimitive? (n : Name) : Option NumericPrimitive :=
 def numericOrderPackage : Name :=
   ``instLinearOrderPackageUInt32
 
+def numericByteOrderPackage : Name :=
+  ``instLinearOrderPackageUInt8
+
 def numericWideOrderPackage : Name :=
   ``instLinearOrderPackageUInt64
 
 -- Source-only wrappers support ordinary notation and erased decision proofs.
 -- None of these names authorizes an executable call in exported IR.
 def numericSourceSupport : Array Name := #[
-  ``UInt32.ofNat, ``UInt64.ofNat, ``OfNat.ofNat, ``UInt32.instOfNat, ``UInt64.instOfNat,
-  ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt32, ``instAddUInt64,
-  ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt32, ``instSubUInt64,
-  ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt32, ``instMulUInt64, ``outParam,
-  ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``instAndOpUInt32, ``instAndOpUInt64,
-  ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt32, ``instOrOpUInt64,
-  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt32, ``instXorOpUInt64,
-  ``Complement.complement, ``instComplementUInt32, ``instComplementUInt64,
+  ``UInt8.ofNat, ``UInt32.ofNat, ``UInt64.ofNat, ``OfNat.ofNat, ``UInt8.instOfNat, ``UInt32.instOfNat, ``UInt64.instOfNat,
+  ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt8, ``instAddUInt32, ``instAddUInt64,
+  ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt8, ``instSubUInt32, ``instSubUInt64,
+  ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt8, ``instMulUInt32, ``instMulUInt64, ``outParam,
+  ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64,
+  ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt8, ``instOrOpUInt32, ``instOrOpUInt64,
+  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt8, ``instXorOpUInt32, ``instXorOpUInt64,
+  ``Complement.complement, ``instComplementUInt8, ``instComplementUInt32, ``instComplementUInt64,
   ``HShiftLeft.hShiftLeft, ``instHShiftLeftOfShiftLeft, ``ShiftLeft.shiftLeft,
-  ``instShiftLeftUInt32, ``instShiftLeftUInt64,
+  ``instShiftLeftUInt8, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
   ``HShiftRight.hShiftRight, ``instHShiftRightOfShiftRight, ``ShiftRight.shiftRight,
-  ``instShiftRightUInt32, ``instShiftRightUInt64,
+  ``instShiftRightUInt8, ``instShiftRightUInt32, ``instShiftRightUInt64,
   ``BEq.beq, ``Std.PreorderPackage.toBEq,
   ``Std.LinearPreorderPackage.toPreorderPackage,
-  ``Std.LinearOrderPackage.toLinearPreorderPackage, numericOrderPackage, numericWideOrderPackage,
-  ``Decidable.decide, ``instDecidableEqUInt32, ``instDecidableEqUInt64,
+  ``Std.LinearOrderPackage.toLinearPreorderPackage, numericByteOrderPackage, numericOrderPackage, numericWideOrderPackage,
+  ``Decidable.decide, ``instDecidableEqUInt8, ``instDecidableEqUInt32, ``instDecidableEqUInt64,
   ``instDecidableEqBool, ``instBEqOfDecidableEq,
-  ``LT.lt, ``instLTUInt32, ``instLTUInt64, ``LE.le, ``instLEUInt32, ``instLEUInt64,
+  ``LT.lt, ``instLTUInt8, ``instLTUInt32, ``instLTUInt64, ``LE.le, ``instLEUInt8, ``instLEUInt32, ``instLEUInt64,
   ``ite, ``dite, ``Not, ``Bool.Reflects, ``Bool.Reflects.match_1]
 
 def isNumericSourceBoundary (n : Name) : Bool :=
@@ -164,15 +191,15 @@ def captureNumericBoundary (n : Name) : CoreM TrustedBoundary := do
   return { name := n, observations }
 
 def expectedNumericAxioms (n : Name) : Array Name :=
-  if n == numericOrderPackage || n == numericWideOrderPackage then
+  if n == numericByteOrderPackage || n == numericOrderPackage || n == numericWideOrderPackage then
     #[``propext, ``Classical.choice, ``Quot.sound]
   else if n == ``Std.LinearPreorderPackage.toPreorderPackage ||
       n == ``Std.LinearOrderPackage.toLinearPreorderPackage then #[``propext]
-  else if #[``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt32, ``instOrOpUInt64,
-      ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt32,
+  else if #[``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt8, ``instOrOpUInt32, ``instOrOpUInt64,
+      ``instXorOpUInt8, ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt8, ``instComplementUInt32,
       ``instComplementUInt64].contains n then #[``propext, ``Quot.sound]
-  else if #[``instShiftLeftUInt32, ``instShiftLeftUInt64,
-      ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]
+  else if #[``instShiftLeftUInt8, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
+      ``instShiftRightUInt8, ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]
   else (numericPrimitive? n).map (·.axioms) |>.getD #[]
 
 def sameNames (a b : Array Name) : Bool :=
@@ -193,8 +220,8 @@ def validateNumericDefinition (n : Name) : CoreM Unit := do
       throwError "Unexpected numeric primitive extern: {n}"
     unless (getImplementedBy? env n).isNone && (observedRewrite env n).isNone && !hasInitAttr env n do
       throwError "Unexpected numeric primitive replacement: {n}"
-  else if n == ``UInt32.ofNat || n == ``UInt64.ofNat then
-    let symbol := if n == ``UInt32.ofNat then "lean_uint32_of_nat" else "lean_uint64_of_nat"
+  else if n == ``UInt8.ofNat || n == ``UInt32.ofNat || n == ``UInt64.ofNat then
+    let symbol := if n == ``UInt8.ofNat then "lean_uint8_of_nat" else if n == ``UInt32.ofNat then "lean_uint32_of_nat" else "lean_uint64_of_nat"
     let expected : ExternAttrData := { entries := [.standard `all symbol] }
     unless getExternAttrData? env n == some expected do
       throwError "Unexpected numeric literal extern: {n}"

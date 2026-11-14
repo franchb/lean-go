@@ -69,8 +69,8 @@ are never adapted by this runner.
 
 Producer compilation is a separate first gate. A failure there is
 `producer_build_failed`; every candidate corpus case remains `not_run`.
-Successful producer compilation enables seven accepted cases and six rejection
-cases:
+Successful producer compilation enables eight accepted cases and six required
+rejection cases (14 total):
 
 | Case | Independent expectation |
 | --- | --- |
@@ -78,6 +78,7 @@ cases:
 | `bitwise` | UInt32/UInt64 AND, OR, XOR, complement and masked logical right shift |
 | `left_shift` | UInt32/UInt64 ordinary `<<<` and direct controls, checked with exact exponent/multiply/modulo arithmetic |
 | `width_conversions` | UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
+| `bytes` | UInt8 wrapping arithmetic, comparisons, bitwise operations, modulo-8 shifts and UInt8/UInt32 conversions with independent Go checks |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |

@@ -37,6 +37,16 @@
     ]
   },
   {
+    "name": "bytes",
+    "module": "Bytes",
+    "roots": [
+      "Bytes.calculate",
+      "Bytes.choose",
+      "Bytes.narrow",
+      "Bytes.widen"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [

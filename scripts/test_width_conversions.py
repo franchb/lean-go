@@ -47,7 +47,7 @@ class WidthSchemaTests(unittest.TestCase):
             self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v6')
 
     def test_freshness_dispatch(self):
-        for schema in ('lean-go-ir/v10', 'lean-go-ir/v11'):
+        for schema in ('lean-go-ir/v10', 'lean-go-ir/v11', 'lean-go-ir/v12', 'lean-go-ir/v13'):
             with mock.patch.object(generate, 'verify_module_inputs') as verify:
                 generate.verify_inputs(Path('/repo'), {'schema': schema}, Path('/source'))
                 verify.assert_called_once()
@@ -133,17 +133,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
                     self.assert_rejected(f'def run (a : {operand}) := {name} a\n', diagnostic, probe=probe)
 
     def test_local_scoped_late_erased_and_closed_scope_history(self):
-        for name, operand, _ in CASTS:
-            prelude = (f'@[noinline] def replacement (a : {operand}) := {name} a\n'
-                       f'theorem replacement_eq : {name} = replacement := rfl\n')
-            call = f'def run (a : {operand}) := {name} a\n'
-            erased = f'def run (a : {operand}) :=\n  let _unused := {name} a\n  a\n'
-            cases = wide.rewrite_sources(prelude, call, erased)
-            for body in cases:
-                self.assert_rejected(body, 'rewrite|replacement|repeated compilation')
-            # A replacement outside the compilation interval must not poison a clean root.
-            program = self.export(prelude + 'section\nattribute [local csimp] replacement_eq\nend\n' + call)
-            self.assertEqual(program['schema'], 'lean-go-ir/v10')
+        wide.check_primitive_history(self, [(name, operand, True) for name, operand, _ in CASTS], 'lean-go-ir/v10')
 
 
 if __name__ == '__main__':

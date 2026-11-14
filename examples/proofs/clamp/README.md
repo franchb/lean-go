@@ -139,9 +139,11 @@ Ordinary root `go test ./...` separately copies only `go.mod`, the consumer and
 its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The installed CLI smoke
-runs the complete clamp, flags and words verifiers through both direct and
-sdist-rebuilt wheels on Linux and Windows in CI. All three demos are included in
-the alpha.7 candidate; pair them with the CLI from the same checkout or tag. See the
+runs the complete clamp, flags, words and bytes verifiers through both direct and
+sdist-rebuilt wheels on Linux and Windows in CI, checking 30 source claims per
+wheel. Published alpha.7 includes the first three demos with generator v9; this
+checkout regenerates their artifacts with v10 and adds the unreleased byte codec.
+Pair examples with the CLI from the same checkout or tag. See the
 [article](../../../docs/articles/lean-proofs-to-go.md)
 for the design and assurance boundary. The public
 [issue tracker](https://github.com/franchb/lean-go/issues) accepts reproducible

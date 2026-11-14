@@ -221,6 +221,10 @@ def export_harness(module, entries):
 BITWISE_PRIMITIVES = {f'UInt{width}.{operation}' for width in (32, 64)
                       for operation in ('land', 'lor', 'xor', 'complement', 'shiftRight')}
 WIDTH_CONVERSIONS = {'UInt32.toUInt64', 'UInt64.toUInt32'}
+BYTE_PRIMITIVES = {f'UInt8.{operation}' for operation in (
+    'add', 'sub', 'mul', 'decEq', 'decLt', 'decLe',
+    'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight')} | {
+        'UInt8.toUInt32', 'UInt32.toUInt8'}
 
 
 def emitted_primitives(program):
@@ -242,6 +246,38 @@ def emitted_primitives(program):
     return names
 
 
+def emitted_byte_types(program):
+    """Inspect executable type positions and literals, never source provenance."""
+    for typ in program['types']:
+        for constructor in typ['constructors']:
+            if 'UInt8' in constructor['fields']:
+                return True
+    pending = []
+    for function in program['functions']:
+        if function.get('result') == 'UInt8' or any(p['type'] == 'UInt8' for p in function.get('params', [])):
+            return True
+        pending.append(function['body'])
+    while pending:
+        node = pending.pop()
+        if node['op'] == 'let':
+            if node.get('bind', {}).get('type') == 'UInt8' or node['value']['kind'] == 'uint8':
+                return True
+        if node['op'] in ('let', 'join'):
+            pending.append(node['next'])
+        if node['op'] == 'join':
+            if any(p['type'] == 'UInt8' for p in node['join'].get('params', [])):
+                return True
+            pending.append(node['join']['body'])
+        if node['op'] == 'cases':
+            if node.get('type') == 'UInt8' or node.get('result') == 'UInt8':
+                return True
+            for alt in node['alts']:
+                if any(p['type'] == 'UInt8' for p in alt.get('params', [])):
+                    return True
+                pending.append(alt['body'])
+    return False
+
+
 def complete_program(raw, module, entries, identities):
     program = parse_json(raw)
     multi = len(entries) > 1
@@ -253,10 +289,12 @@ def complete_program(raw, module, entries, identities):
         raise ExportError('module producer returned a different module or roots')
     try:
         primitives = emitted_primitives(program)
+        byte_types = emitted_byte_types(program)
     except (KeyError, TypeError) as exc:
         raise ExportError('unexpected module producer executable fields') from exc
-    capability = 2 if primitives & WIDTH_CONVERSIONS else int(bool(primitives & BITWISE_PRIMITIVES))
-    version, profile = ((6, 4), (8, 6), (10, 8))[capability]
+    capability = (3 if byte_types or primitives & BYTE_PRIMITIVES else
+                  2 if primitives & WIDTH_CONVERSIONS else int(bool(primitives & BITWISE_PRIMITIVES)))
+    version, profile = ((6, 4), (8, 6), (10, 8), (12, 10))[capability]
     if multi:
         version, profile = version + 1, profile + 1
     program.update(schema=f'lean-go-ir/v{version}',
