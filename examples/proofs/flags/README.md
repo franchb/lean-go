@@ -5,11 +5,12 @@ Copy this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives. Lean, Python and
 lean-go are needed only to regenerate the package and check the source proofs.
 
-This example is included in `v0.1.0-alpha.6`. The checked-in Go package runs
-without installing any producer tools. Release reproduction pairs the
-[tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.6/examples/proofs/flags)
-with the [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.6/docs/cli.md);
-development artifacts use the CLI from the same checkout.
+This example is included in the alpha.7 candidate. The checked-in Go package
+runs without installing any producer tools. After publication, pair the
+[tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/flags)
+with the [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md);
+before publication and for development artifacts, use the CLI from the same
+checkout.
 
 ## Run with Go alone
 
@@ -121,8 +122,9 @@ universal proofs of Go executions.
 
 Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at Lean
 commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. For the tagged example,
-install the alpha.6 CLI using the tagged guide above. For a development checkout,
-install the CLI from that same checkout, replacing the example absolute path:
+install the alpha.7 CLI using the tagged guide above after publication. For a
+candidate or development checkout, install its CLI, replacing the example
+absolute path:
 
 ```sh
 uv tool install --force --python 3.15 /absolute/path/to/lean-go
@@ -171,4 +173,4 @@ Root `go test ./...` includes the same Go-only deployment on Linux and Windows.
 The current checkout's installed-CLI workflow runs fresh clamp, flags and words
 verification through both the direct wheel and a wheel rebuilt from the source
 distribution, and checks that the installed producer payload remains unchanged.
-Words is a development example and is not included in the alpha.6 tag.
+All three demos are included in the alpha.7 candidate.

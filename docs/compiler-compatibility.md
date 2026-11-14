@@ -77,7 +77,7 @@ cases:
 | `numeric` | UInt32 and UInt64 wrap arithmetic and comparisons, including exact values above 2^53 |
 | `bitwise` | UInt32/UInt64 AND, OR, XOR, complement and masked logical right shift |
 | `left_shift` | UInt32/UInt64 ordinary `<<<` and direct controls, checked with exact exponent/multiply/modulo arithmetic |
-| `width_conversions` | Development UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
+| `width_conversions` | UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |

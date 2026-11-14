@@ -1,9 +1,12 @@
-# From Lean source proofs to Go in alpha.6
+# From Lean source proofs to Go in alpha.7
 
-The tagged commands below pair the alpha.6 examples with the alpha.6 CLI.
-For development artifacts, use the CLI and examples from the same checkout.
+This checkout prepares the alpha.7 candidate. Tagged commands below pair the
+alpha.7 examples with the alpha.7 CLI **after the tag is published**. Before
+publication, use this checkout and its [locally installed CLI](cli.md#development-checkout)
+for the local checks. For development artifacts, likewise use the CLI and
+examples from the same checkout.
 
-This walkthrough checks `v0.1.0-alpha.6`, Python package `0.1.0a6`: fresh source
+This walkthrough checks `v0.1.0-alpha.7`, Python package `0.1.0a7`: fresh source
 theorems, generated Go and an isolated consumer. The verifier operates locally;
 the separate exact-tag check below verifies the public Go module. Alpha.4 remains
 paired with Lean 4.35.0; its
@@ -18,8 +21,8 @@ Make Go, Lean and Lake available on `PATH`. Clone the release into a new
 directory:
 
 ```sh
-git clone --branch v0.1.0-alpha.6 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha6
-cd lean-go-alpha6
+git clone --branch v0.1.0-alpha.7 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha7
+cd lean-go-alpha7
 git rev-parse HEAD
 uv python install 3.15
 ```
@@ -34,26 +37,29 @@ Install the same release tag and check the exact producer toolchain (`--force`
 also upgrades an existing installation):
 
 ```sh
-uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.6"
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.7"
 lean-go --version
 lean-go doctor
 release_cli=$(command -v lean-go)
 uv run --locked python scripts/check_clamp_demo.py --cli "$release_cli"
 uv run --locked python scripts/check_flags_demo.py --cli "$release_cli"
+uv run --locked python scripts/check_words_demo.py --cli "$release_cli"
 ```
 
-The CLI reports `lean-go 0.1.0a6`. If it is not on `PATH`, follow the
+The CLI reports `lean-go 0.1.0a7`. If it is not on `PATH`, follow the
 [installation guide](cli.md). The POSIX commands above capture the installed CLI
 path before `uv run` adds the checkout environment to `PATH`; in PowerShell,
 use `$release_cli = (Get-Command lean-go).Source` before the verifier commands.
 Each verifier copies its standalone module, generates fresh artifacts through the
 installed CLI, compares package, IR and evidence bytes, and rechecks the source
-claims. Both then deploy only Go sources and `go.mod`, and run the tests and
+claims. All three then deploy only Go sources and `go.mod`, and run the tests and
 executable offline with Go alone. Clamp checks three source claims and 681 finite
 input pairs against an independent model. Flags checks four `UInt32` roots, eight
-universal source claims and 4,752 finite input pairs. See the
-[clamp](../examples/proofs/clamp) and [flags](../examples/proofs/flags) guides and
-the [article](articles/lean-proofs-to-go.md) for the claims and trust boundary.
+universal source claims and 4,752 finite input pairs. Words checks five scalar
+roots, seven universal source claims and 699 finite boundary and seeded triples.
+See the [clamp](../examples/proofs/clamp), [flags](../examples/proofs/flags) and
+[words](../examples/proofs/words) guides for the claims and trust boundary. The
+[article](articles/lean-proofs-to-go.md) retains its historical clamp walkthrough.
 
 ## Run the complete source-to-Go check
 
@@ -69,24 +75,24 @@ tool path, uses `CGO_ENABLED=0`, and disables module network access. It compares
 values above 2^53 and `math.MaxUint64`.
 
 Success prints a JSON receipt with `"status": "passed"`,
-`"candidate": "0.1.0a6"`, tool identities,
+`"candidate": "0.1.0a7"`, tool identities,
 checked claims, source/proof/tool hashes, the generated manifest and IR hashes,
 and the consumer case count. It contains no machine-specific absolute paths.
 All temporary projects and caches owned by the verifier are removed. To retain
 the receipt and commit identity outside the checkout:
 
 ```sh
-git rev-parse HEAD > ../alpha6-walkthrough.commit
-uv run --locked python scripts/check_release_candidate.py > ../alpha6-walkthrough.json
+git rev-parse HEAD > ../alpha7-walkthrough.commit
+uv run --locked python scripts/check_release_candidate.py > ../alpha7-walkthrough.json
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
 the current source workflow. After the release tag is public, the following
-separate test checks the exact alpha.6 Go module:
+separate test checks the exact alpha.7 Go module:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
-  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.6 \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.7 \
   go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
 ```
 
@@ -94,8 +100,9 @@ That test downloads the exact tag through the public Go proxy and checksum
 database, verifies its version without a local `replace`, then runs tree,
 UInt64, quota and multi-root checks offline with only Go on `PATH`. It covers the
 existing root-module packages. The exact-tag installed-CLI workflow separately
-regenerates and checks both standalone demos on Linux and Windows; the public Go
-consumer test alone does not cover every bitwise operation.
+regenerates and checks all three standalone demos on Linux and Windows; the
+public Go consumer test alone does not cover every bitwise operation or width
+conversion.
 
 For checks before publishing a tag, the candidate test remains available:
 
@@ -106,10 +113,9 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
-`replace`. The current development checkout serves a synthetic archive as
-`v0.1.0-alpha.7-dev.0` from that
-local proxy. This is prepublication evidence; it does not establish public tag
-availability or the checksum of the published module archive.
+`replace`. The candidate checkout serves a synthetic archive as
+`v0.1.0-alpha.7` from that local proxy. This is prepublication evidence; it does
+not establish public tag availability or the checksum of the published module archive.
 
 ## Inspect the individual stages
 
