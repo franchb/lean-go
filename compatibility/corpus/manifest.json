@@ -3,16 +3,16 @@
     "name": "numeric",
     "module": "Numeric",
     "roots": [
-      "Numeric.calc32",
-      "Numeric.calc64"
+      "Numeric.calculate32",
+      "Numeric.calculate64"
     ]
   },
   {
     "name": "bitwise",
     "module": "Bitwise",
     "roots": [
-      "Bitwise.calc32",
-      "Bitwise.calc64"
+      "Bitwise.calculate32",
+      "Bitwise.calculate64"
     ]
   },
   {
@@ -34,6 +34,16 @@
       "Widths.pack",
       "Widths.high",
       "Widths.low"
+    ]
+  },
+  {
+    "name": "bytes",
+    "module": "Bytes",
+    "roots": [
+      "Bytes.calculate",
+      "Bytes.choose",
+      "Bytes.narrow",
+      "Bytes.widen"
     ]
   },
   {

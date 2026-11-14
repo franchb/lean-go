@@ -1,0 +1,24 @@
+package compatconsumer
+
+import (
+ x "compatconsumer/extracted"
+ "testing"
+)
+
+func TestBytes(t *testing.T) {
+ l:=x.DefaultLimits()
+ for _,a:=range []uint8{0,1,7,8,127,128,170,254,255} {
+  for _,b:=range []uint8{0,1,7,8,127,128,170,254,255} {
+   r,e:=x.RunCalculate(a,b,4294967295,l);if e!=nil {t.Fatal(e)}
+   accessors:=[]func()(uint8,bool){r.Add,r.Sub,r.Mul,r.Left,r.And,r.Or,r.Xor,r.Not,r.Right}
+   want:=[]uint8{a+b,a-b,a*b,a<<(b%8),a&b,a|b,a^b,^a,a>>(b%8)}
+   for i,f:=range accessors {v,ok:=f();if !ok||v!=want[i] {t.Fatal(a,b,i,v,want[i])}}
+   wide,e:=x.RunWiden(a,l);if e!=nil||wide!=uint32(a) {t.Fatal(wide,e)}
+   narrow,e:=x.RunNarrow(4294967295,l);if e!=nil||narrow!=255 {t.Fatal(narrow,e)}
+   choose,e:=x.RunChoose(a<b,a,b,l);if e!=nil||choose!=a+b {t.Fatal(choose,e)}
+   input,e:=x.Import(&x.Input{Type:"UInt8",UInt8:a},l);if e!=nil {t.Fatal(e)}
+   raw,e:=x.RunRoot("Bytes.widen",[]x.Value{input},l);if e!=nil {t.Fatal(e)}
+   v,ok:=raw.UInt32();if !ok||v!=uint32(a) {t.Fatal(v)}
+  }
+ }
+}

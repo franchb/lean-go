@@ -19,9 +19,11 @@ func (g *generator) renderTemplate(name string) ([]byte, error) {
 	}
 	data := struct {
 		Wide       bool
+		Bytes      bool
+		UInt8Type  int
 		UInt64Type int
 		MultiRoot  bool
-	}{moduleir.HasUInt64(g.program.Schema), g.types["UInt64"], moduleir.HasMultipleRoots(g.program.Schema)}
+	}{Wide: moduleir.HasUInt64(g.program.Schema), Bytes: moduleir.HasUInt8(g.program.Schema), UInt8Type: g.types["UInt8"], UInt64Type: g.types["UInt64"], MultiRoot: moduleir.HasMultipleRoots(g.program.Schema)}
 	var out bytes.Buffer
 	if err := parsed.Execute(&out, data); err != nil {
 		return nil, err

@@ -18,16 +18,23 @@ type Primitive struct {
 // LookupPrimitive returns a fresh signature, so callers cannot mutate the catalog.
 func LookupPrimitive(name string) (Primitive, bool) {
 	switch name {
+	case "UInt8.toUInt32":
+		return Primitive{name, []string{"UInt8"}, "UInt32", "zero extension: a"}, true
+	case "UInt32.toUInt8":
+		return Primitive{name, []string{"UInt32"}, "UInt8", "a modulo 2^8"}, true
 	case "UInt32.toUInt64":
 		return Primitive{name, []string{"UInt32"}, "UInt64", "zero extension: a"}, true
 	case "UInt64.toUInt32":
 		return Primitive{name, []string{"UInt64"}, "UInt32", "a modulo 2^32"}, true
 	}
 	width, operation, ok := strings.Cut(name, ".")
-	if !ok || (width != "UInt32" && width != "UInt64") {
+	if !ok || (width != "UInt8" && width != "UInt32" && width != "UInt64") {
 		return Primitive{}, false
 	}
 	bits := "32"
+	if width == "UInt8" {
+		bits = "8"
+	}
 	if width == "UInt64" {
 		bits = "64"
 	}
@@ -94,6 +101,10 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV8
 	case SchemaV11:
 		return profile == ProfileV9
+	case SchemaV12:
+		return profile == ProfileV10
+	case SchemaV13:
+		return profile == ProfileV11
 	default:
 		return false
 	}
@@ -120,6 +131,12 @@ func (v *validator) numericValue(value *Value) ([]string, string, error) {
 	if !v.numeric {
 		return nil, "", fmt.Errorf("value kind %q requires %s", value.Kind, ProfileV2)
 	}
+	if value.Kind == "uint8" {
+		if !v.bytes {
+			return nil, "", fmt.Errorf("UInt8 literals require %s or %s", ProfileV10, ProfileV11)
+		}
+		return nil, "UInt8", validateLiteral(value.Name, 8, 3)
+	}
 	if value.Kind == "uint32" {
 		return nil, "UInt32", validateLiteral(value.Name, 32, 10)
 	}
@@ -129,17 +146,25 @@ func (v *validator) numericValue(value *Value) ([]string, string, error) {
 		}
 		return nil, "UInt64", validateLiteral(value.Name, 64, 20)
 	}
-	primitive, ok := LookupPrimitive(value.Name)
+	return v.primitiveValue(value.Name)
+}
+
+// primitiveValue checks capability admission before type/argument validation.
+func (v *validator) primitiveValue(name string) ([]string, string, error) {
+	primitive, ok := LookupPrimitive(name)
 	if !ok {
-		return nil, "", fmt.Errorf("unknown primitive %s", value.Name)
+		return nil, "", fmt.Errorf("unknown primitive %s", name)
 	}
-	if (value.Name == "UInt32.toUInt64" || value.Name == "UInt64.toUInt32") && !v.conversions {
+	if (primitive.Params[0] == "UInt8" || primitive.Result == "UInt8") && !v.bytes {
+		return nil, "", fmt.Errorf("UInt8 primitives require %s or %s", ProfileV10, ProfileV11)
+	}
+	if (name == "UInt32.toUInt64" || name == "UInt64.toUInt32") && !v.conversions {
 		return nil, "", fmt.Errorf("width conversions require %s or %s", ProfileV8, ProfileV9)
 	}
 	if primitive.Params[0] == "UInt64" && !v.wide {
 		return nil, "", fmt.Errorf("UInt64 primitives require %s", ProfileV4)
 	}
-	if isBitwisePrimitive(value.Name) && !v.bitwise {
+	if isBitwisePrimitive(name) && !v.bitwise {
 		return nil, "", fmt.Errorf("bitwise primitives require %s or %s", ProfileV6, ProfileV7)
 	}
 	if !v.validType(primitive.Result) {

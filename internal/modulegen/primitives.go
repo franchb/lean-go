@@ -33,37 +33,45 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 func primitiveExpression(name, left, right string) string {
 	operator := ""
 	switch name {
+	case "UInt8.toUInt32":
+		return "uint32(" + left + ")"
+	case "UInt32.toUInt8":
+		return "uint8(" + left + ")"
 	case "UInt32.toUInt64":
 		return "uint64(" + left + ")"
 	case "UInt64.toUInt32":
 		return "uint32(" + left + ")"
-	case "UInt32.add", "UInt64.add":
+	case "UInt8.add", "UInt32.add", "UInt64.add":
 		operator = "+"
-	case "UInt32.sub", "UInt64.sub":
+	case "UInt8.sub", "UInt32.sub", "UInt64.sub":
 		operator = "-"
-	case "UInt32.mul", "UInt64.mul":
+	case "UInt8.mul", "UInt32.mul", "UInt64.mul":
 		operator = "*"
+	case "UInt8.shiftLeft":
+		return left + " << (" + right + " & 7)"
 	case "UInt32.shiftLeft":
 		return left + " << (" + right + " & 31)"
 	case "UInt64.shiftLeft":
 		return left + " << (" + right + " & 63)"
-	case "UInt32.land", "UInt64.land":
+	case "UInt8.land", "UInt32.land", "UInt64.land":
 		operator = "&"
-	case "UInt32.lor", "UInt64.lor":
+	case "UInt8.lor", "UInt32.lor", "UInt64.lor":
 		operator = "|"
-	case "UInt32.xor", "UInt64.xor":
+	case "UInt8.xor", "UInt32.xor", "UInt64.xor":
 		operator = "^"
-	case "UInt32.complement", "UInt64.complement":
+	case "UInt8.complement", "UInt32.complement", "UInt64.complement":
 		return "^" + left
+	case "UInt8.shiftRight":
+		return left + " >> (" + right + " & 7)"
 	case "UInt32.shiftRight":
 		return left + " >> (" + right + " & 31)"
 	case "UInt64.shiftRight":
 		return left + " >> (" + right + " & 63)"
-	case "UInt32.decEq", "UInt64.decEq":
+	case "UInt8.decEq", "UInt32.decEq", "UInt64.decEq":
 		operator = "=="
-	case "UInt32.decLt", "UInt64.decLt":
+	case "UInt8.decLt", "UInt32.decLt", "UInt64.decLt":
 		operator = "<"
-	case "UInt32.decLe", "UInt64.decLe":
+	case "UInt8.decLe", "UInt32.decLe", "UInt64.decLe":
 		operator = "<="
 	}
 	return left + " " + operator + " " + right
@@ -92,6 +100,9 @@ func (g *generator) primitiveCatalog() []moduleir.Primitive {
 }
 
 func scalarField(typ string) string {
+	if typ == "UInt8" {
+		return "scalar8"
+	}
 	if typ == "UInt64" {
 		return "scalar64"
 	}

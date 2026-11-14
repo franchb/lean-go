@@ -140,7 +140,7 @@ func TestWidthConversionSchemaContracts(t *testing.T) {
 			}
 		}
 	}
-	for _, schema := range []string{"lean-go-ir/v12", "lean-go-ir/v100", "lean-go-ir/v11x"} {
+	for _, schema := range []string{"lean-go-ir/v14", "lean-go-ir/v100", "lean-go-ir/v13x"} {
 		if HasUInt64(schema) || HasTypedAPI(schema) || HasMultipleRoots(schema) {
 			t.Fatal("unknown capability", schema)
 		}

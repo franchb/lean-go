@@ -31,7 +31,7 @@
     }
   ],
   "contract_sha256": "fcfe62273f3dc4e23cd5c5f87ebb0a6e8b5e464f6d148cb540bca02eb0c1990d",
-  "generated_manifest_sha256": "fcec465b06fa24e069edecb9d824b4f8bff0bfe407bcb7de8ec1f37a9258f2c7",
+  "generated_manifest_sha256": "5ecd0b222529f6539f2372f4fd9a3759d1fd162ba29f0b6a6f0ffa1f1d72fa52",
   "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
   "lean_version": "4.36.0-rc2",
   "module": "Clamp",
@@ -51,9 +51,9 @@
     "scripts/check_proofs.py": "acc1b8c492508dd80afc141b5d5c50d12d1f8f1bdd262ad461865e9b015c5dae",
     "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
     "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
-    "scripts/export_module.py": "a5180765386a73aca79646011fe19fbd9f4896baf91ecd7a378d3ad1316f3f21",
+    "scripts/export_module.py": "cba567342a38b3e94242a5ddce439db25b140e05d40069db10eb0a5385e29afe",
     "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "3ec3152f91a8c787b244d57c0388a63e24a66a9162bf5dfd5f07d90bddb41e98",
+    "scripts/proof_contract.py": "88f5a6275bdda45ad92fdb78b24d8021635f7f2a0757c71be18fe86f062bb786",
     "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
   }
 }

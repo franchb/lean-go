@@ -15,7 +15,7 @@ func sameStrings(a, b []string) bool {
 }
 func (v *validator) validType(typ string) bool {
 	_, ok := v.types[typ]
-	return typ == "UInt32" || (v.wide && typ == "UInt64") || ok
+	return (v.bytes && typ == "UInt8") || typ == "UInt32" || (v.wide && typ == "UInt64") || ok
 }
 func (v *validator) bind(param Param, scope map[int]string, used map[int]bool) error {
 	if err := v.addNodes(1); err != nil {
@@ -140,7 +140,7 @@ func (v *validator) value(value *Value, function string, scope map[int]string) (
 		}
 		result = callee.Result
 		v.edges[function][value.Name] = true
-	case "uint32", "uint64", "primitive":
+	case "uint8", "uint32", "uint64", "primitive":
 		var err error
 		params, result, err = v.numericValue(value)
 		if err != nil {

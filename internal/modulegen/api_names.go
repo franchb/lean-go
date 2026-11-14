@@ -78,6 +78,7 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 		Accessors: map[string]map[string]string{}, Destructors: map[string]apiDestructor{},
 	}
 	packageNames := reservedAPINames(p.Schema)
+
 	scalars := apiScalars(p)
 	for name, scalar := range scalars {
 		api.Types[name] = scalar.GoType
@@ -125,6 +126,11 @@ func reservedAPINames(schema string) apiNameAllocator {
 	names := apiNameAllocator{}
 	for _, name := range strings.Fields(apiReservedNames) {
 		names[name] = true
+	}
+	if moduleir.HasUInt8(schema) {
+		names["apiUInt8Node"] = true
+		names["apiReadUInt8"] = true
+		names["inputOtherShape"] = true
 	}
 	if moduleir.HasMultipleRoots(schema) {
 		for _, name := range []string{"RunRoot", "rootSignature"} {

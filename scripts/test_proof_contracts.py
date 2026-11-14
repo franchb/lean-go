@@ -223,6 +223,30 @@ class ContractValidationTests(ContractFixture):
             self.project()
 
 
+class ByteManifestBindingTests(ContractFixture):
+    def test_byte_manifest_exact_single_and_multi_root_pairs(self):
+        for multi in (False, True):
+            if multi:
+                self.document['roots'].append('Example.another')
+                self.write_contract()
+                self.write_manifest()
+            version, profile = (13, 11) if multi else (12, 10)
+            self.manifest['schema'] = f'lean-go-manifest/v{version}'
+            self.manifest['program'].update(schema=f'lean-go-ir/v{version}', profile=f'pure-module/v{profile}')
+            self.save_manifest()
+            self.assertEqual(self.verify_manifest(), self.manifest_path.read_bytes())
+            for schema, bad_profile in ((f'lean-go-ir/v{version}', 'pure-module/v9'),
+                                        (f'lean-go-ir/v{13 if version == 12 else 12}', f'pure-module/v{profile}')):
+                original = copy.deepcopy(self.manifest)
+                self.manifest['program'].update(schema=schema, profile=bad_profile)
+                self.save_manifest()
+                with self.assertRaises(ExportError):
+                    self.verify_manifest()
+                self.manifest = original
+            self.save_manifest()
+
+
+
 class ManifestBindingTests(ContractFixture):
     def test_single_and_multi_root_manifest_profiles(self):
         self.assertEqual(self.verify_manifest(), self.manifest_path.read_bytes())
