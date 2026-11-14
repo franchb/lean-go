@@ -2,10 +2,13 @@
 
 This standalone module encodes every `UInt32` as four `UInt8` fields in a
 `ByteQuad` record and decodes that record in little-endian or big-endian order.
-It is available in this development checkout and is **unreleased**; published
-alpha.7 has no UInt8 engine or byte codec, even though this checkout's package
-version still reads `0.1.0a7`. The [walkthrough](../../../docs/articles/proved-byte-codec.md)
-explains the application and source claims. Copy this directory and run it with Go **1.27.4** and `CGO_ENABLED=0`:
+It is part of the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md),
+Python package `0.1.0a8`. Before publication, use the CLI from this same checkout;
+after publication, pair tagged examples and CLI.
+Published alpha.7 has no UInt8 engine or byte codec. The
+[walkthrough](../../../docs/articles/proved-byte-codec.md) explains the application
+and source claims. Copy this directory and run it with Go **1.27.4** and
+`CGO_ENABLED=0`:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
@@ -72,5 +75,7 @@ uv run --locked python scripts/check_bytes_demo.py --cli /absolute/path/to/lean-
 It checks fresh generation and all twelve proofs, compares exact tracked artifact
 bytes, then tests and runs a copy containing only Go sources and `go.mod`, with
 producer tools hidden and cgo and downloads disabled. Root Go tests exercise the
-same isolated deployment. See the [proof contract guide](../../../docs/proof-contracts.md)
+same isolated deployment. The installed-wheel smoke runs all four demos through
+both direct and sdist-rebuilt wheels, freshly checking 30 source claims per wheel.
+See the [proof contract guide](../../../docs/proof-contracts.md)
 for evidence binding and the [CLI guide](../../../docs/cli.md) for installation.

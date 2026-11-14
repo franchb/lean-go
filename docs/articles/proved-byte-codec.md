@@ -6,10 +6,10 @@ proves twelve source properties and generates a Go package with an independent
 `encoding/binary` test oracle. Its Go application converts `0x12345678` in both
 orders and reconstructs the original word.
 
-The byte codec and UInt8 support are **unreleased**, available in this development
-checkout. The package version still reads `0.1.0a7`; published
-`v0.1.0-alpha.7` has generator v9 and no UInt8 support. Current artifacts require
-this checkout's CLI and generator v10.
+The byte codec and UInt8 support are part of the [alpha.8 candidate](../releases/v0.1.0-alpha.8.md),
+Python package `0.1.0a8`. Before publication, use this checkout's CLI and generator
+v10. Published alpha.7 has generator v9 and no
+UInt8 support. After alpha.8 publication, pair its tagged example and CLI.
 
 ## Run the application with Go alone
 
@@ -166,8 +166,9 @@ Both proof commands freshly rebuild the source proofs. The first writes bound
 evidence; the second requires the existing bytes to match the fresh result.
 Review the runtime source, expected propositions, proofs, generated Go, IR,
 manifest and evidence together. Record the source commit and any local changes:
-a receipt from this checkout describes these inputs, rather than the published
-alpha.7 tag. See [proof contracts](../proof-contracts.md) for the binding rules.
+a receipt from this candidate describes these inputs and does not establish
+public tag availability. See [proof contracts](../proof-contracts.md) for the
+binding rules.
 
 ## What the Go tests establish
 

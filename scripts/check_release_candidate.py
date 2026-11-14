@@ -18,7 +18,7 @@ from proof_contract import digest, load_contract, read_regular, snapshot
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = 'examples/proofs/clamp/proof-contract.json'
 GO_VERSION = 'go1.27.4'
-CANDIDATE = '0.1.0a7'
+CANDIDATE = '0.1.0a8'
 
 
 def base_environment():

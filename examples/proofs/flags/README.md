@@ -5,13 +5,15 @@ Copy this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives. Lean, Python and
 lean-go are needed only to regenerate the package and check the source proofs.
 
-This example is included in published alpha.7. The checked-in Go package runs
-without installing producer tools. For release reproduction, pair the
+This example is included in the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md),
+Python package `0.1.0a8`. Before publication, regenerate with the CLI from this
+same [checkout](../../../docs/cli.md#development-checkout). After
+publication, pair its tagged example and CLI. Published alpha.7 also has this
+demo, with generator v9; use its
 [tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/flags)
-with the [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
-Current regenerated artifacts use module generator v10; published alpha.7 uses
-v9. For development artifacts, use the CLI from the same
-[checkout](../../../docs/cli.md#development-checkout).
+and [tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
+for historical reproduction. Current artifacts use generator v10. The checked-in
+Go package needs no producer tools to run.
 
 ## Run with Go alone
 
@@ -122,9 +124,8 @@ universal proofs of Go executions.
 ## Regenerate and check proofs
 
 Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at Lean
-commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. For the tagged example,
-install the alpha.7 CLI using the tagged guide above. For a development
-checkout, install its CLI, replacing the example absolute path:
+commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Before alpha.8 publication,
+install this checkout's CLI, replacing the example absolute path:
 
 ```sh
 uv tool install --force --python 3.15 /absolute/path/to/lean-go
@@ -174,4 +175,5 @@ The current checkout's installed-CLI workflow runs fresh clamp, flags, words and
 bytes verification through both the direct wheel and a wheel rebuilt from the
 source distribution, checking all 30 source claims per wheel and that the
 installed producer payload remains unchanged. Published alpha.7 has the first
-three demos; the byte codec is unreleased and requires this checkout's CLI.
+three demos; the alpha.8 candidate adds the byte codec. Before publication,
+all current artifacts require this checkout's CLI.

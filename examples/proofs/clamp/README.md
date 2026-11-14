@@ -3,7 +3,10 @@
 This directory is a complete Go module. Copy it anywhere, then build and run it
 with Go **1.27.4**. It has no external Go dependencies, `replace` directives, or
 runtime dependency on the lean-go repository. The checked-in package was generated
-from ordinary Lean source through the installed `lean-go` CLI.
+from ordinary Lean source through the installed `lean-go` CLI. It is included in
+the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md), Python package
+`0.1.0a8`. Before publication, use this checkout's CLI; after publication, pair
+its tagged example and CLI.
 
 The assurance is **proved Lean logic with tested, trusted extraction**. The three
 source theorems do not constitute an end-to-end proof of the generated Go program.
@@ -88,7 +91,7 @@ uv tool install --force --python 3.15 /absolute/path/to/lean-go
 ```
 
 See the [development installation guide](../../../docs/cli.md#development-checkout).
-After alpha.7 is published, reproduce it using its
+For historical alpha.7 reproduction, use its
 [tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/clamp)
 and [tagged CLI guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
 together. Alpha.4 likewise requires its tagged demo and CLI with Lean 4.35.0.
@@ -142,7 +145,7 @@ modules would otherwise be skipped. The installed CLI smoke
 runs the complete clamp, flags, words and bytes verifiers through both direct and
 sdist-rebuilt wheels on Linux and Windows in CI, checking 30 source claims per
 wheel. Published alpha.7 includes the first three demos with generator v9; this
-checkout regenerates their artifacts with v10 and adds the unreleased byte codec.
+alpha.8 candidate regenerates their artifacts with v10 and adds the byte codec.
 Pair examples with the CLI from the same checkout or tag. See the
 [article](../../../docs/articles/lean-proofs-to-go.md)
 for the design and assurance boundary. The public

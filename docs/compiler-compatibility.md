@@ -8,7 +8,10 @@ promise compatibility with other releases.
 
 The current supported target is Lean **4.36.0-rc2**, commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Later releases require a fresh
-qualification run and review before promotion.
+qualification run and review before promotion. The alpha.8 candidate keeps this
+exact pin and qualifies a 14-case corpus (eight accepted, six rejected), including
+UInt8. Candidate qualification does not establish alpha.8 publication; see the
+[candidate notes](releases/v0.1.0-alpha.8.md).
 
 The baseline version is read from `producer/lean-toolchain`; its commit comes
 from `scripts/export.py`. Both must match the observed compiler. Python 3.15 and

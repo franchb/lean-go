@@ -21,18 +21,17 @@ Published alpha.7 adds exact `UInt32.toUInt64` zero extension and
 with `pure-module/v8` or `pure-module/v9`; see the
 [width-conversion report](docs/research/extraction-width-conversions.md).
 
-This development checkout adds scalar `UInt8`, exact byte/word conversions and a
-[proved byte codec](examples/proofs/bytes). Byte-enabled exports use v12/v13 IR,
-`pure-module/v10` or `pure-module/v11`, and `lean-go-modulegen/v10`; see the
-[UInt8 report](docs/research/extraction-uint8.md). This feature is **unreleased**.
-The package version still reads `0.1.0a7`; the published `v0.1.0-alpha.7` tag uses
-module generator v9 and does not include UInt8 support. Regenerate this checkout's
-artifacts with the CLI from this same checkout.
+The **alpha.8 candidate**, Python package `0.1.0a8`, adds scalar `UInt8`, exact
+byte/word conversions and a [proved byte codec](examples/proofs/bytes).
+Byte-enabled exports use v12/v13 IR, `pure-module/v10` or `pure-module/v11`, and
+`lean-go-modulegen/v10`; see the [UInt8 report](docs/research/extraction-uint8.md).
+Before publication, regenerate with the CLI from this same checkout. Published
+alpha.7 uses generator v9 and has no UInt8 support.
 
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
-[walkthrough](docs/getting-started.md) or read the published
-[alpha.7 notes](docs/releases/v0.1.0-alpha.7.md).
+[walkthrough](docs/getting-started.md) or read the
+[alpha.8 candidate notes](docs/releases/v0.1.0-alpha.8.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -48,15 +47,19 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
-Use the [checkout installation](docs/cli.md#development-checkout) for current
-artifacts and the new byte codec. To reproduce published alpha.7, install its
-[`lean-go` CLI](docs/cli.md) to
-generate and check proofs from any working directory without keeping a checkout
-beside your project:
+Before alpha.8 publication, use the
+[checkout installation](docs/cli.md#development-checkout) and
+[local candidate checks](docs/release-candidate.md). After `v0.1.0-alpha.8` is
+published, install its [`lean-go` CLI](docs/cli.md) to generate and check proofs
+from any working directory without keeping a checkout beside your project:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.7"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.8"
 ```
+
+To reproduce published alpha.7, use its
+[tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
+and examples from that same tag.
 
 Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
 example offline with Go alone, or read
@@ -76,14 +79,14 @@ Alpha.7 includes a [standalone word-packing module](examples/proofs/words)
 with five scalar roots and seven universal source proofs: value-preserving
 widening, modulo narrowing, both conversion round trips, and packing/unpacking
 identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
-Words uses v11 IR/manifest and `pure-module/v9`; pair its example and CLI from
-the same alpha.7 tag, or from this same checkout. Current generated manifests and
-proof evidence use module generator v10, including demos whose IR schema stays
-unchanged.
+Words uses v11 IR/manifest and `pure-module/v9`. The alpha.8 candidate contains
+all four standalone demos with module generator v10, including demos whose IR
+schema stays unchanged. Pair examples and CLI from the same checkout or tag;
+published alpha.7 reproduction uses its historical artifacts and generator v9.
 
 ## Use the proved byte codec
 
-The development-only [byte codec module](examples/proofs/bytes) encodes a
+The alpha.8 candidate [byte codec module](examples/proofs/bytes) encodes a
 `uint32` into four byte fields and decodes them in either byte order. Its
 [Go application](examples/proofs/bytes/main.go) reads those fields into `[4]byte`
 and prints both round trips. From this checkout's root, run it offline:

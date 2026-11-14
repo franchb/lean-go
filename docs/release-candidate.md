@@ -1,10 +1,12 @@
 # Check source proofs, generated Go and deployment
 
-Published `v0.1.0-alpha.7` uses Python package `0.1.0a7` and module generator v9.
-This development checkout retains that package version but adds the **unreleased**
-UInt8 engine, byte codec and module generator v10. Use the CLI and examples from
-the same checkout or tag. A version string alone does not identify the source
-revision or prove that a receipt describes the published release.
+This checkout prepares the **alpha.8 candidate**, Python package `0.1.0a8`, with
+UInt8, the proved byte codec and module generator v10. Before publication, use
+the local checks below. Published alpha.7 uses
+package `0.1.0a7`, generator v9 and has no UInt8 support. Use the CLI and examples
+from the same checkout or tag. A version string alone does not identify the
+source revision or prove public tag availability. See the
+[candidate notes](releases/v0.1.0-alpha.8.md).
 
 This walkthrough checks fresh source theorems, generated artifacts and isolated
 Go consumers. APIs remain experimental. The [byte article](articles/proved-byte-codec.md)
@@ -13,7 +15,7 @@ records the published release's workflow. Alpha.4 remains paired with Lean 4.35.
 use its [tagged walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/release-candidate.md)
 when reproducing that version.
 
-## Check this development checkout
+## Check this alpha.8 candidate checkout
 
 Use Go **1.27.4**, pinned Lean **4.36.0-rc2** at commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and **uv** with Python **3.15**.
@@ -56,26 +58,25 @@ proof evidence use module generator v10; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
-## Reproduce published alpha.7
+## Reproduce alpha.8 after publication
 
-Use a separate release checkout and install the CLI from that same tag:
+Only after `v0.1.0-alpha.8` is published, use its tag and CLI together:
 
 ```sh
-git clone --branch v0.1.0-alpha.7 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha7
-cd lean-go-alpha7
+git clone --branch v0.1.0-alpha.8 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha8
+cd lean-go-alpha8
 git rev-parse HEAD
-uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.7"
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.8"
 lean-go doctor
 release_cli=$(command -v lean-go)
 uv run --locked python scripts/check_clamp_demo.py --cli "$release_cli"
 uv run --locked python scripts/check_flags_demo.py --cli "$release_cli"
 uv run --locked python scripts/check_words_demo.py --cli "$release_cli"
+uv run --locked python scripts/check_bytes_demo.py --cli "$release_cli"
 ```
 
-Capture the installed path before `uv run` changes `PATH`. In PowerShell, use
-`$release_cli = (Get-Command lean-go).Source`. This release has three standalone
-demos and 18 source claims; it has no UInt8 engine or byte codec. Run the
-remaining sections from the checkout whose source you intend to verify.
+This checks all four demos and 30 source claims. Local candidate results do not
+establish the public tag's availability, module checksum or future workflow state.
 
 ## Run the complete source-to-Go check
 
@@ -91,14 +92,12 @@ tool path, uses `CGO_ENABLED=0`, and disables module network access. It compares
 values above 2^53 and `math.MaxUint64`.
 
 Success prints a JSON receipt with `"status": "passed"`,
-`"candidate": "0.1.0a7"`, tool identities,
-checked claims, source/proof/tool hashes, the generated manifest and IR hashes,
-and the consumer case count. It contains no machine-specific absolute paths.
-The `candidate` field retains the package-version label `0.1.0a7`; it is not a
-new release name or a claim that the source matches published alpha.7. Interpret
-the source/proof/tool hashes together with the recorded commit and working-tree
-changes. A receipt from this development checkout describes its current inputs,
-including generator v10, rather than the published tag's inputs.
+`"candidate": "0.1.0a8"`, tool identities, checked claims, source/proof/tool
+hashes, the generated manifest and IR hashes, and the consumer case count. It
+contains no machine-specific absolute paths. The candidate label describes this
+checkout, including generator v10; it does not establish publication. Interpret
+the hashes together with the recorded commit and working-tree changes. A receipt
+from a historical checkout records that checkout's package version and inputs.
 All temporary projects and caches owned by the verifier are removed. To retain
 the receipt and commit identity outside the checkout:
 
@@ -109,12 +108,12 @@ uv run --locked python scripts/check_release_candidate.py > ../checkout-walkthro
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
-the selected source checkout. The following separate test checks the published
-alpha.7 Go module, so its result does not cover unreleased UInt8 behavior:
+the selected source checkout. Only after alpha.8 publication, the following
+separate test checks the public Go module:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
-  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.7 \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.8 \
   go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
 ```
 
@@ -122,9 +121,10 @@ That test downloads the exact tag through the public Go proxy and checksum
 database, verifies its version without a local `replace`, then runs tree,
 UInt64, quota and multi-root checks offline with only Go on `PATH`. It covers the
 existing root-module packages. The exact-tag installed-CLI workflow separately
-regenerates and checks all three standalone demos on Linux and Windows; the
-public Go consumer test alone does not cover every bitwise operation or width
-conversion.
+regenerates and checks all four standalone demos on Linux and Windows. Those
+are configured coverage expectations, not claims that a future tag run passed.
+The public Go consumer test alone does not cover every byte, bitwise or width
+conversion operation.
 
 To check the current checkout through a local module proxy, the candidate test
 remains available:
@@ -137,9 +137,9 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
 `replace`. The candidate checkout serves a synthetic archive as
-`v0.1.0-alpha.7` from that local proxy, using the retained version label. This
-checks the local archive's Go behavior; it does not identify that synthetic
-archive with the already-published alpha.7 module or its checksum.
+`v0.1.0-alpha.8` from that local proxy. This checks the local archive's Go
+behavior; it does not establish public tag availability or the checksum of a
+future published module.
 
 ## Inspect the individual stages
 
@@ -206,3 +206,25 @@ the generated runtime and the Go compiler remain tested and trusted. Lean
 elaboration, including compile-time metaprograms, is also trusted; this workflow
 is not a sandbox. Read [proof contracts](proof-contracts.md) for the exact evidence
 and validation rules, or [quota](quota.md) for a multi-root library API.
+
+## Reproduce published alpha.7
+
+Use a separate release checkout and install the CLI from that same tag:
+
+```sh
+git clone --branch v0.1.0-alpha.7 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha7
+cd lean-go-alpha7
+git rev-parse HEAD
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.7"
+lean-go doctor
+release_cli=$(command -v lean-go)
+uv run --locked python scripts/check_clamp_demo.py --cli "$release_cli"
+uv run --locked python scripts/check_flags_demo.py --cli "$release_cli"
+uv run --locked python scripts/check_words_demo.py --cli "$release_cli"
+```
+
+Capture the installed path before `uv run` changes `PATH`. In PowerShell, use
+`$release_cli = (Get-Command lean-go).Source`. This release has three standalone
+demos and 18 source claims; it has no UInt8 engine or byte codec. Its receipt
+identifies package `0.1.0a7`. Return to the alpha.8 candidate checkout for the
+current candidate checks above.
