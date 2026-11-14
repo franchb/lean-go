@@ -2,7 +2,10 @@
 
 This standalone module encodes every `UInt32` as four `UInt8` fields in a
 `ByteQuad` record and decodes that record in little-endian or big-endian order.
-Copy this directory and run it with Go **1.27.4** and `CGO_ENABLED=0`:
+It is available in this development checkout and is **unreleased**; published
+alpha.7 has no UInt8 engine or byte codec, even though this checkout's package
+version still reads `0.1.0a7`. The [walkthrough](../../../docs/articles/proved-byte-codec.md)
+explains the application and source claims. Copy this directory and run it with Go **1.27.4** and `CGO_ENABLED=0`:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
@@ -41,7 +44,11 @@ raw calls return invalid values.
 
 To regenerate, use Python **3.15** through uv, Go **1.27.4**, Lean/Lake
 **4.36.0-rc2** at commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and the
-installed CLI from the same checkout. From this example directory:
+installed CLI from the same checkout. Install it from the repository root with
+`uv sync --locked --reinstall-package lean-go-tools`, then use
+`uv run --locked lean-go` there or the absolute `.venv/bin/lean-go` path from
+another directory (`.venv/Scripts/lean-go.exe` on Windows). The commands below
+assume that checkout CLI is available as `lean-go`. From this example directory:
 
 ```sh
 lean-go generate --source-dir source --module ByteCodec \

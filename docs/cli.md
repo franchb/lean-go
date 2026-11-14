@@ -1,15 +1,16 @@
 # Install the lean-go CLI
 
 `lean-go-tools` installs the `lean-go` command for generation and source-proof
-checks. This guide prepares the alpha.7 candidate. The tag commands below apply
-after `v0.1.0-alpha.7` is published; before publication use the
-[checkout installation](#development-checkout). No PyPI release is required.
+checks. The tag commands below install published `v0.1.0-alpha.7`. The new UInt8
+engine and byte codec are available only in the
+[development checkout](#development-checkout). No PyPI release is required.
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then use
 Python 3.15. The alpha.7 producer requires Go **1.27.4** and Lean/Lake
 **4.36.0-rc2** on `PATH`. Lean must report commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`; a matching version string alone is
-insufficient. Use the upstream [Go downloads](https://go.dev/dl/) and
+insufficient. The development producer uses the same toolchain pin. Use the
+upstream [Go downloads](https://go.dev/dl/) and
 [Lean 4.36.0-rc2 release](https://github.com/leanprover/lean4/releases/tag/v4.36.0-rc2).
 With Elan, install the pin with `elan toolchain install leanprover/lean4:v4.36.0-rc2`.
 The CLI selects that pin even if the calling project selects another version.
@@ -62,18 +63,36 @@ This replaces the installed `lean-go` command with this checkout's version.
 To reproduce alpha.7, use its tagged examples with the alpha.7 CLI described
 above. A released CLI need not reproduce artifacts from a later development
 checkout.
-For checkout-local use, run `uv sync --locked --reinstall-package lean-go-tools`
-and `uv run --locked lean-go doctor` instead. Pair generated artifacts with the
-same checkout and toolchain when reproducing their hashes. Later compiler
+For checkout-local use, run from the repository root:
+
+```sh
+uv sync --locked --reinstall-package lean-go-tools
+uv run --locked lean-go --version
+uv run --locked lean-go doctor
+checkout_cli="$(pwd)/.venv/bin/lean-go"
+uv run --locked python scripts/check_bytes_demo.py --cli "$checkout_cli"
+```
+
+On Windows, use the executable in `.venv/Scripts/lean-go.exe`. Reinstall after
+pipeline changes so the installed payload matches the checkout. Both published
+alpha.7 and this checkout currently report package version `0.1.0a7`; that string
+does not identify the source revision or supported capability set. Record the
+commit and source/tool hashes when sharing results. Pair generated artifacts with
+the same checkout and toolchain when reproducing their hashes. Later compiler
 versions need explicit [compatibility qualification](compiler-compatibility.md);
 the installed producer keeps its exact version and commit checks.
 
-The alpha.7 [Words example](../examples/proofs/words) uses exact
+The published alpha.7 [Words example](../examples/proofs/words) uses exact
 `UInt32.toUInt64` and `UInt64.toUInt32` conversions, five roots and seven source
-claims. Its v11 IR/manifest, `pure-module/v9` profile and
-`lean-go-modulegen/v9` artifacts require the paired alpha.7 CLI, or the CLI
-from this same checkout before publication. The
-[width-conversion report](research/extraction-width-conversions.md) records the selective version rules for single and multiple roots.
+claims. This checkout's regenerated Words artifacts keep v11 IR/manifest and
+`pure-module/v9` but use `lean-go-modulegen/v10`, as do its regenerated clamp and
+flags artifacts. Their manifests and proof evidence require this checkout's CLI.
+The [byte codec](../examples/proofs/bytes) additionally requires the unreleased
+UInt8 capability: v13 IR/manifest and `pure-module/v11` for its four roots. Its
+twelve proofs and Go-only application are explained in the
+[byte walkthrough](articles/proved-byte-codec.md). See the
+[UInt8 report](research/extraction-uint8.md) for the selective schema rules.
+Published alpha.7's generator remains v9 and has no UInt8 support.
 
 ## Generate from your project
 
@@ -162,9 +181,10 @@ The install smoke test audits a direct wheel and an sdist-rebuilt wheel, install
 each in a fresh environment, verifies the actual installed imports, and runs
 external generation, proof checking and a Go-only consumer. It also checks
 read-only installed resources and paths containing spaces. Both installed wheels
-regenerate and recheck the complete standalone clamp, flags and words demos,
-compare their tracked artifacts, and test and run all three copied modules with
-Go alone. `--without-lean` explicitly restricts this smoke test to packaging,
+regenerate and recheck the complete standalone clamp, flags, words and bytes
+demos, compare their tracked artifacts, freshly check all 30 source claims per
+wheel, and test and run all four copied modules with Go alone. `--without-lean`
+explicitly restricts this smoke test to packaging,
 help/version and missing-tool errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.
 

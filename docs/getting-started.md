@@ -1,17 +1,19 @@
 # Try the experimental preview
 
 The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
-and a C compiler are not needed by a consumer. This checkout prepares
-`v0.1.0-alpha.7`; its API is experimental. Tagged commands below apply after
-publication. Before then, use this checkout and its
-[paired CLI](cli.md#development-checkout).
+and a C compiler are not needed by a consumer. Published `v0.1.0-alpha.7` and
+this development checkout have experimental APIs. Tagged commands below reproduce
+the published release. Current UInt8 support and the proved byte codec are
+**unreleased** and require this checkout and its
+[paired CLI](cli.md#development-checkout); the package version still reads `0.1.0a7`.
 
 Alpha.7 adds exact UInt32/UInt64 width conversions, ordinary left-shift notation
 and a standalone proved word-packing example. Bitwise operations, the CLI,
 multi-root extraction, quota and reusable proof contracts remain available.
 Its producer uses Lean 4.36.0-rc2. The
-[proof-to-Go walkthrough](release-candidate.md) checks this candidate; generated
-Go consumers do not require the producer compiler.
+[proof-to-Go walkthrough](release-candidate.md) separates current-checkout checks
+from published-release reproduction. Generated Go consumers do not require the
+producer compiler.
 
 ## Run a generated package
 
@@ -58,6 +60,37 @@ larger literal remains exact. The source is
 [`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
 recursive trees, record updates, joins and compiler-generated local helpers.
 
+## Run the development byte codec
+
+From this checkout's root, run the [standalone byte module](../examples/proofs/bytes):
+
+```sh
+(
+  cd examples/proofs/bytes
+  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
+  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
+)
+```
+
+```text
+LE(0x12345678) = [78 56 34 12] -> 0x12345678
+BE(0x12345678) = [12 34 56 78] -> 0x12345678
+```
+
+Copy that directory to use its Go application offline. The generated API has
+`RunEncodeLE`/`RunEncodeBE` (`uint32` to `ByteQuad`) and
+`RunDecodeLE`/`RunDecodeBE` (`ByteQuad` to `uint32`). `NewByteQuad` constructs an
+input record; `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
+`Limits` last and return `(result, error)`. Check each error and validity flag.
+The application reads the concrete four-field Lean record into a Go `[4]byte`.
+
+Twelve source claims prove both inverse directions for both byte orders and all
+eight byte positions. Go tests compare both APIs against `encoding/binary` over
+652 cases and check errors, ownership and budgets. Read the
+[byte walkthrough](articles/proved-byte-codec.md) to inspect the application and
+rebuild its proof evidence with this checkout's CLI. The published alpha.7 tag
+has no byte codec or UInt8 engine.
+
 ## Pack words with alpha.7
 
 Alpha.7 includes a [copyable Words module](../examples/proofs/words). It packs
@@ -74,18 +107,20 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
 
 The copyable module needs only Go. To regenerate its v11 artifacts or recheck
 proof evidence, pair the example and [CLI](cli.md) from the same alpha.7 tag, or
-use the same checkout before publication, and follow the example's verifier
-instructions. The extraction and Go runtime remain tested and trusted; the proofs
+use the same development checkout for current regenerated artifacts, and follow
+the example's verifier instructions. The extraction and Go runtime remain tested
+and trusted; the proofs
 establish the selected Lean statements.
-Runtime division/remainder, other numeric widths and broad generic collections
-remain deferred.
+Runtime division/remainder, UInt16, direct UInt8/UInt64 casts and broad generic
+collections remain deferred.
 
 ## Extract your own Lean module
 
-Use Go 1.27.4, Lean 4.36.0-rc2 and uv for a checkout of `v0.1.0-alpha.7`.
+Use Go 1.27.4, Lean 4.36.0-rc2 and uv for this development checkout.
 The exact Lean commit is `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
 Use Python 3.15 through uv; the repository declares that requirement and has a
-locked dependency set. From the release checkout:
+locked dependency set with no third-party runtime Python dependencies. From the
+repository root:
 
 ```sh
 uv python install 3.15

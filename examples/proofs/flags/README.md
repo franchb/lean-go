@@ -5,12 +5,13 @@ Copy this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives. Lean, Python and
 lean-go are needed only to regenerate the package and check the source proofs.
 
-This example is included in the alpha.7 candidate. The checked-in Go package
-runs without installing any producer tools. After publication, pair the
+This example is included in published alpha.7. The checked-in Go package runs
+without installing producer tools. For release reproduction, pair the
 [tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/flags)
-with the [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md);
-before publication and for development artifacts, use the CLI from the same
-checkout.
+with the [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
+Current regenerated artifacts use module generator v10; published alpha.7 uses
+v9. For development artifacts, use the CLI from the same
+[checkout](../../../docs/cli.md#development-checkout).
 
 ## Run with Go alone
 
@@ -122,9 +123,8 @@ universal proofs of Go executions.
 
 Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at Lean
 commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. For the tagged example,
-install the alpha.7 CLI using the tagged guide above after publication. For a
-candidate or development checkout, install its CLI, replacing the example
-absolute path:
+install the alpha.7 CLI using the tagged guide above. For a development
+checkout, install its CLI, replacing the example absolute path:
 
 ```sh
 uv tool install --force --python 3.15 /absolute/path/to/lean-go
@@ -170,7 +170,8 @@ only Go's binary directory on `PATH`, isolated caches, disabled module downloads
 and checksum lookup, and cgo disabled.
 
 Root `go test ./...` includes the same Go-only deployment on Linux and Windows.
-The current checkout's installed-CLI workflow runs fresh clamp, flags and words
-verification through both the direct wheel and a wheel rebuilt from the source
-distribution, and checks that the installed producer payload remains unchanged.
-All three demos are included in the alpha.7 candidate.
+The current checkout's installed-CLI workflow runs fresh clamp, flags, words and
+bytes verification through both the direct wheel and a wheel rebuilt from the
+source distribution, checking all 30 source claims per wheel and that the
+installed producer payload remains unchanged. Published alpha.7 has the first
+three demos; the byte codec is unreleased and requires this checkout's CLI.

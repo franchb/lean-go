@@ -147,15 +147,30 @@ verifier. Pair its tagged example and CLI for release reproduction, or install
 the CLI from the same checkout for development artifacts.
 
 The alpha.7 [Words example](../examples/proofs/words) selects five scalar
-roots with v11 IR/manifest, `pure-module/v9` and `lean-go-modulegen/v9`. Seven
+roots with v11 IR/manifest and `pure-module/v9`. Seven
 independent expected propositions cover widening, modulo narrowing, both
 conversion round trips, low/high packing identities and full unpack/repack.
 The fresh checker records no axioms for the two `toNat` claims, `propext` for
 the conversion round trips, and `propext` plus `Quot.sound` for the three packing
 laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
-Pair all three demos with the CLI from the same alpha.7 tag. Before publication,
-use the examples and CLI from this same checkout; see the
-[candidate walkthrough](release-candidate.md).
+Published alpha.7 has these three demos and generator v9. The current checkout
+regenerates them with `lean-go-modulegen/v10`, retaining their earlier IR schemas.
+Pair examples and CLI from the same tag or the same checkout; package version
+`0.1.0a7` alone does not distinguish these source revisions. See the
+[verification walkthrough](release-candidate.md).
+
+The development-only [byte codec](../examples/proofs/bytes) adds four roots with
+v13 IR/manifest, `pure-module/v11` and `lean-go-modulegen/v10`. Its contract maps
+twelve theorems to independent expected propositions: both inverse directions
+for each byte order and all eight encoder-byte positions. The positions use
+natural-number division by 1, 256, 65536 or 16777216 followed by remainder modulo
+256, in reverse order for big endian. Fresh evidence records `propext` for the
+eight position claims and `propext` plus `Quot.sound` for the four inverses. The
+axiom allowlist is unchanged. Runtime code uses a concrete `ByteQuad` record;
+proof-only natural numbers and bit vectors do not enter the generated runtime.
+The [byte walkthrough](articles/proved-byte-codec.md) shows the Go application,
+reproduction commands and assurance boundary. This example requires the CLI from
+this checkout and is not in published alpha.7.
 
 ## Evidence and assurance
 
@@ -204,7 +219,8 @@ The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
 library-specific source and theorem regression checks. The standalone verifiers
-`check_clamp_demo.py`, `check_flags_demo.py` and `check_words_demo.py` additionally
-regenerate artifacts with an installed CLI, check exact evidence and deploy only
-Go sources. The installed-wheel smoke runs all three through both wheel builds;
-see the [CLI guide](cli.md#verify-an-installation-build).
+`check_clamp_demo.py`, `check_flags_demo.py`, `check_words_demo.py` and
+`check_bytes_demo.py` additionally regenerate artifacts with an installed CLI,
+check exact evidence and deploy only Go sources. The installed-wheel smoke runs
+all four through both the direct and sdist-rebuilt wheels, freshly checking 30
+source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).
