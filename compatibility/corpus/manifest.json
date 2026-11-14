@@ -3,16 +3,16 @@
     "name": "numeric",
     "module": "Numeric",
     "roots": [
-      "Numeric.calculate32",
-      "Numeric.calculate64"
+      "Numeric.calc32",
+      "Numeric.calc64"
     ]
   },
   {
     "name": "bitwise",
     "module": "Bitwise",
     "roots": [
-      "Bitwise.calculate32",
-      "Bitwise.calculate64"
+      "Bitwise.calc32",
+      "Bitwise.calc64"
     ]
   },
   {
