@@ -6,6 +6,9 @@ generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
 Alpha.7 also accepts exact v10/`pure-module/v8` single-root and
 v11/`pure-module/v9` multiple-root
 [width-conversion packages](research/extraction-width-conversions.md).
+The alpha.8 candidate adds v12/`pure-module/v10` single-root and
+v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
+Before alpha.8 publication, use the CLI from this checkout for candidate checks.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -153,13 +156,12 @@ conversion round trips, low/high packing identities and full unpack/repack.
 The fresh checker records no axioms for the two `toNat` claims, `propext` for
 the conversion round trips, and `propext` plus `Quot.sound` for the three packing
 laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
-Published alpha.7 has these three demos and generator v9. The current checkout
-regenerates them with `lean-go-modulegen/v10`, retaining their earlier IR schemas.
-Pair examples and CLI from the same tag or the same checkout; package version
-`0.1.0a7` alone does not distinguish these source revisions. See the
-[verification walkthrough](release-candidate.md).
+Published alpha.7 has these three demos and generator v9. The alpha.8 candidate,
+package `0.1.0a8`, regenerates them with `lean-go-modulegen/v10`, retaining their
+earlier IR schemas. Pair examples and CLI from the same tag or the same checkout.
+See the [verification walkthrough](release-candidate.md).
 
-The development-only [byte codec](../examples/proofs/bytes) adds four roots with
+The candidate [byte codec](../examples/proofs/bytes) adds four roots with
 v13 IR/manifest, `pure-module/v11` and `lean-go-modulegen/v10`. Its contract maps
 twelve theorems to independent expected propositions: both inverse directions
 for each byte order and all eight encoder-byte positions. The positions use
@@ -169,8 +171,8 @@ eight position claims and `propext` plus `Quot.sound` for the four inverses. The
 axiom allowlist is unchanged. Runtime code uses a concrete `ByteQuad` record;
 proof-only natural numbers and bit vectors do not enter the generated runtime.
 The [byte walkthrough](articles/proved-byte-codec.md) shows the Go application,
-reproduction commands and assurance boundary. This example requires the CLI from
-this checkout and is not in published alpha.7.
+reproduction commands and assurance boundary. Before alpha.8 publication, this
+example requires the CLI from this checkout. It is not in published alpha.7.
 
 ## Evidence and assurance
 

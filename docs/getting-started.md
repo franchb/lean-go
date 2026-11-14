@@ -1,29 +1,31 @@
 # Try the experimental preview
 
 The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
-and a C compiler are not needed by a consumer. Published `v0.1.0-alpha.7` and
-this development checkout have experimental APIs. Tagged commands below reproduce
-the published release. Current UInt8 support and the proved byte codec are
-**unreleased** and require this checkout and its
-[paired CLI](cli.md#development-checkout); the package version still reads `0.1.0a7`.
+and a C compiler are not needed by a consumer. This checkout prepares the
+**alpha.8 candidate**, Python package `0.1.0a8`, with experimental APIs.
+Before publication, use this checkout and its
+[paired CLI](cli.md#development-checkout) for candidate validation. Tagged commands
+below apply only after publication. Published alpha.7 has no UInt8 support.
 
-Alpha.7 adds exact UInt32/UInt64 width conversions, ordinary left-shift notation
-and a standalone proved word-packing example. Bitwise operations, the CLI,
-multi-root extraction, quota and reusable proof contracts remain available.
-Its producer uses Lean 4.36.0-rc2. The
+The candidate adds scalar UInt8 and a standalone proved byte codec alongside
+alpha.7's exact UInt32/UInt64 width conversions and word-packing example.
+Bitwise operations, the CLI, multi-root extraction, quota and reusable proof
+contracts remain available. The producer remains pinned to Lean 4.36.0-rc2. The
 [proof-to-Go walkthrough](release-candidate.md) separates current-checkout checks
 from published-release reproduction. Generated Go consumers do not require the
 producer compiler.
 
 ## Run a generated package
 
-Create a fresh directory and initialize a Go module:
+After `v0.1.0-alpha.8` is published, create a fresh directory and initialize a Go
+module. Before publication, run the [local candidate checks](release-candidate.md)
+or a copyable demo from this checkout.
 
 ```sh
 mkdir lean-go-example
 cd lean-go-example
 go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.7
+go get github.com/franchb/lean-go@v0.1.0-alpha.8
 ```
 
 Save this as `main.go`:
@@ -60,7 +62,7 @@ larger literal remains exact. The source is
 [`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
 recursive trees, record updates, joins and compiler-generated local helpers.
 
-## Run the development byte codec
+## Run the alpha.8 candidate byte codec
 
 From this checkout's root, run the [standalone byte module](../examples/proofs/bytes):
 
@@ -91,13 +93,14 @@ eight byte positions. Go tests compare both APIs against `encoding/binary` over
 rebuild its proof evidence with this checkout's CLI. The published alpha.7 tag
 has no byte codec or UInt8 engine.
 
-## Pack words with alpha.7
+## Pack words
 
-Alpha.7 includes a [copyable Words module](../examples/proofs/words). It packs
+The candidate retains the [copyable Words module](../examples/proofs/words)
+introduced in alpha.7. It packs
 two `UInt32` values into a `UInt64`, unpacks both halves, widens without loss and narrows modulo 2^32. Seven universal Lean source
 proofs accompany independent Go checks over 699 boundary and seeded triples.
 
-From the alpha.7 checkout, run the generated example offline:
+From this checkout, run the generated example offline:
 
 ```sh
 cd examples/proofs/words
@@ -106,11 +109,13 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
 ```
 
 The copyable module needs only Go. To regenerate its v11 artifacts or recheck
-proof evidence, pair the example and [CLI](cli.md) from the same alpha.7 tag, or
-use the same development checkout for current regenerated artifacts, and follow
-the example's verifier instructions. The extraction and Go runtime remain tested
-and trusted; the proofs
-establish the selected Lean statements.
+proof evidence, install the [CLI](cli.md#development-checkout) from this same
+checkout and follow the example's verifier instructions. After alpha.8 publication,
+pair its example and CLI from that tag. For historical alpha.7 reproduction, use
+its tagged example and
+[guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
+The extraction and Go runtime remain tested and trusted; the proofs establish
+the selected Lean statements.
 Runtime division/remainder, UInt16, direct UInt8/UInt64 casts and broad generic
 collections remain deferred.
 

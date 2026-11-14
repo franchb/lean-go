@@ -5,13 +5,15 @@ two 32-bit words into one 64-bit word, and reads its high and low halves. Copy
 this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives.
 
-Words is included in published alpha.7. For release reproduction, pair the
+This example is included in the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md),
+Python package `0.1.0a8`. Before publication, regenerate with the CLI from this
+same [checkout](../../../docs/cli.md#development-checkout). After
+publication, pair its tagged example and CLI. Published alpha.7 also has this
+demo, with generator v9; use its
 [tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/words)
-and [tagged CLI](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
-Current regenerated artifacts use module generator v10; published alpha.7 uses
-v9. For development artifacts, install the CLI from the same
-[checkout](../../../docs/cli.md#development-checkout). The checked-in Go package
-needs no Lean, Python, uv or C compiler to run.
+and [tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
+for historical reproduction. Current artifacts use generator v10. The checked-in
+Go package needs no producer tools to run.
 
 ## Run with Go alone
 
@@ -139,9 +141,8 @@ These are finite extraction checks, distinct from the universal Lean proofs.
 ## Regenerate and verify the handoff
 
 Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at
-commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. For the tagged example, install
-the alpha.7 CLI using the tagged guide above. For a development checkout,
-install its CLI, replacing the example absolute path:
+commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Before alpha.8 publication,
+install this checkout's CLI, replacing the example absolute path:
 
 ```sh
 uv tool install --force --python 3.15 /absolute/path/to/lean-go

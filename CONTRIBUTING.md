@@ -34,13 +34,15 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-Published alpha.7 includes clamp (three claims), flags (eight) and
-[words](examples/proofs/words) (seven). This development checkout adds the
-[byte codec](examples/proofs/bytes) with twelve source claims and a runnable Go
-application. The new feature is unreleased; the package version remains
-`0.1.0a7`. Current artifacts use `lean-go-modulegen/v10`; byte exports use v12/v13
-IR and `pure-module/v10` or `pure-module/v11`. Earlier IR schemas retain their
-restrictions, including Words' v11 IR and `pure-module/v9`.
+The [alpha.8 candidate](docs/releases/v0.1.0-alpha.8.md), Python package
+`0.1.0a8`, includes clamp (three claims), flags (eight),
+[words](examples/proofs/words) (seven) and the [byte codec](examples/proofs/bytes)
+(twelve), with a runnable Go application for each. Before publication, validate
+with this checkout's CLI. Published alpha.7 has the first three demos and no UInt8
+support. Current artifacts
+use `lean-go-modulegen/v10`; byte exports use v12/v13 IR and `pure-module/v10` or
+`pure-module/v11`. Earlier IR schemas retain their restrictions, including Words'
+v11 IR and `pure-module/v9`.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.

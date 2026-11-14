@@ -1,11 +1,11 @@
 # Scalar UInt8 extraction and the proved byte codec
 
-This development checkout adds scalar `UInt8` and exact UInt8/UInt32 casts to the
-pure monomorphic module extractor. The capability and
-[byte codec](../../examples/proofs/bytes) are **unreleased**. Published
-`v0.1.0-alpha.7` uses module generator v9 and has no UInt8 support; the checkout
-retains package version `0.1.0a7` while using `lean-go-modulegen/v10`.
-Use the CLI from this same checkout for current manifests and proof evidence.
+The [alpha.8 candidate](../releases/v0.1.0-alpha.8.md), Python package `0.1.0a8`,
+adds scalar `UInt8`, exact UInt8/UInt32 casts and the
+[proved byte codec](../../examples/proofs/bytes) to the pure monomorphic module
+extractor. Before publication, use the CLI from this same checkout for current
+manifests and proof evidence. All current module exports use
+`lean-go-modulegen/v10`. Published alpha.7 has generator v9 and no UInt8 support.
 Historical release and research reports describe their original revisions.
 
 The producer remains pinned to Lean **4.36.0-rc2**, commit
@@ -67,8 +67,8 @@ primitives and payloads. Single-root `root` and multiple-root `roots` fields
 retain their existing exact forms. All current module exports use generator v10;
 the regenerated Clamp, Flags and Words manifests and proof receipts change with
 producer/generator hashes even where their IR schemas stay unchanged. Pair the
-CLI and artifacts from the same checkout. A published alpha.7 CLI cannot
-reproduce these development bytes merely because both report `0.1.0a7`.
+CLI and artifacts from the same checkout or, after publication, the same alpha.8
+tag. Published alpha.7's CLI cannot reproduce the candidate's generator v10 bytes.
 
 ## Source audit boundary
 
