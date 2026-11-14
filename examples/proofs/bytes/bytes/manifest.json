@@ -1,0 +1,1115 @@
+{
+  "schema": "lean-go-manifest/v13",
+  "generator": "lean-go-modulegen/v10",
+  "generator_source_sha256": "014dfb41c4b72b3d5a811bfc8930d3f50a4b6ad9a1e11c7f70bb7bc56eb15489",
+  "validator_source_sha256": "8c05268fd9c7b4a3fd5f887680460241f9f0c12a7299f0730de5c23f01774c65",
+  "ir_sha256": "caf3e7fb7da61641a21f75d4b0929dc1ec47533ec84c92da640e9c91078789bc",
+  "program": {
+    "schema": "lean-go-ir/v13",
+    "profile": "pure-module/v11",
+    "stage": "pure-mono",
+    "lean_version": "4.36.0-rc2",
+    "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
+    "module": "ByteCodec",
+    "roots": [
+      "ByteCodec.decodeBE",
+      "ByteCodec.decodeLE",
+      "ByteCodec.encodeBE",
+      "ByteCodec.encodeLE"
+    ],
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5b03faff16804125d1f344a9aba167954abb30938b20af9f9e481af8c3bba4e9",
+      "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
+      "producer/LeanGo/Module/Export.lean": "fe719558ecb733bd72c03cfb35e0af9183a390eb7c3a893ccc9b0919df5a771c",
+      "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
+      "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
+      "producer/LeanGo/Module/LocalSource.lean": "f8a638b48ee313ad21faad1b127269cf513ffd9923a200085796f6f42be1ecee",
+      "producer/LeanGo/Module/Primitives.lean": "35ae4de3ebc99f0c399ec907bf29e0005a8cd78c53fc13b2adca7e222c42f6b6",
+      "producer/LeanGo/Module/Records.lean": "83335d06299aebf84311d7b38f698293eb76dec78642acdf72d5cf0dcf899d16",
+      "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
+      "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+      "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
+      "scripts/export_module.py": "cba567342a38b3e94242a5ddce439db25b140e05d40069db10eb0a5385e29afe",
+      "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+      "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
+      "source/ByteCodec.lean": "455b81577da4dd43b26160da15e0b582bc1cad4c0cacc2469b64308f8aae8b01"
+    },
+    "types": [
+      {
+        "name": "ByteQuad",
+        "constructors": [
+          {
+            "name": "ByteQuad.mk",
+            "tag": 0,
+            "fields": [
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8"
+            ]
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "ByteCodec.decodeBE",
+        "dependencies": [
+          "ByteQuad",
+          "ByteQuad.b0",
+          "ByteQuad.b1",
+          "ByteQuad.b2",
+          "ByteQuad.b3",
+          "HOr.hOr",
+          "HShiftLeft.hShiftLeft",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt8.toUInt32",
+          "instHOrOfOrOp",
+          "instHShiftLeftOfShiftLeft",
+          "instOrOpUInt32",
+          "instShiftLeftUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteCodec.decodeLE",
+        "dependencies": [
+          "ByteQuad",
+          "ByteQuad.b0",
+          "ByteQuad.b1",
+          "ByteQuad.b2",
+          "ByteQuad.b3",
+          "HOr.hOr",
+          "HShiftLeft.hShiftLeft",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt8.toUInt32",
+          "instHOrOfOrOp",
+          "instHShiftLeftOfShiftLeft",
+          "instOrOpUInt32",
+          "instShiftLeftUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteCodec.encodeBE",
+        "dependencies": [
+          "ByteQuad.mk",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt32.toUInt8",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteCodec.encodeLE",
+        "dependencies": [
+          "ByteQuad.mk",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt32.toUInt8",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteQuad",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "ByteQuad.b0",
+        "dependencies": [
+          "ByteQuad"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteQuad.b1",
+        "dependencies": [
+          "ByteQuad"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteQuad.b2",
+        "dependencies": [
+          "ByteQuad"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "ByteQuad.b3",
+        "dependencies": [
+          "ByteQuad"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "HOr.hOr",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftLeft.hShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftRight.hShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "OfNat.ofNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.toUInt8",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt8.toUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHOrOfOrOp",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHShiftLeftOfShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHShiftRightOfShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instOrOpUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftLeftUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftRightUInt32",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "ByteCodec.decodeBE",
+        "params": [
+          {
+            "id": 1,
+            "type": "ByteQuad"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "ByteQuad",
+          "result": "UInt32",
+          "alts": [
+            {
+              "constructor": "ByteQuad.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 3,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 4,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 5,
+                  "type": "UInt8"
+                }
+              ],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt8.toUInt32",
+                  "args": [
+                    2
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "uint32",
+                    "name": "24",
+                    "args": []
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 8,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.shiftLeft",
+                      "args": [
+                        6,
+                        7
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 9,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt8.toUInt32",
+                        "args": [
+                          3
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 10,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "uint32",
+                          "name": "16",
+                          "args": []
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 11,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.shiftLeft",
+                            "args": [
+                              9,
+                              10
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 12,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.lor",
+                              "args": [
+                                8,
+                                11
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 13,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "primitive",
+                                "name": "UInt8.toUInt32",
+                                "args": [
+                                  4
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 14,
+                                  "type": "UInt32"
+                                },
+                                "value": {
+                                  "kind": "uint32",
+                                  "name": "8",
+                                  "args": []
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 15,
+                                    "type": "UInt32"
+                                  },
+                                  "value": {
+                                    "kind": "primitive",
+                                    "name": "UInt32.shiftLeft",
+                                    "args": [
+                                      13,
+                                      14
+                                    ]
+                                  },
+                                  "next": {
+                                    "op": "let",
+                                    "bind": {
+                                      "id": 16,
+                                      "type": "UInt32"
+                                    },
+                                    "value": {
+                                      "kind": "primitive",
+                                      "name": "UInt32.lor",
+                                      "args": [
+                                        12,
+                                        15
+                                      ]
+                                    },
+                                    "next": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 17,
+                                        "type": "UInt32"
+                                      },
+                                      "value": {
+                                        "kind": "primitive",
+                                        "name": "UInt8.toUInt32",
+                                        "args": [
+                                          5
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 18,
+                                          "type": "UInt32"
+                                        },
+                                        "value": {
+                                          "kind": "primitive",
+                                          "name": "UInt32.lor",
+                                          "args": [
+                                            16,
+                                            17
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "return",
+                                          "var": 18
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "ByteCodec.decodeLE",
+        "params": [
+          {
+            "id": 1,
+            "type": "ByteQuad"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "ByteQuad",
+          "result": "UInt32",
+          "alts": [
+            {
+              "constructor": "ByteQuad.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 3,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 4,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 5,
+                  "type": "UInt8"
+                }
+              ],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt8.toUInt32",
+                  "args": [
+                    5
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "uint32",
+                    "name": "24",
+                    "args": []
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 8,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.shiftLeft",
+                      "args": [
+                        6,
+                        7
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 9,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt8.toUInt32",
+                        "args": [
+                          4
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 10,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "uint32",
+                          "name": "16",
+                          "args": []
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 11,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.shiftLeft",
+                            "args": [
+                              9,
+                              10
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 12,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.lor",
+                              "args": [
+                                8,
+                                11
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 13,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "primitive",
+                                "name": "UInt8.toUInt32",
+                                "args": [
+                                  3
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 14,
+                                  "type": "UInt32"
+                                },
+                                "value": {
+                                  "kind": "uint32",
+                                  "name": "8",
+                                  "args": []
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 15,
+                                    "type": "UInt32"
+                                  },
+                                  "value": {
+                                    "kind": "primitive",
+                                    "name": "UInt32.shiftLeft",
+                                    "args": [
+                                      13,
+                                      14
+                                    ]
+                                  },
+                                  "next": {
+                                    "op": "let",
+                                    "bind": {
+                                      "id": 16,
+                                      "type": "UInt32"
+                                    },
+                                    "value": {
+                                      "kind": "primitive",
+                                      "name": "UInt32.lor",
+                                      "args": [
+                                        12,
+                                        15
+                                      ]
+                                    },
+                                    "next": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 17,
+                                        "type": "UInt32"
+                                      },
+                                      "value": {
+                                        "kind": "primitive",
+                                        "name": "UInt8.toUInt32",
+                                        "args": [
+                                          2
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 18,
+                                          "type": "UInt32"
+                                        },
+                                        "value": {
+                                          "kind": "primitive",
+                                          "name": "UInt32.lor",
+                                          "args": [
+                                            16,
+                                            17
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "return",
+                                          "var": 18
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "ByteCodec.encodeBE",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "ByteQuad",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "24",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt8"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.toUInt8",
+                "args": [
+                  3
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "uint32",
+                  "name": "16",
+                  "args": []
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt32.shiftRight",
+                    "args": [
+                      1,
+                      5
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 7,
+                      "type": "UInt8"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.toUInt8",
+                      "args": [
+                        6
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "uint32",
+                        "name": "8",
+                        "args": []
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 9,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "primitive",
+                          "name": "UInt32.shiftRight",
+                          "args": [
+                            1,
+                            8
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 10,
+                            "type": "UInt8"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.toUInt8",
+                            "args": [
+                              9
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 11,
+                              "type": "UInt8"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.toUInt8",
+                              "args": [
+                                1
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 12,
+                                "type": "ByteQuad"
+                              },
+                              "value": {
+                                "kind": "constructor",
+                                "name": "ByteQuad.mk",
+                                "args": [
+                                  4,
+                                  7,
+                                  10,
+                                  11
+                                ]
+                              },
+                              "next": {
+                                "op": "return",
+                                "var": 12
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "ByteCodec.encodeLE",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "ByteQuad",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt8"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt32.toUInt8",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "uint32",
+              "name": "8",
+              "args": []
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.shiftRight",
+                "args": [
+                  1,
+                  3
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt8"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.toUInt8",
+                  "args": [
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "uint32",
+                    "name": "16",
+                    "args": []
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 7,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.shiftRight",
+                      "args": [
+                        1,
+                        6
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "UInt8"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.toUInt8",
+                        "args": [
+                          7
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 9,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "uint32",
+                          "name": "24",
+                          "args": []
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 10,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.shiftRight",
+                            "args": [
+                              1,
+                              9
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 11,
+                              "type": "UInt8"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.toUInt8",
+                              "args": [
+                                10
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 12,
+                                "type": "ByteQuad"
+                              },
+                              "value": {
+                                "kind": "constructor",
+                                "name": "ByteQuad.mk",
+                                "args": [
+                                  2,
+                                  5,
+                                  8,
+                                  11
+                                ]
+                              },
+                              "next": {
+                                "op": "return",
+                                "var": 12
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "api": {
+      "records": {
+        "ByteQuad": [
+          "b0",
+          "b1",
+          "b2",
+          "b3"
+        ]
+      }
+    }
+  },
+  "function_ids": {
+    "ByteCodec.decodeBE": 0,
+    "ByteCodec.decodeLE": 1,
+    "ByteCodec.encodeBE": 2,
+    "ByteCodec.encodeLE": 3
+  },
+  "constructor_ids": {
+    "ByteQuad.mk": [
+      1,
+      0
+    ]
+  },
+  "generated_files": {
+    "api.go": "b443a1373dd2cb68f21daf5782611cb73c801e3c12160be025a1bc731847c716",
+    "control.go": "0e98639f86e7e18a2238da87ecb6ed2907d7b8495a30e3e1301627ff4d7e18d2",
+    "runtime.go": "06f8ee8b51ad35989ef1e05a03ad03b95c328277ba515c8872aebcc602edc52b",
+    "schema.go": "7046c73eb7a164320005d943c513ffde304623faee97d782da9392a39548011e"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt32.lor",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "bitwise OR of 32-bit operands"
+    },
+    {
+      "name": "UInt32.shiftLeft",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a * 2^(b modulo 32)) modulo 2^32"
+    },
+    {
+      "name": "UInt32.shiftRight",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "floor(a / 2^(b modulo 32))"
+    },
+    {
+      "name": "UInt32.toUInt8",
+      "params": [
+        "UInt32"
+      ],
+      "result": "UInt8",
+      "semantics": "a modulo 2^8"
+    },
+    {
+      "name": "UInt8.toUInt32",
+      "params": [
+        "UInt8"
+      ],
+      "result": "UInt32",
+      "semantics": "zero extension: a"
+    }
+  ],
+  "go_api": {
+    "entrypoints": {
+      "ByteCodec.decodeBE": "RunDecodeBE",
+      "ByteCodec.decodeLE": "RunDecodeLE",
+      "ByteCodec.encodeBE": "RunEncodeBE",
+      "ByteCodec.encodeLE": "RunEncodeLE"
+    },
+    "types": {
+      "ByteQuad": "ByteQuad",
+      "UInt32": "uint32",
+      "UInt64": "uint64",
+      "UInt8": "uint8"
+    },
+    "constructors": {
+      "ByteQuad.mk": "NewByteQuad"
+    },
+    "accessors": {
+      "ByteQuad": {
+        "b0": "B0",
+        "b1": "B1",
+        "b2": "B2",
+        "b3": "B3"
+      }
+    },
+    "destructors": {}
+  }
+}

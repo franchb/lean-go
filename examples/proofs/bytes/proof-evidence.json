@@ -1,0 +1,133 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ByteCodecContract.decodeBE_encodeBE",
+      "name": "ByteCodecProofs.decodeBE_encodeBE",
+      "statement": "∀ (w : UInt32), ByteCodec.decodeBE (ByteCodec.encodeBE w) = w"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ByteCodecContract.decodeLE_encodeLE",
+      "name": "ByteCodecProofs.decodeLE_encodeLE",
+      "statement": "∀ (w : UInt32), ByteCodec.decodeLE (ByteCodec.encodeLE w) = w"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeBE_b0",
+      "name": "ByteCodecProofs.encodeBE_b0",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b0.toNat = w.toNat / 16777216 % 256"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeBE_b1",
+      "name": "ByteCodecProofs.encodeBE_b1",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b1.toNat = w.toNat / 65536 % 256"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeBE_b2",
+      "name": "ByteCodecProofs.encodeBE_b2",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b2.toNat = w.toNat / 256 % 256"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeBE_b3",
+      "name": "ByteCodecProofs.encodeBE_b3",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b3.toNat = w.toNat % 256"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeBE_decodeBE",
+      "name": "ByteCodecProofs.encodeBE_decodeBE",
+      "statement": "∀ (q : ByteQuad), ByteCodec.encodeBE (ByteCodec.decodeBE q) = q"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeLE_b0",
+      "name": "ByteCodecProofs.encodeLE_b0",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b0.toNat = w.toNat % 256"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeLE_b1",
+      "name": "ByteCodecProofs.encodeLE_b1",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b1.toNat = w.toNat / 256 % 256"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeLE_b2",
+      "name": "ByteCodecProofs.encodeLE_b2",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b2.toNat = w.toNat / 65536 % 256"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeLE_b3",
+      "name": "ByteCodecProofs.encodeLE_b3",
+      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b3.toNat = w.toNat / 16777216 % 256"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ByteCodecContract.encodeLE_decodeLE",
+      "name": "ByteCodecProofs.encodeLE_decodeLE",
+      "statement": "∀ (q : ByteQuad), ByteCodec.encodeLE (ByteCodec.decodeLE q) = q"
+    }
+  ],
+  "contract_sha256": "bdc9469d3ad0fcd92b7dec001369d0ab7483c0e3b88113db60aab33414ff9d03",
+  "generated_manifest_sha256": "fa30f5d8c654fd62559cbf122ad7483ca57ad023f21bea21abdb99810a39d712",
+  "lean_commit": "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a",
+  "lean_version": "4.36.0-rc2",
+  "module": "ByteCodec",
+  "project_inputs": {
+    "proof/ByteCodecContract.lean": "7b5042954681deacbbcba098739ef7de7adae86ca37a5cfb636ca81ec1554560",
+    "proof/ByteCodecProofs.lean": "4783945dc2885a14eeae74dd3d6187e0cb7c2bb1eb9e94302b01cc941bf5f06f",
+    "source/ByteCodec.lean": "455b81577da4dd43b26160da15e0b582bc1cad4c0cacc2469b64308f8aae8b01"
+  },
+  "roots": [
+    "ByteCodec.decodeBE",
+    "ByteCodec.decodeLE",
+    "ByteCodec.encodeBE",
+    "ByteCodec.encodeLE"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "11c697aebe5b539d74f5069e497a588e7dfab1c4eeb74313f28357e351c55ca3",
+    "scripts/check_proofs.py": "acc1b8c492508dd80afc141b5d5c50d12d1f8f1bdd262ad461865e9b015c5dae",
+    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+    "scripts/export.py": "9fa7aeae97e52ea9e204bed0976595999a87c6f28f440d3fca2847094c61a581",
+    "scripts/export_module.py": "cba567342a38b3e94242a5ddce439db25b140e05d40069db10eb0a5385e29afe",
+    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+    "scripts/proof_contract.py": "88f5a6275bdda45ad92fdb78b24d8021635f7f2a0757c71be18fe86f062bb786",
+    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+  }
+}

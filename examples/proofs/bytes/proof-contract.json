@@ -1,0 +1,62 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "ByteCodec",
+  "roots": [
+    "ByteCodec.decodeBE",
+    "ByteCodec.decodeLE",
+    "ByteCodec.encodeBE",
+    "ByteCodec.encodeLE"
+  ],
+  "claims": [
+    {
+      "theorem": "ByteCodecProofs.decodeLE_encodeLE",
+      "expected": "ByteCodecContract.decodeLE_encodeLE"
+    },
+    {
+      "theorem": "ByteCodecProofs.decodeBE_encodeBE",
+      "expected": "ByteCodecContract.decodeBE_encodeBE"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeLE_decodeLE",
+      "expected": "ByteCodecContract.encodeLE_decodeLE"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeBE_decodeBE",
+      "expected": "ByteCodecContract.encodeBE_decodeBE"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeLE_b0",
+      "expected": "ByteCodecContract.encodeLE_b0"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeLE_b1",
+      "expected": "ByteCodecContract.encodeLE_b1"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeLE_b2",
+      "expected": "ByteCodecContract.encodeLE_b2"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeLE_b3",
+      "expected": "ByteCodecContract.encodeLE_b3"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeBE_b0",
+      "expected": "ByteCodecContract.encodeBE_b0"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeBE_b1",
+      "expected": "ByteCodecContract.encodeBE_b1"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeBE_b2",
+      "expected": "ByteCodecContract.encodeBE_b2"
+    },
+    {
+      "theorem": "ByteCodecProofs.encodeBE_b3",
+      "expected": "ByteCodecContract.encodeBE_b3"
+    }
+  ]
+}
