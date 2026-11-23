@@ -548,18 +548,11 @@ func TestUInt64Regeneration(t *testing.T) {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh wide producer builds")
 	}
 	dir := t.TempDir()
-	tracked, err := os.ReadFile("../testdata/wide.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
 	var prior []byte
 	for i := range 2 {
 		out := filepath.Join(dir, fmt.Sprintf("wide%d", i))
 		data := generateWide(t, out)
-		sameFiles(t, directoryFiles(t, out), directoryFiles(t, "../generated/wide"))
-		if !bytes.Equal(data, tracked) {
-			t.Fatal("tracked wide IR is stale")
-		}
+		checkRegeneration(t, "wide", data, directoryFiles(t, out))
 		if i > 0 && !bytes.Equal(data, prior) {
 			t.Fatal("fresh wide IR differs")
 		}

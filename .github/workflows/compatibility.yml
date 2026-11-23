@@ -1,6 +1,9 @@
 name: Compiler compatibility research
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       candidate:
@@ -19,11 +22,12 @@ env:
   CGO_ENABLED: '0'
   GOTOOLCHAIN: local
   GOWORK: 'off'
+  UV_NO_EDITABLE: '1'
 
 jobs:
   compatibility:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -39,17 +43,15 @@ jobs:
           enable-cache: false
       - name: Install explicit baseline and candidate releases
         env:
-          CANDIDATE: ${{ inputs.candidate }}
+          CANDIDATE: ${{ inputs.candidate || '4.36.0-rc2' }}
         shell: bash
         run: |
           set -euo pipefail
           baseline=$(sed -n 's|^leanprover/lean4:v||p' producer/lean-toolchain)
-          candidate="$CANDIDATE"
-          if [ "$candidate" = production ]; then candidate="$baseline"; fi
           install_release() {
             local version="$1" destination="$2" checksum
             case "$version" in
-              4.35.0) checksum=7289597a44543246c9227b8cae501767e095ce17f6d448b95fc4a8dc97268f6d ;;
+              4.36.0) checksum=2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb ;;
               4.36.0-rc2) checksum=0a0a3208617e9eab92f1041efa83ad94d405e69d172fb654a62dbfa9fbc5313b ;;
               *) echo "No reviewed archive checksum for $version" >&2; exit 2 ;;
             esac
@@ -60,15 +62,19 @@ jobs:
             printf '%s  %s\n' "$checksum" "$archive" | sha256sum --check --strict
             mkdir "$destination"
             tar --zstd -xf "$archive" -C "$destination" --strip-components=1
+            rm -- "$archive"
           }
           install_release "$baseline" "$RUNNER_TEMP/baseline-lean"
-          candidate_bin="$RUNNER_TEMP/baseline-lean/bin"
-          if [ "$candidate" != "$baseline" ]; then
-            install_release "$candidate" "$RUNNER_TEMP/candidate-lean"
-            candidate_bin="$RUNNER_TEMP/candidate-lean/bin"
-          fi
+          install_release 4.36.0-rc2 "$RUNNER_TEMP/rc2-lean"
+          case "$CANDIDATE" in
+            production) candidate_bin="$RUNNER_TEMP/baseline-lean/bin" ;;
+            4.36.0-rc2) candidate_bin="$RUNNER_TEMP/rc2-lean/bin" ;;
+            *) exit 2 ;;
+          esac
           printf 'BASELINE_BIN=%s\nCANDIDATE_BIN=%s\n' \
             "$RUNNER_TEMP/baseline-lean/bin" "$candidate_bin" >> "$GITHUB_ENV"
+      - name: Install checkout wheel and CLI
+        run: uv sync --locked --no-editable
       - name: Harness unit tests
         run: uv run --locked python scripts/test_compatibility.py
       - name: Compare independent corpus
@@ -78,6 +84,10 @@ jobs:
           --baseline-bin "$BASELINE_BIN"
           --candidate-bin "$CANDIDATE_BIN"
           --artifacts "$RUNNER_TEMP/compiler-compatibility"
+      - name: Check proof demos with stable Lean
+        run: uv run --locked python scripts/check_toolchain_demos.py --lean-bin "$BASELINE_BIN"
+      - name: Check proof demos with rc2
+        run: uv run --locked python scripts/check_toolchain_demos.py --lean-bin "$RUNNER_TEMP/rc2-lean/bin"
       - name: Preserve compatibility report and replay evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

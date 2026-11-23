@@ -77,6 +77,9 @@ func (g *generator) emitAPI() ([]byte, error) {
 			e.constructor(w, typ, ctor)
 			if fields, record := g.program.API.Records[typ.Name]; record {
 				e.accessors(w, typ, ctor, fields)
+				if bridge, ok := e.names.ByteArrays[typ.Name]; ok {
+					e.byteArray(w, typ, ctor, bridge)
+				}
 			} else {
 				e.destructor(w, typ, ctor)
 			}
@@ -135,6 +138,31 @@ func (e *apiEmitter) accessors(w *bytes.Buffer, typ moduleir.TypeDecl, ctor modu
 		e.read(w, fieldType, fmt.Sprintf("v.v.n.fields[%d]", i), "value", failure)
 		w.WriteString("return value,true}\n")
 	}
+}
+
+func (e *apiEmitter) byteArray(w *bytes.Buffer, typ moduleir.TypeDecl, ctor moduleir.Constructor, bridge apiByteArray) {
+	name := e.names.Types[typ.Name]
+	fmt.Fprintf(w, `// %s constructs a %s from four bytes in declaration order.
+func %s(data [4]byte, l Limits) (%s, error) {
+	return %s(data[0], data[1], data[2], data[3], l)
+}
+// %s copies the four fields in declaration order.
+func (v %s) %s() ([4]byte, error) {
+	if !apiMatches(v.v, %d, %d, 4) || v.v.n.size != 5 || v.v.n.depth != 2 {
+		return [4]byte{}, ErrMalformed
+	}
+	var data [4]byte
+	for i, field := range v.v.n.fields {
+		value, ok := apiReadUInt8(field)
+		if !ok {
+			return [4]byte{}, ErrMalformed
+		}
+		data[i] = value
+	}
+	return data, nil
+}
+`, bridge.FromBytes, name, bridge.FromBytes, name, e.names.Constructors[ctor.Name],
+		bridge.Bytes, name, bridge.Bytes, e.g.types[typ.Name], ctor.Tag)
 }
 
 func (e *apiEmitter) destructor(w *bytes.Buffer, typ moduleir.TypeDecl, ctor moduleir.Constructor) {

@@ -1,0 +1,111 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.encode_length_overflow_iff",
+      "name": "HeaderCodecProofs.encode_length_overflow_iff",
+      "statement": "∀ (h : Header), HeaderCodec.encode h = EncodeResult.lengthOverflow ↔ h.flags.toNat < 4 ∧ 65536 ≤ h.length.toNat"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.encode_parse_roundtrip",
+      "name": "HeaderCodecProofs.encode_parse_roundtrip",
+      "statement": "∀ (q : ByteQuad),\n  q.b0 = 1 →\n    q.b1.toNat < 4 → ∃ h, HeaderCodec.parse q = ParseResult.parsed h ∧ HeaderCodec.encode h = EncodeResult.encoded q"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.encode_reserved_flags_iff",
+      "name": "HeaderCodecProofs.encode_reserved_flags_iff",
+      "statement": "∀ (h : Header), HeaderCodec.encode h = EncodeResult.reservedFlags ↔ 4 ≤ h.flags.toNat"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.encode_success_iff",
+      "name": "HeaderCodecProofs.encode_success_iff",
+      "statement": "∀ (h : Header) (q : ByteQuad),\n  HeaderCodec.encode h = EncodeResult.encoded q ↔\n    h.flags.toNat < 4 ∧\n      h.length.toNat < 65536 ∧\n        q.b0 = 1 ∧ q.b1 = h.flags ∧ q.b2.toNat = h.length.toNat / 256 ∧ q.b3.toNat = h.length.toNat % 256"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.parse_encode_roundtrip",
+      "name": "HeaderCodecProofs.parse_encode_roundtrip",
+      "statement": "∀ (h : Header),\n  h.flags.toNat < 4 →\n    h.length.toNat < 65536 →\n      ∃ q, HeaderCodec.encode h = EncodeResult.encoded q ∧ HeaderCodec.parse q = ParseResult.parsed h"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.parse_reserved_flags_iff",
+      "name": "HeaderCodecProofs.parse_reserved_flags_iff",
+      "statement": "∀ (q : ByteQuad), HeaderCodec.parse q = ParseResult.reservedFlags ↔ q.b0 = 1 ∧ 4 ≤ q.b1.toNat"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.parse_success_iff",
+      "name": "HeaderCodecProofs.parse_success_iff",
+      "statement": "∀ (q : ByteQuad) (h : Header),\n  HeaderCodec.parse q = ParseResult.parsed h ↔\n    q.b0 = 1 ∧ q.b1.toNat < 4 ∧ h.flags = q.b1 ∧ h.length.toNat = q.b2.toNat * 256 + q.b3.toNat"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.parse_unsupported_version_iff",
+      "name": "HeaderCodecProofs.parse_unsupported_version_iff",
+      "statement": "∀ (q : ByteQuad), HeaderCodec.parse q = ParseResult.unsupportedVersion ↔ q.b0 ≠ 1"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "HeaderCodecContract.parsed_length_bound",
+      "name": "HeaderCodecProofs.parsed_length_bound",
+      "statement": "∀ (q : ByteQuad) (h : Header), HeaderCodec.parse q = ParseResult.parsed h → h.length.toNat < 65536"
+    }
+  ],
+  "contract_sha256": "e387d4f017a64c954b3fab2b8b4262a167f4d00b50bd52f3b94cdbdab0c5e513",
+  "generated_manifest_sha256": "d3aaf215f260a473aedf1190e551eb08dd4a70f106ca8229b872c58330ef5f71",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "HeaderCodec",
+  "project_inputs": {
+    "proof/HeaderCodecContract.lean": "25c5af93445b97e5e63cf10a10865317ddb50a8794baa793653f0270f1e01d6e",
+    "proof/HeaderCodecProofs.lean": "0ad163e70c97034c8a9c0056e21fcd81c2ffdac56ca4c3ee525387f8e7702712",
+    "source/HeaderCodec.lean": "84bc04ef19f0578c960473b4d317ea51418abdcb076f32ad76704eb3cde8eb81"
+  },
+  "roots": [
+    "HeaderCodec.encode",
+    "HeaderCodec.parse"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "scripts/check_proofs.py": "6a1995c54ecb85c652ad4f09d5eb173adf127359df5fc1a56846a4dcaf7fe5fc",
+    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
+    "scripts/export_module.py": "60c52394a5324da541692e23daa4fb3d74bd4ecf780b2394f9727a27cc4fd501",
+    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+    "scripts/proof_contract.py": "f39dfea502e498016cc2ff5fb5b40c4830cbdc6fab40b7bcca3a8e1adc0caf63",
+    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+  }
+}

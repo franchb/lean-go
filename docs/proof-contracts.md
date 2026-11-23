@@ -6,9 +6,9 @@ generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
 Alpha.7 also accepts exact v10/`pure-module/v8` single-root and
 v11/`pure-module/v9` multiple-root
 [width-conversion packages](research/extraction-width-conversions.md).
-The alpha.8 candidate adds v12/`pure-module/v10` single-root and
+The alpha.8 release adds v12/`pure-module/v10` single-root and
 v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
-Before alpha.8 publication, use the CLI from this checkout for candidate checks.
+Use the checkout CLI to reproduce development artifacts.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -97,7 +97,7 @@ copies the theorem type to manufacture an expectation.
 
 ## Generate and check an external project
 
-Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0-rc2
+Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0
 and Python 3.15 through `uv`. Use the same checkout to regenerate artifacts and
 proof evidence; when using an installed CLI, install it from that
 [development checkout](cli.md#development-checkout). Reproducing a published
@@ -156,13 +156,14 @@ conversion round trips, low/high packing identities and full unpack/repack.
 The fresh checker records no axioms for the two `toNat` claims, `propext` for
 the conversion round trips, and `propext` plus `Quot.sound` for the three packing
 laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
-Published alpha.7 has these three demos and generator v9. The alpha.8 candidate,
+Published alpha.7 has these three demos and generator v9. The alpha.8 release,
 package `0.1.0a8`, regenerates them with `lean-go-modulegen/v10`, retaining their
 earlier IR schemas. Pair examples and CLI from the same tag or the same checkout.
 See the [verification walkthrough](release-candidate.md).
 
 The candidate [byte codec](../examples/proofs/bytes) adds four roots with
-v13 IR/manifest, `pure-module/v11` and `lean-go-modulegen/v10`. Its contract maps
+v13 IR/manifest and `pure-module/v11`. Development generator v11 adds the
+checked Go `[4]byte` conversions. Its contract maps
 twelve theorems to independent expected propositions: both inverse directions
 for each byte order and all eight encoder-byte positions. The positions use
 natural-number division by 1, 256, 65536 or 16777216 followed by remainder modulo
@@ -171,8 +172,13 @@ eight position claims and `propext` plus `Quot.sound` for the four inverses. The
 axiom allowlist is unchanged. Runtime code uses a concrete `ByteQuad` record;
 proof-only natural numbers and bit vectors do not enter the generated runtime.
 The [byte walkthrough](articles/proved-byte-codec.md) shows the Go application,
-reproduction commands and assurance boundary. Before alpha.8 publication, this
+reproduction commands and assurance boundary. For development, this
 example requires the CLI from this checkout. It is not in published alpha.7.
+
+The [four-byte header](../examples/proofs/header) has nine source claims. They
+specify each success and rejection condition, the decoded length bound, and
+both round trips on valid inputs. Its consumer checks the wire layout against
+Go's `encoding/binary` and exercises the raw and typed APIs.
 
 ## Evidence and assurance
 
@@ -220,9 +226,7 @@ CGO_ENABLED=0 go test -count=1 ./...
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
-library-specific source and theorem regression checks. The standalone verifiers
-`check_clamp_demo.py`, `check_flags_demo.py`, `check_words_demo.py` and
-`check_bytes_demo.py` additionally regenerate artifacts with an installed CLI,
+library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes and header regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all four through both the direct and sdist-rebuilt wheels, freshly checking 30
+all five through both the direct and sdist-rebuilt wheels, freshly checking 39
 source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).

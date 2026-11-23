@@ -14,6 +14,7 @@ import (
 
 	"github.com/franchb/lean-go/internal/gogen"
 	"github.com/franchb/lean-go/internal/ir"
+	"github.com/franchb/lean-go/internal/leanversion"
 )
 
 func goBinary() string {
@@ -25,6 +26,11 @@ func goBinary() string {
 }
 func commandEnv(extra map[string]string) []string {
 	settings := map[string]string{"CGO_ENABLED": "0", "GOTOOLCHAIN": "local", "GOWORK": "off", "GOPROXY": "off", "GOSUMDB": "off", "GOFLAGS": ""}
+	version := os.Getenv("LEAN_GO_TOOLCHAIN")
+	if version == "" {
+		version = leanversion.Version
+	}
+	settings["ELAN_TOOLCHAIN"] = "leanprover/lean4:v" + version
 	for k, v := range extra {
 		settings[k] = v
 	}
@@ -212,14 +218,7 @@ func TestRegeneration(t *testing.T) {
 			}
 		}
 	}
-	sameFiles(t, first, directoryFiles(t, "../generated/normalizer"))
-	fixture, err := os.ReadFile("../testdata/normalizer.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(firstIR, fixture) {
-		t.Fatal("tracked IR fixture is stale")
-	}
+	checkRegeneration(t, "normalizer", firstIR, first)
 }
 func sameFiles(t *testing.T, a, b map[string]string) {
 	t.Helper()

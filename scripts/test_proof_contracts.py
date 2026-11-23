@@ -14,7 +14,7 @@ from unittest import mock
 
 import check_proofs as proofs
 import proof_contract as contracts
-from export import COMMIT, TOOLCHAIN, ExportError
+from export import ExportError, selected_compiler
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 GENERATED = {'api.go', 'control.go', 'runtime.go', 'schema.go'}
@@ -48,6 +48,7 @@ class ContractFixture(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix='proof-contract-test-')
         self.addCleanup(temporary.cleanup)
+        self.compiler = selected_compiler()
         self.root = Path(temporary.name)
         self.contract_path = self.root / 'proof-contract.json'
         self.source = self.root / 'source/Example.lean'
@@ -79,7 +80,7 @@ class ContractFixture(unittest.TestCase):
         multiple = len(contract.roots) > 1
         program = dict(schema='lean-go-ir/v7' if multiple else 'lean-go-ir/v6',
                        profile='pure-module/v5' if multiple else 'pure-module/v4',
-                       stage='pure-mono', module=contract.module, lean_version='4.36.0-rc2', lean_commit=COMMIT,
+                       stage='pure-mono', module=contract.module, lean_version=self.compiler.version, lean_commit=self.compiler.commit,
                        inputs={'source/' + relative: sha(data) for relative, data in project.runtime.values()})
         program['roots' if multiple else 'root'] = list(contract.roots) if multiple else contract.roots[0]
         self.manifest = dict(schema='lean-go-manifest/v7' if multiple else 'lean-go-manifest/v6', program=program,
@@ -91,7 +92,7 @@ class ContractFixture(unittest.TestCase):
 
     def verify_manifest(self):
         contract, project = self.project()
-        return contracts.verify_manifest(self.manifest_path, contract, project)
+        return contracts.verify_manifest(self.manifest_path, contract, project, self.compiler)
 
     def sample_claims(self):
         return claim_records(contracts.load_contract(self.contract_path))
@@ -349,6 +350,7 @@ class EvidenceProtocolTests(ContractFixture):
             raw = self.evidence()
             self.assertEqual(raw, self.evidence())
         evidence = json.loads(raw)
+        self.assertEqual((evidence['lean_version'], evidence['lean_commit']), self.compiler)
         _, project = self.project()
         self.assertEqual(evidence['schema'], 'lean-go-proof-evidence/v1')
         self.assertEqual(evidence['contract_sha256'], sha(self.contract_path.read_bytes()))
@@ -447,17 +449,17 @@ class EvidenceProtocolTests(ContractFixture):
                 self.assertEqual((workspace / relative).read_bytes(), data)
             self.assertNotIn('LEAN_PATH', env)
             self.assertNotIn('LAKE_HOME', env)
-            self.assertEqual(env['ELAN_TOOLCHAIN'], TOOLCHAIN.decode().strip())
+            self.assertEqual(env['ELAN_TOOLCHAIN'], self.compiler.toolchain)
             (workspace / 'lake-manifest.json').write_text('{"packages":[]}')
             if command[-1] == '--version':
-                return f'Lean (version 4.36.0-rc2, test, commit {COMMIT}, Release)'
+                return f'Lean (version {self.compiler.version}, test, commit {self.compiler.commit}, Release)'
             if command[-1].endswith('.lean'):
                 (workspace / 'claims.json').write_text(json.dumps(self.sample_claims()))
             return ''
         with mock.patch.object(proofs, 'run', side_effect=fake_run), \
                 mock.patch.object(proofs.shutil, 'which', side_effect=lambda name: name), \
                 mock.patch.dict(os.environ, {'LEAN_PATH': '/poison', 'LAKE_HOME': '/poison'}):
-            self.assertEqual(proofs.prove(contract, project, proofs.tool_snapshot()), self.sample_claims())
+            self.assertEqual(proofs.prove(contract, project, proofs.tool_snapshot(), self.compiler), self.sample_claims())
         self.assertEqual(len(commands), 4)
         self.assertIn('build', commands[2])
 
@@ -468,7 +470,7 @@ class EvidenceProtocolTests(ContractFixture):
             def fake_run(command, workspace, _env):
                 if command[-1] == '--version':
                     (workspace / 'lake-manifest.json').write_text('{"packages":[]}')
-                    return f'Lean (version 4.36.0-rc2, test, commit {COMMIT}, Release)'
+                    return f'Lean (version {self.compiler.version}, test, commit {self.compiler.commit}, Release)'
                 if 'build' in command:
                     data = '{"packages":[{"name":"unexpected"}]}' if target == 'lake-manifest.json' else 'changed input'
                     (workspace / target).write_text(data)
@@ -476,7 +478,7 @@ class EvidenceProtocolTests(ContractFixture):
             with self.subTest(target=target), mock.patch.object(proofs, 'run', side_effect=fake_run), \
                     mock.patch.object(proofs.shutil, 'which', side_effect=lambda name: name), \
                     self.assertRaisesRegex(ExportError, 'workspace|dependenc|staged'):
-                proofs.prove(contract, project, proofs.tool_snapshot())
+                proofs.prove(contract, project, proofs.tool_snapshot(), self.compiler)
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_PROOFS') == '1', 'set LEAN_GO_PROOFS=1 for Lean')
@@ -495,19 +497,19 @@ class RealProofContractTests(unittest.TestCase):
                             'opaque bounded : Prop := True'):
             project = self.modified_project('ClampContract', declaration)
             with self.subTest(declaration=declaration), self.assertRaisesRegex(ExportError, 'Expected statement is not a definition'):
-                proofs.prove(self.contract, project, self.tools)
+                proofs.prove(self.contract, project, self.tools, selected_compiler())
 
     def test_expected_definition_must_be_closed_prop_without_universes(self):
         for declaration in ('def bounded : Nat := 0', 'def bounded (p : Prop) : Prop := p',
                             'def bounded.{u} : Prop := ∀ (_ : Sort u), True'):
             project = self.modified_project('ClampContract', declaration)
             with self.subTest(declaration=declaration), self.assertRaisesRegex(ExportError, 'closed nonpolymorphic Prop'):
-                proofs.prove(self.contract, project, self.tools)
+                proofs.prove(self.contract, project, self.tools, selected_compiler())
 
     def test_changed_expected_proposition_is_rejected(self):
         project = self.modified_project('ClampContract', 'def bounded : Prop := True')
         with self.assertRaisesRegex(ExportError, 'Theorem type changed'):
-            proofs.prove(self.contract, project, self.tools)
+            proofs.prove(self.contract, project, self.tools, selected_compiler())
 
     def test_polymorphic_theorem_is_rejected(self):
         project = contracts.ProjectSnapshot(self.project.runtime.copy(), self.project.proofs.copy())
@@ -515,7 +517,7 @@ class RealProofContractTests(unittest.TestCase):
         project.proofs['ClampProofs'] = (relative, raw + b'\ntheorem ClampProofs.poly.{u} (A : Sort u) (x : A) : x = x := rfl\n')
         contract = dataclasses.replace(self.contract, claims=(('ClampProofs.poly', 'ClampContract.bounded'),))
         with self.assertRaisesRegex(ExportError, 'Polymorphic theorem is unsupported'):
-            proofs.prove(contract, project, self.tools)
+            proofs.prove(contract, project, self.tools, selected_compiler())
 
     def test_compilation_cannot_modify_snapshotted_runtime_source(self):
         project = contracts.ProjectSnapshot(self.project.runtime.copy(), self.project.proofs.copy())
@@ -523,7 +525,7 @@ class RealProofContractTests(unittest.TestCase):
         project.proofs['ClampProofs'] = (relative, b'import Lean\n' + body +
                                       b'\nrun_cmd IO.FS.writeFile "Clamp.lean" "-- altered runtime source\\n"\n')
         with self.assertRaisesRegex(ExportError, 'workspace|staged'):
-            proofs.prove(self.contract, project, self.tools)
+            proofs.prove(self.contract, project, self.tools, selected_compiler())
 
     def test_external_project_extracts_proves_and_runs_with_go_only(self):
         with tempfile.TemporaryDirectory(prefix='external-proof-project-') as directory:

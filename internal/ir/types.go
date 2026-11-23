@@ -1,12 +1,14 @@
 // Package ir admits the closed audited-normalizer/v1 extraction profile.
 package ir
 
+import "github.com/franchb/lean-go/internal/leanversion"
+
 const (
 	Schema       = "lean-go-ir/v1"
 	Profile      = "audited-normalizer/v1"
 	Stage        = "pure-mono"
-	LeanVersion  = "4.36.0-rc2"
-	LeanCommit   = "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"
+	LeanVersion  = leanversion.Version
+	LeanCommit   = leanversion.Commit
 	ModelSHA256  = "c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f"
 	Root         = "LeanGo.Feasibility.normalize"
 	MaxBytes     = 4 << 20

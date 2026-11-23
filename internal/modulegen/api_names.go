@@ -3,6 +3,7 @@ package modulegen
 import (
 	"fmt"
 	"go/token"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -19,6 +20,12 @@ type goAPI struct {
 	Constructors map[string]string            `json:"constructors"`
 	Accessors    map[string]map[string]string `json:"accessors"`
 	Destructors  map[string]apiDestructor     `json:"destructors"`
+	ByteArrays   map[string]apiByteArray      `json:"byte_arrays,omitempty"`
+}
+
+type apiByteArray struct {
+	FromBytes string `json:"from_bytes"`
+	Bytes     string `json:"bytes"`
 }
 
 type apiDestructor struct {
@@ -76,6 +83,7 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 	api := &goAPI{
 		Entrypoint: "RunTyped", Types: map[string]string{}, Constructors: map[string]string{},
 		Accessors: map[string]map[string]string{}, Destructors: map[string]apiDestructor{},
+		ByteArrays: map[string]apiByteArray{},
 	}
 	packageNames := reservedAPINames(p.Schema)
 
@@ -97,12 +105,16 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 		}
 		methods := apiNameAllocator{"v": true}
 		if fields, record := p.API.Records[typ.Name]; record {
-			constructors = append(constructors, candidate{typ.Constructors[0].Name, "New" + api.Types[typ.Name]})
+			ctor := typ.Constructors[0]
+			constructors = append(constructors, candidate{ctor.Name, "New" + api.Types[typ.Name]})
 			api.Accessors[typ.Name] = map[string]string{}
 			fields = append([]string(nil), fields...)
 			sort.Strings(fields)
 			for _, field := range fields {
 				api.Accessors[typ.Name][field] = methods.allocate(exportedAPIName(field))
+			}
+			if moduleir.HasUInt8(p.Schema) && slices.Equal(ctor.Fields, []string{"UInt8", "UInt8", "UInt8", "UInt8"}) {
+				api.ByteArrays[typ.Name] = apiByteArray{Bytes: methods.allocate("Bytes")}
 			}
 			continue
 		}
@@ -119,6 +131,12 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 		api.Constructors[ctor.lean] = packageNames.allocate(ctor.preferred)
 	}
 	api.allocateEntrypoints(p, packageNames)
+	for _, typ := range p.Types {
+		if bridge, ok := api.ByteArrays[typ.Name]; ok {
+			bridge.FromBytes = packageNames.allocate("New" + api.Types[typ.Name] + "FromBytes")
+			api.ByteArrays[typ.Name] = bridge
+		}
+	}
 	return api
 }
 

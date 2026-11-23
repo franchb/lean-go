@@ -45,12 +45,12 @@ jobs:
       - name: Install pinned Lean release (Linux)
         if: runner.os == 'Linux'
         run: |
-          archive="$RUNNER_TEMP/lean-4.36.0-rc2-linux.tar.zst"
+          archive="$RUNNER_TEMP/lean-4.36.0-linux.tar.zst"
           curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-linux.tar.zst \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0/lean-4.36.0-linux.tar.zst \
             --output "$archive"
           printf '%s  %s\n' \
-            0a0a3208617e9eab92f1041efa83ad94d405e69d172fb654a62dbfa9fbc5313b \
+            2b7ab1ed8b92d2e6abfaf41344823b510064dbc9c0260cac73eb496ab2dea6eb \
             "$archive" | sha256sum --check --strict
           mkdir -p "$RUNNER_TEMP/lean"
           tar --zstd -xf "$archive" -C "$RUNNER_TEMP/lean" --strip-components=1
@@ -58,15 +58,15 @@ jobs:
       - name: Install pinned Lean release (Windows)
         if: runner.os == 'Windows'
         run: |
-          archive="$RUNNER_TEMP/lean-4.36.0-rc2-windows.zip"
+          archive="$RUNNER_TEMP/lean-4.36.0-windows.zip"
           curl --fail --location --retry 3 \
-            https://github.com/leanprover/lean4/releases/download/v4.36.0-rc2/lean-4.36.0-rc2-windows.zip \
+            https://github.com/leanprover/lean4/releases/download/v4.36.0/lean-4.36.0-windows.zip \
             --output "$archive"
           printf '%s  %s\n' \
-            ad1ed478bbde27cb178c46d8dfd4721d0d5424729280991a8d54537589e1949e \
+            5af5f955df6cfe37082d71c56c7d47fe620faa9f59e14b917b43976c08dc676b \
             "$archive" | sha256sum --check --strict
           unzip -q "$archive" -d "$RUNNER_TEMP"
-          printf '%s\n' "$RUNNER_TEMP/lean-4.36.0-rc2-windows/bin" >> "$GITHUB_PATH"
+          printf '%s\n' "$RUNNER_TEMP/lean-4.36.0-windows/bin" >> "$GITHUB_PATH"
       - name: Check CLI boundary and payload parity
         run: |
           uv run --locked python scripts/test_cli.py
@@ -74,7 +74,8 @@ jobs:
           uv run --locked python scripts/test_flags_demo.py
           uv run --locked python scripts/test_words_demo.py
           uv run --locked python scripts/test_bytes_demo.py
-      - name: Build, audit and exercise installed wheels and all four demos
+          uv run --locked python scripts/test_header_demo.py
+      - name: Build, audit and exercise installed wheels and all five demos
         run: uv run --locked python scripts/check_cli_install.py
       - name: Install and exercise the exact public CLI tag
         if: github.ref_type == 'tag'
@@ -98,6 +99,6 @@ jobs:
           actual = subprocess.check_output([str(cli), '--version'], text=True).strip()
           assert actual == f'lean-go {version}', actual
           subprocess.run([str(cli), 'doctor'], check=True)
-          for demo in ['clamp', 'flags', 'words', 'bytes']:
+          for demo in ['clamp', 'flags', 'words', 'bytes', 'header']:
               subprocess.run([sys.executable, f'scripts/check_{demo}_demo.py', '--cli', str(cli)], check=True)
           PYTHON

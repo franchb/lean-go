@@ -2,9 +2,10 @@
 
 This standalone module encodes every `UInt32` as four `UInt8` fields in a
 `ByteQuad` record and decodes that record in little-endian or big-endian order.
-It is part of the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md),
-Python package `0.1.0a8`. Before publication, use the CLI from this same checkout;
-after publication, pair tagged examples and CLI.
+Use the [checkout CLI](../../../docs/cli.md#development-checkout) to reproduce
+this directory. The [alpha.8 tag](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.8/examples/proofs/bytes)
+contains the original release example.
+
 Published alpha.7 has no UInt8 engine or byte codec. The
 [walkthrough](../../../docs/articles/proved-byte-codec.md) explains the application
 and source claims. Copy this directory and run it with Go **1.27.4** and
@@ -20,11 +21,16 @@ LE(0x12345678) = [78 56 34 12] -> 0x12345678
 BE(0x12345678) = [12 34 56 78] -> 0x12345678
 ```
 
-The generated package exposes `RunEncodeLE` and `RunEncodeBE`
-(`uint32` to `ByteQuad`), `RunDecodeLE` and `RunDecodeBE` (`ByteQuad` to `uint32`),
-`NewByteQuad`, and the `B0`–`B3` accessors. Every constructor or root call takes
-`Limits` last and returns `(result, error)`; accessors return `(uint8, bool)`.
-Always check errors before using a result. Raw callers use the four corresponding
+`RunEncodeLE` and `RunEncodeBE` encode a `uint32` as a `ByteQuad`. Call
+`quad.Bytes()` to get an owned `[4]byte` in `b0`, `b1`, `b2`, `b3` order.
+To decode a Go array, call `NewByteQuadFromBytes(data, limits)`, check its error,
+then pass the record to `RunDecodeLE` or `RunDecodeBE`. Modifying either array
+leaves the immutable record intact.
+
+`NewByteQuad` accepts four individual bytes. Both constructors take `Limits`
+last and require five nodes and depth two. A zero record's
+`Bytes()` returns a zero array and `ErrMalformed`. The field accessors
+`B0`–`B3` return `(uint8, bool)`. Raw callers use the four corresponding
 `ByteCodec.*` root names with immutable `Value` arguments.
 
 The twelve source claims prove both inverse directions for each byte order and
@@ -37,7 +43,7 @@ not describe resource-limit failures.
 
 Runtime source uses only byte/word casts, `UInt32` shifts and OR. The generated
 bundle uses `lean-go-ir/v13`, `lean-go-manifest/v13`, `pure-module/v11`, and
-`lean-go-modulegen/v10`. Tests independently compare all four typed and raw roots
+`lean-go-modulegen/v11`. Tests independently compare all four typed and raw roots
 with `encoding/binary`, check the twelve laws over 652 boundary, distinct-byte,
 one-hot and seeded cases, and exercise malformed inputs, ownership and budgets.
 Each encoder requires 11 allocations and 12 steps; each decoder requires 13
@@ -46,7 +52,7 @@ limits return `ErrLimits`. Failed typed calls return zero/invalid records; faile
 raw calls return invalid values.
 
 To regenerate, use Python **3.15** through uv, Go **1.27.4**, Lean/Lake
-**4.36.0-rc2** at commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and the
+**4.36.0** at commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`, and the
 installed CLI from the same checkout. Install it from the repository root with
 `uv sync --locked --reinstall-package lean-go-tools`, then use
 `uv run --locked lean-go` there or the absolute `.venv/bin/lean-go` path from
@@ -75,7 +81,7 @@ uv run --locked python scripts/check_bytes_demo.py --cli /absolute/path/to/lean-
 It checks fresh generation and all twelve proofs, compares exact tracked artifact
 bytes, then tests and runs a copy containing only Go sources and `go.mod`, with
 producer tools hidden and cgo and downloads disabled. Root Go tests exercise the
-same isolated deployment. The installed-wheel smoke runs all four demos through
-both direct and sdist-rebuilt wheels, freshly checking 30 source claims per wheel.
+same isolated deployment. The installed-wheel smoke runs all five demos through
+both direct and sdist-rebuilt wheels, freshly checking 39 source claims per wheel.
 See the [proof contract guide](../../../docs/proof-contracts.md)
 for evidence binding and the [CLI guide](../../../docs/cli.md) for installation.

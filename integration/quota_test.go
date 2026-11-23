@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -217,18 +215,9 @@ func TestQuotaRegeneration(t *testing.T) {
 	if log, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("regeneration: %v\n%s", err, log)
 	}
-	if !reflect.DeepEqual(directoryFiles(t, out), directoryFiles(t, "../generated/quota")) {
-		t.Fatal("quota regeneration changed package")
-	}
 	actual, err := os.ReadFile(ir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tracked, err := os.ReadFile("../testdata/quota.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(actual, tracked) {
-		t.Fatal("quota regeneration changed IR")
-	}
+	checkRegeneration(t, "quota", actual, directoryFiles(t, out))
 }

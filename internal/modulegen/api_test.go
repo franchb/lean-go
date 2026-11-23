@@ -106,6 +106,73 @@ func TestScalar(t *testing.T){for _,input:=range []SCALAR{VALUES}{out,e:=RunType
 	}
 }
 
+func TestFourByteRecordBridge(t *testing.T) {
+	p := typedRecordProgram()
+	p.Schema, p.Profile = moduleir.SchemaV12, moduleir.ProfileV10
+	p.Types, p.Functions[0].Params = nil, nil
+	p.API.Records = map[string][]string{}
+	quad := []string{"UInt8", "UInt8", "UInt8", "UInt8"}
+	for _, spec := range []struct {
+		name          string
+		types, fields []string
+	}{
+		{"Digest", quad, []string{"z", "bytes", "a", "Bytes"}},
+		{"DigestFromBytes", quad[:1], []string{"x"}},
+		{"Mixed", []string{"UInt8", "UInt8", "UInt8", "UInt32"}, []string{"a", "b", "c", "d"}},
+		{"Short", quad[:3], []string{"a", "b", "c"}},
+		{"Variant", quad, nil},
+	} {
+		name := "Example." + spec.name
+		p.Types = append(p.Types, moduleir.TypeDecl{Name: name, Constructors: []moduleir.Constructor{{Name: name + ".mk", Fields: spec.types}}})
+		p.Functions[0].Params = append(p.Functions[0].Params, moduleir.Param{ID: len(p.Types), Type: name})
+		if spec.fields != nil {
+			p.API.Records[name] = spec.fields
+		}
+	}
+	p.Functions[0].Result = "Example.Digest"
+	files, err := Generate(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		API struct {
+			ByteArrays map[string]struct {
+				FromBytes string `json:"from_bytes"`
+				Bytes     string `json:"bytes"`
+			} `json:"byte_arrays"`
+		} `json:"go_api"`
+	}
+	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
+		t.Fatal(err)
+	}
+	names := manifest.API.ByteArrays["Example.Digest"]
+	if len(manifest.API.ByteArrays) != 1 || names.FromBytes != "NewDigestFromBytes2" || names.Bytes != "Bytes3" {
+		t.Fatalf("unexpected bridge mappings: %+v", manifest.API.ByteArrays)
+	}
+	runGenerated(t, files, `package extracted
+import ("errors"; "testing")
+func TestBridge(t *testing.T) {
+	want := [4]byte{0xe5, 3, 0x42, 0xff}
+	q, err := NewDigestFromBytes2(want, DefaultLimits())
+	if err != nil { t.Fatal(err) }
+	if got, err := q.Bytes3(); got != want || err != nil { t.Fatal(got, err) }
+	if value, ok := q.Bytes2(); !ok || value != want[1] { t.Fatal("bytes accessor", value, ok) }
+	if value, ok := q.Bytes(); !ok || value != want[3] { t.Fatal("Bytes accessor", value, ok) }
+	if _, err := NewDigestFromBytes(7, DefaultLimits()); err != nil { t.Fatal("existing record constructor", err) }
+	for _, damage := range []func(*node){
+		func(n *node) { n.typ = 0 }, func(n *node) { n.tag++ }, func(n *node) { n.fields = n.fields[:3] },
+		func(n *node) { n.size++ }, func(n *node) { n.depth++ }, func(n *node) { n.scalar8 = 1 },
+		func(n *node) { n.fields[3] = nil }, func(n *node) { n.fields[3] = apiUInt32Node(1) },
+		func(n *node) { n.fields[3].size++ }, func(n *node) { n.fields[3].scalar64 = 1 },
+	} {
+		bad, err := NewDigestFromBytes2(want, DefaultLimits())
+		if err != nil { t.Fatal(err) }
+		damage(bad.v.n)
+		if got, err := bad.Bytes3(); got != ([4]byte{}) || !errors.Is(err, ErrMalformed) { t.Fatal("malformed bridge result", got, err) }
+	}
+}`)
+}
+
 func TestTypedManifestAndLegacyCompatibility(t *testing.T) {
 	p := typedRecordProgram()
 	files, err := Generate(p)

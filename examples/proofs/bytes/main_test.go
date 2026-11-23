@@ -92,9 +92,12 @@ func runRaw(t *testing.T, root string, input codec.Value) codec.Value {
 func checkCodec(t *testing.T, word uint32, bytes [4]byte) {
 	t.Helper()
 	limits := codec.DefaultLimits()
-	quad, err := codec.NewByteQuad(bytes[0], bytes[1], bytes[2], bytes[3], limits)
+	quad, err := codec.NewByteQuadFromBytes(bytes, limits)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if got := typedQuad(t, quad); got != bytes {
+		t.Fatalf("array constructor field order: got %x, want %x", got, bytes)
 	}
 	rawInput := importValue(t, quadInput(bytes))
 	rawScalar := importValue(t, &codec.Input{Type: "UInt32", UInt32: word})
@@ -116,6 +119,10 @@ func checkCodec(t *testing.T, word uint32, bytes [4]byte) {
 			t.Fatal(err)
 		}
 		got := typedQuad(t, encoded)
+		array, err := encoded.Bytes()
+		if err != nil || array != expected {
+			t.Fatalf("%s encoded array: got %x, %v; want %x", order.name, array, err, expected)
+		}
 		if got != expected || decoded != order.model.Uint32(bytes[:]) {
 			t.Fatalf("%s typed roots: word=%#x bytes=%x encoded=%x decoded=%#x", order.name, word, bytes, got, decoded)
 		}
@@ -387,6 +394,38 @@ func TestByteCodecOwnedAndMalformedInputs(t *testing.T) {
 		}
 		if got, err := codec.Import(bad, limits); !errors.Is(err, codec.ErrMalformed) || got.Type() != "" {
 			t.Fatalf("malformed %s record accepted: %v", mutation, err)
+		}
+	}
+}
+
+func TestByteArrayBridge(t *testing.T) {
+	want := [4]byte{0xe1, 0x37, 0, 0xff}
+	input := want
+	limits := codec.DefaultLimits()
+	limits.MaxNodes, limits.MaxDepth = 5, 2
+	quad, err := codec.NewByteQuadFromBytes(input, limits)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input[0]++
+	output, err := quad.Bytes()
+	if err != nil || output != want {
+		t.Fatalf("after modifying input: got %x, %v; want %x", output, err, want)
+	}
+	output[1]++
+	if again, err := quad.Bytes(); again != want || err != nil {
+		t.Fatalf("after modifying output: got %x, %v; want %x", again, err, want)
+	}
+	if got, err := (codec.ByteQuad{}).Bytes(); got != ([4]byte{}) || !errors.Is(err, codec.ErrMalformed) {
+		t.Fatalf("invalid wrapper: %x, %v", got, err)
+	}
+	for _, tc := range []struct {
+		nodes, depth uint64
+		want         error
+	}{{4, 2, codec.ErrResource}, {5, 1, codec.ErrResource}, {0, 2, codec.ErrLimits}} {
+		limits.MaxNodes, limits.MaxDepth = tc.nodes, tc.depth
+		if got, err := codec.NewByteQuadFromBytes(input, limits); got != (codec.ByteQuad{}) || !errors.Is(err, tc.want) {
+			t.Fatalf("constructor with %d nodes, depth %d: %v, %v; want %v", tc.nodes, tc.depth, got, err, tc.want)
 		}
 	}
 }

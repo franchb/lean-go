@@ -1,25 +1,13 @@
 # Try the experimental preview
 
-The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Lean, Python, uv
-and a C compiler are not needed by a consumer. This checkout prepares the
-**alpha.8 candidate**, Python package `0.1.0a8`, with experimental APIs.
-Before publication, use this checkout and its
-[paired CLI](cli.md#development-checkout) for candidate validation. Tagged commands
-below apply only after publication. Published alpha.7 has no UInt8 support.
-
-The candidate adds scalar UInt8 and a standalone proved byte codec alongside
-alpha.7's exact UInt32/UInt64 width conversions and word-packing example.
-Bitwise operations, the CLI, multi-root extraction, quota and reusable proof
-contracts remain available. The producer remains pinned to Lean 4.36.0-rc2. The
-[proof-to-Go walkthrough](release-candidate.md) separates current-checkout checks
-from published-release reproduction. Generated Go consumers do not require the
-producer compiler.
+The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Regenerating
+them uses Lean and Python 3.15 via uv. For development, install
+the [checkout CLI](cli.md#development-checkout) and use Lean 4.36.0. The
+[release walkthrough](release-candidate.md) covers regeneration and proof checking.
 
 ## Run a generated package
 
-After `v0.1.0-alpha.8` is published, create a fresh directory and initialize a Go
-module. Before publication, run the [local candidate checks](release-candidate.md)
-or a copyable demo from this checkout.
+To consume the published alpha.8 root Go module:
 
 ```sh
 mkdir lean-go-example
@@ -62,7 +50,7 @@ larger literal remains exact. The source is
 [`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
 recursive trees, record updates, joins and compiler-generated local helpers.
 
-## Run the alpha.8 candidate byte codec
+## Run the byte codec
 
 From this checkout's root, run the [standalone byte module](../examples/proofs/bytes):
 
@@ -82,7 +70,9 @@ BE(0x12345678) = [12 34 56 78] -> 0x12345678
 Copy that directory to use its Go application offline. The generated API has
 `RunEncodeLE`/`RunEncodeBE` (`uint32` to `ByteQuad`) and
 `RunDecodeLE`/`RunDecodeBE` (`ByteQuad` to `uint32`). `NewByteQuad` constructs an
-input record; `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
+input record. In the development checkout, `NewByteQuadFromBytes(wire, limits)`
+accepts a Go `[4]byte` and `quad.Bytes()` returns `([4]byte, error)`.
+The field getters `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
 `Limits` last and return `(result, error)`. Check each error and validity flag.
 The application reads the concrete four-field Lean record into a Go `[4]byte`.
 
@@ -110,7 +100,7 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
 
 The copyable module needs only Go. To regenerate its v11 artifacts or recheck
 proof evidence, install the [CLI](cli.md#development-checkout) from this same
-checkout and follow the example's verifier instructions. After alpha.8 publication,
+checkout and follow the example's verifier instructions. For released alpha.8,
 pair its example and CLI from that tag. For historical alpha.7 reproduction, use
 its tagged example and
 [guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
@@ -121,8 +111,8 @@ collections remain deferred.
 
 ## Extract your own Lean module
 
-Use Go 1.27.4, Lean 4.36.0-rc2 and uv for this development checkout.
-The exact Lean commit is `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
+Use Go 1.27.4, Lean 4.36.0 and uv for this development checkout.
+The exact Lean commit is `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`.
 Use Python 3.15 through uv; the repository declares that requirement and has a
 locked dependency set with no third-party runtime Python dependencies. From the
 repository root:

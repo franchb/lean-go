@@ -483,19 +483,12 @@ func TestReducedRegeneration(t *testing.T) {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh reduced producer builds")
 	}
 	dir := t.TempDir()
-	tracked, err := os.ReadFile("../testdata/reduced.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
 	var prior []byte
 	for i := range 2 {
 		out := filepath.Join(dir, fmt.Sprintf("reduced%d", i))
 		data := generateReduced(t, out, "Reduced.run")
 		requireReducedIR(t, data, "Reduced.run", []string{"Bool", "Reduced.Count", "Reduced.Count", "Reduced.Count", "Reduced.Count"}, []string{"Bool", "Reduced.Count", "Reduced.Count", "Reduced.Count"})
-		sameFiles(t, directoryFiles(t, out), directoryFiles(t, "../generated/reduced"))
-		if !bytes.Equal(data, tracked) {
-			t.Fatal("tracked reduced IR is stale")
-		}
+		checkRegeneration(t, "reduced", data, directoryFiles(t, out))
 		if i > 0 && !bytes.Equal(data, prior) {
 			t.Fatal("fresh reduced IR differs")
 		}

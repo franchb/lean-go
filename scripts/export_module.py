@@ -11,7 +11,7 @@ import shutil
 import sys
 import tempfile
 
-from export import (COMMIT, TOOLCHAIN, ExportError, check_version, parse_json,
+from export import (ExportError, parse_json, selected_compiler,
                     publish_files, run)
 import json
 
@@ -278,7 +278,7 @@ def emitted_byte_types(program):
     return False
 
 
-def complete_program(raw, module, entries, identities):
+def complete_program(raw, module, entries, identities, compiler):
     program = parse_json(raw)
     multi = len(entries) > 1
     selection = 'roots' if multi else 'root'
@@ -299,7 +299,7 @@ def complete_program(raw, module, entries, identities):
         version, profile = version + 1, profile + 1
     program.update(schema=f'lean-go-ir/v{version}',
                    profile=f'pure-module/v{profile}', stage='pure-mono',
-                   lean_version='4.36.0-rc2', lean_commit=COMMIT, inputs=identities)
+                   lean_version=compiler.version, lean_commit=compiler.commit, inputs=identities)
     return program
 
 
@@ -324,6 +324,7 @@ def stage_sources(sources, workspace, prefix):
 def export_module(root, source_dir, module, entry, output):
     with stage("toolchain", "toolchain_mismatch"):
         check_python()
+        compiler = selected_compiler()
     validate_name(module)
     entries = select_roots(entry)
     root, source_dir = Path(root), Path(source_dir)
@@ -334,17 +335,17 @@ def export_module(root, source_dir, module, entry, output):
     producer = producer_snapshot(root)
     env = {key: value for key, value in os.environ.items()
            if not key.startswith(("LEAN_", "LAKE_"))}
-    env.update(ELAN_TOOLCHAIN=TOOLCHAIN.decode().strip(), CGO_ENABLED="0", GOTOOLCHAIN="local")
+    env.update(ELAN_TOOLCHAIN=compiler.toolchain, CGO_ENABLED="0", GOTOOLCHAIN="local")
     lean, lake = shutil.which("lean"), shutil.which("lake")
     with stage("toolchain", "toolchain_unavailable"):
         if not lean or not lake:
             raise ExportError("pinned Lean and Lake executables must be available on PATH")
     with tempfile.TemporaryDirectory(prefix="lean-go-module-") as directory:
         workspace = Path(directory)
-        (workspace / "lean-toolchain").write_bytes(TOOLCHAIN)
+        (workspace / "lean-toolchain").write_bytes(compiler.pin_file)
         (workspace / "lakefile.toml").write_bytes(lake_config(sources))
         with stage("toolchain", "toolchain_mismatch"):
-            check_version(run([lean, "--version"], workspace, env))
+            compiler.check_version(run([lean, "--version"], workspace, env))
             prefix = Path(run([lean, "--print-prefix"], workspace, env).strip())
         mapped_sources = stage_sources(sources, workspace, prefix)
         for name, data in producer.items():
@@ -353,7 +354,7 @@ def export_module(root, source_dir, module, entry, output):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(data)
         with stage("toolchain", "toolchain_mismatch"):
-            check_version(run([lake, "env", "lean", "--version"], workspace, env))
+            compiler.check_version(run([lake, "env", "lean", "--version"], workspace, env))
         manifest = parse_json((workspace / "lake-manifest.json").read_bytes())
         if manifest.get("packages") != []:
             raise ExportError("producer dependency lock must have no packages")
@@ -367,7 +368,7 @@ def export_module(root, source_dir, module, entry, output):
             raw = (workspace / "ir.json").read_bytes()
             if len(raw) > MAX_IR_BYTES:
                 raise ExportError("producer IR exceeds 4 MiB")
-            program = complete_program(raw, module, entries, input_digests(sources, producer))
+            program = complete_program(raw, module, entries, input_digests(sources, producer), compiler)
             result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
             if len(result) > MAX_IR_BYTES:
                 raise ExportError("complete IR exceeds 4 MiB")

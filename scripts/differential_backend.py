@@ -12,7 +12,7 @@ import sys
 import tempfile
 import time
 
-from export import ExportError, TOOLCHAIN, check_version
+from export import ExportError, selected_compiler
 from export_module import check_python
 
 
@@ -134,7 +134,8 @@ class Backend:
         self._versions: dict[str, str] = {}
         self.environment = {key: value for key, value in os.environ.items()
                             if not key.startswith(("LEAN_", "LAKE_"))}
-        self.environment.update(ELAN_TOOLCHAIN=TOOLCHAIN.decode().strip(), CGO_ENABLED="0",
+        self.compiler = selected_compiler()
+        self.environment.update(LEAN_GO_TOOLCHAIN=self.compiler.version, ELAN_TOOLCHAIN=self.compiler.toolchain, CGO_ENABLED="0",
                                 GOTOOLCHAIN="local", GOWORK="off", GOPROXY="off", GOSUMDB="off",
                                 GOFLAGS="")
 
@@ -186,7 +187,7 @@ class Backend:
         assert self.last_work is not None
         lean = self._run("lean-version", [tools["lean"], "--version"], self.last_work)
         try:
-            check_version(lean)
+            self.compiler.check_version(lean)
         except ExportError as exc:
             raise BackendError("toolchain", str(exc)) from exc
         go = self._run("go-version", [tools["go"], "version"], self.last_work).strip()
@@ -214,7 +215,7 @@ class Backend:
         (source_dir / "Generated.lean").write_text(source, encoding="utf-8")
         (native / "Generated.lean").write_text(source, encoding="utf-8")
         (native / "Reference.lean").write_text(reference_source(width, inputs), encoding="utf-8")
-        (native / "lean-toolchain").write_bytes(TOOLCHAIN)
+        (native / "lean-toolchain").write_bytes(self.compiler.pin_file)
         (native / "lakefile.toml").write_text(
             'name = "differential_reference"\nversion = "0.0.0"\n'
             '[[lean_lib]]\nname = "Generated"\n'

@@ -23,7 +23,7 @@ HARNESS_FILES = ('scripts/check_compatibility.py', 'scripts/compatibility_identi
                  'scripts/compatibility_results.py', 'scripts/compatibility_runner.py',
                  'scripts/differential_backend.py', 'pyproject.toml')
 ENV_KEYS = ('PATH', 'CGO_ENABLED', 'GOTOOLCHAIN', 'GOWORK', 'GOPROXY', 'GOSUMDB',
-            'GOENV', 'GOFLAGS', 'ELAN_TOOLCHAIN', 'PYTHONDONTWRITEBYTECODE')
+            'GOENV', 'GOFLAGS', 'ELAN_TOOLCHAIN', 'LEAN_GO_TOOLCHAIN', 'PYTHONDONTWRITEBYTECODE')
 
 
 def write_json(path, value):
@@ -73,6 +73,7 @@ def observe_compiler(bin_dir, workspace, env, commands, logs):
     direct = checked_output(commands.run('lean-version', [bin_dir / 'lean', '--version'], workspace, env, logs), 'lean identity')
     identity = parse_identity(direct)
     env['ELAN_TOOLCHAIN'] = 'leanprover/lean4:v' + identity['version']
+    env['LEAN_GO_TOOLCHAIN'] = identity['version']
     through_lake = checked_output(commands.run('lake-lean-version', [bin_dir / 'lake', 'env', 'lean', '--version'], workspace, env, logs), 'lake Lean identity')
     matching_identity(direct, through_lake)
     prefix = checked_output(commands.run('lean-prefix', [bin_dir / 'lean', '--print-prefix'], workspace, env, logs), 'Lean prefix').strip()
@@ -92,7 +93,18 @@ def run_case(case, corpus, workspace, role, identity, go, env, commands):
     directory.mkdir(parents=True)
     fixture = corpus / case['name']
     source = directory / 'source'
-    shutil.copytree(fixture / 'source', source)
+    version = identity['version']
+    source_name = version if version in case.get('source_versions', []) else 'source'
+    shutil.copytree(fixture / source_name, source)
+    if 'source_versions' in case:
+        # Establish that the chosen standalone caller actually compiles before checking admission.
+        module_path = Path(*case['module'].split('.')).with_suffix('.lean')
+        control = commands.run('lean-typecheck', [Path(identity['bin']) / 'lean', module_path],
+                               source, env, directory)
+        if control.returncode:
+            outcome = {'status': 'source_typecheck_failed', 'fixture_source': source_name}
+            write_json(directory / 'result.json', outcome)
+            return outcome
     consumer = directory / 'consumer'
     consumer.mkdir()
     command = [sys.executable, workspace / 'scripts/generate.py', '--diagnostics=json',
@@ -101,9 +113,11 @@ def run_case(case, corpus, workspace, role, identity, go, env, commands):
     for root in case['roots']:
         command.extend(('--root', root))
     result = commands.run('extract', command, workspace, env, directory)
-    outcome = extraction_outcome(result, case.get('reject'))
+    outcome = extraction_outcome(result, case.get('reject'), case.get('reject_declaration'))
     if outcome['status'] == 'extracted':
         outcome = check_accepted(case, fixture, directory, consumer, identity, go, env, commands)
+    if 'source_versions' in case:
+        outcome.update(fixture_source=source_name, source_typecheck='passed')
     write_json(directory / 'result.json', outcome)
     return outcome
 

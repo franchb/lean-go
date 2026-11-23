@@ -46,6 +46,7 @@ sources = ["src"]
 "internal/modulegen/templates.go" = "lean_go/_payload/internal/modulegen/templates.go"
 "internal/modulegen/templates/api.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/api.go.tmpl"
 "internal/modulegen/templates/runtime.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/runtime.go.tmpl"
+"internal/leanversion/identity.go" = "lean_go/_payload/internal/leanversion/identity.go"
 "internal/moduleir/api.go" = "lean_go/_payload/internal/moduleir/api.go"
 "internal/moduleir/code.go" = "lean_go/_payload/internal/moduleir/code.go"
 "internal/moduleir/decode.go" = "lean_go/_payload/internal/moduleir/decode.go"
@@ -119,6 +120,7 @@ include = [
   "/internal/modulegen/templates.go",
   "/internal/modulegen/templates/api.go.tmpl",
   "/internal/modulegen/templates/runtime.go.tmpl",
+  "/internal/leanversion/identity.go",
   "/internal/moduleir/api.go",
   "/internal/moduleir/code.go",
   "/internal/moduleir/decode.go",

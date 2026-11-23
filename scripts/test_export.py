@@ -1,6 +1,7 @@
 """Producer boundary tests; real compiler reproducibility is an explicit smoke test."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
@@ -56,20 +57,36 @@ class ProducerTests(unittest.TestCase):
         self.assertTrue(all(not path.exists() for path in workspaces))
         self.assertEqual(self.output.read_bytes(), b"previous success\n")
 
-    def test_version_pin_accepts_only_the_reviewed_release_and_commit(self):
-        current = f"Lean (version 4.36.0-rc2, test, commit {producer.COMMIT}, Release)"
-        producer.check_version(current)
-        rejected = [current.replace('4.36.0-rc2', version)
-                    for version in ('4.35.0', '4.36.0-rc1', '4.36.0', '4.37.0')]
-        rejected.append(current.replace(producer.COMMIT, '0' * 40))
-        for identity in rejected:
-            with self.subTest(identity=identity), self.assertRaises(producer.ExportError):
-                producer.check_version(identity)
+    def test_only_selected_version_and_commit_pass(self):
+        for compiler in producer.SUPPORTED_COMPILERS:
+            with self.subTest(compiler=compiler), patch.dict(os.environ, LEAN_GO_TOOLCHAIN=compiler.version):
+                self.assertEqual(producer.selected_compiler(), compiler)
+                current = f"Lean (version {compiler.version}, test, commit {compiler.commit}, Release)"
+                compiler.check_version(current + "\n")
+                for other in producer.SUPPORTED_COMPILERS:
+                    if other != compiler:
+                        with self.assertRaises(producer.ExportError):
+                            compiler.check_version(current.replace(compiler.commit, other.commit))
+                        with self.assertRaises(producer.ExportError):
+                            compiler.check_version(current.replace(compiler.version, other.version))
+                for invalid in (current + "\n" + current, "prefix " + current,
+                                current.replace(compiler.commit, compiler.commit[:8]),
+                                current.replace("Release", "Debug")):
+                    with self.assertRaises(producer.ExportError):
+                        compiler.check_version(invalid)
+
+    def test_default_and_unknown_selections(self):
+        with patch.dict(os.environ, {"ELAN_TOOLCHAIN": "unrelated"}, clear=True):
+            self.assertEqual(producer.selected_compiler().version, "4.36.0")
+        for version in ("", "stable", "4.36.0-rc1", "4.37.0"):
+            with patch.dict(os.environ, LEAN_GO_TOOLCHAIN=version), self.assertRaises(producer.ExportError):
+                producer.selected_compiler()
 
     def test_fresh_workspace_contains_only_snapshots(self):
         (self.root / "producer/rogue.olean").write_bytes(b"untrusted compiled source")
         workspaces = []
-        version = f"Lean (version 4.36.0-rc2, test, commit {producer.COMMIT}, Release)"
+        compiler = producer.selected_compiler()
+        version = f"Lean (version {compiler.version}, test, commit {compiler.commit}, Release)"
         def fake_run(command, workspace, env):
             if workspace not in workspaces:
                 workspaces.append(workspace)
@@ -78,6 +95,8 @@ class ProducerTests(unittest.TestCase):
                                         "LeanGo.lean", "LeanGo/Pilot/Export.lean", "LeanGo/Feasibility/Model.lean"})
                 self.assertEqual((workspace / "LeanGo/Feasibility/Model.lean").read_bytes(),
                                  (self.root / producer.MODEL).read_bytes())
+                self.assertEqual((workspace / "lean-toolchain").read_bytes(), compiler.pin_file)
+                self.assertEqual(env["ELAN_TOOLCHAIN"], compiler.toolchain)
                 self.assertNotIn("LEAN_PATH", env)
             if command[-1] == "--version":
                 (workspace / "lake-manifest.json").write_text('{"packages":[]}')
@@ -94,6 +113,7 @@ class ProducerTests(unittest.TestCase):
         self.assertNotEqual(*workspaces)
         self.assertTrue(all(not path.exists() for path in workspaces))
         result = json.loads(first)
+        self.assertEqual((result["lean_version"], result["lean_commit"]), compiler)
         self.assertEqual(set(result["inputs"]), set(producer.INPUTS))
         self.assertEqual(result["inputs"][producer.MODEL], producer.MODEL_SHA256)
 
@@ -106,7 +126,8 @@ class ProducerTests(unittest.TestCase):
     def test_failed_lean_preserves_output_and_cleans_only_own_workspace(self):
         sentinel = self.root / "keep.txt"
         sentinel.write_text("keep")
-        version = f"Lean (version 4.36.0-rc2, test, commit {producer.COMMIT}, Release)"
+        compiler = producer.selected_compiler()
+        version = f"Lean (version {compiler.version}, test, commit {compiler.commit}, Release)"
         workspaces = []
         def fake_run(command, workspace, env):
             workspaces.append(workspace)

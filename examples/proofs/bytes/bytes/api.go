@@ -103,6 +103,27 @@ func (v ByteQuad) B3() (uint8, bool) {
 	return value, true
 }
 
+// NewByteQuadFromBytes constructs a ByteQuad from four bytes in declaration order.
+func NewByteQuadFromBytes(data [4]byte, l Limits) (ByteQuad, error) {
+	return NewByteQuad(data[0], data[1], data[2], data[3], l)
+}
+
+// Bytes copies the four fields in declaration order.
+func (v ByteQuad) Bytes() ([4]byte, error) {
+	if !apiMatches(v.v, 1, 0, 4) || v.v.n.size != 5 || v.v.n.depth != 2 {
+		return [4]byte{}, ErrMalformed
+	}
+	var data [4]byte
+	for i, field := range v.v.n.fields {
+		value, ok := apiReadUInt8(field)
+		if !ok {
+			return [4]byte{}, ErrMalformed
+		}
+		data[i] = value
+	}
+	return data, nil
+}
+
 // RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits.
 func RunDecodeBE(a0 ByteQuad, l Limits) (uint32, error) {
 	out, err := RunRoot("ByteCodec.decodeBE", []Value{{n: a0.v.n}}, l)

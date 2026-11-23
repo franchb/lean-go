@@ -52,13 +52,12 @@ def environment(root):
     temporary = root / '.cache/tmp'
     temporary.mkdir(parents=True, exist_ok=True)
     env = {key: value for key, value in os.environ.items()
-           if not key.startswith(('LEAN_', 'LAKE_', 'PYTHON'))}
+           if key == 'LEAN_GO_TOOLCHAIN' or not key.startswith(('LEAN_', 'LAKE_', 'PYTHON'))}
     env.update(CGO_ENABLED='0', GOTOOLCHAIN='local', GOWORK='off', GOENV='off',
                GOFLAGS='', GOPROXY='off', GOSUMDB='off', PYTHONDONTWRITEBYTECODE='1',
                GOPATH=str(root / '.cache/gopath'), GOMODCACHE=str(root / '.cache/modules'),
                GOCACHE=str(root / '.cache/go'), TMPDIR=str(temporary),
                TEMP=str(temporary), TMP=str(temporary), GOTMPDIR=str(temporary))
-    env['ELAN_TOOLCHAIN'] = (root / 'producer/lean-toolchain').read_text().strip()
     return env
 
 
@@ -122,22 +121,19 @@ def probe(label, command, root, env, validate):
 
 def doctor(root, env):
     pins = runpy.run_path(str(root / 'scripts/export.py'))
+    compiler = pins['selected_compiler']()
+    env['ELAN_TOOLCHAIN'] = compiler.toolchain
     expected_go = 'go' + next(line.split()[1] for line in (root / 'go.mod').read_text().splitlines()
                              if line.startswith('go '))
     def go_version(text):
         if not text.startswith(f'go version {expected_go} '):
             raise ValueError(f'expected {expected_go}; got {text.strip()}')
-    def lean_version(text):
-        try:
-            pins['check_version'](text)
-        except pins['ExportError'] as error:
-            raise ValueError(str(error)) from error
     healthy = sys.version_info[:2] == (3, 15)
     print(f"{'OK' if healthy else 'FAIL'} Python: {sys.version.split()[0]} (requires 3.15)")
     for label, name, arguments, check in [
         ('Go', 'go', ['version'], go_version),
-        ('Lean', 'lean', ['--version'], lean_version),
-        ('Lake environment', 'lake', ['env', 'lean', '--version'], lean_version),
+        ('Lean', 'lean', ['--version'], compiler.check_version),
+        ('Lake environment', 'lake', ['env', 'lean', '--version'], compiler.check_version),
     ]:
         executable = shutil.which(name)
         if executable is None:

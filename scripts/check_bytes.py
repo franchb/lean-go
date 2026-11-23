@@ -8,7 +8,6 @@ import random
 import sys
 
 from differential_backend import Backend, BackendError, checked_values
-from export import TOOLCHAIN
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOTS = ('calculate', 'choose', 'narrow', 'widen')
@@ -109,7 +108,7 @@ def check(work, repo=ROOT):
     for directory in (source_dir, native):
         (directory / 'Bytes.lean').write_text(source)
     (native / 'Reference.lean').write_text(reference_source(inputs))
-    (native / 'lean-toolchain').write_bytes(TOOLCHAIN)
+    (native / 'lean-toolchain').write_bytes(backend.compiler.pin_file)
     (native / 'lakefile.toml').write_text('name = "byte_reference"\nversion = "0.0.0"\n'
                                        '[[lean_lib]]\nname = "Bytes"\n'
                                        '[[lean_exe]]\nname = "reference"\nroot = "Reference"\n')

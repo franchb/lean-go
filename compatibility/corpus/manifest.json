@@ -139,5 +139,17 @@
       "run"
     ],
     "reject": "source_audit"
+  },
+  {
+    "name": "with_ptr_eq",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit",
+    "source_versions": [
+      "4.36.0-rc2"
+    ],
+    "reject_declaration": "withPtrEq"
   }
 ]

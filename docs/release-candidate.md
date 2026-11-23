@@ -1,12 +1,8 @@
 # Check source proofs, generated Go and deployment
 
-This checkout prepares the **alpha.8 candidate**, Python package `0.1.0a8`, with
-UInt8, the proved byte codec and module generator v10. Before publication, use
-the local checks below. Published alpha.7 uses
-package `0.1.0a7`, generator v9 and has no UInt8 support. Use the CLI and examples
-from the same checkout or tag. A version string alone does not identify the
-source revision or prove public tag availability. See the
-[candidate notes](releases/v0.1.0-alpha.8.md).
+Use the development CLI for the working tree and the alpha.8 CLI for its tag.
+The checkout defaults to Lean 4.36.0. The published alpha.8 package `0.1.0a8`
+ships generator v10 and requires rc2. [Release notes](releases/v0.1.0-alpha.8.md)
 
 This walkthrough checks fresh source theorems, generated artifacts and isolated
 Go consumers. APIs remain experimental. The [byte article](articles/proved-byte-codec.md)
@@ -15,10 +11,10 @@ records the published release's workflow. Alpha.4 remains paired with Lean 4.35.
 use its [tagged walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/release-candidate.md)
 when reproducing that version.
 
-## Check this alpha.8 candidate checkout
+## Check this development checkout
 
-Use Go **1.27.4**, pinned Lean **4.36.0-rc2** at commit
-`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and **uv** with Python **3.15**.
+Use Go **1.27.4**, pinned Lean **4.36.0** at commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`, and **uv** with Python **3.15**.
 Make Go, Lean and Lake available on `PATH`. From the repository root:
 
 ```sh
@@ -32,6 +28,7 @@ uv run --locked python scripts/check_clamp_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_flags_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_words_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_bytes_demo.py --cli "$checkout_cli"
+uv run --locked python scripts/check_header_demo.py --cli "$checkout_cli"
 ```
 
 In PowerShell, set `$checkout_cli = (Resolve-Path .venv/Scripts/lean-go.exe).Path`
@@ -41,7 +38,7 @@ pipeline changes to refresh its bundled payload. See the
 
 Each verifier copies its standalone module, generates fresh artifacts through the
 installed CLI, compares package, IR and evidence bytes, and rechecks the source
-claims. All four then deploy only Go sources and `go.mod`, running the tests and
+claims. All five then deploy only Go sources and `go.mod`, running the tests and
 executable offline with cgo and downloads disabled and producer tools hidden.
 
 | Demo | Source claims | Independent finite Go cases |
@@ -50,17 +47,18 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 | [Flags](../examples/proofs/flags) | 8 | 4,752 input pairs |
 | [Words](../examples/proofs/words) | 7 | 699 boundary and seeded triples |
 | [Bytes](../examples/proofs/bytes) | 12 | 652 boundary, one-hot and seeded cases |
+| [Header](../examples/proofs/header) | 9 | All 262,144 valid headers plus rejection and limit cases |
 
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
-runs these four verifiers for both a direct wheel and an sdist-rebuilt wheel,
-freshly checking 30 source claims per wheel. Current regenerated manifests and
-proof evidence use module generator v10; the earlier demos retain their existing
+runs these five verifiers for both a direct wheel and an sdist-rebuilt wheel,
+freshly checking 39 source claims per wheel. Current regenerated manifests and
+proof evidence use module generator v11; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
-## Reproduce alpha.8 after publication
+## Reproduce published alpha.8
 
-Only after `v0.1.0-alpha.8` is published, use its tag and CLI together:
+Install Lean 4.36.0-rc2 and use the matching tag and CLI:
 
 ```sh
 git clone --branch v0.1.0-alpha.8 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha8
@@ -95,7 +93,7 @@ Success prints a JSON receipt with `"status": "passed"`,
 `"candidate": "0.1.0a8"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
-checkout, including generator v10; it does not establish publication. Interpret
+checkout, including generator v11; it does not establish publication. Interpret
 the hashes together with the recorded commit and working-tree changes. A receipt
 from a historical checkout records that checkout's package version and inputs.
 All temporary projects and caches owned by the verifier are removed. To retain
@@ -108,7 +106,7 @@ uv run --locked python scripts/check_release_candidate.py > ../checkout-walkthro
 ```
 
 A failed stage exits nonzero and emits no success receipt. This command checks
-the selected source checkout. Only after alpha.8 publication, the following
+the selected source checkout. The following
 separate test checks the public Go module:
 
 ```sh
@@ -226,5 +224,5 @@ uv run --locked python scripts/check_words_demo.py --cli "$release_cli"
 Capture the installed path before `uv run` changes `PATH`. In PowerShell, use
 `$release_cli = (Get-Command lean-go).Source`. This release has three standalone
 demos and 18 source claims; it has no UInt8 engine or byte codec. Its receipt
-identifies package `0.1.0a7`. Return to the alpha.8 candidate checkout for the
+identifies package `0.1.0a7`. Return to the development checkout for the
 current candidate checks above.

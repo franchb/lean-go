@@ -56,8 +56,11 @@ func TestUInt8GeneratedRawTypedSemanticsAndLimits(t *testing.T) {
 	if err = json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v12" || manifest.Generator != "lean-go-modulegen/v10" || len(manifest.Primitives) != 14 || manifest.GoAPI.Types["UInt8"] != "uint8" {
+	if manifest.Schema != "lean-go-manifest/v12" || manifest.Generator != "lean-go-modulegen/v11" || len(manifest.Primitives) != 14 || manifest.GoAPI.Types["UInt8"] != "uint8" {
 		t.Fatal(manifest)
+	}
+	if bytes.Contains(files["manifest.json"], []byte(`"byte_arrays"`)) {
+		t.Fatal("unexpected byte array mapping for a mixed record")
 	}
 	for _, s := range []string{"value.scalar = uint32(f.slots[0].scalar8)", "value.scalar8 = uint8(f.slots[2].scalar)", " & 7)"} {
 		if !bytes.Contains(files["control.go"], []byte(s)) {

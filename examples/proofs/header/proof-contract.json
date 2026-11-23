@@ -1,0 +1,48 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "HeaderCodec",
+  "roots": [
+    "HeaderCodec.encode",
+    "HeaderCodec.parse"
+  ],
+  "claims": [
+    {
+      "theorem": "HeaderCodecProofs.parse_success_iff",
+      "expected": "HeaderCodecContract.parse_success_iff"
+    },
+    {
+      "theorem": "HeaderCodecProofs.parse_unsupported_version_iff",
+      "expected": "HeaderCodecContract.parse_unsupported_version_iff"
+    },
+    {
+      "theorem": "HeaderCodecProofs.parse_reserved_flags_iff",
+      "expected": "HeaderCodecContract.parse_reserved_flags_iff"
+    },
+    {
+      "theorem": "HeaderCodecProofs.parsed_length_bound",
+      "expected": "HeaderCodecContract.parsed_length_bound"
+    },
+    {
+      "theorem": "HeaderCodecProofs.encode_success_iff",
+      "expected": "HeaderCodecContract.encode_success_iff"
+    },
+    {
+      "theorem": "HeaderCodecProofs.encode_reserved_flags_iff",
+      "expected": "HeaderCodecContract.encode_reserved_flags_iff"
+    },
+    {
+      "theorem": "HeaderCodecProofs.encode_length_overflow_iff",
+      "expected": "HeaderCodecContract.encode_length_overflow_iff"
+    },
+    {
+      "theorem": "HeaderCodecProofs.parse_encode_roundtrip",
+      "expected": "HeaderCodecContract.parse_encode_roundtrip"
+    },
+    {
+      "theorem": "HeaderCodecProofs.encode_parse_roundtrip",
+      "expected": "HeaderCodecContract.encode_parse_roundtrip"
+    }
+  ]
+}

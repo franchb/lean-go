@@ -242,18 +242,11 @@ func TestModuleRegeneration(t *testing.T) {
 				if text, err := cmd.CombinedOutput(); err != nil {
 					t.Fatalf("generate: %v\n%s", err, text)
 				}
-				sameFiles(t, directoryFiles(t, out), directoryFiles(t, filepath.Join(root, "generated", example.name)))
 				data, err := os.ReadFile(irPath)
 				if err != nil {
 					t.Fatal(err)
 				}
-				tracked, err := os.ReadFile(filepath.Join(root, "testdata", example.name+".ir.json"))
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !bytes.Equal(data, tracked) {
-					t.Fatal("tracked module IR is stale")
-				}
+				checkRegeneration(t, example.name, data, directoryFiles(t, out))
 				if i > 0 && !bytes.Equal(data, prior) {
 					t.Fatal("fresh module IR differs")
 				}

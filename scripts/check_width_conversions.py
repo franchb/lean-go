@@ -8,7 +8,6 @@ import random
 import sys
 
 from differential_backend import Backend, BackendError, checked_values
-from export import TOOLCHAIN
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOTS = ('widen', 'narrow', 'pack', 'high', 'low')
@@ -149,7 +148,7 @@ def check(work, repo=ROOT):
         (directory / 'Widths.lean').write_text(source)
     (native / 'Reference.lean').write_text(reference_source(inputs))
     (native / 'Trace.lean').write_text(trace_source())
-    (native / 'lean-toolchain').write_bytes(TOOLCHAIN)
+    (native / 'lean-toolchain').write_bytes(backend.compiler.pin_file)
     (native / 'lakefile.toml').write_text('name = "width_reference"\nversion = "0.0.0"\n'
                                        '[[lean_lib]]\nname = "Widths"\n'
                                        '[[lean_exe]]\nname = "reference"\nroot = "Reference"\n')

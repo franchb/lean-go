@@ -455,19 +455,12 @@ func TestJoinsRegeneration(t *testing.T) {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh join producer builds")
 	}
 	dir := t.TempDir()
-	tracked, err := os.ReadFile("../testdata/joins.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
 	var prior []byte
 	for i := range 2 {
 		out := filepath.Join(dir, fmt.Sprintf("joins%d", i))
 		data := generateJoins(t, out, "Joins.update")
 		requireJoinControl(t, data, 4, 4)
-		sameFiles(t, directoryFiles(t, out), directoryFiles(t, "../generated/joins"))
-		if !bytes.Equal(data, tracked) {
-			t.Fatal("tracked join IR is stale")
-		}
+		checkRegeneration(t, "joins", data, directoryFiles(t, out))
 		if i > 0 && !bytes.Equal(data, prior) {
 			t.Fatal("fresh join IR differs")
 		}

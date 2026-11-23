@@ -1,21 +1,19 @@
-# Compiler compatibility research
+# Compiler compatibility
 
-`scripts/check_compatibility.py` qualifies an explicitly installed Lean compiler
-against the checkout's production pin. It is research tooling, not a switch for
-the installed `lean-go` CLI. Ordinary extraction still checks its exact Lean
-version and commit. A successful research run does not change those checks or
-promise compatibility with other releases.
+Lean 4.36.0 is the default. Set `LEAN_GO_TOOLCHAIN=4.36.0-rc2` for the
+other supported compiler. The CLI checks the selected version **and full
+commit** during extraction.
 
-The current supported target is Lean **4.36.0-rc2**, commit
-`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Later releases require a fresh
-qualification run and review before promotion. The alpha.8 candidate keeps this
-exact pin and qualifies a 14-case corpus (eight accepted, six rejected), including
-UInt8. Candidate qualification does not establish alpha.8 publication; see the
-[candidate notes](releases/v0.1.0-alpha.8.md).
+| Selection | Lean commit |
+| --- | --- |
+| `4.36.0` (default) | `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9` |
+| `4.36.0-rc2` | `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a` |
 
-The baseline version is read from `producer/lean-toolchain`; its commit comes
-from `scripts/export.py`. Both must match the observed compiler. Python 3.15 and
-Go 1.27.4 are required. The runner currently targets Linux/POSIX installations.
+`scripts/check_compatibility.py` qualifies an explicitly installed compiler
+against the production default. Python 3.15, Go 1.27.4 and Linux/POSIX compiler
+installations are required. Releases beyond the two listed identities need
+their own qualification and review. Alpha.8 used rc2 and a
+14-case corpus. [Alpha.8 notes](releases/v0.1.0-alpha.8.md)
 
 ## Run and replay
 
@@ -31,8 +29,8 @@ uv run --locked python scripts/check_compatibility.py \
   --candidate-bin /opt/lean-candidate/bin \
   --artifacts /tmp/lean-compatibility-new-run
 
-# Omit --candidate-bin for a baseline corpus check. For the full comparison
-# success path, pass the production installation as both baseline and candidate.
+# Omit --candidate-bin to run just the stable baseline.
+# Run the fast harness protocol and failure-path tests separately.
 uv run --locked python scripts/test_compatibility.py
 
 # A retained run contains its source snapshot and a replay entry point.
@@ -45,13 +43,13 @@ uv run --no-project --python 3.15 python \
 case; `selected_cases` records the scope. `--timeout 300` bounds each command;
 POSIX timeout cleanup kills its process group, including child compilers.
 
-The opt-in **Compiler compatibility research** GitHub Actions workflow installs
-reviewed, checksum-verified release archives into job-local directories, then
-passes those directories explicitly. Its `production` selection runs the
-same-pin success path. New archive versions need a reviewed checksum in that
-workflow. Differences deliberately make the research job fail, with evidence
-uploaded even on failure. Ordinary extraction CI also runs the complete same-pin comparison corpus
-using its already installed production compiler and preserves the report.
+The **Compiler compatibility research** workflow runs on pull requests and
+pushes to `main`. It verifies the upstream SHA-256 for each Linux release
+archive, then compares stable with rc2. It also installs the checkout wheel
+and runs the proof demos with each real compiler. A manual dispatch can compare
+stable with itself by choosing `production`. A difference fails the workflow
+and retains the report and replay evidence. The regular extraction workflow
+also exercises the same-compiler comparison.
 
 ## What is checked
 
@@ -63,17 +61,15 @@ and Go identities. These hashes are evidence, not binary authentication.
 
 The harness copies the reviewed wheel payload closure from `pyproject.toml` into
 a run-owned workspace. It records original producer, generator, harness and
-corpus SHA-256 fingerprints. A candidate may receive only exact, counted
-substitutions of compiler identity literals in the copied toolchain file,
-Python exporters and Go IR validator. Before/after digests and a unified patch
-are retained. Missing or duplicated anchors fail closed. A same-pin run has an
-empty patch. Lean producer code, numeric audit policy and compiler semantics
-are never adapted by this runner.
+corpus SHA-256 fingerprints. Both supported compilers run the production code
+with an empty adaptation patch. For a research candidate, the runner can
+replace only the default compiler identity in the copied toolchain file,
+Python exporter and Go identity table. It verifies that each original literal
+occurs exactly once and records before/after digests and a unified patch.
 
-Producer compilation is a separate first gate. A failure there is
-`producer_build_failed`; every candidate corpus case remains `not_run`.
-Successful producer compilation enables eight accepted cases and six required
-rejection cases (14 total):
+The producer must build before the corpus runs. If compilation fails, its
+status is `producer_build_failed` and every case stays `not_run`. The corpus
+contains eight accepted cases and seven required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -91,6 +87,7 @@ rejection cases (14 total):
 | `folded_numeric` | `admission` / `source_audit`, even for division by one |
 | `custom_pass` | `admission` / `source_audit` for a no-op custom compiler pass |
 | `custom_csimp` | `admission` / `source_audit` for a valid custom compiler rewrite |
+| `with_ptr_eq` | `admission` / `source_audit` naming `withPtrEq`, after standalone Lean compiles the Bool caller |
 
 Accepted source must produce valid IR and a Go package, then pass a separate
 checked-in Go consumer with independently authored expected constants or an
@@ -105,10 +102,13 @@ when consumer behavior still passes.
 
 Rejections require a single well-formed `lean-go-diagnostics/v1` document,
 exit code 1, `success: false`, `stage: admission`, and the case's explicit code.
-Messages and locations are retained as evidence; matching uses stage and code.
-The runner does not classify English error text. Toolchain, build and emission
-failures, signals, timeouts, malformed reports, and unexpected acceptances are
-failures rather than successful negative cases.
+The runner retains messages and locations. It matches the stage, code and any
+declaration required by the fixture.
+For a version-specific source, the runner first invokes the selected Lean
+binary on the standalone module and records its exit status in `commands.jsonl`.
+An unsuccessful typecheck yields `source_typecheck_failed`. Toolchain, build and emission
+failures, signals, timeouts, malformed reports, and unexpected acceptances fail
+the case.
 
 ## Results and evidence
 
@@ -146,7 +146,36 @@ fresh identities, which must be compared to the original evidence if an
 installation has changed. CI artifacts can contain absolute local paths and
 fixture source code, so review evidence before sharing it.
 
-## Confirmed compiler-boundary finding
+## 4.36.0 qualification
+
+The stable production baseline and the rc2 production run each passed eight
+independent Go consumers and seven required admission rejections. Both
+used the checkout's production code with an empty adaptation patch.
+The eight canonical IR hashes and the six original rejection triples
+(stage, code and declaration) matched the alpha.8 rc2 baseline. The fifteenth
+fixture covers the pointer-equality boundary described below.
+[Original alpha.8 corpus](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.8/compatibility/corpus)
+
+## Pointer-equality boundary
+
+The fixture calls `withPtrEq a true (fun _ => a) (fun h => h)` with
+`a : Bool`. When `a = true`, the continuation returns `true` by that same
+hypothesis. The source uses no external comparison or proof tactic.
+
+Stable Lean checks the concrete type at compilation and permits this safe
+definition. The rc2 library declares `withPtrEq` unsafe, so its fixture adds
+`unsafe` to the caller.
+[Stable declaration](https://github.com/leanprover/lean4/blob/v4.36.0/src/Init/Util.lean#L143-L163)
+and [rc2 declaration](https://github.com/leanprover/lean4/blob/v4.36.0-rc2/src/Init/Util.lean#L156-L161).
+
+The harness compiles the selected source with standalone
+Lean before asking the producer to extract it. On each compiler the required
+diagnostic is `admission` / `source_audit` with declaration `withPtrEq`.
+Stable reports that the library intrinsic lacks fresh compilation provenance.
+Rc2 reports the unsafe `withPtrEq` dependency in the caller’s source closure.
+A rejection naming only the rc2 caller fails this check.
+
+## Earlier compiler-boundary findings
 
 The initial Lean 4.36.0-rc2 investigation used commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a` against the producer originally pinned to

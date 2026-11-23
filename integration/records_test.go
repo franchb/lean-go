@@ -383,18 +383,11 @@ func TestRecordsRegeneration(t *testing.T) {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh record producer builds")
 	}
 	dir := t.TempDir()
-	tracked, err := os.ReadFile("../testdata/records.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
 	var prior []byte
 	for i := range 2 {
 		out := filepath.Join(dir, fmt.Sprintf("records%d", i))
 		data := generateRecords(t, out, "Records.update")
-		sameFiles(t, directoryFiles(t, out), directoryFiles(t, "../generated/records"))
-		if !bytes.Equal(data, tracked) {
-			t.Fatal("tracked record IR is stale")
-		}
+		checkRegeneration(t, "records", data, directoryFiles(t, out))
 		if i > 0 && !bytes.Equal(data, prior) {
 			t.Fatal("fresh record IR differs")
 		}

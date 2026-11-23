@@ -5,15 +5,9 @@ two 32-bit words into one 64-bit word, and reads its high and low halves. Copy
 this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives.
 
-This example is included in the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md),
-Python package `0.1.0a8`. Before publication, regenerate with the CLI from this
-same [checkout](../../../docs/cli.md#development-checkout). After
-publication, pair its tagged example and CLI. Published alpha.7 also has this
-demo, with generator v9; use its
-[tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/words)
-and [tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
-for historical reproduction. Current artifacts use generator v10. The checked-in
-Go package needs no producer tools to run.
+Install the CLI from this [checkout](../../../docs/cli.md#development-checkout)
+to reproduce development artifacts. Tagged examples ship with their matching
+CLI. [Published alpha.8](https://github.com/franchb/lean-go/releases/tag/v0.1.0-alpha.8)
 
 ## Run with Go alone
 
@@ -82,7 +76,7 @@ Each function takes `Limits` as its last argument and returns `(result, error)`.
 Raw callers use `RunRoot` with the corresponding `Words.*` name and immutable
 `Value` arguments. The five selected roots share `lean-go-ir/v11`,
 `lean-go-manifest/v11`, profile `pure-module/v9` and generator
-`lean-go-modulegen/v10` in this checkout. Only those roots are exported; proof helpers are absent
+`lean-go-modulegen/v11` in this checkout. Only those roots are exported; proof helpers are absent
 from the runtime package.
 
 Every call starts fresh logical budgets. `widen`, `narrow` and `low` need one
@@ -140,8 +134,8 @@ These are finite extraction checks, distinct from the universal Lean proofs.
 
 ## Regenerate and verify the handoff
 
-Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0-rc2** at
-commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Before alpha.8 publication,
+Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0** at
+commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. For development,
 install this checkout's CLI, replacing the example absolute path:
 
 ```sh
@@ -181,8 +175,8 @@ external workspace, compares exact bytes, and freshly checks the tracked evidenc
 It then deploys only `go.mod` and Go sources, hides producer tools and C compilers
 from `PATH`, disables module/checksum downloads and cgo, and runs both tests and
 the executable with isolated caches. Root `go test ./...` includes the same
-Go-only copy check. Current installed-CLI CI runs clamp, flags, words and bytes
+Go-only copy check. Current installed-CLI CI runs clamp, flags, words, bytes and header
 through both the direct wheel and a wheel rebuilt from the source distribution
-on Linux and Windows, checking 30 source claims per wheel. Published alpha.7's
+on Linux and Windows, checking 39 source claims per wheel. Published alpha.7's
 exact-tag workflow covers its three demos; local checkout checks do not validate
 the published tag's artifact hashes.

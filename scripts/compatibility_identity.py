@@ -8,10 +8,10 @@ from pathlib import Path
 import re
 import tomllib
 
-from export import COMMIT, TOOLCHAIN
+from export import DEFAULT_COMPILER, SUPPORTED_COMPILERS
 
-PINNED_VERSION = TOOLCHAIN.decode().removeprefix("leanprover/lean4:v").strip()
-PINNED_COMMIT = COMMIT
+PINNED_VERSION = DEFAULT_COMPILER.version
+PINNED_COMMIT = DEFAULT_COMPILER.commit
 VERSION_PATTERN = r"4\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?"
 
 
@@ -78,20 +78,19 @@ def pin_substitutions(identity):
     """Exact known identity literals only: no producer semantics or numeric audit edits."""
     version, commit = identity["version"], identity["commit"]
     parse_identity(f"Lean (version {version}, research, commit {commit}, Release)")
+    replacement = DEFAULT_COMPILER if (version, commit) in SUPPORTED_COMPILERS else (version, commit)
+    target_version, target_commit = replacement
     return {
-        "producer/lean-toolchain": [(TOOLCHAIN.decode(), f"leanprover/lean4:v{version}\n")],
+        "producer/lean-toolchain": [
+            (DEFAULT_COMPILER.pin_file.decode(), f"leanprover/lean4:v{target_version}\n"),
+        ],
         "scripts/export.py": [
-            (f'COMMIT = "{PINNED_COMMIT}"', f'COMMIT = "{commit}"'),
-            (f'TOOLCHAIN = b"leanprover/lean4:v{PINNED_VERSION}\\n"', f'TOOLCHAIN = b"leanprover/lean4:v{version}\\n"'),
-            (rf'Lean \(version {re.escape(PINNED_VERSION)},.*commit ', rf'Lean \(version {re.escape(version)},.*commit '),
-            (f'lean_version="{PINNED_VERSION}", lean_commit=COMMIT', f'lean_version="{version}", lean_commit=COMMIT'),
+            (f'DEFAULT_COMPILER = Compiler("{PINNED_VERSION}", "{PINNED_COMMIT}")',
+             f'DEFAULT_COMPILER = Compiler("{target_version}", "{target_commit}")'),
         ],
-        "scripts/export_module.py": [
-            (f"lean_version='{PINNED_VERSION}', lean_commit=COMMIT", f"lean_version='{version}', lean_commit=COMMIT"),
-        ],
-        "internal/moduleir/types.go": [
-            (f'LeanVersion     = "{PINNED_VERSION}"', f'LeanVersion     = "{version}"'),
-            (f'LeanCommit      = "{PINNED_COMMIT}"', f'LeanCommit      = "{commit}"'),
+        "internal/leanversion/identity.go": [
+            (f'Version = "{PINNED_VERSION}"', f'Version = "{target_version}"'),
+            (f'Commit  = "{PINNED_COMMIT}"', f'Commit  = "{target_commit}"'),
         ],
     }
 

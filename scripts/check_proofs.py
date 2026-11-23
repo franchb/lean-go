@@ -10,7 +10,7 @@ import shutil
 import sys
 import tempfile
 
-from export import (COMMIT, TOOLCHAIN, ExportError, check_version, parse_json,
+from export import (DEFAULT_COMPILER, ExportError, parse_json, selected_compiler,
                     publish_files, run)
 from export_module import MAX_SOURCE_BYTES, check_python, lake_config
 from proof_contract import (digest, load_contract, read_regular,
@@ -26,7 +26,7 @@ AXIOMS = frozenset({'propext', 'Classical.choice', 'Quot.sound'})
 
 def tool_snapshot(tool_root=TOOL_ROOT):
     sources = {relative: read_regular(Path(tool_root) / relative) for relative in TOOL_INPUTS}
-    if sources['producer/lean-toolchain'] != TOOLCHAIN:
+    if sources['producer/lean-toolchain'] != DEFAULT_COMPILER.pin_file:
         raise ExportError('proof toolchain configuration differs from the pin')
     return sources
 
@@ -81,25 +81,25 @@ def verify_workspace(workspace, files):
         raise ExportError('proof workspace must have no Lake dependencies')
 
 
-def prove(contract, project, tool_inputs):
+def prove(contract, project, tool_inputs, compiler):
     """Compile only snapshots in fixed, dependency-free scaffolding."""
     env = {key: value for key, value in os.environ.items()
            if not key.startswith(('LEAN_', 'LAKE_'))}
-    env['ELAN_TOOLCHAIN'] = TOOLCHAIN.decode().strip()
+    env['ELAN_TOOLCHAIN'] = compiler.toolchain
     lean, lake = shutil.which('lean'), shutil.which('lake')
     if not lean or not lake:
         raise ExportError('pinned Lean and Lake executables must be available on PATH')
     with tempfile.TemporaryDirectory(prefix='lean-go-source-proofs-') as directory:
         workspace = Path(directory)
         files = {relative: data for relative, data in project.modules.values()}
-        files.update({'lean-toolchain': TOOLCHAIN, 'lakefile.toml': lake_config(project.modules),
+        files.update({'lean-toolchain': compiler.pin_file, 'lakefile.toml': lake_config(project.modules),
                       'LeanGo/Proofs/Check.lean': tool_inputs[CHECKER]})
         for relative, data in files.items():
             target = workspace / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
-        check_version(run([lean, '--version'], workspace, env))
-        check_version(run([lake, 'env', 'lean', '--version'], workspace, env))
+        compiler.check_version(run([lean, '--version'], workspace, env))
+        compiler.check_version(run([lake, 'env', 'lean', '--version'], workspace, env))
         verify_workspace(workspace, files)
         run([lake, 'build', 'LeanGo.Proofs.Check', *sorted(project.modules)], workspace, env)
         verify_workspace(workspace, files)
@@ -118,17 +118,18 @@ def prove(contract, project, tool_inputs):
 
 def evidence(contract_path, manifest_path, tool_root=TOOL_ROOT):
     check_python()
+    compiler = selected_compiler()
     contract = load_contract(contract_path)
     project, tools = snapshot(contract), tool_snapshot(tool_root)
-    manifest = verify_manifest(manifest_path, contract, project)
-    claims = prove(contract, project, tools)
+    manifest = verify_manifest(manifest_path, contract, project, compiler)
+    claims = prove(contract, project, tools, compiler)
     if (load_contract(contract_path) != contract or snapshot(contract) != project or
             tool_snapshot(tool_root) != tools or
-            verify_manifest(manifest_path, contract, project) != manifest):
+            verify_manifest(manifest_path, contract, project, compiler) != manifest):
         raise ExportError('proof inputs or generated package changed during checking')
     result = {
         'schema': 'lean-go-proof-evidence/v1',
-        'lean_version': '4.36.0-rc2', 'lean_commit': COMMIT,
+        'lean_version': compiler.version, 'lean_commit': compiler.commit,
         'module': contract.module, 'roots': list(contract.roots),
         'contract_sha256': digest(contract.raw),
         'project_inputs': {name: digest(data) for name, data in project.inputs.items()},

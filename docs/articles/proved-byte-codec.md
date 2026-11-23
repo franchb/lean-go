@@ -6,10 +6,8 @@ proves twelve source properties and generates a Go package with an independent
 `encoding/binary` test oracle. Its Go application converts `0x12345678` in both
 orders and reconstructs the original word.
 
-The byte codec and UInt8 support are part of the [alpha.8 candidate](../releases/v0.1.0-alpha.8.md),
-Python package `0.1.0a8`. Before publication, use this checkout's CLI and generator
-v10. Published alpha.7 has generator v9 and no
-UInt8 support. After alpha.8 publication, pair its tagged example and CLI.
+The codec first shipped in [alpha.8](../releases/v0.1.0-alpha.8.md). Use this
+[checkout's CLI](../cli.md#development-checkout) to regenerate the examples below.
 
 ## Run the application with Go alone
 
@@ -34,40 +32,42 @@ run the same commands there. It is a standalone Go module. Deployment needs its
 to retain the independent regression tests. Lean, Python, uv and a C compiler
 are not needed to build or run the generated application.
 
-The complete, tested [main.go](../../examples/proofs/bytes/main.go) encodes and
-decodes both orders, checks every returned error, and prints the result. Its
-`octets` helper turns the immutable generated record into a Go `[4]byte`:
+The application reads the four bytes of each encoded word with `encoded.Bytes()`.
+It then passes the array to `NewByteQuadFromBytes` and decodes the resulting
+record. The same constructor accepts a four-byte field from a file or packet.
+[Full application](../../examples/proofs/bytes/main.go)
 
 ```go
-func octets(q codec.ByteQuad) ([4]byte, error) {
-    var out [4]byte
-    for i, field := range []func() (uint8, bool){q.B0, q.B1, q.B2, q.B3} {
-        value, ok := field()
-        if !ok {
-            return [4]byte{}, fmt.Errorf("read byte %d: invalid ByteQuad", i)
-        }
-        out[i] = value
+func decodeBigEndian(data [4]byte) (uint32, error) {
+    limits := codec.DefaultLimits()
+    q, err := codec.NewByteQuadFromBytes(data, limits)
+    if err != nil {
+        return 0, err
     }
-    return out, nil
+    return codec.RunDecodeBE(q, limits)
 }
 ```
 
-This is an excerpt from the application, whose imports include `fmt` and
-`codec "example.com/lean-go-bytes-demo/bytes"`. Each accessor returns a validity
-flag because a zero `ByteQuad` wrapper is invalid. The Go array belongs to the
-consumer; the extracted Lean runtime uses a concrete record with four fields.
+Here `codec` refers to `example.com/lean-go-bytes-demo/bytes`. Array indices
+0 through 3 map to source fields `b0` through `b3` in declaration order.
+The selected Lean root determines endianness. Go callers own their input and
+output arrays and may modify either without affecting the immutable record.
 
 | Generated entry point | Input → successful result |
 | --- | --- |
 | `RunEncodeLE`, `RunEncodeBE` | `uint32` → `ByteQuad` |
 | `RunDecodeLE`, `RunDecodeBE` | `ByteQuad` → `uint32` |
 | `NewByteQuad` | Four `uint8` arguments → `ByteQuad` |
+| `NewByteQuadFromBytes` | `[4]byte` → `ByteQuad` |
+| `ByteQuad.Bytes` | No arguments → `([4]byte, error)` |
 | `ByteQuad.B0` through `B3` | No arguments → `(uint8, bool)` |
 
 Each constructor and root takes `Limits` last and returns `(result, error)`.
-The application uses `codec.DefaultLimits()`. To decode bytes supplied by another
-Go API, pass them in field order to `NewByteQuad`, check its error, then call the
-appropriate decoder. Raw callers use `RunRoot` with `ByteCodec.encodeLE`,
+Both constructors require five nodes and depth two. Calling `Bytes()` on a zero
+wrapper returns a zero array and `ErrMalformed`. Generator v11 emits these two
+helpers for source records with exactly four `UInt8` fields. The manifest's
+`go_api.byte_arrays` lists their allocated names for each eligible record.
+Raw callers use `RunRoot` with `ByteCodec.encodeLE`,
 `ByteCodec.decodeLE`, `ByteCodec.encodeBE` or `ByteCodec.decodeBE`.
 
 ## The small runtime definition
@@ -127,8 +127,8 @@ unchanged; `sorry`, custom axioms and `native_decide` do not satisfy the checker
 ## Regenerate and recheck the same artifacts
 
 Regeneration uses Go **1.27.4**, Python **3.15** through **uv**, and Lean/Lake
-**4.36.0-rc2** at exact commit
-`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. The Python runtime dependencies use
+**4.36.0** at exact commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. The Python runtime dependencies use
 only the standard library. Install the CLI from this same checkout, from its
 root:
 

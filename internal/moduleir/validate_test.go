@@ -209,3 +209,22 @@ func FuzzDecode(f *testing.F) {
 		}
 	})
 }
+
+func TestCompilerIdentityPairs(t *testing.T) {
+	const historicalVersion = "4.36.0-rc2"
+	const historicalCommit = "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"
+	for _, tc := range []struct {
+		version, commit string
+		valid           bool
+	}{
+		{LeanVersion, LeanCommit, true}, {historicalVersion, historicalCommit, true},
+		{LeanVersion, historicalCommit, false}, {historicalVersion, LeanCommit, false},
+		{"4.36.0-rc1", historicalCommit, false}, {LeanVersion, LeanCommit[:8], false},
+	} {
+		p := validProgram()
+		p.LeanVersion, p.LeanCommit = tc.version, tc.commit
+		if err := Validate(p); (err == nil) != tc.valid {
+			t.Errorf("Validate with %s at %s: got %v, want valid=%t", tc.version, tc.commit, err, tc.valid)
+		}
+	}
+}

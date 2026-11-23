@@ -3,16 +3,17 @@ from __future__ import annotations
 
 import difflib
 import json
+import re
 
 from diagnostics import ADMISSION_CODES, SCHEMA, valid_diagnostic
 from export import ExportError, parse_json
-from compatibility_identity import HarnessError
+from compatibility_identity import HarnessError, VERSION_PATTERN
 
 IDENTITY_FIELDS = frozenset({'inputs', 'lean_version', 'lean_commit'})
 PASS_STATUSES = {'accepted', 'expected_rejection'}
 
 
-def extraction_outcome(result, expected_code=None):
+def extraction_outcome(result, expected_code=None, expected_declaration=None):
     """Only the exact mapped admission protocol can satisfy a negative case."""
     if result.returncode == 0:
         return {'status': 'unexpected_acceptance' if expected_code else 'extracted'}
@@ -29,7 +30,8 @@ def extraction_outcome(result, expected_code=None):
         return {'status': 'extraction_protocol_failed'}
     if item['stage'] != 'admission':
         return {'status': 'extraction_failed', 'diagnostic': item}
-    matched = expected_code is not None and item['code'] == expected_code
+    matched = item['code'] == expected_code and (expected_declaration is None or
+                                                  item['declaration'] == expected_declaration)
     return {'status': 'expected_rejection' if matched else 'admission_mismatch', 'diagnostic': item}
 
 
@@ -93,7 +95,7 @@ def validate_cases(value):
         raise HarnessError('corpus manifest must contain cases')
     seen = set()
     for case in value:
-        if (not isinstance(case, dict) or set(case) - {'name', 'module', 'roots', 'reject', 'shapes'} or
+        if (not isinstance(case, dict) or set(case) - {'name', 'module', 'roots', 'reject', 'reject_declaration', 'shapes', 'source_versions'} or
                 not {'name', 'module', 'roots'} <= case.keys()):
             raise HarnessError('invalid corpus case fields')
         name = case['name']
@@ -109,6 +111,16 @@ def validate_cases(value):
         select_roots(case['roots'])
         if 'reject' in case and (not isinstance(case['reject'], str) or case['reject'] not in ADMISSION_CODES):
             raise HarnessError('negative fixture requires an explicit admission code')
+        if 'reject_declaration' in case:
+            if 'reject' not in case or not isinstance(case['reject_declaration'], str):
+                raise HarnessError('a rejection declaration requires an explicit rejection code and a Lean name')
+            validate_name(case['reject_declaration'])
+        if 'source_versions' in case:
+            versions = case['source_versions']
+            if (not isinstance(versions, list) or not versions or
+                    not all(isinstance(v, str) and re.fullmatch(VERSION_PATTERN, v) for v in versions) or
+                    len(set(versions)) != len(versions)):
+                raise HarnessError('source_versions must list distinct Lean versions')
         if 'shapes' in case:
             shapes = case['shapes']
             if (not isinstance(shapes, dict) or set(shapes) - {'ops', 'called_function_suffixes'} or

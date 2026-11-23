@@ -32,19 +32,19 @@ class RootSelectionTests(unittest.TestCase):
         common = dict(module='Example', types=[], functions=[], claims=[], rewrites=[],
                       provenance=[], api={'records': {}})
         single = producer.complete_program(json.dumps(dict(common, root='Example.a')).encode(),
-                                           'Example', ['Example.a'], {})
+                                           'Example', ['Example.a'], {}, producer.selected_compiler())
         self.assertEqual((single['schema'], single['profile']), ('lean-go-ir/v6', 'pure-module/v4'))
         self.assertNotIn('roots', single)
         roots = ['Example.a', 'Example.b']
         multi = producer.complete_program(json.dumps(dict(common, roots=roots)).encode(),
-                                          'Example', roots, {})
+                                          'Example', roots, {}, producer.selected_compiler())
         self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v7', 'pure-module/v5'))
         self.assertNotIn('root', multi)
         for changed in (dict(common, roots=list(reversed(roots))), dict(common, roots=['Example.a']),
                         dict(common, roots=roots, root='Example.a'), dict(common, root='Example.a'),
                         dict(common, roots=roots, module='Other')):
             with self.subTest(changed=changed), self.assertRaises(producer.ExportError):
-                producer.complete_program(json.dumps(changed).encode(), 'Example', roots, {})
+                producer.complete_program(json.dumps(changed).encode(), 'Example', roots, {}, producer.selected_compiler())
 
     def test_multi_root_schema_uses_module_freshness(self):
         program = {'schema': 'lean-go-ir/v7'}
