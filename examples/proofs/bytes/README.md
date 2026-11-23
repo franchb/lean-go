@@ -21,11 +21,16 @@ LE(0x12345678) = [78 56 34 12] -> 0x12345678
 BE(0x12345678) = [12 34 56 78] -> 0x12345678
 ```
 
-The generated package exposes `RunEncodeLE` and `RunEncodeBE`
-(`uint32` to `ByteQuad`), `RunDecodeLE` and `RunDecodeBE` (`ByteQuad` to `uint32`),
-`NewByteQuad`, and the `B0`–`B3` accessors. Every constructor or root call takes
-`Limits` last and returns `(result, error)`; accessors return `(uint8, bool)`.
-Always check errors before using a result. Raw callers use the four corresponding
+`RunEncodeLE` and `RunEncodeBE` encode a `uint32` as a `ByteQuad`. Call
+`quad.Bytes()` to get an owned `[4]byte` in `b0`, `b1`, `b2`, `b3` order.
+To decode a Go array, call `NewByteQuadFromBytes(data, limits)`, check its error,
+then pass the record to `RunDecodeLE` or `RunDecodeBE`. Modifying either array
+leaves the immutable record intact.
+
+`NewByteQuad` accepts four individual bytes. Both constructors take `Limits`
+last and require five nodes and depth two. A zero record's
+`Bytes()` returns a zero array and `ErrMalformed`. The field accessors
+`B0`–`B3` return `(uint8, bool)`. Raw callers use the four corresponding
 `ByteCodec.*` root names with immutable `Value` arguments.
 
 The twelve source claims prove both inverse directions for each byte order and
@@ -38,7 +43,7 @@ not describe resource-limit failures.
 
 Runtime source uses only byte/word casts, `UInt32` shifts and OR. The generated
 bundle uses `lean-go-ir/v13`, `lean-go-manifest/v13`, `pure-module/v11`, and
-`lean-go-modulegen/v10`. Tests independently compare all four typed and raw roots
+`lean-go-modulegen/v11`. Tests independently compare all four typed and raw roots
 with `encoding/binary`, check the twelve laws over 652 boundary, distinct-byte,
 one-hot and seeded cases, and exercise malformed inputs, ownership and budgets.
 Each encoder requires 11 allocations and 12 steps; each decoder requires 13

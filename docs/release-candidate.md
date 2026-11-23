@@ -50,7 +50,7 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
 runs these four verifiers for both a direct wheel and an sdist-rebuilt wheel,
 freshly checking 30 source claims per wheel. Current regenerated manifests and
-proof evidence use module generator v10; the earlier demos retain their existing
+proof evidence use module generator v11; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
@@ -91,7 +91,7 @@ Success prints a JSON receipt with `"status": "passed"`,
 `"candidate": "0.1.0a8"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
-checkout, including generator v10; it does not establish publication. Interpret
+checkout, including generator v11; it does not establish publication. Interpret
 the hashes together with the recorded commit and working-tree changes. A receipt
 from a historical checkout records that checkout's package version and inputs.
 All temporary projects and caches owned by the verifier are removed. To retain

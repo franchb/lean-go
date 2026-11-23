@@ -85,8 +85,11 @@ published alpha.7 reproduction uses its historical artifacts and generator v9.
 
 The alpha.8 release [byte codec module](examples/proofs/bytes) encodes a
 `uint32` into four byte fields and decodes them in either byte order. Its
-[Go application](examples/proofs/bytes/main.go) reads those fields into `[4]byte`
-and prints both round trips. From this checkout's root, run it offline:
+[Go application](examples/proofs/bytes/main.go) uses the generated `Bytes()`
+method to return a Go `[4]byte`. In development generator v11,
+`NewByteQuadFromBytes(wire, limits)` constructs the corresponding Lean record.
+Both conversions copy bytes in field declaration order. The method returns
+`ErrMalformed` for an invalid wrapper. From this checkout's root, run it offline:
 
 ```sh
 (

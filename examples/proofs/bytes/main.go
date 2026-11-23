@@ -8,48 +8,38 @@ import (
 	codec "example.com/lean-go-bytes-demo/bytes"
 )
 
-func octets(q codec.ByteQuad) ([4]byte, error) {
-	var out [4]byte
-	for i, field := range []func() (uint8, bool){q.B0, q.B1, q.B2, q.B3} {
-		value, ok := field()
-		if !ok {
-			return [4]byte{}, fmt.Errorf("read byte %d: invalid ByteQuad", i)
-		}
-		out[i] = value
-	}
-	return out, nil
-}
-
 func demonstrate(output io.Writer) error {
 	limits := codec.DefaultLimits()
 	const word uint32 = 0x12345678
-	le, err := codec.RunEncodeLE(word, limits)
-	if err != nil {
-		return fmt.Errorf("encode little endian: %w", err)
+	for _, order := range []struct {
+		name   string
+		encode func(uint32, codec.Limits) (codec.ByteQuad, error)
+		decode func(codec.ByteQuad, codec.Limits) (uint32, error)
+	}{
+		{"LE", codec.RunEncodeLE, codec.RunDecodeLE},
+		{"BE", codec.RunEncodeBE, codec.RunDecodeBE},
+	} {
+		encoded, err := order.encode(word, limits)
+		if err != nil {
+			return fmt.Errorf("encode %s: %w", order.name, err)
+		}
+		data, err := encoded.Bytes()
+		if err != nil {
+			return fmt.Errorf("read %s bytes: %w", order.name, err)
+		}
+		input, err := codec.NewByteQuadFromBytes(data, limits)
+		if err != nil {
+			return fmt.Errorf("construct %s input: %w", order.name, err)
+		}
+		decoded, err := order.decode(input, limits)
+		if err != nil {
+			return fmt.Errorf("decode %s: %w", order.name, err)
+		}
+		if _, err := fmt.Fprintf(output, "%s(%#08x) = [% x] -> %#08x\n", order.name, word, data, decoded); err != nil {
+			return err
+		}
 	}
-	be, err := codec.RunEncodeBE(word, limits)
-	if err != nil {
-		return fmt.Errorf("encode big endian: %w", err)
-	}
-	leWord, err := codec.RunDecodeLE(le, limits)
-	if err != nil {
-		return fmt.Errorf("decode little endian: %w", err)
-	}
-	beWord, err := codec.RunDecodeBE(be, limits)
-	if err != nil {
-		return fmt.Errorf("decode big endian: %w", err)
-	}
-	leBytes, err := octets(le)
-	if err != nil {
-		return err
-	}
-	beBytes, err := octets(be)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(output, "LE(%#08x) = [% x] -> %#08x\nBE(%#08x) = [% x] -> %#08x\n",
-		word, leBytes, leWord, word, beBytes, beWord)
-	return err
+	return nil
 }
 
 func main() {

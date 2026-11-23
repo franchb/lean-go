@@ -40,7 +40,7 @@ The [alpha.8 release](docs/releases/v0.1.0-alpha.8.md), Python package
 (twelve), with a runnable Go application for each. For development, validate
 with this checkout's CLI. Published alpha.7 has the first three demos and no UInt8
 support. Current artifacts
-use `lean-go-modulegen/v10`; byte exports use v12/v13 IR and `pure-module/v10` or
+use `lean-go-modulegen/v11`; byte exports use v12/v13 IR and `pure-module/v10` or
 `pure-module/v11`. Earlier IR schemas retain their restrictions, including Words'
 v11 IR and `pure-module/v9`.
 Pair tagged examples with the CLI from the same tag. For current artifacts,

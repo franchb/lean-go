@@ -162,7 +162,8 @@ earlier IR schemas. Pair examples and CLI from the same tag or the same checkout
 See the [verification walkthrough](release-candidate.md).
 
 The candidate [byte codec](../examples/proofs/bytes) adds four roots with
-v13 IR/manifest, `pure-module/v11` and `lean-go-modulegen/v10`. Its contract maps
+v13 IR/manifest and `pure-module/v11`. Development generator v11 adds the
+checked Go `[4]byte` conversions. Its contract maps
 twelve theorems to independent expected propositions: both inverse directions
 for each byte order and all eight encoder-byte positions. The positions use
 natural-number division by 1, 256, 65536 or 16777216 followed by remainder modulo

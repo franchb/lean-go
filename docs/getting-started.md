@@ -70,7 +70,9 @@ BE(0x12345678) = [12 34 56 78] -> 0x12345678
 Copy that directory to use its Go application offline. The generated API has
 `RunEncodeLE`/`RunEncodeBE` (`uint32` to `ByteQuad`) and
 `RunDecodeLE`/`RunDecodeBE` (`ByteQuad` to `uint32`). `NewByteQuad` constructs an
-input record; `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
+input record. In the development checkout, `NewByteQuadFromBytes(wire, limits)`
+accepts a Go `[4]byte` and `quad.Bytes()` returns `([4]byte, error)`.
+The field getters `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
 `Limits` last and return `(result, error)`. Check each error and validity flag.
 The application reads the concrete four-field Lean record into a Go `[4]byte`.
 

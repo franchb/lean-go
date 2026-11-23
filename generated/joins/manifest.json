@@ -1,7 +1,7 @@
 {
   "schema": "lean-go-manifest/v6",
-  "generator": "lean-go-modulegen/v10",
-  "generator_source_sha256": "014dfb41c4b72b3d5a811bfc8930d3f50a4b6ad9a1e11c7f70bb7bc56eb15489",
+  "generator": "lean-go-modulegen/v11",
+  "generator_source_sha256": "8ef05a199721df28dbd2bf4e791a7c5cd132bafbba6cd3ed2e8a7a7bb7661eed",
   "validator_source_sha256": "1c5150029341ae98f42bdadf0873b2cc2b5fab854697e088f190201c0db1d5f2",
   "ir_sha256": "4a9737b42e2ddc3de22892e92d747a8c2f76093dfe4ba4bf548e59f333a87fd6",
   "program": {

@@ -58,7 +58,7 @@
     }
   ],
   "contract_sha256": "8494cf05df9c4fac542270b442b7cba0c8ea286686420174f3c54c72a9cf52e0",
-  "generated_manifest_sha256": "3bcc17527c851b77b443c229901f620e61a989a0422268cedaa4264a6741b3a5",
+  "generated_manifest_sha256": "4fe9bb146fe84f0d639a6f622246f079090ef5ad56be38ceffbb7dc3b81fc245",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Words",
