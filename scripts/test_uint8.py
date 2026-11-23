@@ -105,7 +105,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
   let pristine ← getEnv
   let leaves := numericPrimitives.filter fun p =>
     #[``UInt8, ``UInt16].contains p.operand || #[``UInt8, ``UInt16].contains p.result
-  unless leaves.size == 19 do throwError "UInt8/UInt16 catalog size"
+  unless leaves.size == 20 do throwError "UInt8/UInt16 catalog size"
   for primitive in leaves do
     validateNumericPrimitive primitive
     let some decl ← getMonoDecl? primitive.name | throwError "missing numeric leaf"

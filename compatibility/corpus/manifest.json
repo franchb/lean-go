@@ -59,6 +59,13 @@
     ]
   },
   {
+    "name": "uint16_widen",
+    "module": "Widen",
+    "roots": [
+      "Widen.length"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [
@@ -172,5 +179,14 @@
     ],
     "reject": "source_audit",
     "reject_declaration": "UInt16.xor"
+  },
+  {
+    "name": "uint32_narrow16",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit",
+    "reject_declaration": "UInt32.toUInt16"
   }
 ]

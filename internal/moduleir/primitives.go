@@ -20,6 +20,8 @@ func LookupPrimitive(name string) (Primitive, bool) {
 	switch name {
 	case "UInt8.toUInt16":
 		return Primitive{name, []string{"UInt8"}, "UInt16", "zero extension: a"}, true
+	case "UInt16.toUInt32":
+		return Primitive{name, []string{"UInt16"}, "UInt32", "zero extension: a"}, true
 	case "UInt16.toUInt8":
 		return Primitive{name, []string{"UInt16"}, "UInt8", "a modulo 2^8"}, true
 	case "UInt16.lor":
@@ -119,6 +121,10 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV12
 	case SchemaV15:
 		return profile == ProfileV13
+	case SchemaV16:
+		return profile == ProfileV14
+	case SchemaV17:
+		return profile == ProfileV15
 	default:
 		return false
 	}
@@ -174,6 +180,9 @@ func (v *validator) primitiveValue(name string) ([]string, string, error) {
 	primitive, ok := LookupPrimitive(name)
 	if !ok {
 		return nil, "", fmt.Errorf("unknown primitive %s", name)
+	}
+	if name == "UInt16.toUInt32" && !v.uint16ToUInt32 {
+		return nil, "", fmt.Errorf("UInt16.toUInt32 requires %s or %s", ProfileV14, ProfileV15)
 	}
 	if (primitive.Params[0] == "UInt16" || primitive.Result == "UInt16") && !v.uint16 {
 		return nil, "", fmt.Errorf("UInt16 primitives require %s or %s", ProfileV12, ProfileV13)

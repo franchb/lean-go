@@ -18,18 +18,19 @@ type constructorInfo struct {
 	result      string
 }
 type validator struct {
-	nodes        int
-	numeric      bool
-	wide         bool
-	bytes        bool
-	uint16       bool
-	bitwise      bool
-	conversions  bool
-	joins        bool
-	functions    map[string]Function
-	constructors map[string]constructorInfo
-	types        map[string][]Constructor
-	edges        map[string]map[string]bool
+	nodes          int
+	numeric        bool
+	wide           bool
+	bytes          bool
+	uint16         bool
+	uint16ToUInt32 bool
+	bitwise        bool
+	conversions    bool
+	joins          bool
+	functions      map[string]Function
+	constructors   map[string]constructorInfo
+	types          map[string][]Constructor
+	edges          map[string]map[string]bool
 }
 
 func validName(s string) bool {
@@ -118,6 +119,7 @@ func (v *validator) validateMetadata(p *Program) error {
 	v.wide = HasUInt64(p.Schema)
 	v.bytes = HasUInt8(p.Schema)
 	v.uint16 = HasUInt16(p.Schema)
+	v.uint16ToUInt32 = hasUInt16ToUInt32(p.Schema)
 	v.joins = v.numeric && p.Schema != SchemaV3
 	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11 || v.bytes
 	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9 || v.conversions

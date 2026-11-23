@@ -62,12 +62,36 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
         self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v15', 'pure-module/v13'))
         self.assertEqual(producer.emitted_primitives(multi), {'UInt8.add', 'UInt8.toUInt16'})
 
+    def test_widening_and_erased_profile_selection(self):
+        source = 'def run (word : UInt16) : UInt32 := word.toUInt32'
+        program = self.export(source)
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v16', 'pure-module/v14'))
+        function, = program['functions']
+        self.assertEqual([p['type'] for p in function['params']], ['UInt16'])
+        self.assertEqual(function['result'], 'UInt32')
+        self.assertEqual(function['body']['value'], {
+            'kind': 'primitive', 'name': 'UInt16.toUInt32', 'args': [function['params'][0]['id']]})
+        erased = self.export('def run (word : UInt16) :=\n  let _unused := word.toUInt32\n  word')
+        self.assertEqual((erased['schema'], erased['profile']), ('lean-go-ir/v14', 'pure-module/v12'))
+        self.assertFalse(producer.emitted_primitives(erased))
+        self.assertIn('UInt16.toUInt32', {p['name'] for p in erased['provenance']})
+        (self.source / 'Numeric.lean').write_text(
+            'module\npublic section\nnamespace Numeric\n' + source +
+            '\ndef second (word : UInt16) := word.toUInt8\nend Numeric\n')
+        producer.export_module(self.root, self.source, 'Numeric', ['Numeric.run', 'Numeric.second'], self.output)
+        multi = json.loads(self.output.read_bytes())
+        self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v17', 'pure-module/v15'))
+        self.assertEqual(producer.emitted_primitives(multi), {'UInt16.toUInt32', 'UInt16.toUInt8'})
+
+    def test_widening_rewrite_history(self):
+        wide.check_primitive_history(self, [('UInt16.toUInt32', 'UInt16', True)], 'lean-go-ir/v16')
+
     def test_reject_unadmitted_widths_operators_and_alias(self):
         sources = [
             'def run (a : UInt16) :=\n  let _unused := a * a\n  a',
             'def run (a : UInt16) := a &&& a', 'def run (a : UInt16) := a ^^^ a',
             'def run (a : UInt16) := a / a', 'def run (a : UInt16) := a % a',
-            'def run (a b : UInt16) := decide (a < b)', 'def run (a : UInt16) := a.toUInt32',
+            'def run (a b : UInt16) := decide (a < b)', 'def run (a : UInt16) := a.toUInt64',
             'def run (a : UInt64) := a.toUInt16', 'def run (a : UInt16) := a.toNat',
             'abbrev Half := UInt16\ndef run (a : Half) := a',
         ]
@@ -77,7 +101,8 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
 
     def test_trusted_literal_and_logical_helper_attribute_changes_reject(self):
         for helper, body in [('UInt16.ofNat', 'def run : UInt16 := 65535'),
-                             ('UInt16.toNat', 'def run (w : UInt16) := w.toUInt8')]:
+                             ('UInt16.toNat', 'def run (w : UInt16) := w.toUInt8'),
+                             ('UInt16.toNat', 'def run (w : UInt16) := w.toUInt32')]:
             probe = self.imported_attribute_probe('externAttr', helper, '{ entries := [.standard `all "untrusted"] }')
             self.assert_rejected(body, 'Numeric source extern changed', probe=probe)
 

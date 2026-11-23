@@ -35,14 +35,12 @@ func primitiveExpression(name, left, right string) string {
 	switch name {
 	case "UInt8.toUInt16":
 		return "uint16(" + left + ")"
-	case "UInt8.toUInt32":
+	case "UInt8.toUInt32", "UInt16.toUInt32", "UInt64.toUInt32":
 		return "uint32(" + left + ")"
 	case "UInt16.toUInt8", "UInt32.toUInt8":
 		return "uint8(" + left + ")"
 	case "UInt32.toUInt64":
 		return "uint64(" + left + ")"
-	case "UInt64.toUInt32":
-		return "uint32(" + left + ")"
 	case "UInt8.add", "UInt32.add", "UInt64.add":
 		operator = "+"
 	case "UInt8.sub", "UInt32.sub", "UInt64.sub":

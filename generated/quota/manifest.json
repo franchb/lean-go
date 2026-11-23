@@ -1,9 +1,9 @@
 {
   "schema": "lean-go-manifest/v7",
-  "generator": "lean-go-modulegen/v12",
-  "generator_source_sha256": "f64aaca9d5867c317e1106ec716e9078a81ae428782c1c945928d8bce92f38b8",
-  "validator_source_sha256": "1a7a365eac14ce355d25cf3d693bda818c4519830b0179afcecffabb5c582a6c",
-  "ir_sha256": "0542bc0f10d17b76338e7416dc8b1b64f7297fa91865038fd511fbbc04af7bdb",
+  "generator": "lean-go-modulegen/v13",
+  "generator_source_sha256": "c3cccfefd87696c05bfa9626c585cfea1fd44bb2c21670add82c2e46af76e515",
+  "validator_source_sha256": "dd7a23dee5ecd952d1022a6a8d8856af6b825fc0f38c8977739427e1c750ac01",
+  "ir_sha256": "7b000781d2994a13a7e6e314cd26f6d9b8c8c2d8c9c365719032ed9e7fb03166",
   "program": {
     "schema": "lean-go-ir/v7",
     "profile": "pure-module/v5",
@@ -24,12 +24,12 @@
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
-      "producer/LeanGo/Module/Primitives.lean": "30d198384c53a41f177e4f2a166d27a9cb5613175bce9c8548d32c9c2c3c52bf",
+      "producer/LeanGo/Module/Primitives.lean": "e680db8c30649f701c5e261451638c2be776af07c0dca6fef0dd6dcee1656a0e",
       "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
       "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-      "scripts/export_module.py": "13e4e1513a9c5a744b2296788caa7b12ee670df330087d3eb13d08ea3f1831ec",
+      "scripts/export_module.py": "fb0f610bc8ce6cf6686fe38bc0ef1c2b86b9759564046260f13ce9ee714064e0",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
       "source/Quota.lean": "f88a8e9b5809a79cf0147472b17f4300d2645d941d406d25879e068e49dfce0e"

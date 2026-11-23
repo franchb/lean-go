@@ -81,10 +81,10 @@ class BitwiseManifestTests(ContractFixture):
             self.document['roots'] = ['Example.identity', 'Example.second'] if multi else ['Example.identity']
             self.write_contract()
             self.write_manifest()
-            accepted = ((7, 5), (9, 7), (11, 9), (13, 11), (15, 13)) if multi else ((6, 4), (8, 6), (10, 8), (12, 10), (14, 12))
-            for manifest_version in range(6, 16):
-                for ir_version in range(6, 16):
-                    for profile in range(4, 14):
+            accepted = ((7, 5), (9, 7), (11, 9), (13, 11), (15, 13), (17, 15)) if multi else ((6, 4), (8, 6), (10, 8), (12, 10), (14, 12), (16, 14))
+            for manifest_version in range(6, 18):
+                for ir_version in range(6, 18):
+                    for profile in range(4, 16):
                         self.manifest['schema'] = f'lean-go-manifest/v{manifest_version}'
                         self.manifest['program'].update(schema=f'lean-go-ir/v{ir_version}',
                                                         profile=f'pure-module/v{profile}')
