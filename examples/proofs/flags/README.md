@@ -167,6 +167,6 @@ and checksum lookup, and cgo disabled.
 Root `go test ./...` includes the same Go-only deployment on Linux and Windows.
 The current checkout's installed-CLI workflow runs fresh clamp, flags, words, bytes,
 header and wire16 verification through both the direct wheel and a wheel rebuilt from the
-source distribution, checking all 50 source claims per wheel and that the
+source distribution, checking all 52 source claims per wheel and that the
 installed producer payload remains unchanged. Published alpha.7 has the first
 three demos; the alpha.8 release adds the byte codec. Current artifacts require this checkout's CLI.

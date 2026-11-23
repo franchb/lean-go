@@ -53,6 +53,19 @@ payload if it must outlive reuse of the input buffer. The [executable
 example](frame/frame_test.go) reads two consecutive frames, including an empty
 one. This slice handling is implemented and tested in Go.
 
+## Read frames from a stream
+
+`frame.ReadFrameFrom(r, limits)` reads one frame from an `io.Reader`.
+Each successful result owns its payload. A call returns `io.EOF` at a frame
+boundary or `io.ErrUnexpectedEOF` if the stream ends within a header or a
+declared payload. Other reader errors propagate. A complete invalid header
+is rejected before reading its payload. Bytes read from a stream are consumed
+even when the call fails.
+
+Both readers use `RunClassify(header, available, limits)`. For example, a
+header declaring five bytes with two available yields `needMore 3`. With
+seven available it yields `complete 5`, leaving the next two bytes for the caller.
+
 ## Append a frame
 
 `frame.AppendFrame(dst, flags, payload, limits)` derives the length from the
@@ -67,7 +80,9 @@ The writer is available in the post-alpha.10 checkout.
 
 ## Proofs and Go checks
 
-Eleven kernel-checked propositions cover the two-byte codec and its header.
+Thirteen kernel-checked propositions cover the two-byte codec, header and
+payload completeness. Two characterize the exact deficit and the consumed
+length for every possible available-byte count.
 The expected encoder bytes are the quotient and remainder upon division by
 256. A separate proposition specifies the decoded value as `hi * 256 + lo`.
 Both round trips hold for every word and every pair. The header propositions
@@ -79,8 +94,7 @@ The Go tests compare both raw and typed calls with `encoding/binary` across
 all 65,536 words and byte pairs and all 262,144 valid headers. They also test
 the version and flag rejection branches, malformed inputs and resource limits.
 On each supported Lean compiler, the compatibility workflow builds
-[native Lean code](native/Reference.lean) and compares all 65,536 encoder and
-decoder outputs directly with Go. These checks exercise the generated code. The Lean theorems concern the source.
+[native Lean code](native/Reference.lean) and compares encoding, decoding and UInt32 widening for all 65,536 inputs directly with Go. These checks exercise the generated code. The Lean theorems concern the source.
 
 ## Regenerate
 
@@ -88,7 +102,7 @@ With the checkout CLI installed, run these commands here.
 
 ```sh
 lean-go generate --source-dir source --module Wire16 \
-  --root Wire16.decodeBE --root Wire16.encode --root Wire16.encodeBE --root Wire16.parse \
+  --root Wire16.classify --root Wire16.decodeBE --root Wire16.encode --root Wire16.encodeBE --root Wire16.parse \
   --out candidate/wire16 --ir-output candidate/wire16.ir.json
 lean-go check-proofs --contract proof-contract.json \
   --manifest candidate/wire16/manifest.json --output candidate/proof-evidence.json

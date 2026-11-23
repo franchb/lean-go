@@ -176,6 +176,14 @@ narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
 An executable `UInt16` selects v14 IR for one root or v15 for multiple roots
 with `pure-module/v12` or `pure-module/v13`. Alpha.10 ships generator v12. Pair the CLI and examples from the same tag when
 regenerating artifacts.
+
+The development checkout also extracts ordinary `UInt16.toUInt32` as a
+value-preserving Go conversion. An executable use selects v16 for one root or
+v17 for multiple roots, with profiles `pure-module/v14` and `pure-module/v15`
+and generator v13. The [Wire16 demo](examples/proofs/wire16) uses it to
+classify a payload as complete or report its exact deficit. The generated
+decision serves both a Go byte-slice reader and an `io.Reader` adapter.
+
 Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
 `pure-module/v4` or `pure-module/v5`. Other conversions, including direct

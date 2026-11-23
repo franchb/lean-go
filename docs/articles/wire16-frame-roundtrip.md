@@ -28,12 +28,21 @@ On a short read, keep the slice returned with `io.ErrUnexpectedEOF`, append
 the next chunk, and retry. A successful read borrows its payload from the input
 buffer, so copy the payload before reusing that buffer.
 
+For a file or stream, call `frame.ReadFrameFrom(r, limits)` once per frame.
+Run the [stream example](../../examples/proofs/wire16/frame/stream_test.go) with
+`CGO_ENABLED=0 go test -run '^ExampleReadFrameFrom$' -v ./frame`.
+It returns `io.EOF` when the stream ends between frames and
+`io.ErrUnexpectedEOF` for an unfinished header or payload. Each successful
+call returns an owned payload and reads exactly to the end of that frame.
+
 ## What the checks establish
 
-Lean checks eleven [Wire16 propositions](../../examples/proofs/wire16/proof/Wire16Contract.lean).
+Lean checks thirteen [Wire16 propositions](../../examples/proofs/wire16/proof/Wire16Contract.lean).
 For example, `encode_success_iff` specifies the version, allowed flags and each
 length byte. `parse_encode_roundtrip` establishes that encoding a valid Lean
-header produces bytes that parse back to that header.
+header produces bytes that parse back to that header. The completeness claims
+specify exactly how many more bytes a short frame needs, or how many bytes
+a complete frame consumes. Go handles reading, allocation and slicing.
 
 The Go writer calls that generated encoder. The Go tests check the buffer
 operations: preserving the destination on errors, copying overlapping

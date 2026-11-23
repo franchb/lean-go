@@ -88,6 +88,36 @@ func ReadFrame(src []byte, limits codec.Limits) (Frame, []byte, error) {
 	return Frame{Header: header, Payload: src[headerSize:end:end]}, src[end:], nil
 }
 
+// ReadFrameFrom reads one frame from r and returns a caller-owned payload.
+// It reads exactly the header before validating it, then only the declared payload.
+// EOF before the first header byte returns io.EOF. EOF anywhere within a frame
+// returns io.ErrUnexpectedEOF. On failure it returns a zero Frame and any bytes
+// already read remain consumed.
+func ReadFrameFrom(r io.Reader, limits codec.Limits) (Frame, error) {
+	var wire [headerSize]byte
+	if _, err := io.ReadFull(r, wire[:]); err != nil {
+		return Frame{}, err
+	}
+	header, err := parseHeader(wire, limits)
+	if err != nil {
+		return Frame{}, err
+	}
+	// With zero payload bytes available, the classifier returns the declared
+	// length in both cases: complete(0) or needMore(length).
+	count, _, err := payloadCount(header, 0, limits)
+	if err != nil {
+		return Frame{}, err
+	}
+	payload := make([]byte, count)
+	if _, err := io.ReadFull(r, payload); err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return Frame{}, err
+	}
+	return Frame{Header: header, Payload: payload}, nil
+}
+
 // AppendFrame appends a version-1 header and payload to dst. The payload may
 // overlap dst, including its unused capacity. On error it returns the original
 // dst without modifying its backing array. Lengths above 65,535 are rejected

@@ -21,7 +21,8 @@ SPEC = shared.Demo('wire16', 'Wire16',
                     'Wire16.parse'),
                    tuple((f'Wire16Proofs.{name}', f'Wire16Contract.{name}') for name in CLAIMS),
                    extra_go_files=('frame/frame.go', 'frame/frame_test.go',
-                                   'frame/append_test.go', 'frame/roundtrip_test.go'))
+                                   'frame/append_test.go', 'frame/roundtrip_test.go',
+                                   'frame/stream_test.go'))
 
 
 def artifacts(project):

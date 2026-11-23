@@ -47,7 +47,7 @@ The **Compiler compatibility research** workflow runs on pull requests and
 pushes to `main`. It verifies the upstream SHA-256 for each Linux release
 archive, then compares stable with rc2. It also installs the checkout wheel
 and runs all six proof demos with each compiler. For Wire16, it also builds a
-native Lean executable and compares its encoder and decoder with the generated
+native Lean executable and compares its encoding, decoding and UInt32 widening with the generated
 Go across every 16-bit value. A manual dispatch can compare
 stable with itself by choosing `production`. A difference fails the workflow
 and retains the report and replay evidence. The regular extraction workflow
@@ -71,7 +71,7 @@ occurs exactly once and records before/after digests and a unified patch.
 
 The producer must build before the corpus runs. If compilation fails, its
 status is `producer_build_failed` and every case stays `not_run`. The corpus
-contains nine accepted cases and eight required rejections.
+contains ten accepted cases and nine required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -81,6 +81,8 @@ contains nine accepted cases and eight required rejections.
 | `width_conversions` | UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
 | `bytes` | UInt8 wrapping arithmetic, comparisons, bitwise operations, modulo-8 shifts and UInt8/UInt32 conversions with independent Go checks |
 | `uint16` | Every two-byte big-endian value checked against Go, plus OR and dynamic shifts at and beyond 16 bits |
+| `uint16_widen` | `UInt16.toUInt32` preserves every one of the 65,536 possible values |
+| `uint32_narrow16` | The inverse narrowing cast `UInt32.toUInt16` is rejected during source admission |
 | `uint16_xor` | `admission` / `source_audit` for the unsupported `UInt16.xor` |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
@@ -92,6 +94,12 @@ contains nine accepted cases and eight required rejections.
 | `custom_pass` | `admission` / `source_audit` for a no-op custom compiler pass |
 | `custom_csimp` | `admission` / `source_audit` for a valid custom compiler rewrite |
 | `with_ptr_eq` | `admission` / `source_audit` naming `withPtrEq`, after standalone Lean compiles the Bool caller |
+
+For `UInt16.toUInt32`, both supported Lean builds expose a safe unary definition
+in `Init.Data.UInt.BasicAux` with extern name `lean_uint16_to_uint32`. The Go
+emitter widens a `uint16` with `uint32(value)`. The `uint16_widen` case
+checks this conversion directly. Wire16 separately compares its generated
+result with native Lean across the entire input domain.
 
 Accepted source must produce valid IR and a Go package, then pass a separate
 checked-in Go consumer with independently authored expected constants or an
