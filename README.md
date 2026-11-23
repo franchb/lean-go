@@ -28,7 +28,7 @@ for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uin
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
 [walkthrough](docs/getting-started.md) or read the
-[alpha.9 release notes](docs/releases/v0.1.0-alpha.9.md).
+[alpha.10 release notes](docs/releases/v0.1.0-alpha.10.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -48,10 +48,10 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 extracts fresh Go and exercises an isolated consumer.
 
 For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
-To install alpha.9 and reproduce its tagged examples, run
+To install alpha.10 and reproduce its tagged examples, run
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.9"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.10"
 ```
 
 To reproduce published alpha.7, use its
@@ -126,7 +126,7 @@ Its Go error return covers malformed values and resource limits.
 (cd examples/proofs/header && CGO_ENABLED=0 go run .)
 ```
 
-The development checkout also includes a [typed 16-bit wire codec](examples/proofs/wire16).
+Alpha.10 includes a [typed 16-bit wire codec](examples/proofs/wire16).
 Its Go API accepts a `uint16` length. The accompanying frame reader consumes
 one complete frame from a byte slice and preserves the input for retry on truncation. Eleven Lean theorems specify byte order,
 header validation and both round trips. Run the example with Go alone:
@@ -165,13 +165,13 @@ left shift, equality, unsigned less-than/less-or-equal comparisons, `&&&`, `|||`
 notation is supported. Exact casts are `UInt8.toUInt32`, `UInt32.toUInt8`,
 `UInt32.toUInt64` and `UInt64.toUInt32`; widening preserves the value and narrowing
 reduces it modulo 2^8 or 2^32 respectively.
-The development checkout also extracts `UInt16` literals, records and
+Alpha.10 extracts `UInt16` literals, records and
 `UInt8.toUInt16`, `UInt16.toUInt8`, `|||`, `<<<` and `>>>` on the supported
 operand types. The Go scalar is `uint16`. Widening preserves the byte value,
 narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
 An executable `UInt16` selects v14 IR for one root or v15 for multiple roots
-with `pure-module/v12` or `pure-module/v13`. Use the checkout CLI and generator
-v12 to reproduce development artifacts. Alpha.9 ships generator v11.
+with `pure-module/v12` or `pure-module/v13`. Alpha.10 ships generator v12. Pair the CLI and examples from the same tag when
+regenerating artifacts.
 Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
 `pure-module/v4` or `pure-module/v5`. Other conversions, including direct

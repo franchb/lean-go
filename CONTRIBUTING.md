@@ -34,13 +34,10 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.9 release](docs/releases/v0.1.0-alpha.9.md), Python package
-`0.1.0a9`, includes five standalone demos. Clamp, Flags, Words, Bytes and
-Header cover 39 source claims in total. Their generated packages
-use `lean-go-modulegen/v11`; byte exports use v12/v13 IR and `pure-module/v10` or
-`pure-module/v11`. Earlier IR schemas retain their restrictions, including Words'
-v11 IR and `pure-module/v9`.
-The development checkout uses generator v12 and selects v14/v15 IR for executable `UInt16` values.
+The [alpha.10 release](docs/releases/v0.1.0-alpha.10.md), Python package
+`0.1.0a10`, includes six standalone demos and 50 source claims. Its generator
+v12 selects v14/v15 IR for executable `UInt16` values. Programs using only
+earlier capabilities retain their IR schemas.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.
