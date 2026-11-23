@@ -1,14 +1,17 @@
-// Package frame reads complete frames using the generated version-1 header parser.
+// Package frame reads and writes complete frames using the generated version-1 header codec.
 package frame
 
 import (
 	"errors"
 	"io"
+	"math"
+	"slices"
 
 	codec "example.com/lean-go-wire16-demo/wire16"
 )
 
 var (
+	ErrPayloadTooLarge    = errors.New("frame payload exceeds 65535 bytes")
 	ErrUnsupportedVersion = errors.New("unsupported frame version")
 	ErrReservedFlags      = errors.New("reserved frame flags are set")
 )
@@ -57,4 +60,41 @@ func ReadFrame(src []byte, limits codec.Limits) (Frame, []byte, error) {
 		return Frame{}, src, io.ErrUnexpectedEOF
 	}
 	return Frame{Header: header, Payload: src[headerSize:end:end]}, src[end:], nil
+}
+
+// AppendFrame appends a version-1 header and payload to dst. The payload may
+// overlap dst, including its unused capacity. On error it returns the original
+// dst without modifying its backing array. Lengths above 65,535 are rejected
+// before encoding the header.
+func AppendFrame(dst []byte, flags uint8, payload []byte, limits codec.Limits) ([]byte, error) {
+	if len(payload) > math.MaxUint16 {
+		return dst, ErrPayloadTooLarge
+	}
+	header, err := codec.NewHeader(flags, uint16(len(payload)), limits)
+	if err != nil {
+		return dst, err
+	}
+	result, err := codec.RunEncode(header, limits)
+	if err != nil {
+		return dst, err
+	}
+	if result.IsReservedFlags() {
+		return dst, ErrReservedFlags
+	}
+	encoded, ok := result.AsEncoded()
+	if !ok {
+		return dst, codec.ErrMalformed
+	}
+	wire, err := encoded.Bytes()
+	if err != nil {
+		return dst, err
+	}
+
+	start := len(dst)
+	size := len(wire) + len(payload)
+	dst = slices.Grow(dst, size)[:start+size]
+	// Move the payload first: its source may occupy the future header bytes.
+	copy(dst[start+len(wire):], payload)
+	copy(dst[start:], wire[:])
+	return dst, nil
 }

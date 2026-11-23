@@ -53,6 +53,18 @@ payload if it must outlive reuse of the input buffer. The [executable
 example](frame/frame_test.go) reads two consecutive frames, including an empty
 one. This slice handling is implemented and tested in Go.
 
+## Append a frame
+
+`frame.AppendFrame(dst, flags, payload, limits)` derives the length from the
+payload and calls the generated header encoder. A payload of 65,536 bytes or
+more returns `frame.ErrPayloadTooLarge`. Check the error before using the
+result. On success, use the returned slice for the next append. On error the
+destination and its backing array retain their original contents.
+
+The [frame writing walkthrough](../../../docs/articles/wire16-frame-roundtrip.md)
+follows two frames through the writer and reader, then runs the Go fuzz target.
+The writer is available in the post-alpha.10 checkout.
+
 ## Proofs and Go checks
 
 Eleven kernel-checked propositions cover the two-byte codec and its header.

@@ -135,6 +135,10 @@ header validation and both round trips. Run the example with Go alone:
 (cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)
 ```
 
+The [frame writing walkthrough](docs/articles/wire16-frame-roundtrip.md) shows
+how to append two frames, read the first, and retry after a partial read.
+The writer is available in the post-alpha.10 checkout.
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0**, and **uv** with Python **3.15**.
