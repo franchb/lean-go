@@ -22,8 +22,11 @@ INPUT_FILES = (
 )
 
 
+MODULE_SCHEMAS = frozenset(f"lean-go-ir/v{n}" for n in range(2, 16))
+
+
 def verify_inputs(root, program, source_dir=None):
-    if program.get("schema") in {"lean-go-ir/v2", "lean-go-ir/v3", "lean-go-ir/v4", "lean-go-ir/v5", "lean-go-ir/v6", "lean-go-ir/v7", "lean-go-ir/v8", "lean-go-ir/v9", "lean-go-ir/v10", "lean-go-ir/v11", "lean-go-ir/v12", "lean-go-ir/v13"}:
+    if program.get("schema") in MODULE_SCHEMAS:
         if source_dir is None:
             raise ValueError("module source directory is required for module freshness checks")
         verify_module_inputs(root, source_dir, program)

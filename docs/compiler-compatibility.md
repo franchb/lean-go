@@ -69,7 +69,7 @@ occurs exactly once and records before/after digests and a unified patch.
 
 The producer must build before the corpus runs. If compilation fails, its
 status is `producer_build_failed` and every case stays `not_run`. The corpus
-contains eight accepted cases and seven required rejections.
+contains nine accepted cases and eight required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -78,6 +78,8 @@ contains eight accepted cases and seven required rejections.
 | `left_shift` | UInt32/UInt64 ordinary `<<<` and direct controls, checked with exact exponent/multiply/modulo arithmetic |
 | `width_conversions` | UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
 | `bytes` | UInt8 wrapping arithmetic, comparisons, bitwise operations, modulo-8 shifts and UInt8/UInt32 conversions with independent Go checks |
+| `uint16` | Every two-byte big-endian value checked against Go, plus OR and dynamic shifts at and beyond 16 bits |
+| `uint16_xor` | `admission` / `source_audit` for the unsupported `UInt16.xor` |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |

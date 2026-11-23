@@ -18,6 +18,16 @@ type Primitive struct {
 // LookupPrimitive returns a fresh signature, so callers cannot mutate the catalog.
 func LookupPrimitive(name string) (Primitive, bool) {
 	switch name {
+	case "UInt8.toUInt16":
+		return Primitive{name, []string{"UInt8"}, "UInt16", "zero extension: a"}, true
+	case "UInt16.toUInt8":
+		return Primitive{name, []string{"UInt16"}, "UInt8", "a modulo 2^8"}, true
+	case "UInt16.lor":
+		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "bitwise OR of 16-bit operands"}, true
+	case "UInt16.shiftLeft":
+		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "(a * 2^(b modulo 16)) modulo 2^16"}, true
+	case "UInt16.shiftRight":
+		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "floor(a / 2^(b modulo 16))"}, true
 	case "UInt8.toUInt32":
 		return Primitive{name, []string{"UInt8"}, "UInt32", "zero extension: a"}, true
 	case "UInt32.toUInt8":
@@ -105,6 +115,10 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV10
 	case SchemaV13:
 		return profile == ProfileV11
+	case SchemaV14:
+		return profile == ProfileV12
+	case SchemaV15:
+		return profile == ProfileV13
 	default:
 		return false
 	}
@@ -137,6 +151,12 @@ func (v *validator) numericValue(value *Value) ([]string, string, error) {
 		}
 		return nil, "UInt8", validateLiteral(value.Name, 8, 3)
 	}
+	if value.Kind == "uint16" {
+		if !v.uint16 {
+			return nil, "", fmt.Errorf("UInt16 literals require %s or %s", ProfileV12, ProfileV13)
+		}
+		return nil, "UInt16", validateLiteral(value.Name, 16, 5)
+	}
 	if value.Kind == "uint32" {
 		return nil, "UInt32", validateLiteral(value.Name, 32, 10)
 	}
@@ -154,6 +174,9 @@ func (v *validator) primitiveValue(name string) ([]string, string, error) {
 	primitive, ok := LookupPrimitive(name)
 	if !ok {
 		return nil, "", fmt.Errorf("unknown primitive %s", name)
+	}
+	if (primitive.Params[0] == "UInt16" || primitive.Result == "UInt16") && !v.uint16 {
+		return nil, "", fmt.Errorf("UInt16 primitives require %s or %s", ProfileV12, ProfileV13)
 	}
 	if (primitive.Params[0] == "UInt8" || primitive.Result == "UInt8") && !v.bytes {
 		return nil, "", fmt.Errorf("UInt8 primitives require %s or %s", ProfileV10, ProfileV11)

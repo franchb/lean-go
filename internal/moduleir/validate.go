@@ -22,6 +22,7 @@ type validator struct {
 	numeric      bool
 	wide         bool
 	bytes        bool
+	uint16       bool
 	bitwise      bool
 	conversions  bool
 	joins        bool
@@ -116,6 +117,7 @@ func (v *validator) validateMetadata(p *Program) error {
 	v.numeric = p.Schema != Schema
 	v.wide = HasUInt64(p.Schema)
 	v.bytes = HasUInt8(p.Schema)
+	v.uint16 = HasUInt16(p.Schema)
 	v.joins = v.numeric && p.Schema != SchemaV3
 	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11 || v.bytes
 	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9 || v.conversions
@@ -207,7 +209,7 @@ func (v *validator) validateTypes(types []TypeDecl) error {
 	}
 	previous := ""
 	for _, t := range types {
-		if !validName(t.Name) || t.Name == "UInt8" || t.Name == "UInt32" || (v.wide && t.Name == "UInt64") || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
+		if !validName(t.Name) || t.Name == "UInt8" || (v.uint16 && t.Name == "UInt16") || t.Name == "UInt32" || (v.wide && t.Name == "UInt64") || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
 			return fmt.Errorf("invalid or unordered type %s", t.Name)
 		}
 		previous = t.Name
@@ -282,6 +284,9 @@ func (v *validator) validateTypeClosure() error {
 	}
 	if v.bytes {
 		used["UInt8"] = true
+	}
+	if v.uint16 {
+		used["UInt16"] = true
 	}
 	scalarCount := len(used)
 	pending := []string{}

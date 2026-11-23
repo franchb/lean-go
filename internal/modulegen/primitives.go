@@ -33,9 +33,11 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 func primitiveExpression(name, left, right string) string {
 	operator := ""
 	switch name {
+	case "UInt8.toUInt16":
+		return "uint16(" + left + ")"
 	case "UInt8.toUInt32":
 		return "uint32(" + left + ")"
-	case "UInt32.toUInt8":
+	case "UInt16.toUInt8", "UInt32.toUInt8":
 		return "uint8(" + left + ")"
 	case "UInt32.toUInt64":
 		return "uint64(" + left + ")"
@@ -49,13 +51,15 @@ func primitiveExpression(name, left, right string) string {
 		operator = "*"
 	case "UInt8.shiftLeft":
 		return left + " << (" + right + " & 7)"
+	case "UInt16.shiftLeft":
+		return left + " << (" + right + " & 15)"
 	case "UInt32.shiftLeft":
 		return left + " << (" + right + " & 31)"
 	case "UInt64.shiftLeft":
 		return left + " << (" + right + " & 63)"
 	case "UInt8.land", "UInt32.land", "UInt64.land":
 		operator = "&"
-	case "UInt8.lor", "UInt32.lor", "UInt64.lor":
+	case "UInt8.lor", "UInt16.lor", "UInt32.lor", "UInt64.lor":
 		operator = "|"
 	case "UInt8.xor", "UInt32.xor", "UInt64.xor":
 		operator = "^"
@@ -63,6 +67,8 @@ func primitiveExpression(name, left, right string) string {
 		return "^" + left
 	case "UInt8.shiftRight":
 		return left + " >> (" + right + " & 7)"
+	case "UInt16.shiftRight":
+		return left + " >> (" + right + " & 15)"
 	case "UInt32.shiftRight":
 		return left + " >> (" + right + " & 31)"
 	case "UInt64.shiftRight":
@@ -102,6 +108,9 @@ func (g *generator) primitiveCatalog() []moduleir.Primitive {
 func scalarField(typ string) string {
 	if typ == "UInt8" {
 		return "scalar8"
+	}
+	if typ == "UInt16" {
+		return "scalar16"
 	}
 	if typ == "UInt64" {
 		return "scalar64"

@@ -22,6 +22,9 @@ func apiScalars(p *moduleir.Program) map[string]apiScalar {
 	if moduleir.HasUInt8(p.Schema) {
 		scalars["UInt8"] = apiScalar{"uint8", "0", "apiUInt8Node", "apiReadUInt8"}
 	}
+	if moduleir.HasUInt16(p.Schema) {
+		scalars["UInt16"] = apiScalar{"uint16", "0", "apiUInt16Node", "apiReadUInt16"}
+	}
 	for _, typ := range p.Types {
 		if canonicalAPIBool(typ) {
 			scalars[typ.Name] = apiScalar{"bool", "false", "apiBoolNode", "apiReadBool"}
@@ -65,6 +68,9 @@ func (g *generator) emitAPI() ([]byte, error) {
 		}
 		if moduleir.HasUInt8(g.program.Schema) {
 			inactive += "||n.scalar8!=0"
+		}
+		if moduleir.HasUInt16(g.program.Schema) {
+			inactive += "||n.scalar16!=0"
 		}
 		fmt.Fprintf(w, "func apiReadBool(n *node)(bool,bool){if !apiNode(n,%d)||len(n.fields)!=0||n.scalar!=0%s||n.size!=1||n.depth!=1||(n.tag!=0&&n.tag!=1){return false,false};return n.tag==1,true}\n", typ, inactive)
 	}

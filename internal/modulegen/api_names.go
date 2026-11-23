@@ -150,6 +150,10 @@ func reservedAPINames(schema string) apiNameAllocator {
 		names["apiReadUInt8"] = true
 		names["inputOtherShape"] = true
 	}
+	if moduleir.HasUInt16(schema) {
+		names["apiUInt16Node"] = true
+		names["apiReadUInt16"] = true
+	}
 	if moduleir.HasMultipleRoots(schema) {
 		for _, name := range []string{"RunRoot", "rootSignature"} {
 			names[name] = true

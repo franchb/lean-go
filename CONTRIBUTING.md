@@ -40,6 +40,7 @@ Header cover 39 source claims in total. Their generated packages
 use `lean-go-modulegen/v11`; byte exports use v12/v13 IR and `pure-module/v10` or
 `pure-module/v11`. Earlier IR schemas retain their restrictions, including Words'
 v11 IR and `pure-module/v9`.
+The development checkout uses generator v12 and selects v14/v15 IR for executable `UInt16` values.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.
@@ -65,8 +66,8 @@ The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to revie
 a concrete contribution: four roots, twelve independent expected propositions,
 fresh proof evidence and Go checks against `encoding/binary`. For changes to the
 UInt8 engine, use the focused admission and differential tests in the
-[UInt8 report](docs/research/extraction-uint8.md). Broad generic collections,
-UInt16 and direct UInt8/UInt64 casts remain deferred.
+[UInt8 report](docs/research/extraction-uint8.md). Broad generic collections and
+direct UInt8/UInt64 casts remain deferred. The UInt16 subset covers byte casts, OR and masked shifts.
 
 CI executes ordinary Go tests on Linux and Windows, and extraction gates on Linux.
 Tag workflows also fetch the exact published version into separate Go-only

@@ -51,6 +51,7 @@ func apiReadUInt8(n *node) (uint8, bool) {
 	}
 	return n.scalar8, true
 }
+
 func apiBoolNode(value bool) *node {
 	tag := 0
 	if value {

@@ -88,7 +88,7 @@ class ByteAdmissionTests(unittest.TestCase):
     def test_unsupported_widths_aliases_and_operators_remain_rejected(self):
         for source in ('def run (a b : UInt8) := a / b\n',
                        'def run (a b : UInt8) :=\n  let _unused := a % b\n  a\n',
-                       'def run (a : UInt16) := a\n',
+                       'def run (a : USize) := a\n',
                        'def run (a : UInt8) := a.toUInt64\n',
                        'def run (a : UInt64) := a.toUInt8\n',
                        'def run (a : UInt8) := a.toNat\n',
@@ -104,14 +104,14 @@ class ByteAdmissionTests(unittest.TestCase):
 run_cmd Lean.Elab.Command.liftCoreM do
   let pristine ← getEnv
   let leaves := numericPrimitives.filter fun p =>
-    p.operand == ``UInt8 || p.result == ``UInt8
-  unless leaves.size == 14 do throwError "byte catalog size"
+    #[``UInt8, ``UInt16].contains p.operand || #[``UInt8, ``UInt16].contains p.result
+  unless leaves.size == 19 do throwError "UInt8/UInt16 catalog size"
   for primitive in leaves do
     validateNumericPrimitive primitive
-    let some decl ← getMonoDecl? primitive.name | throwError "missing byte leaf"
+    let some decl ← getMonoDecl? primitive.name | throwError "missing numeric leaf"
     let mutations := #[{ decl with safe := false }, { decl with params := #[] },
-      { decl with levelParams := [`u] }, { decl with type := .const ``UInt16 [] },
-      { decl with params := decl.params.map fun p => { p with type := .const ``UInt16 [] } },
+      { decl with levelParams := [`u] }, { decl with type := .const ``USize [] },
+      { decl with params := decl.params.map fun p => { p with type := .const ``USize [] } },
       { decl with value := .extern { entries := [.standard `all "untrusted"] } }]
     for changed in mutations do
       withEnv pristine do
@@ -140,7 +140,8 @@ run_cmd Lean.Elab.Command.liftCoreM do
     ``instSubUInt8, ``instMulUInt8, ``instAndOpUInt8, ``instOrOpUInt8,
     ``instXorOpUInt8, ``instComplementUInt8, ``instShiftLeftUInt8,
     ``instShiftRightUInt8, ``instLinearOrderPackageUInt8, ``instDecidableEqUInt8,
-    ``instLTUInt8, ``instLEUInt8]
+    ``instLTUInt8, ``instLEUInt8, ``UInt16.ofNat, ``UInt16.instOfNat,
+    ``instOrOpUInt16, ``instShiftLeftUInt16, ``instShiftRightUInt16]
   for name in names do
     let some index := pristine.getModuleIdxFor? name | throwError "not imported"
     for dimension in [:3] do

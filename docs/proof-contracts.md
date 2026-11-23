@@ -8,6 +8,8 @@ v11/`pure-module/v9` multiple-root
 [width-conversion packages](research/extraction-width-conversions.md).
 The alpha.8 release adds v12/`pure-module/v10` single-root and
 v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
+The development checker also accepts `UInt16` packages with v14 IR/manifest and
+`pure-module/v12` for a single root, or v15 and `pure-module/v13` for multiple roots.
 Use the checkout CLI to reproduce development artifacts.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 

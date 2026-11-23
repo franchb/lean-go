@@ -76,7 +76,7 @@ Each function takes `Limits` as its last argument and returns `(result, error)`.
 Raw callers use `RunRoot` with the corresponding `Words.*` name and immutable
 `Value` arguments. The five selected roots share `lean-go-ir/v11`,
 `lean-go-manifest/v11`, profile `pure-module/v9` and generator
-`lean-go-modulegen/v11` in this checkout. Only those roots are exported; proof helpers are absent
+`lean-go-modulegen/v12` in this checkout. Only those roots are exported; proof helpers are absent
 from the runtime package.
 
 Every call starts fresh logical budgets. `widen`, `narrow` and `low` need one

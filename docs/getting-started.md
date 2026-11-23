@@ -106,7 +106,8 @@ its tagged example and
 [guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
 The extraction and Go runtime remain tested and trusted; the proofs establish
 the selected Lean statements.
-Runtime division/remainder, UInt16, direct UInt8/UInt64 casts and broad generic
+The development checkout adds `UInt16` byte casts, OR and shifts. Runtime
+division/remainder, direct UInt8/UInt64 casts and broad generic
 collections remain deferred.
 
 ## Extract your own Lean module
