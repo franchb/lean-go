@@ -175,8 +175,8 @@ external workspace, compares exact bytes, and freshly checks the tracked evidenc
 It then deploys only `go.mod` and Go sources, hides producer tools and C compilers
 from `PATH`, disables module/checksum downloads and cgo, and runs both tests and
 the executable with isolated caches. Root `go test ./...` includes the same
-Go-only copy check. Current installed-CLI CI runs clamp, flags, words, bytes and header
+Go-only copy check. Current installed-CLI CI runs clamp, flags, words, bytes, header and wire16
 through both the direct wheel and a wheel rebuilt from the source distribution
-on Linux and Windows, checking 39 source claims per wheel. Published alpha.7's
+on Linux and Windows, checking 50 source claims per wheel. Published alpha.7's
 exact-tag workflow covers its three demos; local checkout checks do not validate
 the published tag's artifact hashes.

@@ -1,0 +1,58 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Wire16",
+  "roots": [
+    "Wire16.decodeBE",
+    "Wire16.encode",
+    "Wire16.encodeBE",
+    "Wire16.parse"
+  ],
+  "claims": [
+    {
+      "theorem": "Wire16Proofs.encode_be_bytes",
+      "expected": "Wire16Contract.encode_be_bytes"
+    },
+    {
+      "theorem": "Wire16Proofs.decode_be_value",
+      "expected": "Wire16Contract.decode_be_value"
+    },
+    {
+      "theorem": "Wire16Proofs.decode_encode_be",
+      "expected": "Wire16Contract.decode_encode_be"
+    },
+    {
+      "theorem": "Wire16Proofs.encode_decode_be",
+      "expected": "Wire16Contract.encode_decode_be"
+    },
+    {
+      "theorem": "Wire16Proofs.parse_success_iff",
+      "expected": "Wire16Contract.parse_success_iff"
+    },
+    {
+      "theorem": "Wire16Proofs.parse_unsupported_version_iff",
+      "expected": "Wire16Contract.parse_unsupported_version_iff"
+    },
+    {
+      "theorem": "Wire16Proofs.parse_reserved_flags_iff",
+      "expected": "Wire16Contract.parse_reserved_flags_iff"
+    },
+    {
+      "theorem": "Wire16Proofs.encode_success_iff",
+      "expected": "Wire16Contract.encode_success_iff"
+    },
+    {
+      "theorem": "Wire16Proofs.encode_reserved_flags_iff",
+      "expected": "Wire16Contract.encode_reserved_flags_iff"
+    },
+    {
+      "theorem": "Wire16Proofs.parse_encode_roundtrip",
+      "expected": "Wire16Contract.parse_encode_roundtrip"
+    },
+    {
+      "theorem": "Wire16Proofs.encode_parse_roundtrip",
+      "expected": "Wire16Contract.encode_parse_roundtrip"
+    }
+  ]
+}

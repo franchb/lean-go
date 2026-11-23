@@ -13,13 +13,14 @@ import check_clamp_demo
 import check_flags_demo
 import check_header_demo
 import check_words_demo
+import check_wire16_demo
 from check_release_candidate import base_environment, pinned_go
 from compatibility_identity import compiler_bin, parse_identity
 from export import ExportError, run
 from export_module import check_python
 from standalone_demo import run_go_demo
 
-DEMOS = (check_clamp_demo, check_flags_demo, check_words_demo, check_bytes_demo, check_header_demo)
+DEMOS = (check_clamp_demo, check_flags_demo, check_words_demo, check_bytes_demo, check_header_demo, check_wire16_demo)
 
 
 def check_demo(demo, cli, go, workspace, env, identity):
@@ -53,7 +54,19 @@ def check_demo(demo, cli, go, workspace, env, identity):
 
     for filename in ('go.mod', 'main.go', 'main_test.go'):
         shutil.copyfile(source / filename, deployed / filename)
+    if demo is check_wire16_demo:
+        native = workspace / 'wire16-native'
+        native.mkdir()
+        for filename in ('Reference.lean', 'lakefile.toml'):
+            shutil.copyfile(source / 'native' / filename, native / filename)
+        shutil.copyfile(source / 'source' / 'Wire16.lean', native / 'Wire16.lean')
+        run(['lake', 'build', 'reference'], native, env)
+        oracle = native / 'oracle.bin'
+        run([str(native / '.lake/build/bin/reference'), str(oracle)], native, env)
+        env = dict(env, LEAN_GO_WIRE16_NATIVE=str(oracle))
     run_go_demo(deployed, go, env, workspace, demo.OUTPUT, run)
+    if demo is check_wire16_demo:
+        print('Compared native Lean and generated Go for all 65,536 words', flush=True)
     print(f"{spec.name}: {len(spec.claims)} fresh source proofs and Go-only consumer passed", flush=True)
 
 

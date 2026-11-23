@@ -182,6 +182,11 @@ specify each success and rejection condition, the decoded length bound, and
 both round trips on valid inputs. Its consumer checks the wire layout against
 Go's `encoding/binary` and exercises the raw and typed APIs.
 
+The [Wire16 codec and typed header](../examples/proofs/wire16) add eleven source
+claims. The expected propositions specify each byte by division and remainder,
+the decoded value by arithmetic, the header rejection order, and both codec
+and header round trips.
+
 ## Evidence and assurance
 
 The fresh workspace uses fixed, dependency-free Lake scaffolding and the pinned
@@ -228,7 +233,7 @@ CGO_ENABLED=0 go test -count=1 ./...
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
-library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes and header regenerate artifacts with an installed CLI,
+library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header and wire16 regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all five through both the direct and sdist-rebuilt wheels, freshly checking 39
+all six through both the direct and sdist-rebuilt wheels, freshly checking 50
 source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).

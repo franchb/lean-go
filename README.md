@@ -126,6 +126,14 @@ Its Go error return covers malformed values and resource limits.
 (cd examples/proofs/header && CGO_ENABLED=0 go run .)
 ```
 
+The development checkout also includes a [typed 16-bit wire codec](examples/proofs/wire16).
+Its Go API accepts a `uint16` length. Eleven Lean theorems specify byte order,
+header validation and both round trips. Run the example with Go alone:
+
+```sh
+(cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)
+```
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0**, and **uv** with Python **3.15**.

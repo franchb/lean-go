@@ -53,13 +53,14 @@ uv run --locked python scripts/test_flags_demo.py
 uv run --locked python scripts/test_words_demo.py
 uv run --locked python scripts/test_bytes_demo.py
 uv run --locked python scripts/test_header_demo.py
+uv run --locked python scripts/test_wire16_demo.py
 uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all five demos, compares exact bytes, freshly checks all 39 source
+it regenerates all six demos, compares exact bytes, freshly checks all 50 source
 claims and deploys each using only Go sources and `go.mod`. Root Go tests also
-exercise all five nested modules by copying them into isolated Go-only
+exercise all six nested modules by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
 The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to review

@@ -29,6 +29,7 @@ uv run --locked python scripts/check_flags_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_words_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_bytes_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_header_demo.py --cli "$checkout_cli"
+uv run --locked python scripts/check_wire16_demo.py --cli "$checkout_cli"
 ```
 
 In PowerShell, set `$checkout_cli = (Resolve-Path .venv/Scripts/lean-go.exe).Path`
@@ -38,7 +39,7 @@ pipeline changes to refresh its bundled payload. See the
 
 Each verifier copies its standalone module, generates fresh artifacts through the
 installed CLI, compares package, IR and evidence bytes, and rechecks the source
-claims. All five then deploy only Go sources and `go.mod`, running the tests and
+claims. All six then deploy only Go sources and `go.mod`, running the tests and
 executable offline with cgo and downloads disabled and producer tools hidden.
 
 | Demo | Source claims | Independent finite Go cases |
@@ -48,10 +49,11 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 | [Words](../examples/proofs/words) | 7 | 699 boundary and seeded triples |
 | [Bytes](../examples/proofs/bytes) | 12 | 652 boundary, one-hot and seeded cases |
 | [Header](../examples/proofs/header) | 9 | All 262,144 valid headers plus rejection and limit cases |
+| [Wire16](../examples/proofs/wire16) | 11 | All 65,536 words and all 262,144 valid typed headers |
 
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
-runs these five verifiers for both a direct wheel and an sdist-rebuilt wheel,
-freshly checking 39 source claims per wheel. Current regenerated manifests and
+runs these six verifiers for both a direct wheel and an sdist-rebuilt wheel,
+freshly checking 50 source claims per wheel. Current regenerated manifests and
 proof evidence use module generator v12; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.

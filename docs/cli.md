@@ -62,6 +62,7 @@ uv run --locked lean-go doctor
 checkout_cli="$(pwd)/.venv/bin/lean-go"
 uv run --locked python scripts/check_bytes_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_header_demo.py --cli "$checkout_cli"
+uv run --locked python scripts/check_wire16_demo.py --cli "$checkout_cli"
 ```
 
 On Windows, use the executable in `.venv/Scripts/lean-go.exe`. Reinstall after
@@ -171,9 +172,9 @@ The install smoke test audits a direct wheel and an sdist-rebuilt wheel, install
 each in a fresh environment, verifies the actual installed imports, and runs
 external generation, proof checking and a Go-only consumer. It also checks
 read-only installed resources and paths containing spaces. Both installed wheels
-regenerate and recheck the complete standalone clamp, flags, words, bytes and header
-demos, compare their tracked artifacts, freshly check all 39 source claims per
-wheel, and test and run all five copied modules with Go alone. `--without-lean`
+regenerate and recheck the complete standalone clamp, flags, words, bytes, header and wire16
+demos, compare their tracked artifacts, freshly check all 50 source claims per
+wheel, and test and run all six copied modules with Go alone. `--without-lean`
 explicitly restricts this smoke test to packaging,
 help/version and missing-tool errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.

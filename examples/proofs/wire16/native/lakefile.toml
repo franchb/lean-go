@@ -1,0 +1,7 @@
+name = "wire16_native"
+version = "0.0.0"
+[[lean_lib]]
+name = "Wire16"
+[[lean_exe]]
+name = "reference"
+root = "Reference"

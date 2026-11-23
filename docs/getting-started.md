@@ -50,6 +50,10 @@ larger literal remains exact. The source is
 [`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
 recursive trees, record updates, joins and compiler-generated local helpers.
 
+For a two-byte network length, the [Wire16 example](../examples/proofs/wire16)
+exposes a Go `uint16` and packs it in big-endian order. Run it from the repository
+root with `(cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)`.
+
 ## Run the byte codec
 
 From this checkout's root, run the [standalone byte module](../examples/proofs/bytes):

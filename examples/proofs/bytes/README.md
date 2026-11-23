@@ -81,7 +81,7 @@ uv run --locked python scripts/check_bytes_demo.py --cli /absolute/path/to/lean-
 It checks fresh generation and all twelve proofs, compares exact tracked artifact
 bytes, then tests and runs a copy containing only Go sources and `go.mod`, with
 producer tools hidden and cgo and downloads disabled. Root Go tests exercise the
-same isolated deployment. The installed-wheel smoke runs all five demos through
-both direct and sdist-rebuilt wheels, freshly checking 39 source claims per wheel.
+same isolated deployment. The installed-wheel smoke runs all six demos through
+both direct and sdist-rebuilt wheels, freshly checking 50 source claims per wheel.
 See the [proof contract guide](../../../docs/proof-contracts.md)
 for evidence binding and the [CLI guide](../../../docs/cli.md) for installation.
