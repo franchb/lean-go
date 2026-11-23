@@ -46,7 +46,9 @@ POSIX timeout cleanup kills its process group, including child compilers.
 The **Compiler compatibility research** workflow runs on pull requests and
 pushes to `main`. It verifies the upstream SHA-256 for each Linux release
 archive, then compares stable with rc2. It also installs the checkout wheel
-and runs the proof demos with each real compiler. A manual dispatch can compare
+and runs all six proof demos with each compiler. For Wire16, it also builds a
+native Lean executable and compares its encoder and decoder with the generated
+Go across every 16-bit value. A manual dispatch can compare
 stable with itself by choosing `production`. A difference fails the workflow
 and retains the report and replay evidence. The regular extraction workflow
 also exercises the same-compiler comparison.
@@ -69,7 +71,7 @@ occurs exactly once and records before/after digests and a unified patch.
 
 The producer must build before the corpus runs. If compilation fails, its
 status is `producer_build_failed` and every case stays `not_run`. The corpus
-contains eight accepted cases and seven required rejections.
+contains nine accepted cases and eight required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -78,6 +80,8 @@ contains eight accepted cases and seven required rejections.
 | `left_shift` | UInt32/UInt64 ordinary `<<<` and direct controls, checked with exact exponent/multiply/modulo arithmetic |
 | `width_conversions` | UInt32/UInt64 widening, narrowing and packing/unpacking with arithmetic consumer checks |
 | `bytes` | UInt8 wrapping arithmetic, comparisons, bitwise operations, modulo-8 shifts and UInt8/UInt32 conversions with independent Go checks |
+| `uint16` | Every two-byte big-endian value checked against Go, plus OR and dynamic shifts at and beyond 16 bits |
+| `uint16_xor` | `admission` / `source_audit` for the unsupported `UInt16.xor` |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |
@@ -148,7 +152,7 @@ fixture source code, so review evidence before sharing it.
 
 ## 4.36.0 qualification
 
-The stable production baseline and the rc2 production run each passed eight
+At alpha.9 qualification, the stable baseline and the rc2 run each passed eight
 independent Go consumers and seven required admission rejections. Both
 used the checkout's production code with an empty adaptation patch.
 The eight canonical IR hashes and the six original rejection triples

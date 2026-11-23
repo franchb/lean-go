@@ -1,0 +1,49 @@
+package compatconsumer
+
+import (
+	"encoding/binary"
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+func TestHalfword(t *testing.T) {
+	limits := x.DefaultLimits()
+	for n := range 1 << 16 {
+		word := uint16(n)
+		hi, err := x.RunHigh(word, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lo, err := x.RunLow(word, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := binary.BigEndian.AppendUint16(nil, word)
+		if hi != want[0] || lo != want[1] {
+			t.Fatalf("split %04x: %02x %02x", word, hi, lo)
+		}
+		got, err := x.RunJoinBytes(want[0], want[1], limits)
+		if err != nil || got != word {
+			t.Fatalf("join %x: %04x, %v", want, got, err)
+		}
+	}
+	for _, word := range []uint16{0, 1, 0x8000, 0x8001, 0x55aa, 0xffff} {
+		for _, count := range []uint16{0, 1, 8, 15, 16, 17, 31, 32, 0xffff} {
+			// Use integer multiplication and division as an independent shift oracle.
+			factor := uint32(1) << (count % 16)
+			left, err := x.RunLeft(word, count, limits)
+			if err != nil || left != uint16(uint32(word)*factor) {
+				t.Fatalf("left(%x,%d): %x, %v", word, count, left, err)
+			}
+			right, err := x.RunRight(word, count, limits)
+			if err != nil || right != uint16(uint32(word)/factor) {
+				t.Fatalf("right(%x,%d): %x, %v", word, count, right, err)
+			}
+			combined, err := x.RunCombine(word, count, limits)
+			if err != nil || combined != word|count {
+				t.Fatalf("or(%x,%x): %x, %v", word, count, combined, err)
+			}
+		}
+	}
+}

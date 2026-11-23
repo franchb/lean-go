@@ -40,6 +40,7 @@ Header cover 39 source claims in total. Their generated packages
 use `lean-go-modulegen/v11`; byte exports use v12/v13 IR and `pure-module/v10` or
 `pure-module/v11`. Earlier IR schemas retain their restrictions, including Words'
 v11 IR and `pure-module/v9`.
+The development checkout uses generator v12 and selects v14/v15 IR for executable `UInt16` values.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.
@@ -52,21 +53,22 @@ uv run --locked python scripts/test_flags_demo.py
 uv run --locked python scripts/test_words_demo.py
 uv run --locked python scripts/test_bytes_demo.py
 uv run --locked python scripts/test_header_demo.py
+uv run --locked python scripts/test_wire16_demo.py
 uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all five demos, compares exact bytes, freshly checks all 39 source
+it regenerates all six demos, compares exact bytes, freshly checks all 50 source
 claims and deploys each using only Go sources and `go.mod`. Root Go tests also
-exercise all five nested modules by copying them into isolated Go-only
+exercise all six nested modules by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
 The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to review
 a concrete contribution: four roots, twelve independent expected propositions,
 fresh proof evidence and Go checks against `encoding/binary`. For changes to the
 UInt8 engine, use the focused admission and differential tests in the
-[UInt8 report](docs/research/extraction-uint8.md). Broad generic collections,
-UInt16 and direct UInt8/UInt64 casts remain deferred.
+[UInt8 report](docs/research/extraction-uint8.md). Broad generic collections and
+direct UInt8/UInt64 casts remain deferred. The UInt16 subset covers byte casts, OR and masked shifts.
 
 CI executes ordinary Go tests on Linux and Windows, and extraction gates on Linux.
 Tag workflows also fetch the exact published version into separate Go-only

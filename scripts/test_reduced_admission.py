@@ -267,7 +267,7 @@ def run (value unused : UInt32) : Foo := Foo.run value unused
                 self.assert_rejected(definitions + body, 'rewrite|replacement|repeated compilation|extern|implemented_by')
 
     def test_discarded_unsupported_source_fields_preserve_output(self):
-        fields = {'wide': 'UInt16', 'closure': 'UInt32 → UInt32',
+        fields = {'usize': 'USize', 'closure': 'UInt32 → UInt32',
                   'proof': 'True', 'dependent': 'Fin 7'}
         for field, typ in fields.items():
             with self.subTest(field=field):

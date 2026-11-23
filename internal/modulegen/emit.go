@@ -18,7 +18,7 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v11"
+const Version = "lean-go-modulegen/v12"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -90,6 +90,9 @@ func newGenerator(p *moduleir.Program) *generator {
 	if moduleir.HasUInt8(p.Schema) {
 		g.types["UInt8"] = len(p.Types) + 2
 	}
+	if moduleir.HasUInt16(p.Schema) {
+		g.types["UInt16"] = len(p.Types) + 3
+	}
 	for i, d := range p.Functions {
 		f := &function{decl: d, id: i, states: map[*moduleir.Code]int{}, slots: map[int]int{}, joins: map[int]*moduleir.Join{}}
 		for _, param := range d.Params {
@@ -144,6 +147,9 @@ func (g *generator) emitSchema(w *bytes.Buffer) {
 	if moduleir.HasUInt8(g.program.Schema) {
 		fmt.Fprintf(w, "case %d:return %q\n", g.types["UInt8"], "UInt8")
 	}
+	if moduleir.HasUInt16(g.program.Schema) {
+		fmt.Fprintf(w, "case %d:return %q\n", g.types["UInt16"], "UInt16")
+	}
 	w.WriteString("};return \"\"}\n")
 	w.WriteString("func constructorName(t,tag int)string{switch t{\n")
 	for _, t := range g.program.Types {
@@ -180,14 +186,21 @@ func (g *generator) emitInputShape(w *bytes.Buffer) {
 		inactive32 = "&&in.UInt64==0"
 		inactiveADT = "||in.UInt64!=0"
 	}
+	shapeName := "inputShape"
 	if moduleir.HasUInt8(g.program.Schema) {
 		inactive32 += "&&in.UInt8==0"
 		inactive64 = "&&in.UInt8==0"
 		inactiveADT += "||in.UInt8!=0"
-		fmt.Fprintf(w, "func inputShape(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};if in.Type==\"UInt8\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt32==0&&in.UInt64==0};return inputOtherShape(in)}\n", g.types["UInt8"])
-	}
-	shapeName := "inputShape"
-	if moduleir.HasUInt8(g.program.Schema) {
+		w.WriteString("func inputShape(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};")
+		inactive8 := ""
+		if moduleir.HasUInt16(g.program.Schema) {
+			inactive8 = "&&in.UInt16==0"
+			inactive32 += inactive8
+			inactive64 += inactive8
+			inactiveADT += "||in.UInt16!=0"
+			fmt.Fprintf(w, "if in.Type==\"UInt16\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt8==0&&in.UInt32==0&&in.UInt64==0};", g.types["UInt16"])
+		}
+		fmt.Fprintf(w, "if in.Type==\"UInt8\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt32==0&&in.UInt64==0%s};return inputOtherShape(in)}\n", g.types["UInt8"], inactive8)
 		shapeName = "inputOtherShape"
 	}
 	fmt.Fprintf(w, "func %s(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};switch in.Type{case \"UInt32\":return 0,0,in.Constructor==\"\"&&len(in.Fields)==0%s\n", shapeName, inactive32)
@@ -249,7 +262,7 @@ func (g *generator) emitCode(w *bytes.Buffer, f *function, c *moduleir.Code) {
 		w.WriteString("default:return nil,ErrMalformed}\n")
 	case "let":
 		switch c.Value.Kind {
-		case "uint8", "uint32", "uint64", "primitive":
+		case "uint8", "uint16", "uint32", "uint64", "primitive":
 			g.emitNumeric(w, f, c)
 		case "constructor":
 			ctor := g.constructors[c.Value.Name]

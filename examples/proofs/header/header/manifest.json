@@ -1,9 +1,9 @@
 {
   "schema": "lean-go-manifest/v13",
-  "generator": "lean-go-modulegen/v11",
-  "generator_source_sha256": "8ef05a199721df28dbd2bf4e791a7c5cd132bafbba6cd3ed2e8a7a7bb7661eed",
-  "validator_source_sha256": "1c5150029341ae98f42bdadf0873b2cc2b5fab854697e088f190201c0db1d5f2",
-  "ir_sha256": "9550f493fd4974bb2f3f8cddd4bd13765e7e8c336f365cc957caceab361e2006",
+  "generator": "lean-go-modulegen/v12",
+  "generator_source_sha256": "f64aaca9d5867c317e1106ec716e9078a81ae428782c1c945928d8bce92f38b8",
+  "validator_source_sha256": "1a7a365eac14ce355d25cf3d693bda818c4519830b0179afcecffabb5c582a6c",
+  "ir_sha256": "525458495c45a2a5a878407cf21cfe3b2dd48e25fd41209faf019dfc0dc74140",
   "program": {
     "schema": "lean-go-ir/v13",
     "profile": "pure-module/v11",
@@ -16,18 +16,18 @@
       "HeaderCodec.parse"
     ],
     "inputs": {
-      "producer/LeanGo/Module/Audit.lean": "5b03faff16804125d1f344a9aba167954abb30938b20af9f9e481af8c3bba4e9",
+      "producer/LeanGo/Module/Audit.lean": "d47a671a5ccb8d2354ac0c2d4733549cc21bc31f9076b06363fd10df0df1f462",
       "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
-      "producer/LeanGo/Module/Export.lean": "fe719558ecb733bd72c03cfb35e0af9183a390eb7c3a893ccc9b0919df5a771c",
+      "producer/LeanGo/Module/Export.lean": "b86a401650ed915f0eae7bc525aa09b4e00c8295572fdb81fb6e982904d0a473",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
-      "producer/LeanGo/Module/LocalSource.lean": "f8a638b48ee313ad21faad1b127269cf513ffd9923a200085796f6f42be1ecee",
-      "producer/LeanGo/Module/Primitives.lean": "35ae4de3ebc99f0c399ec907bf29e0005a8cd78c53fc13b2adca7e222c42f6b6",
-      "producer/LeanGo/Module/Records.lean": "83335d06299aebf84311d7b38f698293eb76dec78642acdf72d5cf0dcf899d16",
+      "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
+      "producer/LeanGo/Module/Primitives.lean": "30d198384c53a41f177e4f2a166d27a9cb5613175bce9c8548d32c9c2c3c52bf",
+      "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
       "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-      "scripts/export_module.py": "60c52394a5324da541692e23daa4fb3d74bd4ecf780b2394f9727a27cc4fd501",
+      "scripts/export_module.py": "13e4e1513a9c5a744b2296788caa7b12ee670df330087d3eb13d08ea3f1831ec",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
       "source/HeaderCodec.lean": "84bc04ef19f0578c960473b4d317ea51418abdcb076f32ad76704eb3cde8eb81"
@@ -930,7 +930,7 @@
     ]
   },
   "generated_files": {
-    "api.go": "98013ff312ae9d98f3d73f81f956d662290d0c5f41ee5a29d2d7ad231bc30659",
+    "api.go": "aa7a30182d928d75c4f7d05b734b2575c81f5bcd45e386abfb0e336bd2a21dea",
     "control.go": "788b813e2abbdc42242a4e413c00ff709ed48190034427c3d9e9979a30000b2d",
     "runtime.go": "da63bdc9f2ca80353880926560ac5836f38990c6e9fea3a40e99a6a702b61ab5",
     "schema.go": "ddeb456660ad01fa5e42e455425ee5dadec0cbd745e2036287814218b198aa04"

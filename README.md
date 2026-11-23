@@ -126,6 +126,15 @@ Its Go error return covers malformed values and resource limits.
 (cd examples/proofs/header && CGO_ENABLED=0 go run .)
 ```
 
+The development checkout also includes a [typed 16-bit wire codec](examples/proofs/wire16).
+Its Go API accepts a `uint16` length. The accompanying frame reader consumes
+one complete frame from a byte slice and preserves the input for retry on truncation. Eleven Lean theorems specify byte order,
+header validation and both round trips. Run the example with Go alone:
+
+```sh
+(cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)
+```
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0**, and **uv** with Python **3.15**.
@@ -156,7 +165,14 @@ left shift, equality, unsigned less-than/less-or-equal comparisons, `&&&`, `|||`
 notation is supported. Exact casts are `UInt8.toUInt32`, `UInt32.toUInt8`,
 `UInt32.toUInt64` and `UInt64.toUInt32`; widening preserves the value and narrowing
 reduces it modulo 2^8 or 2^32 respectively.
-UInt8 is available only in this development checkout. Earlier schemas keep their
+The development checkout also extracts `UInt16` literals, records and
+`UInt8.toUInt16`, `UInt16.toUInt8`, `|||`, `<<<` and `>>>` on the supported
+operand types. The Go scalar is `uint16`. Widening preserves the byte value,
+narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
+An executable `UInt16` selects v14 IR for one root or v15 for multiple roots
+with `pure-module/v12` or `pure-module/v13`. Use the checkout CLI and generator
+v12 to reproduce development artifacts. Alpha.9 ships generator v11.
+Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
 `pure-module/v4` or `pure-module/v5`. Other conversions, including direct
 UInt8/UInt64 casts, division, remainder, other numeric operations and types,

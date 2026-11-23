@@ -148,7 +148,7 @@ def run (x : UInt32) : UInt32 := ordinary._lam_0 x
 
     def test_erased_unsupported_local_parameters_preserve_output(self):
         for name, typ, argument in [('proof', 'True', 'True.intro'),
-                                    ('wide', 'UInt16', '0'),
+                                    ('usize', 'USize', '0'),
                                     ('higher_order', 'UInt32 → UInt32', '(fun z => z)')]:
             with self.subTest(parameter=name):
                 body = SCALAR.replace('fun (a : UInt32) =>', f'fun (a : UInt32) (_unused : {typ}) =>')
@@ -169,7 +169,7 @@ def run (x : UInt32) : UInt32 := ordinary._lam_0 x
 
     def test_erased_unsupported_captures_preserve_output(self):
         for name, typ, value in [('proof', 'True', 'True.intro'),
-                                 ('wide', 'UInt16', '0'),
+                                 ('usize', 'USize', '0'),
                                  ('closure', 'UInt32 → UInt32', '(fun z => z)')]:
             with self.subTest(field=name):
                 record = f'structure Settings where\n  bias : UInt32\n  hidden : {typ}\n'

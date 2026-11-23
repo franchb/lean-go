@@ -270,9 +270,9 @@ def run (x : Generic UInt32) : Generic UInt32 := x
 def run (x : Dependent) : Dependent := x
 """, 'monomorphic|Dependent|dependent|Unsupported|unsupported'),
             'unsupported_width': ("""structure Wide where
-  value : UInt16
+  value : USize
 def run (x : Wide) : Wide := x
-""", 'UInt16|Unsupported|unsupported'),
+""", 'USize|Unsupported|unsupported'),
         }
         for name, (body, diagnostic) in cases.items():
             with self.subTest(case=name):

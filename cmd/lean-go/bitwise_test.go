@@ -11,6 +11,7 @@ func TestCompileCapabilitySchemas(t *testing.T) {
 	for _, capability := range []struct{ single, multi, singleProfile, multiProfile, result, primitive, singleManifest, multiManifest string }{
 		{moduleir.SchemaV8, moduleir.SchemaV9, moduleir.ProfileV6, moduleir.ProfileV7, "UInt64", "UInt64.complement", "lean-go-manifest/v8", "lean-go-manifest/v9"},
 		{moduleir.SchemaV12, moduleir.SchemaV13, moduleir.ProfileV10, moduleir.ProfileV11, "UInt8", "UInt32.toUInt8", "lean-go-manifest/v12", "lean-go-manifest/v13"},
+		{moduleir.SchemaV14, moduleir.SchemaV15, moduleir.ProfileV12, moduleir.ProfileV13, "UInt16", "UInt8.toUInt16", "lean-go-manifest/v14", "lean-go-manifest/v15"},
 		{moduleir.SchemaV10, moduleir.SchemaV11, moduleir.ProfileV8, moduleir.ProfileV9, "UInt32", "UInt64.toUInt32", "lean-go-manifest/v10", "lean-go-manifest/v11"},
 	} {
 		for _, multiple := range []bool{false, true} {

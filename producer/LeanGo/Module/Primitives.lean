@@ -21,6 +21,17 @@ structure NumericPrimitive where
 
 -- Runtime admission is this exact table, never all extern declarations.
 def numericPrimitives : Array NumericPrimitive := #[
+  { name := ``UInt8.toUInt16, operand := ``UInt8, result := ``UInt16,
+    externalSymbol := "lean_uint8_to_uint16", arity := 1 },
+  { name := ``UInt16.toUInt8, operand := ``UInt16, result := ``UInt8,
+    externalSymbol := "lean_uint16_to_uint8", arity := 1 },
+  { name := ``UInt16.lor, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_lor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt16.shiftLeft, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_shift_left", axioms := #[``propext] },
+  { name := ``UInt16.shiftRight, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_shift_right", axioms := #[``propext] },
+
   { name := ``UInt8.toUInt32, operand := ``UInt8, result := ``UInt32,
     externalSymbol := "lean_uint8_to_uint32", arity := 1 },
   { name := ``UInt32.toUInt8, operand := ``UInt32, result := ``UInt8,
@@ -102,18 +113,19 @@ def numericWideOrderPackage : Name :=
 -- Source-only wrappers support ordinary notation and erased decision proofs.
 -- None of these names authorizes an executable call in exported IR.
 def numericSourceSupport : Array Name := #[
-  ``UInt8.ofNat, ``UInt32.ofNat, ``UInt64.ofNat, ``OfNat.ofNat, ``UInt8.instOfNat, ``UInt32.instOfNat, ``UInt64.instOfNat,
+  ``UInt8.ofNat, ``UInt16.ofNat, ``UInt32.ofNat, ``UInt64.ofNat, ``OfNat.ofNat,
+  ``UInt8.instOfNat, ``UInt16.instOfNat, ``UInt32.instOfNat, ``UInt64.instOfNat,
   ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt8, ``instAddUInt32, ``instAddUInt64,
   ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt8, ``instSubUInt32, ``instSubUInt64,
   ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt8, ``instMulUInt32, ``instMulUInt64, ``outParam,
   ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64,
-  ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt8, ``instOrOpUInt32, ``instOrOpUInt64,
+  ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
   ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt8, ``instXorOpUInt32, ``instXorOpUInt64,
   ``Complement.complement, ``instComplementUInt8, ``instComplementUInt32, ``instComplementUInt64,
   ``HShiftLeft.hShiftLeft, ``instHShiftLeftOfShiftLeft, ``ShiftLeft.shiftLeft,
-  ``instShiftLeftUInt8, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
+  ``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
   ``HShiftRight.hShiftRight, ``instHShiftRightOfShiftRight, ``ShiftRight.shiftRight,
-  ``instShiftRightUInt8, ``instShiftRightUInt32, ``instShiftRightUInt64,
+  ``instShiftRightUInt8, ``instShiftRightUInt16, ``instShiftRightUInt32, ``instShiftRightUInt64,
   ``BEq.beq, ``Std.PreorderPackage.toBEq,
   ``Std.LinearPreorderPackage.toPreorderPackage,
   ``Std.LinearOrderPackage.toLinearPreorderPackage, numericByteOrderPackage, numericOrderPackage, numericWideOrderPackage,
@@ -195,11 +207,11 @@ def expectedNumericAxioms (n : Name) : Array Name :=
     #[``propext, ``Classical.choice, ``Quot.sound]
   else if n == ``Std.LinearPreorderPackage.toPreorderPackage ||
       n == ``Std.LinearOrderPackage.toLinearPreorderPackage then #[``propext]
-  else if #[``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt8, ``instOrOpUInt32, ``instOrOpUInt64,
+  else if #[``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
       ``instXorOpUInt8, ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt8, ``instComplementUInt32,
       ``instComplementUInt64].contains n then #[``propext, ``Quot.sound]
-  else if #[``instShiftLeftUInt8, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
-      ``instShiftRightUInt8, ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]
+  else if #[``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
+      ``instShiftRightUInt8, ``instShiftRightUInt16, ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]
   else (numericPrimitive? n).map (·.axioms) |>.getD #[]
 
 def sameNames (a b : Array Name) : Bool :=
@@ -220,8 +232,8 @@ def validateNumericDefinition (n : Name) : CoreM Unit := do
       throwError "Unexpected numeric primitive extern: {n}"
     unless (getImplementedBy? env n).isNone && (observedRewrite env n).isNone && !hasInitAttr env n do
       throwError "Unexpected numeric primitive replacement: {n}"
-  else if n == ``UInt8.ofNat || n == ``UInt32.ofNat || n == ``UInt64.ofNat then
-    let symbol := if n == ``UInt8.ofNat then "lean_uint8_of_nat" else if n == ``UInt32.ofNat then "lean_uint32_of_nat" else "lean_uint64_of_nat"
+  else if let some symbol := [(``UInt8.ofNat, "lean_uint8_of_nat"), (``UInt16.ofNat, "lean_uint16_of_nat"),
+      (``UInt32.ofNat, "lean_uint32_of_nat"), (``UInt64.ofNat, "lean_uint64_of_nat")].lookup n then
     let expected : ExternAttrData := { entries := [.standard `all symbol] }
     unless getExternAttrData? env n == some expected do
       throwError "Unexpected numeric literal extern: {n}"

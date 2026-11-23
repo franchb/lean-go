@@ -33,7 +33,7 @@ def exportTypes (used : List String) : CoreM Json := do
     fuel := fuel - 1
     let name := pending.head!
     pending := pending.tail!
-    unless seen.contains name || name == "UInt8" || name == "UInt32" || name == "UInt64" do
+    unless seen.contains name || isUIntScalar name.toName do
       seen := name :: seen
       let n := name.toName
       discard <| withDeclaration n <| typeKey (.const n [])
@@ -215,6 +215,7 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
     let ty ← typeKey decl.type
     let literal? := match decl.value with
       | .lit (.uint8 value) => some ("UInt8", "uint8", value.toNat)
+      | .lit (.uint16 value) => some ("UInt16", "uint16", value.toNat)
       | .lit (.uint32 value) => some ("UInt32", "uint32", value.toNat)
       | .lit (.uint64 value) => some ("UInt64", "uint64", value.toNat)
       | _ => none
@@ -227,8 +228,8 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
       return obj [("op", str "let"), ("bind", param), ("value", value),
         ("next", ← encode next scope joins result (depth + 1))]
     let .const name levels args _ := decl.value
-      | reject "unsupported_lcnf_value" "Use UInt8/UInt32/UInt64 literals, admitted primitive calls, first-order functions or constructors."
-          m!"Unsupported let value (only UInt8/UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)"
+      | reject "unsupported_lcnf_value" "Use UInt8/UInt16/UInt32/UInt64 literals, admitted primitive calls, first-order functions or constructors."
+          m!"Unsupported let value (only UInt8/UInt16/UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)"
           (some (valueForm decl.value))
     unless levels.isEmpty do
       reject "unsupported_signature" "Use a monomorphic function without universe arguments."

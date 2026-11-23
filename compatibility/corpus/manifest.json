@@ -47,6 +47,18 @@
     ]
   },
   {
+    "name": "uint16",
+    "module": "Halfword",
+    "roots": [
+      "Halfword.joinBytes",
+      "Halfword.high",
+      "Halfword.low",
+      "Halfword.left",
+      "Halfword.right",
+      "Halfword.combine"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [
@@ -151,5 +163,14 @@
       "4.36.0-rc2"
     ],
     "reject_declaration": "withPtrEq"
+  },
+  {
+    "name": "uint16_xor",
+    "module": "Example",
+    "roots": [
+      "run"
+    ],
+    "reject": "source_audit",
+    "reject_declaration": "UInt16.xor"
   }
 ]

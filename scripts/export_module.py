@@ -225,57 +225,49 @@ BYTE_PRIMITIVES = {f'UInt8.{operation}' for operation in (
     'add', 'sub', 'mul', 'decEq', 'decLt', 'decLe',
     'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight')} | {
         'UInt8.toUInt32', 'UInt32.toUInt8'}
+UINT16_PRIMITIVES = {'UInt8.toUInt16', 'UInt16.toUInt8', 'UInt16.lor',
+                     'UInt16.shiftLeft', 'UInt16.shiftRight'}
 
 
-def emitted_primitives(program):
-    """Collect executable leaves once, ignoring provenance and ordinary call names."""
-    names = set()
+def executable_nodes(program):
     pending = [function['body'] for function in program['functions']]
     while pending:
         node = pending.pop()
-        if node['op'] == 'let':
-            value = node['value']
-            if value['kind'] == 'primitive':
-                names.add(value['name'])
+        yield node
         if node['op'] in ('let', 'join'):
             pending.append(node['next'])
         if node['op'] == 'join':
             pending.append(node['join']['body'])
         if node['op'] == 'cases':
             pending.extend(alt['body'] for alt in node['alts'])
-    return names
 
 
-def emitted_byte_types(program):
-    """Inspect executable type positions and literals, never source provenance."""
-    for typ in program['types']:
-        for constructor in typ['constructors']:
-            if 'UInt8' in constructor['fields']:
-                return True
-    pending = []
+def emitted_primitives(program):
+    """Collect executable leaves, ignoring provenance and ordinary call names."""
+    return {node['value']['name'] for node in executable_nodes(program)
+            if node['op'] == 'let' and node['value']['kind'] == 'primitive'}
+
+
+def emitted_types(program):
+    """Collect executable types, including lowered literals and local binders."""
+    types = {field for typ in program['types'] for ctor in typ['constructors']
+             for field in ctor['fields']}
     for function in program['functions']:
-        if function.get('result') == 'UInt8' or any(p['type'] == 'UInt8' for p in function.get('params', [])):
-            return True
-        pending.append(function['body'])
-    while pending:
-        node = pending.pop()
+        types.add(function.get('result'))
+        types.update(p['type'] for p in function.get('params', []))
+    for node in executable_nodes(program):
         if node['op'] == 'let':
-            if node.get('bind', {}).get('type') == 'UInt8' or node['value']['kind'] == 'uint8':
-                return True
-        if node['op'] in ('let', 'join'):
-            pending.append(node['next'])
-        if node['op'] == 'join':
-            if any(p['type'] == 'UInt8' for p in node['join'].get('params', [])):
-                return True
-            pending.append(node['join']['body'])
-        if node['op'] == 'cases':
-            if node.get('type') == 'UInt8' or node.get('result') == 'UInt8':
-                return True
+            types.add(node.get('bind', {}).get('type'))
+            kind = node['value']['kind']
+            if kind in ('uint8', 'uint16'):
+                types.add('UInt' + kind[4:])
+        elif node['op'] == 'join':
+            types.update(p['type'] for p in node['join'].get('params', []))
+        elif node['op'] == 'cases':
+            types.update((node.get('type'), node.get('result')))
             for alt in node['alts']:
-                if any(p['type'] == 'UInt8' for p in alt.get('params', [])):
-                    return True
-                pending.append(alt['body'])
-    return False
+                types.update(p['type'] for p in alt.get('params', []))
+    return types
 
 
 def complete_program(raw, module, entries, identities, compiler):
@@ -289,12 +281,19 @@ def complete_program(raw, module, entries, identities, compiler):
         raise ExportError('module producer returned a different module or roots')
     try:
         primitives = emitted_primitives(program)
-        byte_types = emitted_byte_types(program)
+        types = emitted_types(program)
     except (KeyError, TypeError) as exc:
         raise ExportError('unexpected module producer executable fields') from exc
-    capability = (3 if byte_types or primitives & BYTE_PRIMITIVES else
-                  2 if primitives & WIDTH_CONVERSIONS else int(bool(primitives & BITWISE_PRIMITIVES)))
-    version, profile = ((6, 4), (8, 6), (10, 8), (12, 10))[capability]
+    if 'UInt16' in types or primitives & UINT16_PRIMITIVES:
+        version, profile = 14, 12
+    elif 'UInt8' in types or primitives & BYTE_PRIMITIVES:
+        version, profile = 12, 10
+    elif primitives & WIDTH_CONVERSIONS:
+        version, profile = 10, 8
+    elif primitives & BITWISE_PRIMITIVES:
+        version, profile = 8, 6
+    else:
+        version, profile = 6, 4
     if multi:
         version, profile = version + 1, profile + 1
     program.update(schema=f'lean-go-ir/v{version}',
