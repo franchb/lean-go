@@ -34,13 +34,9 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.8 release](docs/releases/v0.1.0-alpha.8.md), Python package
-`0.1.0a8`, includes clamp (three claims), flags (eight),
-[words](examples/proofs/words) (seven) and the [byte codec](examples/proofs/bytes)
-(twelve), with a runnable Go application for each. The development checkout adds a
-[header parser](examples/proofs/header) with nine claims. For development, validate
-with this checkout's CLI. Published alpha.7 has the first three demos and no UInt8
-support. Current artifacts
+The [alpha.9 release](docs/releases/v0.1.0-alpha.9.md), Python package
+`0.1.0a9`, includes five standalone demos. Clamp, Flags, Words, Bytes and
+Header cover 39 source claims in total. Their generated packages
 use `lean-go-modulegen/v11`; byte exports use v12/v13 IR and `pure-module/v10` or
 `pure-module/v11`. Earlier IR schemas retain their restrictions, including Words'
 v11 IR and `pure-module/v9`.

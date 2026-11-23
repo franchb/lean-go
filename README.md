@@ -28,12 +28,12 @@ for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uin
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
 [walkthrough](docs/getting-started.md) or read the
-[alpha.8 release notes](docs/releases/v0.1.0-alpha.8.md).
+[alpha.9 release notes](docs/releases/v0.1.0-alpha.9.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
 their `build` stage.
-Development builds default to **Lean 4.36.0**, commit
+Alpha.9 defaults to **Lean 4.36.0**, commit
 `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Set
 `LEAN_GO_TOOLCHAIN=4.36.0-rc2` to generate and check evidence with the
 previously supported compiler. Each artifact records the exact compiler used.
@@ -48,10 +48,10 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 extracts fresh Go and exercises an isolated consumer.
 
 For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
-To reproduce the published alpha.8 examples, use its tag and CLI together:
+To install alpha.9 and reproduce its tagged examples, run
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.8"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.9"
 ```
 
 To reproduce published alpha.7, use its
@@ -83,10 +83,10 @@ published alpha.7 reproduction uses its historical artifacts and generator v9.
 
 ## Use the proved byte codec
 
-The alpha.8 release [byte codec module](examples/proofs/bytes) encodes a
+The [byte codec module](examples/proofs/bytes) encodes a
 `uint32` into four byte fields and decodes them in either byte order. Its
 [Go application](examples/proofs/bytes/main.go) uses the generated `Bytes()`
-method to return a Go `[4]byte`. In development generator v11,
+method to return a Go `[4]byte`. With the alpha.9 generator,
 `NewByteQuadFromBytes(wire, limits)` constructs the corresponding Lean record.
 Both conversions copy bytes in field declaration order. The method returns
 `ErrMalformed` for an invalid wrapper. From this checkout's root, run it offline:

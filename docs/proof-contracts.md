@@ -161,8 +161,8 @@ package `0.1.0a8`, regenerates them with `lean-go-modulegen/v10`, retaining thei
 earlier IR schemas. Pair examples and CLI from the same tag or the same checkout.
 See the [verification walkthrough](release-candidate.md).
 
-The candidate [byte codec](../examples/proofs/bytes) adds four roots with
-v13 IR/manifest and `pure-module/v11`. Development generator v11 adds the
+The [byte codec](../examples/proofs/bytes) adds four roots with
+v13 IR/manifest and `pure-module/v11`. Alpha.9 generator v11 adds the
 checked Go `[4]byte` conversions. Its contract maps
 twelve theorems to independent expected propositions: both inverse directions
 for each byte order and all eight encoder-byte positions. The positions use
