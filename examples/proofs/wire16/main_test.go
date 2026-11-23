@@ -115,18 +115,32 @@ func TestNativeLeanCodec(t *testing.T) {
 		t.Fatal(err)
 	}
 	const words = 1 << 16
-	if len(oracle) != 4*words {
-		t.Fatalf("native Lean oracle has %d bytes, want %d", len(oracle), 4*words)
+	if len(oracle) != 8*words {
+		t.Fatalf("native Lean oracle has %d bytes, want %d", len(oracle), 8*words)
 	}
 	for i := range words {
-		sample := oracle[4*i : 4*i+4]
+		sample := oracle[8*i : 8*i+8]
 		n := uint16(i)
 		if got, want := encodeWord(t, n), [2]byte(sample[:2]); got != want {
 			t.Fatalf("encodeBE(%04x): Go %x, native Lean %x", n, got, want)
 		}
 		p := [2]byte{byte(n >> 8), byte(n)}
-		if got, want := decodePair(t, p), binary.BigEndian.Uint16(sample[2:]); got != want {
+		if got, want := decodePair(t, p), binary.BigEndian.Uint16(sample[2:4]); got != want {
 			t.Fatalf("decodeBE(%x): Go %04x, native Lean %04x", p, got, want)
+		}
+		limits := codec.DefaultLimits()
+		header, err := codec.NewHeader(0, n, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		result, err := codec.RunClassify(header, ^uint32(0), limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, ok := result.AsComplete()
+		want := binary.BigEndian.Uint32(sample[4:])
+		if !ok || got != want || want != uint32(i) {
+			t.Fatalf("widen(%04x): Go %08x (complete %v), native Lean %08x", n, got, ok, want)
 		}
 	}
 }
@@ -281,4 +295,28 @@ func Example() {
 	// [01 03 12 34] -> flags=3 length=4660 -> [01 03 12 34]
 	// [02 80 00 00] -> unsupported version
 	// [01 04 00 00] -> reserved flags
+}
+
+func TestClassifyPayload(t *testing.T) {
+	limits := codec.DefaultLimits()
+	for _, length := range []uint16{0, 1, 255, 256, 32768, 65535} {
+		header, err := codec.NewHeader(3, length, limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := uint32(length)
+		for _, available := range []uint32{0, 1, want - min(want, 1), want, want + 1, 65536, ^uint32(0)} {
+			result, err := codec.RunClassify(header, available, limits)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if available < want {
+				if n, ok := result.AsNeedMore(); !ok || n != want-available {
+					t.Fatalf("length %d, available %d: needMore(%d), ok=%v", length, available, n, ok)
+				}
+			} else if n, ok := result.AsComplete(); !ok || n != want {
+				t.Fatalf("length %d, available %d: complete(%d), ok=%v", length, available, n, ok)
+			}
+		}
+	}
 }

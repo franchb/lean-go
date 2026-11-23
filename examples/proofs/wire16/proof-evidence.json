@@ -3,6 +3,14 @@
   "claims": [
     {
       "axioms": [
+        "propext"
+      ],
+      "expected": "Wire16Contract.complete_iff",
+      "name": "Wire16Proofs.complete_iff",
+      "statement": "∀ (header : Header) (available consumed : UInt32),\n  Wire16.classify header available = Availability.complete consumed ↔\n    header.length.toNat ≤ available.toNat ∧ consumed.toNat = header.length.toNat"
+    },
+    {
+      "axioms": [
         "Quot.sound",
         "propext"
       ],
@@ -69,6 +77,15 @@
         "Quot.sound",
         "propext"
       ],
+      "expected": "Wire16Contract.need_more_iff",
+      "name": "Wire16Proofs.need_more_iff",
+      "statement": "∀ (header : Header) (available missing : UInt32),\n  Wire16.classify header available = Availability.needMore missing ↔\n    available.toNat < header.length.toNat ∧ missing.toNat = header.length.toNat - available.toNat"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
       "expected": "Wire16Contract.parse_encode_roundtrip",
       "name": "Wire16Proofs.parse_encode_roundtrip",
       "statement": "∀ (h : Header),\n  h.flags.toNat < 4 → ∃ q, Wire16.encode h = EncodeResult.encoded q ∧ Wire16.parse q = ParseResult.parsed h"
@@ -101,17 +118,18 @@
       "statement": "∀ (q : ByteQuad), Wire16.parse q = ParseResult.unsupportedVersion ↔ q.b0 ≠ 1"
     }
   ],
-  "contract_sha256": "98eb6efe4f9a019d5e534e712619f32d9eb9eb6fdce74fff44d082ddc925b477",
-  "generated_manifest_sha256": "021000cc0bfcbe09812f991a8c9200147121b5615ce70b9fdc66fe4dced47b30",
+  "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
+  "generated_manifest_sha256": "a2a06ce8a51ef7ea2591e1969d0b3358b03e7828dd2ad06df8ff43c47bc5dd4c",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Wire16",
   "project_inputs": {
-    "proof/Wire16Contract.lean": "d60e85f206cecfb372b949c738653d00b6d2032f13fd9cb7ccb3d48bfce39d25",
-    "proof/Wire16Proofs.lean": "dfcb1294d69cda6afe437ad85759049a63d754243a5d7e506e29a96673dce686",
-    "source/Wire16.lean": "5d5b058d73f94f7ffa706059c636cae8bb1956c9fd4d879927c43e22b4722aeb"
+    "proof/Wire16Contract.lean": "4c5c6f0decc93b5a88fc5eda68e67eb86ba0900b4d7aee4901aa6a8c23b1846f",
+    "proof/Wire16Proofs.lean": "b6e90e769f21884719fde8d5bd7d4ac0c7c50ca6968e20bb810118c8d74ec007",
+    "source/Wire16.lean": "8be7b9483b947fb9f7daf92986312659e5aa4bdbf37fac3a9454a817dec6eef4"
   },
   "roots": [
+    "Wire16.classify",
     "Wire16.decodeBE",
     "Wire16.encode",
     "Wire16.encodeBE",
@@ -124,9 +142,9 @@
     "scripts/check_proofs.py": "6a1995c54ecb85c652ad4f09d5eb173adf127359df5fc1a56846a4dcaf7fe5fc",
     "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
     "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "13e4e1513a9c5a744b2296788caa7b12ee670df330087d3eb13d08ea3f1831ec",
+    "scripts/export_module.py": "fb0f610bc8ce6cf6686fe38bc0ef1c2b86b9759564046260f13ce9ee714064e0",
     "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "0b26730e4d56389d9bafbad7f0aff7045b84f28572fd4fea79eb253e6785d253",
+    "scripts/proof_contract.py": "aa8e8553a2aef3dccf36d90ecdae0d2829cfb0d82900f01bd5b3c6ccc41440e7",
     "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
   }
 }

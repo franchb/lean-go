@@ -88,4 +88,23 @@ theorem encode_parse_roundtrip (q : ByteQuad) (hv : q.b0 = 1) (hf : q.b1.toNat <
   · simp [parse, valid_flags, hv, hf]
   · simp [encode, valid_flags, hf, encode_decode_be, ← hv]
 
+theorem need_more_iff (header : Header) (available missing : UInt32) :
+    classify header available = .needMore missing ↔
+      available.toNat < header.length.toNat ∧ missing.toNat = header.length.toNat - available.toNat := by
+  by_cases short : available < header.length.toUInt32
+  · have lt : available.toNat < header.length.toNat := short
+    simp [classify, short, lt, ← UInt32.toNat_inj, UInt32.toNat_sub_of_le _ _ (UInt32.le_of_lt short),
+      eq_comm]
+  · have enough : ¬ available.toNat < header.length.toNat := short
+    simp [classify, short, enough]
+
+theorem complete_iff (header : Header) (available consumed : UInt32) :
+    classify header available = .complete consumed ↔
+      header.length.toNat ≤ available.toNat ∧ consumed.toNat = header.length.toNat := by
+  by_cases short : available < header.length.toUInt32
+  · have lt : available.toNat < header.length.toNat := short
+    simp [classify, short, Nat.not_le_of_lt lt]
+  · have enough : header.length.toNat ≤ available.toNat := Nat.le_of_not_gt short
+    simp [classify, short, enough, ← UInt32.toNat_inj, eq_comm]
+
 end Wire16Proofs

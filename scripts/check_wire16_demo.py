@@ -15,9 +15,10 @@ OUTPUT = ('0xabcd -> [ab cd] -> 0xabcd\n'
 CLAIMS = ('encode_be_bytes', 'decode_be_value', 'decode_encode_be', 'encode_decode_be',
           'parse_success_iff', 'parse_unsupported_version_iff', 'parse_reserved_flags_iff',
           'encode_success_iff', 'encode_reserved_flags_iff',
-          'parse_encode_roundtrip', 'encode_parse_roundtrip')
+          'parse_encode_roundtrip', 'encode_parse_roundtrip', 'need_more_iff', 'complete_iff')
 SPEC = shared.Demo('wire16', 'Wire16',
-                   ('Wire16.decodeBE', 'Wire16.encode', 'Wire16.encodeBE', 'Wire16.parse'),
+                   ('Wire16.classify', 'Wire16.decodeBE', 'Wire16.encode', 'Wire16.encodeBE',
+                    'Wire16.parse'),
                    tuple((f'Wire16Proofs.{name}', f'Wire16Contract.{name}') for name in CLAIMS),
                    extra_go_files=('frame/frame.go', 'frame/frame_test.go',
                                    'frame/append_test.go', 'frame/roundtrip_test.go'))

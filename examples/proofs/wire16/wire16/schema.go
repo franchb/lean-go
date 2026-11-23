@@ -6,22 +6,24 @@ func typeName(t int) string {
 	case 0:
 		return "UInt32"
 	case 1:
-		return "Bool"
+		return "Availability"
 	case 2:
-		return "BytePair"
+		return "Bool"
 	case 3:
-		return "ByteQuad"
+		return "BytePair"
 	case 4:
-		return "EncodeResult"
+		return "ByteQuad"
 	case 5:
-		return "Header"
+		return "EncodeResult"
 	case 6:
-		return "ParseResult"
+		return "Header"
 	case 7:
-		return "UInt64"
+		return "ParseResult"
 	case 8:
-		return "UInt8"
+		return "UInt64"
 	case 9:
+		return "UInt8"
+	case 10:
 		return "UInt16"
 	}
 	return ""
@@ -31,33 +33,40 @@ func constructorName(t, tag int) string {
 	case 1:
 		switch tag {
 		case 0:
-			return "Bool.false"
+			return "Availability.needMore"
 		case 1:
-			return "Bool.true"
+			return "Availability.complete"
 		}
 	case 2:
 		switch tag {
 		case 0:
-			return "BytePair.mk"
+			return "Bool.false"
+		case 1:
+			return "Bool.true"
 		}
 	case 3:
 		switch tag {
 		case 0:
-			return "ByteQuad.mk"
+			return "BytePair.mk"
 		}
 	case 4:
+		switch tag {
+		case 0:
+			return "ByteQuad.mk"
+		}
+	case 5:
 		switch tag {
 		case 0:
 			return "EncodeResult.encoded"
 		case 1:
 			return "EncodeResult.reservedFlags"
 		}
-	case 5:
+	case 6:
 		switch tag {
 		case 0:
 			return "Header.mk"
 		}
-	case 6:
+	case 7:
 		switch tag {
 		case 0:
 			return "ParseResult.parsed"
@@ -74,10 +83,10 @@ func inputShape(in *Input) (int, int, bool) {
 		return 0, 0, false
 	}
 	if in.Type == "UInt16" {
-		return 9, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt8 == 0 && in.UInt32 == 0 && in.UInt64 == 0
+		return 10, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt8 == 0 && in.UInt32 == 0 && in.UInt64 == 0
 	}
 	if in.Type == "UInt8" {
-		return 8, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt64 == 0 && in.UInt16 == 0
+		return 9, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt64 == 0 && in.UInt16 == 0
 	}
 	return inputOtherShape(in)
 }
@@ -89,16 +98,26 @@ func inputOtherShape(in *Input) (int, int, bool) {
 	case "UInt32":
 		return 0, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt64 == 0 && in.UInt8 == 0 && in.UInt16 == 0
 	case "UInt64":
-		return 7, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt8 == 0 && in.UInt16 == 0
+		return 8, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt8 == 0 && in.UInt16 == 0
+	case "Availability":
+		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
+			return 0, 0, false
+		}
+		switch in.Constructor {
+		case "Availability.needMore":
+			return 1, 0, len(in.Fields) == 1
+		case "Availability.complete":
+			return 1, 1, len(in.Fields) == 1
+		}
 	case "Bool":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {
 		case "Bool.false":
-			return 1, 0, len(in.Fields) == 0
+			return 2, 0, len(in.Fields) == 0
 		case "Bool.true":
-			return 1, 1, len(in.Fields) == 0
+			return 2, 1, len(in.Fields) == 0
 		}
 	case "BytePair":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
@@ -106,7 +125,7 @@ func inputOtherShape(in *Input) (int, int, bool) {
 		}
 		switch in.Constructor {
 		case "BytePair.mk":
-			return 2, 0, len(in.Fields) == 2
+			return 3, 0, len(in.Fields) == 2
 		}
 	case "ByteQuad":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
@@ -114,7 +133,7 @@ func inputOtherShape(in *Input) (int, int, bool) {
 		}
 		switch in.Constructor {
 		case "ByteQuad.mk":
-			return 3, 0, len(in.Fields) == 4
+			return 4, 0, len(in.Fields) == 4
 		}
 	case "EncodeResult":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
@@ -122,9 +141,9 @@ func inputOtherShape(in *Input) (int, int, bool) {
 		}
 		switch in.Constructor {
 		case "EncodeResult.encoded":
-			return 4, 0, len(in.Fields) == 1
+			return 5, 0, len(in.Fields) == 1
 		case "EncodeResult.reservedFlags":
-			return 4, 1, len(in.Fields) == 0
+			return 5, 1, len(in.Fields) == 0
 		}
 	case "Header":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
@@ -132,7 +151,7 @@ func inputOtherShape(in *Input) (int, int, bool) {
 		}
 		switch in.Constructor {
 		case "Header.mk":
-			return 5, 0, len(in.Fields) == 2
+			return 6, 0, len(in.Fields) == 2
 		}
 	case "ParseResult":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
@@ -140,11 +159,11 @@ func inputOtherShape(in *Input) (int, int, bool) {
 		}
 		switch in.Constructor {
 		case "ParseResult.parsed":
-			return 6, 0, len(in.Fields) == 1
+			return 7, 0, len(in.Fields) == 1
 		case "ParseResult.unsupportedVersion":
-			return 6, 1, len(in.Fields) == 0
+			return 7, 1, len(in.Fields) == 0
 		case "ParseResult.reservedFlags":
-			return 6, 2, len(in.Fields) == 0
+			return 7, 2, len(in.Fields) == 0
 		}
 	}
 	return 0, 0, false
@@ -153,29 +172,28 @@ func fieldType(t, tag, index int) int {
 	switch t {
 	case 1:
 		switch tag {
-		}
-	case 2:
-		switch tag {
 		case 0:
 			switch index {
 			case 0:
-				return 8
-			case 1:
-				return 8
+				return 0
 			}
+		case 1:
+			switch index {
+			case 0:
+				return 0
+			}
+		}
+	case 2:
+		switch tag {
 		}
 	case 3:
 		switch tag {
 		case 0:
 			switch index {
 			case 0:
-				return 8
+				return 9
 			case 1:
-				return 8
-			case 2:
-				return 8
-			case 3:
-				return 8
+				return 9
 			}
 		}
 	case 4:
@@ -183,7 +201,13 @@ func fieldType(t, tag, index int) int {
 		case 0:
 			switch index {
 			case 0:
-				return 3
+				return 9
+			case 1:
+				return 9
+			case 2:
+				return 9
+			case 3:
+				return 9
 			}
 		}
 	case 5:
@@ -191,9 +215,7 @@ func fieldType(t, tag, index int) int {
 		case 0:
 			switch index {
 			case 0:
-				return 8
-			case 1:
-				return 9
+				return 4
 			}
 		}
 	case 6:
@@ -201,7 +223,17 @@ func fieldType(t, tag, index int) int {
 		case 0:
 			switch index {
 			case 0:
-				return 5
+				return 9
+			case 1:
+				return 10
+			}
+		}
+	case 7:
+		switch tag {
+		case 0:
+			switch index {
+			case 0:
+				return 6
 			}
 		}
 	}
@@ -209,14 +241,16 @@ func fieldType(t, tag, index int) int {
 }
 func rootSignature(root string) (int, int, []int, bool) {
 	switch root {
+	case "Wire16.classify":
+		return 0, 1, []int{6, 0}, true
 	case "Wire16.decodeBE":
-		return 0, 9, []int{2}, true
+		return 1, 10, []int{3}, true
 	case "Wire16.encode":
-		return 1, 4, []int{5}, true
+		return 2, 5, []int{6}, true
 	case "Wire16.encodeBE":
-		return 2, 2, []int{9}, true
+		return 3, 3, []int{10}, true
 	case "Wire16.parse":
-		return 3, 6, []int{3}, true
+		return 4, 7, []int{4}, true
 	}
 	return 0, 0, nil, false
 }

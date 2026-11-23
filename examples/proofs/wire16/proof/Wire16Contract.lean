@@ -42,4 +42,14 @@ def encode_parse_roundtrip : Prop :=
   ∀ q : ByteQuad, q.b0 = 1 → q.b1.toNat < 4 →
     ∃ h : Header, Wire16.parse q = .parsed h ∧ Wire16.encode h = .encoded q
 
+def need_more_iff : Prop :=
+  ∀ (header : Header) (available missing : UInt32),
+    Wire16.classify header available = .needMore missing ↔
+      available.toNat < header.length.toNat ∧ missing.toNat = header.length.toNat - available.toNat
+
+def complete_iff : Prop :=
+  ∀ (header : Header) (available consumed : UInt32),
+    Wire16.classify header available = .complete consumed ↔
+      header.length.toNat ≤ available.toNat ∧ consumed.toNat = header.length.toNat
+
 end Wire16Contract

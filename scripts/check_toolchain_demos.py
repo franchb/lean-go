@@ -65,7 +65,7 @@ def check_demo(demo, cli, go, workspace, env, identity):
         env = dict(env, LEAN_GO_WIRE16_NATIVE=str(oracle))
     run_go_demo(deployed, go, env, workspace, demo.OUTPUT, run)
     if demo is check_wire16_demo:
-        print('Compared native Lean and generated Go for all 65,536 words', flush=True)
+        print('Compared native Lean and generated Go encoding, decoding and widening for all 65,536 words', flush=True)
     print(f"{spec.name}: {len(spec.claims)} fresh source proofs and Go-only consumer passed", flush=True)
 
 

@@ -4,6 +4,7 @@
   "proof_dir": "proof",
   "module": "Wire16",
   "roots": [
+    "Wire16.classify",
     "Wire16.decodeBE",
     "Wire16.encode",
     "Wire16.encodeBE",
@@ -53,6 +54,14 @@
     {
       "theorem": "Wire16Proofs.encode_parse_roundtrip",
       "expected": "Wire16Contract.encode_parse_roundtrip"
+    },
+    {
+      "theorem": "Wire16Proofs.need_more_iff",
+      "expected": "Wire16Contract.need_more_iff"
+    },
+    {
+      "theorem": "Wire16Proofs.complete_iff",
+      "expected": "Wire16Contract.complete_iff"
     }
   ]
 }
