@@ -113,6 +113,19 @@ four-field Lean record; broad generic collections remain deferred. Source proofs
 establish Lean behavior; compilation, extraction and Go execution remain tested
 and trusted.
 
+## Parse a four-byte header
+
+The [header example](examples/proofs/header) uses a Go `[4]byte` at the wire
+boundary. Version 1 permits the two low flag bits and stores a 16-bit length
+in big-endian order. For example, `[01 03 12 34]` parses to flags 3 and
+length 4,660. Nine Lean theorems specify acceptance, rejection, and round trips.
+The generated parser reports protocol errors as ordinary result variants.
+Its Go error return covers malformed values and resource limits.
+
+```sh
+(cd examples/proofs/header && CGO_ENABLED=0 go run .)
+```
+
 ## Extract a module
 
 Use Go **1.27.4**, the pinned Lean **4.36.0**, and **uv** with Python **3.15**.

@@ -37,7 +37,8 @@ selected Lean statements; compilation and extraction remain tested and trusted.
 The [alpha.8 release](docs/releases/v0.1.0-alpha.8.md), Python package
 `0.1.0a8`, includes clamp (three claims), flags (eight),
 [words](examples/proofs/words) (seven) and the [byte codec](examples/proofs/bytes)
-(twelve), with a runnable Go application for each. For development, validate
+(twelve), with a runnable Go application for each. The development checkout adds a
+[header parser](examples/proofs/header) with nine claims. For development, validate
 with this checkout's CLI. Published alpha.7 has the first three demos and no UInt8
 support. Current artifacts
 use `lean-go-modulegen/v11`; byte exports use v12/v13 IR and `pure-module/v10` or
@@ -54,13 +55,14 @@ uv run --locked python scripts/test_clamp_demo.py
 uv run --locked python scripts/test_flags_demo.py
 uv run --locked python scripts/test_words_demo.py
 uv run --locked python scripts/test_bytes_demo.py
+uv run --locked python scripts/test_header_demo.py
 uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all four demos, compares exact bytes, freshly checks all 30 source
+it regenerates all five demos, compares exact bytes, freshly checks all 39 source
 claims and deploys each using only Go sources and `go.mod`. Root Go tests also
-exercise all four nested modules by copying them into isolated Go-only
+exercise all five nested modules by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
 The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to review

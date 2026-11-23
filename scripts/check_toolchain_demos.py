@@ -11,6 +11,7 @@ import tempfile
 import check_bytes_demo
 import check_clamp_demo
 import check_flags_demo
+import check_header_demo
 import check_words_demo
 from check_release_candidate import base_environment, pinned_go
 from compatibility_identity import compiler_bin, parse_identity
@@ -18,7 +19,7 @@ from export import ExportError, run
 from export_module import check_python
 from standalone_demo import run_go_demo
 
-DEMOS = (check_clamp_demo, check_flags_demo, check_words_demo, check_bytes_demo)
+DEMOS = (check_clamp_demo, check_flags_demo, check_words_demo, check_bytes_demo, check_header_demo)
 
 
 def check_demo(demo, cli, go, workspace, env, identity):
