@@ -127,7 +127,8 @@ Its Go error return covers malformed values and resource limits.
 ```
 
 The development checkout also includes a [typed 16-bit wire codec](examples/proofs/wire16).
-Its Go API accepts a `uint16` length. Eleven Lean theorems specify byte order,
+Its Go API accepts a `uint16` length. The accompanying frame reader consumes
+one complete frame from a byte slice and preserves the input for retry on truncation. Eleven Lean theorems specify byte order,
 header validation and both round trips. Run the example with Go alone:
 
 ```sh

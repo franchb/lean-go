@@ -18,7 +18,8 @@ CLAIMS = ('encode_be_bytes', 'decode_be_value', 'decode_encode_be', 'encode_deco
           'parse_encode_roundtrip', 'encode_parse_roundtrip')
 SPEC = shared.Demo('wire16', 'Wire16',
                    ('Wire16.decodeBE', 'Wire16.encode', 'Wire16.encodeBE', 'Wire16.parse'),
-                   tuple((f'Wire16Proofs.{name}', f'Wire16Contract.{name}') for name in CLAIMS))
+                   tuple((f'Wire16Proofs.{name}', f'Wire16Contract.{name}') for name in CLAIMS),
+                   extra_go_files=('frame/frame.go', 'frame/frame_test.go'))
 
 
 def artifacts(project):

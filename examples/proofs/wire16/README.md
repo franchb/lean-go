@@ -38,6 +38,21 @@ Reserved flags are the encoder's sole domain error. The encoded record's
 `Bytes()` method returns a `[4]byte`. The [wider-input header
 example](../header/README.md) accepts a `uint32` and checks for overflow.
 
+## Read frames from a Go byte slice
+
+`frame.ReadFrame(input, limits)` returns the parsed header, its payload, and
+the remaining input. Pass the remainder to the next call for concatenated
+frames. A short header or payload returns `io.ErrUnexpectedEOF` and the original
+slice, so the caller can append more bytes and retry. A complete header with
+an unsupported version or reserved flags returns the corresponding protocol
+error immediately. Every error consumes zero bytes.
+
+The payload and remainder borrow the caller's buffer. The payload's capacity
+equals its length, so appending cannot overwrite the next frame. Copy the
+payload if it must outlive reuse of the input buffer. The [executable
+example](frame/frame_test.go) reads two consecutive frames, including an empty
+one. This slice handling is implemented and tested in Go.
+
 ## Proofs and Go checks
 
 Eleven kernel-checked propositions cover the two-byte codec and its header.

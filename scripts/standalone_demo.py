@@ -20,6 +20,7 @@ class Demo:
     module: str
     roots: tuple[str, ...]
     claims: tuple[tuple[str, str], ...]
+    extra_go_files: tuple[str, ...] = ()
 
 
 def artifacts(project, name):
@@ -50,10 +51,8 @@ def run_go_demo(project, go, environment, workspace, output, run):
         raise ExportError('standalone demo returned unexpected output: ' + repr(actual))
 
 
-def copy_go_project(project, destination, name):
-    files = ['go.mod', 'main.go', 'main_test.go']
-    files.extend(name + '/' + file for file in ['api.go', 'control.go', 'runtime.go', 'schema.go'])
-    for file in files:
+def copy_consumer_files(project, destination, extra_go_files):
+    for file in ('go.mod', 'main.go', 'main_test.go', *extra_go_files):
         target = destination / file
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(project / file, target)
@@ -81,7 +80,8 @@ def verify_demo(cli, workspace, environment, source, spec, *, run, pinned_go, co
     if claims != sorted(spec.claims):
         raise ExportError(f'{spec.name} demo must check all {len(spec.claims)} source claims')
     deployed = workspace / ('Go-only ' + spec.name + ' demo')
-    copy_go_project(project, deployed, spec.name)
+    generated = tuple(f'{spec.name}/{filename}' for filename in ('api.go', 'control.go', 'runtime.go', 'schema.go'))
+    copy_consumer_files(project, deployed, spec.extra_go_files + generated)
     consumer(deployed, go, environment, workspace)
     print(f'standalone {spec.name} demo: identical artifacts, {len(claims)} fresh proofs, '
           'Go-only tests and executable passed')

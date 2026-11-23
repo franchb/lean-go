@@ -18,7 +18,7 @@ from check_release_candidate import base_environment, pinned_go
 from compatibility_identity import compiler_bin, parse_identity
 from export import ExportError, run
 from export_module import check_python
-from standalone_demo import run_go_demo
+from standalone_demo import copy_consumer_files, run_go_demo
 
 DEMOS = (check_clamp_demo, check_flags_demo, check_words_demo, check_bytes_demo, check_header_demo, check_wire16_demo)
 
@@ -52,8 +52,7 @@ def check_demo(demo, cli, go, workspace, env, identity):
     if evidence['claims'] != reference['claims'] or inventory != sorted(spec.claims):
         raise ExportError(f'{spec.name}: source theorems, propositions or axioms changed')
 
-    for filename in ('go.mod', 'main.go', 'main_test.go'):
-        shutil.copyfile(source / filename, deployed / filename)
+    copy_consumer_files(source, deployed, spec.extra_go_files)
     if demo is check_wire16_demo:
         native = workspace / 'wire16-native'
         native.mkdir()

@@ -13,24 +13,26 @@ func TestStandaloneClampDemo(t *testing.T) {
 	testStandaloneDemo(t, "clamp", "clamp(7, 42) = 7\nclamp(100, 42) = 42\nclamp(18446744073709551615, 42) = 42\n")
 }
 
-func testStandaloneDemo(t *testing.T, name, expected string) {
+func testStandaloneDemo(t *testing.T, name, expected string, extraFiles ...string) {
 	t.Helper()
 	workspace := t.TempDir()
 	project := filepath.Join(workspace, "copied "+name+" demo")
-	if err := os.MkdirAll(filepath.Join(project, name), 0700); err != nil {
-		t.Fatal(err)
-	}
-	// Deploy only Go sources; no Lean inputs, manifests or proof artifacts.
-	for _, file := range []string{
+	// Deploy only the consumer and its generated Go sources.
+	files := []string{
 		"go.mod", "main.go", "main_test.go",
 		name + "/api.go", name + "/control.go", name + "/runtime.go", name + "/schema.go",
-	} {
+	}
+	for _, file := range append(files, extraFiles...) {
 		relative := filepath.FromSlash(file)
+		target := filepath.Join(project, relative)
+		if err := os.MkdirAll(filepath.Dir(target), 0700); err != nil {
+			t.Fatal(err)
+		}
 		data, err := os.ReadFile(filepath.Join("../examples/proofs", name, relative))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(project, relative), data, 0600); err != nil {
+		if err := os.WriteFile(target, data, 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
