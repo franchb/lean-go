@@ -7,13 +7,13 @@ the [checkout CLI](cli.md#development-checkout) and use Lean 4.36.0. The
 
 ## Run a generated package
 
-To consume the published alpha.8 root Go module:
+To consume the alpha.9 root Go module, run
 
 ```sh
 mkdir lean-go-example
 cd lean-go-example
 go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.8
+go get github.com/franchb/lean-go@v0.1.0-alpha.9
 ```
 
 Save this as `main.go`:
@@ -70,7 +70,7 @@ BE(0x12345678) = [12 34 56 78] -> 0x12345678
 Copy that directory to use its Go application offline. The generated API has
 `RunEncodeLE`/`RunEncodeBE` (`uint32` to `ByteQuad`) and
 `RunDecodeLE`/`RunDecodeBE` (`ByteQuad` to `uint32`). `NewByteQuad` constructs an
-input record. In the development checkout, `NewByteQuadFromBytes(wire, limits)`
+input record. In alpha.9, `NewByteQuadFromBytes(wire, limits)`
 accepts a Go `[4]byte` and `quad.Bytes()` returns `([4]byte, error)`.
 The field getters `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
 `Limits` last and return `(result, error)`. Check each error and validity flag.
@@ -100,7 +100,7 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
 
 The copyable module needs only Go. To regenerate its v11 artifacts or recheck
 proof evidence, install the [CLI](cli.md#development-checkout) from this same
-checkout and follow the example's verifier instructions. For released alpha.8,
+checkout and follow the example's verifier instructions. For alpha.9,
 pair its example and CLI from that tag. For historical alpha.7 reproduction, use
 its tagged example and
 [guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
