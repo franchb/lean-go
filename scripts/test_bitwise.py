@@ -25,7 +25,7 @@ class BitwiseSchemaTests(unittest.TestCase):
         return program, roots
 
     def complete(self, program, roots):
-        return producer.complete_program(json.dumps(program).encode(), 'Example', roots, {})
+        return producer.complete_program(json.dumps(program).encode(), 'Example', roots, {}, producer.selected_compiler())
 
     def test_only_emitted_primitive_nodes_select_new_schema(self):
         value = dict(kind='primitive', name='UInt64.complement', args=[1])

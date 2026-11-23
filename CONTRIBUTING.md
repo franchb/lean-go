@@ -6,7 +6,7 @@ compiler-version investigations and focused tests are useful contributions.
 The [compatibility harness](docs/compiler-compatibility.md) qualifies later Lean
 releases before any production pin change.
 
-Use Go 1.27.4, Lean 4.36.0-rc2 and Python 3.15 through uv. Start with the
+Use Go 1.27.4, Lean 4.36.0 and Python 3.15 through uv. Start with the
 [walkthrough](docs/getting-started.md) and the [README](README.md). Run:
 
 ```sh
@@ -34,10 +34,10 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.8 candidate](docs/releases/v0.1.0-alpha.8.md), Python package
+The [alpha.8 release](docs/releases/v0.1.0-alpha.8.md), Python package
 `0.1.0a8`, includes clamp (three claims), flags (eight),
 [words](examples/proofs/words) (seven) and the [byte codec](examples/proofs/bytes)
-(twelve), with a runnable Go application for each. Before publication, validate
+(twelve), with a runnable Go application for each. For development, validate
 with this checkout's CLI. Published alpha.7 has the first three demos and no UInt8
 support. Current artifacts
 use `lean-go-modulegen/v10`; byte exports use v12/v13 IR and `pure-module/v10` or

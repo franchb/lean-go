@@ -6,9 +6,9 @@ generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
 Alpha.7 also accepts exact v10/`pure-module/v8` single-root and
 v11/`pure-module/v9` multiple-root
 [width-conversion packages](research/extraction-width-conversions.md).
-The alpha.8 candidate adds v12/`pure-module/v10` single-root and
+The alpha.8 release adds v12/`pure-module/v10` single-root and
 v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
-Before alpha.8 publication, use the CLI from this checkout for candidate checks.
+Use the checkout CLI to reproduce development artifacts.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -97,7 +97,7 @@ copies the theorem type to manufacture an expectation.
 
 ## Generate and check an external project
 
-Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0-rc2
+Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0
 and Python 3.15 through `uv`. Use the same checkout to regenerate artifacts and
 proof evidence; when using an installed CLI, install it from that
 [development checkout](cli.md#development-checkout). Reproducing a published
@@ -156,7 +156,7 @@ conversion round trips, low/high packing identities and full unpack/repack.
 The fresh checker records no axioms for the two `toNat` claims, `propext` for
 the conversion round trips, and `propext` plus `Quot.sound` for the three packing
 laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
-Published alpha.7 has these three demos and generator v9. The alpha.8 candidate,
+Published alpha.7 has these three demos and generator v9. The alpha.8 release,
 package `0.1.0a8`, regenerates them with `lean-go-modulegen/v10`, retaining their
 earlier IR schemas. Pair examples and CLI from the same tag or the same checkout.
 See the [verification walkthrough](release-candidate.md).
@@ -171,7 +171,7 @@ eight position claims and `propext` plus `Quot.sound` for the four inverses. The
 axiom allowlist is unchanged. Runtime code uses a concrete `ByteQuad` record;
 proof-only natural numbers and bit vectors do not enter the generated runtime.
 The [byte walkthrough](articles/proved-byte-codec.md) shows the Go application,
-reproduction commands and assurance boundary. Before alpha.8 publication, this
+reproduction commands and assurance boundary. For development, this
 example requires the CLI from this checkout. It is not in published alpha.7.
 
 ## Evidence and assurance

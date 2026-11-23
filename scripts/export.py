@@ -12,11 +12,10 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import NamedTuple
 
 MODEL = "feasibility/LeanGo/Feasibility/Model.lean"
 MODEL_SHA256 = "c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f"
-COMMIT = "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"
-TOOLCHAIN = b"leanprover/lean4:v4.36.0-rc2\n"
 CONFIG = b'''name = "lean_go_producer"
 version = "0.0.0"
 
@@ -32,8 +31,39 @@ INPUTS = (MODEL, "producer/lean-toolchain", "producer/lakefile.toml",
           "producer/Reference.lean", "scripts/export.py")
 
 
-class ExportError(Exception):
+class ExportError(ValueError):
     pass
+
+
+class Compiler(NamedTuple):
+    version: str
+    commit: str
+
+    @property
+    def toolchain(self):
+        return f"leanprover/lean4:v{self.version}"
+
+    @property
+    def pin_file(self):
+        return (self.toolchain + "\n").encode()
+
+    def check_version(self, text):
+        pattern = rf"Lean \(version {re.escape(self.version)}, [^,\r\n]+, commit {self.commit}, Release\)"
+        if not re.fullmatch(pattern, text.strip()):
+            raise ExportError(f"unexpected Lean version or commit: {text.strip()}")
+
+
+DEFAULT_COMPILER = Compiler("4.36.0", "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9")
+SUPPORTED_COMPILERS = (DEFAULT_COMPILER, Compiler("4.36.0-rc2", "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"))
+
+
+def selected_compiler():
+    version = os.environ.get("LEAN_GO_TOOLCHAIN", DEFAULT_COMPILER.version)
+    for compiler in SUPPORTED_COMPILERS:
+        if version == compiler.version:
+            return compiler
+    supported = ", ".join(pin.version for pin in SUPPORTED_COMPILERS)
+    raise ExportError(f"unsupported LEAN_GO_TOOLCHAIN {version!r}; expected one of {supported}")
 
 
 def unique_object(pairs):
@@ -65,7 +95,7 @@ def snapshot(root):
         raise ExportError("model SHA-256 differs from the audited revision")
     if result["producer/lakefile.toml"] != CONFIG:
         raise ExportError("producer configuration differs from the fixed dependency-free TOML")
-    if result["producer/lean-toolchain"] != TOOLCHAIN:
+    if result["producer/lean-toolchain"] != DEFAULT_COMPILER.pin_file:
         raise ExportError("producer toolchain configuration differs from the pin")
     return result
 
@@ -80,11 +110,6 @@ def run(command, workspace, env):
         raise ExportError(f"producer process failed ({proc.returncode}): "
                           f"{proc.stderr.strip()}\n{proc.stdout.strip()}")
     return proc.stdout
-
-
-def check_version(text):
-    if not re.search(r"Lean \(version 4\.36\.0\-rc2,.*commit " + COMMIT + r", Release\)", text):
-        raise ExportError(f"unexpected Lean version or commit: {text.strip()}")
 
 
 def validate_reference(data):
@@ -145,7 +170,8 @@ def export(root, output, reference_input=None, reference_output=None):
         validate_reference(reference)
     env = {key: value for key, value in os.environ.items()
            if not key.startswith(("LEAN_", "LAKE_"))}
-    env["ELAN_TOOLCHAIN"] = TOOLCHAIN.decode().strip()
+    compiler = selected_compiler()
+    env["ELAN_TOOLCHAIN"] = compiler.toolchain
     lean, lake = shutil.which("lean"), shutil.which("lake")
     if not lean or not lake:
         raise ExportError("pinned Lean and Lake executables must be available on PATH")
@@ -159,11 +185,12 @@ def export(root, output, reference_input=None, reference_output=None):
             else:
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(data)
+            # The source digest binds the checkout default; stage the selected compiler for Lake.
+            target.write_bytes(compiler.pin_file if key == "producer/lean-toolchain" else data)
         # This fixed library root is configuration scaffolding, never a user import.
         (workspace / "LeanGo.lean").write_bytes(b"import LeanGo.Feasibility.Model\n")
-        check_version(run([lean, "--version"], workspace, env))
-        check_version(run([lake, "env", "lean", "--version"], workspace, env))
+        compiler.check_version(run([lean, "--version"], workspace, env))
+        compiler.check_version(run([lake, "env", "lean", "--version"], workspace, env))
         manifest = parse_json((workspace / "lake-manifest.json").read_bytes())
         if manifest.get("packages") != []:
             raise ExportError("producer dependency lock must have no packages")
@@ -176,7 +203,7 @@ def export(root, output, reference_input=None, reference_output=None):
         if not isinstance(program, dict) or set(program) != {"types", "functions", "claims", "rewrites"}:
             raise ExportError("unexpected producer result fields")
         program.update(schema="lean-go-ir/v1", profile="audited-normalizer/v1",
-                       stage="pure-mono", lean_version="4.36.0-rc2", lean_commit=COMMIT,
+                       stage="pure-mono", lean_version=compiler.version, lean_commit=compiler.commit,
                        model_sha256=MODEL_SHA256, root="LeanGo.Feasibility.normalize",
                        inputs={key: hashlib.sha256(data).hexdigest() for key, data in sources.items()})
         result = (json.dumps(program, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()

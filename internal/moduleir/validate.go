@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/franchb/lean-go/internal/leanversion"
 )
 
 type constructorInfo struct {
@@ -105,7 +107,7 @@ func Validate(p *Program) error {
 	return v.validateTypeClosure()
 }
 func (v *validator) validateMetadata(p *Program) error {
-	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || !validName(p.Module) {
+	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || !leanversion.Supported(p.LeanVersion, p.LeanCommit) || !validName(p.Module) {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
 	if err := validateRoots(p); err != nil {

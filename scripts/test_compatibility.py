@@ -22,9 +22,9 @@ def version(value=BASE):
     return f"Lean (version {value['version']}, x86_64-unknown-linux-gnu, commit {value['commit']}, Release)\n"
 
 
-def failure(*, code='unsupported_type', stage='admission', returncode=1, stdout=''):
+def failure(*, code='unsupported_type', stage='admission', returncode=1, stdout='', declaration=None):
     report = {'schema': 'lean-go-diagnostics/v1', 'success': False,
-              'diagnostics': [diagnostic('fixture', code=code, stage=stage)]}
+              'diagnostics': [diagnostic('fixture', code=code, stage=stage, declaration=declaration)]}
     return subprocess.CompletedProcess([], returncode, stdout, json.dumps(report))
 
 
@@ -60,10 +60,12 @@ class IdentityTests(unittest.TestCase):
     def test_bounded_adaptation_and_same_pin_is_empty(self):
         snapshot = identity.source_snapshot(ROOT)
         unchanged = dict(snapshot)
-        adapted, evidence, patch_text = identity.adapt_pins(snapshot, BASE)
-        self.assertEqual(adapted, snapshot)
-        self.assertEqual(evidence['files'], [])
-        self.assertEqual(patch_text, '')
+        for compiler in identity.SUPPORTED_COMPILERS:
+            with self.subTest(compiler=compiler):
+                adapted, evidence, patch_text = identity.adapt_pins(snapshot, compiler._asdict())
+                self.assertEqual(adapted, snapshot)
+                self.assertEqual(evidence['files'], [])
+                self.assertEqual(patch_text, '')
         adapted, evidence, patch_text = identity.adapt_pins(snapshot, NEXT)
         self.assertEqual(snapshot, unchanged, 'checkout bytes must never be mutated')
         self.assertEqual({item['path'] for item in evidence['files']}, set(identity.pin_substitutions(NEXT)))
@@ -75,8 +77,8 @@ class IdentityTests(unittest.TestCase):
         for item in evidence['files']:
             self.assertEqual(item['before_sha256'], identity.digest(snapshot[item['path']]))
             self.assertEqual(item['after_sha256'], identity.digest(adapted[item['path']]))
-        self.assertIn(f"lean_version='{NEXT['version']}'".encode(), adapted['scripts/export_module.py'])
-        self.assertIn(NEXT['commit'].encode(), adapted['internal/moduleir/types.go'])
+        self.assertIn(f'DEFAULT_COMPILER = Compiler("{NEXT["version"]}"'.encode(), adapted['scripts/export.py'])
+        self.assertIn(NEXT['commit'].encode(), adapted['internal/leanversion/identity.go'])
 
     def test_missing_duplicate_or_changed_anchor_fails_before_write(self):
         original = identity.source_snapshot(ROOT)
@@ -86,11 +88,10 @@ class IdentityTests(unittest.TestCase):
                 identity.adapt_pins(dict(original, **{'producer/lean-toolchain': value}), NEXT)
 
     def test_production_pin_stays_strict(self):
-        from export import check_version, ExportError
-        check_version(version())
+        identity.DEFAULT_COMPILER.check_version(version())
         with self.assertRaises(ExportError):
-            check_version(version(NEXT))
-        self.assertEqual((ROOT / 'producer/lean-toolchain').read_bytes(), identity.TOOLCHAIN)
+            identity.DEFAULT_COMPILER.check_version(version(NEXT))
+        self.assertEqual((ROOT / 'producer/lean-toolchain').read_bytes(), identity.DEFAULT_COMPILER.pin_file)
 
 
 class ProtocolTests(unittest.TestCase):
@@ -100,6 +101,14 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(results.extraction_outcome(failure())['status'], 'admission_mismatch')
         for stage in ('toolchain', 'build', 'emission'):
             self.assertEqual(results.extraction_outcome(failure(stage=stage), 'unsupported_type')['status'], 'extraction_failed')
+
+    def test_pointer_equality_rejection_names_the_intrinsic(self):
+        case = next(c for c in json.loads((ROOT / 'compatibility/corpus/manifest.json').read_bytes())
+                    if c['name'] == 'with_ptr_eq')
+        for declaration, status in [('withPtrEq', 'expected_rejection'), ('run', 'admission_mismatch')]:
+            rejected = failure(code='source_audit', declaration=declaration)
+            self.assertEqual(results.extraction_outcome(rejected, case['reject'], case['reject_declaration'])['status'],
+                             status)
 
     def test_crashes_noise_and_malformed_json_are_never_rejections(self):
         cases = [failure(returncode=-9), failure(returncode=2), failure(stdout='noise'),
@@ -145,7 +154,8 @@ class ProtocolTests(unittest.TestCase):
     def test_malformed_manifest_is_precondition_failure(self):
         valid = {'name': 'example', 'module': 'Example', 'roots': ['run']}
         for mutation in ({'reject': []}, {'reject': 'producer_failed'}, {'roots': 'run'},
-                         {'roots': []}, {'shapes': []}, {'shapes': {'ops': 'join'}}, {'name': '../outside'}):
+                         {'roots': []}, {'source_versions': ['../outside']}, {'source_versions': '4.36.0'},
+                         {'source_versions': ['4.36.0', '4.36.0']}, {'shapes': []}, {'shapes': {'ops': 'join'}}, {'name': '../outside'}):
             with self.subTest(mutation=mutation), self.assertRaises((identity.HarnessError, ExportError)):
                 results.validate_cases([dict(valid, **mutation)])
         self.assertEqual(results.validate_cases([valid]), [valid])
@@ -166,6 +176,33 @@ class RunnerTests(unittest.TestCase):
                 runner.validate_output(alias / 'new', repo, [])
             fresh = parent / 'fresh'
             self.assertEqual(runner.validate_output(fresh, repo, []), fresh)
+
+    def test_versioned_caller_must_compile_before_admission(self):
+        case = {'name': 'with_ptr_eq', 'module': 'Example', 'roots': ['run'],
+                'reject': 'source_audit', 'source_versions': ['4.36.0-rc2']}
+        compiled = subprocess.CompletedProcess([], 0, '', '')
+        failed = subprocess.CompletedProcess([], 1, '', 'ill-typed caller')
+        for version, variant, control in [('4.36.0', 'source', compiled),
+                                          ('4.36.0-rc2', '4.36.0-rc2', compiled),
+                                          ('4.36.0', 'source', failed)]:
+            with self.subTest(version=version, control=control.returncode), tempfile.TemporaryDirectory() as tmp:
+                role = Path(tmp) / 'run'
+                commands = runner.Commands(1)
+                with patch.object(commands, 'run', side_effect=[control, failure(code='source_audit')]) as calls:
+                    result = runner.run_case(case, ROOT / 'compatibility/corpus', ROOT, role,
+                                             {'version': version, 'bin': '/explicit/bin'}, 'go', {}, commands)
+                directory = role / 'cases/with_ptr_eq'
+                self.assertEqual((directory / 'source/Example.lean').read_bytes(),
+                                 (ROOT / 'compatibility/corpus/with_ptr_eq' / variant / 'Example.lean').read_bytes())
+                self.assertEqual(calls.call_args_list[0].args[:3],
+                                 ('lean-typecheck', [Path('/explicit/bin/lean'), Path('Example.lean')], directory / 'source'))
+                self.assertEqual(result['fixture_source'], variant)
+                if control.returncode:
+                    self.assertEqual(result['status'], 'source_typecheck_failed')
+                    self.assertEqual(calls.call_count, 1)
+                else:
+                    self.assertEqual(result['status'], 'expected_rejection')
+                    self.assertEqual(result['source_typecheck'], 'passed')
 
     def test_command_timeout_is_recorded_and_not_admission(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,7 +1,6 @@
 package integration_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -250,19 +248,10 @@ func TestMultiRootRegenerationOrder(t *testing.T) {
 		if log, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("regeneration: %v\n%s", err, log)
 		}
-		if !reflect.DeepEqual(directoryFiles(t, out), directoryFiles(t, "../generated/counters")) {
-			t.Fatal("root ordering or regeneration changed package")
-		}
 		actual, err := os.ReadFile(ir)
 		if err != nil {
 			t.Fatal(err)
 		}
-		tracked, err := os.ReadFile("../testdata/counters.ir.json")
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !bytes.Equal(actual, tracked) {
-			t.Fatal("root ordering or regeneration changed IR")
-		}
+		checkRegeneration(t, "counters", actual, directoryFiles(t, out))
 	}
 }

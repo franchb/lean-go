@@ -21,22 +21,22 @@ Published alpha.7 adds exact `UInt32.toUInt64` zero extension and
 with `pure-module/v8` or `pure-module/v9`; see the
 [width-conversion report](docs/research/extraction-width-conversions.md).
 
-The **alpha.8 candidate**, Python package `0.1.0a8`, adds scalar `UInt8`, exact
-byte/word conversions and a [proved byte codec](examples/proofs/bytes).
-Byte-enabled exports use v12/v13 IR, `pure-module/v10` or `pure-module/v11`, and
-`lean-go-modulegen/v10`; see the [UInt8 report](docs/research/extraction-uint8.md).
-Before publication, regenerate with the CLI from this same checkout. Published
-alpha.7 uses generator v9 and has no UInt8 support.
+Published **alpha.8** adds scalar `UInt8`, byte/word conversions and a
+[proved byte codec](examples/proofs/bytes). Its generator v10 uses v12/v13 IR
+for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uint8.md)
 
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
 [walkthrough](docs/getting-started.md) or read the
-[alpha.8 candidate notes](docs/releases/v0.1.0-alpha.8.md).
+[alpha.8 release notes](docs/releases/v0.1.0-alpha.8.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
-their `build` stage. The producer still requires Lean **4.36.0-rc2**, commit
-`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
+their `build` stage.
+Development builds default to **Lean 4.36.0**, commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Set
+`LEAN_GO_TOOLCHAIN=4.36.0-rc2` to generate and check evidence with the
+previously supported compiler. Each artifact records the exact compiler used.
 The [compatibility harness](docs/compiler-compatibility.md) is research tooling
 included in the Git checkout, separate from the installed CLI and wheel. Later
 compiler releases require fresh qualification and review before promotion;
@@ -47,11 +47,8 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 [proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
 extracts fresh Go and exercises an isolated consumer.
 
-Before alpha.8 publication, use the
-[checkout installation](docs/cli.md#development-checkout) and
-[local candidate checks](docs/release-candidate.md). After `v0.1.0-alpha.8` is
-published, install its [`lean-go` CLI](docs/cli.md) to generate and check proofs
-from any working directory without keeping a checkout beside your project:
+For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
+To reproduce the published alpha.8 examples, use its tag and CLI together:
 
 ```sh
 uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.8"
@@ -79,14 +76,14 @@ Alpha.7 includes a [standalone word-packing module](examples/proofs/words)
 with five scalar roots and seven universal source proofs: value-preserving
 widening, modulo narrowing, both conversion round trips, and packing/unpacking
 identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
-Words uses v11 IR/manifest and `pure-module/v9`. The alpha.8 candidate contains
+Words uses v11 IR/manifest and `pure-module/v9`. The alpha.8 release contains
 all four standalone demos with module generator v10, including demos whose IR
 schema stays unchanged. Pair examples and CLI from the same checkout or tag;
 published alpha.7 reproduction uses its historical artifacts and generator v9.
 
 ## Use the proved byte codec
 
-The alpha.8 candidate [byte codec module](examples/proofs/bytes) encodes a
+The alpha.8 release [byte codec module](examples/proofs/bytes) encodes a
 `uint32` into four byte fields and decodes them in either byte order. Its
 [Go application](examples/proofs/bytes/main.go) reads those fields into `[4]byte`
 and prints both round trips. From this checkout's root, run it offline:
@@ -115,7 +112,7 @@ and trusted.
 
 ## Extract a module
 
-Use Go **1.27.4**, the pinned Lean **4.36.0-rc2**, and **uv** with Python **3.15**.
+Use Go **1.27.4**, the pinned Lean **4.36.0**, and **uv** with Python **3.15**.
 Python dependencies are managed by `uv.lock`; currently the tooling uses only the
 standard library. These commands use the current development checkout and its
 tracked artifacts. For an installed command, use the CLI from that same
@@ -352,9 +349,9 @@ maintained handwritten/typed/raw benchmarks and measured frame-slot reuse result
 
 ## Run the pilot
 
-Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.36.0-rc2** toolchain named in
+Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.36.0** toolchain named in
 [`producer/lean-toolchain`](producer/lean-toolchain). The exporter checks the
-exact Lean commit, `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. Run from the
+exact Lean commit, `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Run from the
 repository root, with these tools available on `PATH`:
 
 ```sh

@@ -2,9 +2,10 @@
 
 This standalone module encodes every `UInt32` as four `UInt8` fields in a
 `ByteQuad` record and decodes that record in little-endian or big-endian order.
-It is part of the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md),
-Python package `0.1.0a8`. Before publication, use the CLI from this same checkout;
-after publication, pair tagged examples and CLI.
+Use the [checkout CLI](../../../docs/cli.md#development-checkout) to reproduce
+this directory. The [alpha.8 tag](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.8/examples/proofs/bytes)
+contains the original release example.
+
 Published alpha.7 has no UInt8 engine or byte codec. The
 [walkthrough](../../../docs/articles/proved-byte-codec.md) explains the application
 and source claims. Copy this directory and run it with Go **1.27.4** and
@@ -46,7 +47,7 @@ limits return `ErrLimits`. Failed typed calls return zero/invalid records; faile
 raw calls return invalid values.
 
 To regenerate, use Python **3.15** through uv, Go **1.27.4**, Lean/Lake
-**4.36.0-rc2** at commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, and the
+**4.36.0** at commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`, and the
 installed CLI from the same checkout. Install it from the repository root with
 `uv sync --locked --reinstall-package lean-go-tools`, then use
 `uv run --locked lean-go` there or the absolute `.venv/bin/lean-go` path from

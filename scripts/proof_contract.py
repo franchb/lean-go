@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import hashlib
 from pathlib import Path, PurePosixPath
 
-from export import COMMIT, ExportError, parse_json
+from export import ExportError, parse_json
 from export_module import (MAX_FILES, MAX_SOURCE_BYTES, select_roots,
                            source_snapshot, validate_name)
 
@@ -123,7 +123,7 @@ def snapshot(contract):
     return project
 
 
-def verify_manifest(path, contract, project):
+def verify_manifest(path, contract, project, compiler):
     path = Path(path).absolute()
     if path.name in GENERATED:
         raise ExportError('manifest must be separate from generated Go files')
@@ -144,7 +144,7 @@ def verify_manifest(path, contract, project):
     selection, forbidden = ('roots', 'root') if multi else ('root', 'roots')
     expected = dict(schema='lean-go-ir/' + version, profile='pure-module/' + profile,
                     stage='pure-mono', module=contract.module,
-                    lean_version='4.36.0-rc2', lean_commit=COMMIT)
+                    lean_version=compiler.version, lean_commit=compiler.commit)
     expected[selection] = list(contract.roots) if multi else contract.roots[0]
     if (not isinstance(program, dict) or forbidden in program or
             any(program.get(key) != value for key, value in expected.items())):

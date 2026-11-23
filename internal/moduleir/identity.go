@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
+
+	"github.com/franchb/lean-go/internal/leanversion"
 )
 
 //go:embed *.go
@@ -15,6 +17,7 @@ var sources embed.FS
 // Files are ordered by name and framed with their byte lengths.
 func SourceDigest() string {
 	h := sha256.New()
+	leanversion.HashSource(h)
 	entries, err := sources.ReadDir(".")
 	if err != nil {
 		panic(err)

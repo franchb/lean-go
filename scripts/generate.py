@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-from export import ExportError, TOOLCHAIN, check_version
+from export import ExportError, selected_compiler
 from diagnostics import emit, requested_mode, stage, diagnostic, unexpected
 from export_module import (export_module, check_python, verify_inputs as verify_module_inputs,
                            select_roots, validate_name, validate_output, source_snapshot, PRODUCER_INPUTS)
@@ -115,8 +115,9 @@ def main(argv=None):
         go = shutil.which('go')
         if go is None:
             raise ValueError('Go is unavailable; put the pinned Go executable on PATH')
+        compiler = selected_compiler()
         environment = dict(os.environ, CGO_ENABLED='0', GOTOOLCHAIN='local',
-                           ELAN_TOOLCHAIN=TOOLCHAIN.decode().strip())
+                           ELAN_TOOLCHAIN=compiler.toolchain)
         version = run_process([go, 'version'], root, environment, 'toolchain').strip()
         if not version.startswith('go version go1.27.4 '):
             raise ValueError(f'expected Go 1.27.4, got {version}')
@@ -130,7 +131,7 @@ def main(argv=None):
                 if not lean or not lake:
                     raise ExportError('pinned Lean and Lake executables must be available on PATH')
             with stage('toolchain', 'toolchain_mismatch'):
-                check_version(run_process([lean, '--version'], root, environment, 'toolchain'))
+                compiler.check_version(run_process([lean, '--version'], root, environment, 'toolchain'))
             run_process([sys.executable, str(root / 'scripts/export.py'), '--output', str(ir_path)],
                         root, environment, 'build')
         content = ir_path.read_bytes()

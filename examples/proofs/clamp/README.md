@@ -3,10 +3,8 @@
 This directory is a complete Go module. Copy it anywhere, then build and run it
 with Go **1.27.4**. It has no external Go dependencies, `replace` directives, or
 runtime dependency on the lean-go repository. The checked-in package was generated
-from ordinary Lean source through the installed `lean-go` CLI. It is included in
-the [alpha.8 candidate](../../../docs/releases/v0.1.0-alpha.8.md), Python package
-`0.1.0a8`. Before publication, use this checkout's CLI; after publication, pair
-its tagged example and CLI.
+from ordinary Lean source through the installed `lean-go` CLI. Regenerate it with this
+[checkout's CLI](../../../docs/cli.md#development-checkout).
 
 The assurance is **proved Lean logic with tested, trusted extraction**. The three
 source theorems do not constitute an end-to-end proof of the generated Go program.
@@ -97,7 +95,7 @@ and [tagged CLI guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/do
 together. Alpha.4 likewise requires its tagged demo and CLI with Lean 4.35.0.
 
 The current producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake
-**4.36.0-rc2** with Lean commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`.
+**4.36.0** with Lean commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`.
 Then run from this directory:
 
 ```sh

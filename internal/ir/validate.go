@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+
+	"github.com/franchb/lean-go/internal/leanversion"
 )
 
 var inputKeys = []string{
@@ -73,7 +75,7 @@ func Validate(p *Program) error {
 }
 
 func validateMetadata(p *Program) error {
-	if p.Schema != Schema || p.Profile != Profile || p.Stage != Stage || p.LeanVersion != LeanVersion || p.LeanCommit != LeanCommit || p.ModelSHA256 != ModelSHA256 || p.Root != Root {
+	if p.Schema != Schema || p.Profile != Profile || p.Stage != Stage || !leanversion.Supported(p.LeanVersion, p.LeanCommit) || p.ModelSHA256 != ModelSHA256 || p.Root != Root {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
 	if len(p.Inputs) != len(inputKeys) {

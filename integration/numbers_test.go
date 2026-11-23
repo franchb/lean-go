@@ -248,18 +248,11 @@ func TestNumbersRegeneration(t *testing.T) {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh numeric producer builds")
 	}
 	dir := t.TempDir()
-	tracked, err := os.ReadFile("../testdata/numbers.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
 	var prior []byte
 	for i := range 2 {
 		out := filepath.Join(dir, fmt.Sprintf("numbers%d", i))
 		data := generateNumbers(t, out, "Numbers.compute")
-		sameFiles(t, directoryFiles(t, out), directoryFiles(t, "../generated/numbers"))
-		if !bytes.Equal(data, tracked) {
-			t.Fatal("tracked numeric IR is stale")
-		}
+		checkRegeneration(t, "numbers", data, directoryFiles(t, out))
 		if i > 0 && !bytes.Equal(data, prior) {
 			t.Fatal("fresh numeric IR differs")
 		}

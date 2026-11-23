@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from lean_go import cli
 import check_cli_install
-from export import COMMIT
+from export import selected_compiler
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,7 +31,7 @@ class PackageTests(unittest.TestCase):
                         ['generate', 'export', 'export_module', 'check_proofs', 'proof_contract',
                          'diagnostics', 'source_locations', 'module_diagnostics'])
         for directory in ['cmd/lean-go', 'internal/ir', 'internal/gogen',
-                          'internal/moduleir', 'internal/modulegen']:
+                          'internal/leanversion', 'internal/moduleir', 'internal/modulegen']:
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory).glob('*.go')
                             if not path.name.endswith('_test.go'))
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory / 'templates').glob('*.tmpl'))
@@ -260,9 +260,10 @@ class JSONDiagnosticTests(unittest.TestCase):
 
 class DoctorTests(unittest.TestCase):
     def doctor(self, versions=None, missing=False):
+        compiler = selected_compiler()
         versions = versions or ['go version go1.27.4 linux/amd64',
-                                f'Lean (version 4.36.0-rc2, target, commit {COMMIT}, Release)',
-                                f'Lean (version 4.36.0-rc2, target, commit {COMMIT}, Release)']
+                                f'Lean (version {compiler.version}, target, commit {compiler.commit}, Release)',
+                                f'Lean (version {compiler.version}, target, commit {compiler.commit}, Release)']
         output = io.StringIO()
         commands = []
         def run(command, **kwargs):

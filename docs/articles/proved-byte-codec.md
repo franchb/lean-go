@@ -6,10 +6,8 @@ proves twelve source properties and generates a Go package with an independent
 `encoding/binary` test oracle. Its Go application converts `0x12345678` in both
 orders and reconstructs the original word.
 
-The byte codec and UInt8 support are part of the [alpha.8 candidate](../releases/v0.1.0-alpha.8.md),
-Python package `0.1.0a8`. Before publication, use this checkout's CLI and generator
-v10. Published alpha.7 has generator v9 and no
-UInt8 support. After alpha.8 publication, pair its tagged example and CLI.
+The codec first shipped in [alpha.8](../releases/v0.1.0-alpha.8.md). Use this
+[checkout's CLI](../cli.md#development-checkout) to regenerate the examples below.
 
 ## Run the application with Go alone
 
@@ -127,8 +125,8 @@ unchanged; `sorry`, custom axioms and `native_decide` do not satisfy the checker
 ## Regenerate and recheck the same artifacts
 
 Regeneration uses Go **1.27.4**, Python **3.15** through **uv**, and Lean/Lake
-**4.36.0-rc2** at exact commit
-`b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`. The Python runtime dependencies use
+**4.36.0** at exact commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. The Python runtime dependencies use
 only the standard library. Install the CLI from this same checkout, from its
 root:
 

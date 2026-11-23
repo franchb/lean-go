@@ -1,6 +1,8 @@
 // Package moduleir validates the bounded pure-module extraction profiles.
 package moduleir
 
+import "github.com/franchb/lean-go/internal/leanversion"
+
 const (
 	Schema          = "lean-go-ir/v2"
 	Profile         = "pure-module/v1"
@@ -26,8 +28,8 @@ const (
 	ProfileV10      = "pure-module/v10"
 	ProfileV11      = "pure-module/v11"
 	Stage           = "pure-mono"
-	LeanVersion     = "4.36.0-rc2"
-	LeanCommit      = "b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a"
+	LeanVersion     = leanversion.Version
+	LeanCommit      = leanversion.Commit
 	MaxBytes        = 4 << 20
 	MaxNodes        = 10000
 	MaxCodeDepth    = 256

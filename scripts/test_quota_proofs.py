@@ -45,7 +45,7 @@ class QuotaRealProofTests(unittest.TestCase):
         cls.contract, cls.project, cls.tools = load_proof_fixture(REPOSITORY / 'libraries/quota/proof-contract.json')
 
     def prove(self, project=None):
-        return proofs.prove(self.contract, self.project if project is None else project, self.tools)
+        return proofs.prove(self.contract, self.project if project is None else project, self.tools, proofs.selected_compiler())
 
     def replace_create(self, declaration):
         return replace_proof_declaration(self.project, 'QuotaProofs', 'theorem create_valid ',
