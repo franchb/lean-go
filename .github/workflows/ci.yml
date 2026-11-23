@@ -44,6 +44,10 @@ jobs:
           go env CGO_ENABLED GOTOOLCHAIN GOWORK
       - name: Test
         run: go test -count=1 -timeout=25m ./...
+      - name: Fuzz frame round trips
+        if: runner.os == 'Linux'
+        working-directory: examples/proofs/wire16
+        run: go test -run '^$' -fuzz '^FuzzFrameRoundTrip$' -fuzztime=10s ./frame
       - name: Vet
         run: go vet ./...
 
