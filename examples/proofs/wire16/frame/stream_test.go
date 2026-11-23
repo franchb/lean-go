@@ -134,3 +134,62 @@ func TestStreamPreservesReaderErrors(t *testing.T) {
 		})
 	}
 }
+
+// finalErrorReader returns err alongside its last bytes, then EOF on the next read.
+type finalErrorReader struct {
+	data []byte
+	err  error
+}
+
+func (r *finalErrorReader) Read(p []byte) (int, error) {
+	if len(r.data) == 0 {
+		return 0, io.EOF
+	}
+	n := copy(p, r.data)
+	r.data = r.data[n:]
+	if len(r.data) == 0 {
+		return n, r.err
+	}
+	return n, nil
+}
+
+func TestStreamErrorWithLastBytes(t *testing.T) {
+	limits := codec.DefaultLimits()
+	tiny := limits
+	tiny.MaxSteps = 1
+	packet := expectedFrame(2, []byte("Go"))
+	empty := expectedFrame(2, nil)
+	sentinel := errors.New("reader failed")
+	for _, tc := range []struct {
+		name     string
+		data     []byte
+		reported error
+		limits   codec.Limits
+		want     error
+	}{
+		{"partial header", packet[:3], sentinel, limits, sentinel},
+		{"complete header", packet[:4], sentinel, limits, sentinel},
+		{"complete header at EOF", packet[:4], io.EOF, limits, io.ErrUnexpectedEOF},
+		{"invalid header", []byte{2, 0xff, 0, 2}, sentinel, limits, frame.ErrUnsupportedVersion},
+		{"invalid limits", packet[:4], sentinel, codec.Limits{}, codec.ErrLimits},
+		{"resource limit", packet[:4], sentinel, tiny, codec.ErrResource},
+		{"partial payload", packet[:5], sentinel, limits, sentinel},
+		{"empty frame", empty, sentinel, limits, nil},
+		{"empty frame at EOF", empty, io.EOF, limits, nil},
+		{"complete payload", packet, sentinel, limits, nil},
+		{"complete payload at EOF", packet, io.EOF, limits, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := &finalErrorReader{tc.data, tc.reported}
+			if tc.want != nil {
+				checkStreamError(t, r, tc.limits, tc.want)
+				return
+			}
+			f, err := frame.ReadFrameFrom(r, tc.limits)
+			flags, ok := f.Header.Flags()
+			if err != nil || !ok || flags != 2 || !bytes.Equal(f.Payload, tc.data[4:]) {
+				t.Fatalf("got frame %+v, error %v", f, err)
+			}
+		})
+	}
+}

@@ -88,6 +88,22 @@ func ReadFrame(src []byte, limits codec.Limits) (Frame, []byte, error) {
 	return Frame{Header: header, Payload: src[headerSize:end:end]}, src[end:], nil
 }
 
+// ReadFull drops errors returned with the last requested byte. Keep the error
+// for the payload read when a header alone does not complete the frame.
+type frameReader struct {
+	source io.Reader
+	err    error
+}
+
+func (r *frameReader) Read(p []byte) (int, error) {
+	if r.err != nil {
+		return 0, r.err
+	}
+	n, err := r.source.Read(p)
+	r.err = err
+	return n, err
+}
+
 // ReadFrameFrom reads one frame from r and returns a caller-owned payload.
 // It reads exactly the header before validating it, then only the declared payload.
 // EOF before the first header byte returns io.EOF. EOF anywhere within a frame
@@ -95,7 +111,8 @@ func ReadFrame(src []byte, limits codec.Limits) (Frame, []byte, error) {
 // already read remain consumed.
 func ReadFrameFrom(r io.Reader, limits codec.Limits) (Frame, error) {
 	var wire [headerSize]byte
-	if _, err := io.ReadFull(r, wire[:]); err != nil {
+	reader := &frameReader{source: r}
+	if _, err := io.ReadFull(reader, wire[:]); err != nil {
 		return Frame{}, err
 	}
 	header, err := parseHeader(wire, limits)
@@ -109,7 +126,7 @@ func ReadFrameFrom(r io.Reader, limits codec.Limits) (Frame, error) {
 		return Frame{}, err
 	}
 	payload := make([]byte, count)
-	if _, err := io.ReadFull(r, payload); err != nil {
+	if _, err := io.ReadFull(reader, payload); err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
 		}

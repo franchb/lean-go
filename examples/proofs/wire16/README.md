@@ -58,9 +58,11 @@ one. This slice handling is implemented and tested in Go.
 `frame.ReadFrameFrom(r, limits)` reads one frame from an `io.Reader`.
 Each successful result owns its payload. A call returns `io.EOF` at a frame
 boundary or `io.ErrUnexpectedEOF` if the stream ends within a header or a
-declared payload. Other reader errors propagate. A complete invalid header
-is rejected before reading its payload. Bytes read from a stream are consumed
-even when the call fails.
+declared payload. A complete invalid header is rejected before reading its
+payload. If the reader supplies the last bytes of a complete valid frame
+together with an error, the call returns that frame. If more payload bytes
+are required, an error delivered with the last header byte applies to this
+frame. Bytes already read from the stream remain consumed when the call fails.
 
 Both readers use `RunClassify(header, available, limits)`. For example, a
 header declaring five bytes with two available yields `needMore 3`. With
