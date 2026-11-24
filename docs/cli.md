@@ -2,26 +2,27 @@
 
 `lean-go-tools` installs the `lean-go` command for generation and source-proof
 checks. For development, follow the [checkout installation](#development-checkout).
-Alpha.10 defaults to Lean/Lake **4.36.0** at commit
+Alpha.11 defaults to Lean/Lake **4.36.0** at commit
 `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Install Go 1.27.4, then install
 the compiler and the tagged CLI with Python 3.15 via uv.
 
 ```sh
 elan toolchain install leanprover/lean4:v4.36.0
-uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.10"
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.11"
 lean-go --version
 lean-go doctor
 ```
 
-The version command prints `lean-go 0.1.0a10`. To generate and check proofs with
+The version command prints `lean-go 0.1.0a11`. To generate and check proofs with
 rc2, install `leanprover/lean4:v4.36.0-rc2` and set `LEAN_GO_TOOLCHAIN=4.36.0-rc2`
-for both commands. Alpha.10 records the selected compiler in the IR, manifest
+for both commands. Alpha.11 records the selected compiler in the IR, manifest
 and proof evidence. Use the default compiler to reproduce the tagged examples.
-[Release notes](releases/v0.1.0-alpha.10.md)
+[Release notes](releases/v0.1.0-alpha.11.md)
 
-When upgrading from alpha.9, regenerate the Go package, IR and proof evidence
-together in a fresh output directory. Alpha.9 used generator v11. Alpha.10 uses v12.
-[Tagged alpha.9 guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.9/docs/cli.md)
+When upgrading from alpha.10, regenerate the Go package, IR and proof evidence
+together in a fresh output directory. Alpha.10 used generator v12. Alpha.11
+uses generator v13 and selects v16/v17 IR when the code widens a `UInt16` to
+`UInt32`. [Tagged alpha.10 guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.10/docs/cli.md)
 
 Use `uv tool update-shell` if your shell cannot find `lean-go`. The install
 and doctor commands also work in PowerShell. For multiline POSIX shell examples
@@ -67,7 +68,7 @@ uv run --locked python scripts/check_wire16_demo.py --cli "$checkout_cli"
 
 On Windows, use the executable in `.venv/Scripts/lean-go.exe`. Reinstall after
 pipeline changes so the installed payload matches the checkout. This checkout
-reports package version `0.1.0a10`. Record the commit and source/tool hashes when
+reports package version `0.1.0a11`. Record the commit and source/tool hashes when
 sharing results; the version string alone is not proof of publication or byte
 identity. Pair generated artifacts with the same checkout and toolchain when
 reproducing their hashes. Later compiler versions need explicit [compatibility qualification](compiler-compatibility.md);
