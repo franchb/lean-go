@@ -8,11 +8,11 @@ v11/`pure-module/v9` multiple-root
 [width-conversion packages](research/extraction-width-conversions.md).
 The alpha.8 release adds v12/`pure-module/v10` single-root and
 v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
-The development checker also accepts `UInt16` packages with v14 IR/manifest and
+Alpha.10 added support for `UInt16` packages with v14 IR/manifest and
 `pure-module/v12` for a single root, or v15 and `pure-module/v13` for multiple roots.
-An executable `UInt16.toUInt32` selects v16 with `pure-module/v14` for a
-single root, or v17 with `pure-module/v15` for multiple roots. Use the checkout
-CLI to reproduce these artifacts.
+In alpha.11, an executable `UInt16.toUInt32` selects v16 with `pure-module/v14` for a
+single root, or v17 with `pure-module/v15` for multiple roots. Use the CLI and
+examples from the same tag to reproduce their proof evidence.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected

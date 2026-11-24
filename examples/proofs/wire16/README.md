@@ -78,7 +78,7 @@ destination and its backing array retain their original contents.
 
 The [frame writing walkthrough](../../../docs/articles/wire16-frame-roundtrip.md)
 follows two frames through the writer and reader, then runs the Go fuzz target.
-The writer is available in the post-alpha.10 checkout.
+The append and stream APIs ship in alpha.11. [Release notes](../../../docs/releases/v0.1.0-alpha.11.md)
 
 ## Write a frame to a stream
 

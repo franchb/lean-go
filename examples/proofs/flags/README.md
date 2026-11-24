@@ -7,7 +7,7 @@ lean-go are needed only to regenerate the package and check the source proofs.
 
 Install the CLI from this [checkout](../../../docs/cli.md#development-checkout)
 to reproduce development artifacts. Tagged examples ship with their matching
-CLI. [Alpha.10 release notes](../../../docs/releases/v0.1.0-alpha.10.md)
+CLI. [Alpha.11 release notes](../../../docs/releases/v0.1.0-alpha.11.md)
 
 ## Run with Go alone
 

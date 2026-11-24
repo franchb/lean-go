@@ -34,10 +34,10 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.10 release](docs/releases/v0.1.0-alpha.10.md), Python package
-`0.1.0a10`, includes six standalone demos and 50 source claims. Its generator
-v12 selects v14/v15 IR for executable `UInt16` values. Programs using only
-earlier capabilities retain their IR schemas.
+The [alpha.11 release](docs/releases/v0.1.0-alpha.11.md), Python package
+`0.1.0a11`, includes six standalone demos and 52 source claims. Generator
+v13 selects v16/v17 IR for executable `UInt16.toUInt32` widening. Programs
+using only earlier capabilities retain their IR schemas.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.
@@ -65,8 +65,8 @@ a concrete contribution: four roots, twelve independent expected propositions,
 fresh proof evidence and Go checks against `encoding/binary`. For changes to the
 UInt8 engine, use the focused admission and differential tests in the
 [UInt8 report](docs/research/extraction-uint8.md). Broad generic collections and
-direct UInt8/UInt64 casts remain deferred. The UInt16 subset covers byte casts, OR and masked shifts. The checkout also
-extracts exact widening from UInt16 to UInt32.
+direct UInt8/UInt64 casts remain deferred. The UInt16 subset covers byte casts,
+OR, masked shifts and exact widening from UInt16 to UInt32.
 
 CI executes ordinary Go tests on Linux and Windows, and extraction gates on Linux.
 Tag workflows also fetch the exact published version into separate Go-only

@@ -28,7 +28,7 @@ for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uin
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
 [walkthrough](docs/getting-started.md) or read the
-[alpha.10 release notes](docs/releases/v0.1.0-alpha.10.md).
+[alpha.11 release notes](docs/releases/v0.1.0-alpha.11.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -48,10 +48,10 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 extracts fresh Go and exercises an isolated consumer.
 
 For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
-To install alpha.10 and reproduce its tagged examples, run
+To install alpha.11 and reproduce its tagged examples, run
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.10"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.11"
 ```
 
 To reproduce published alpha.7, use its
@@ -126,10 +126,11 @@ Its Go error return covers malformed values and resource limits.
 (cd examples/proofs/header && CGO_ENABLED=0 go run .)
 ```
 
-Alpha.10 includes a [typed 16-bit wire codec](examples/proofs/wire16).
-Its Go API accepts a `uint16` length. The accompanying frame reader consumes
-one complete frame from a byte slice and preserves the input for retry on truncation. Eleven Lean theorems specify byte order,
-header validation and both round trips. Run the example with Go alone:
+The [Wire16 example](examples/proofs/wire16) uses a Go `uint16` for the
+payload length. Alpha.11 adds a Lean function that reports the exact payload
+deficit or the number of bytes to consume. Thirteen source theorems cover
+the codec, header validation, round trips and payload completeness. Run the
+example with Go alone:
 
 ```sh
 (cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)
@@ -137,7 +138,8 @@ header validation and both round trips. Run the example with Go alone:
 
 The [frame writing walkthrough](docs/articles/wire16-frame-roundtrip.md) shows
 how to append two frames, read the first, and retry after a partial read.
-The writer is available in the post-alpha.10 checkout.
+For streams, `frame.ReadFrameFrom` returns an owned payload and
+`frame.WriteFrameTo` reports how many header and payload bytes were written.
 
 ## Extract a module
 
@@ -173,11 +175,11 @@ Alpha.10 extracts `UInt16` literals, records and
 `UInt8.toUInt16`, `UInt16.toUInt8`, `|||`, `<<<` and `>>>` on the supported
 operand types. The Go scalar is `uint16`. Widening preserves the byte value,
 narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
-An executable `UInt16` selects v14 IR for one root or v15 for multiple roots
+Without `UInt16.toUInt32`, an executable `UInt16` selects v14 IR for one root or v15 for multiple roots
 with `pure-module/v12` or `pure-module/v13`. Alpha.10 ships generator v12. Pair the CLI and examples from the same tag when
 regenerating artifacts.
 
-The development checkout also extracts ordinary `UInt16.toUInt32` as a
+Alpha.11 extracts ordinary `UInt16.toUInt32` as a
 value-preserving Go conversion. An executable use selects v16 for one root or
 v17 for multiple roots, with profiles `pure-module/v14` and `pure-module/v15`
 and generator v13. The [Wire16 demo](examples/proofs/wire16) uses it to

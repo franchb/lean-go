@@ -8,7 +8,7 @@ flags 3. An empty frame with flags 0 follows it.
 01 03 00 02 47 6f   01 00 00 00
 ```
 
-From a checkout containing the writer, run the [executable example](../../examples/proofs/wire16/frame/roundtrip_test.go):
+From the alpha.11 checkout, run the [executable example](../../examples/proofs/wire16/frame/roundtrip_test.go):
 
 ```sh
 cd examples/proofs/wire16
@@ -63,5 +63,6 @@ CGO_ENABLED=0 go test -count=1 ./frame
 CGO_ENABLED=0 go test -run '^$' -fuzz '^FuzzFrameRoundTrip$' -fuzztime=30s ./frame
 ```
 
-Alpha.10 ships the header codec and frame reader. The append example uses the
-post-alpha.10 checkout. [Alpha.10 release](https://github.com/franchb/lean-go/releases/tag/v0.1.0-alpha.10)
+Alpha.10 introduced the header codec and slice reader. Alpha.11 adds frame
+append, the payload completeness proofs and the stream adapters used here.
+[Alpha.11 release notes](../releases/v0.1.0-alpha.11.md)
