@@ -7,5 +7,5 @@ func TestStandaloneWire16Demo(t *testing.T) {
 		"[01 03 12 34] -> flags=3 length=4660 -> [01 03 12 34]\n"+
 		"[02 80 00 00] -> unsupported version\n"+
 		"[01 04 00 00] -> reserved flags\n", "frame/frame.go", "frame/frame_test.go",
-		"frame/append_test.go", "frame/roundtrip_test.go", "frame/stream_test.go")
+		"frame/append_test.go", "frame/roundtrip_test.go", "frame/stream_test.go", "frame/stream_write_test.go")
 }

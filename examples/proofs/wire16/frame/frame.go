@@ -171,3 +171,19 @@ func AppendFrame(dst []byte, flags uint8, payload []byte, limits codec.Limits) (
 	copy(dst[start:], wire[:])
 	return dst, nil
 }
+
+// WriteFrameTo encodes a frame and writes it to w in one call. The count
+// includes the four-byte header. Validation errors return zero before any
+// write. A short write without an error returns io.ErrShortWrite. Any error
+// from w is returned with its byte count, including after a full write.
+func WriteFrameTo(w io.Writer, flags uint8, payload []byte, limits codec.Limits) (int, error) {
+	wire, err := AppendFrame(nil, flags, payload, limits)
+	if err != nil {
+		return 0, err
+	}
+	n, err := w.Write(wire)
+	if n < len(wire) && err == nil {
+		err = io.ErrShortWrite
+	}
+	return n, err
+}
