@@ -43,7 +43,7 @@ not describe resource-limit failures.
 
 Runtime source uses only byte/word casts, `UInt32` shifts and OR. The generated
 bundle uses `lean-go-ir/v13`, `lean-go-manifest/v13`, `pure-module/v11`, and
-`lean-go-modulegen/v12`. Tests independently compare all four typed and raw roots
+`lean-go-modulegen/v13`. Tests independently compare all four typed and raw roots
 with `encoding/binary`, check the twelve laws over 652 boundary, distinct-byte,
 one-hot and seeded cases, and exercise malformed inputs, ownership and budgets.
 Each encoder requires 11 allocations and 12 steps; each decoder requires 13
@@ -82,6 +82,6 @@ It checks fresh generation and all twelve proofs, compares exact tracked artifac
 bytes, then tests and runs a copy containing only Go sources and `go.mod`, with
 producer tools hidden and cgo and downloads disabled. Root Go tests exercise the
 same isolated deployment. The installed-wheel smoke runs all six demos through
-both direct and sdist-rebuilt wheels, freshly checking 50 source claims per wheel.
+both direct and sdist-rebuilt wheels, freshly checking 52 source claims per wheel.
 See the [proof contract guide](../../../docs/proof-contracts.md)
 for evidence binding and the [CLI guide](../../../docs/cli.md) for installation.

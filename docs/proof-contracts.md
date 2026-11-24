@@ -10,7 +10,9 @@ The alpha.8 release adds v12/`pure-module/v10` single-root and
 v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
 The development checker also accepts `UInt16` packages with v14 IR/manifest and
 `pure-module/v12` for a single root, or v15 and `pure-module/v13` for multiple roots.
-Use the checkout CLI to reproduce development artifacts.
+An executable `UInt16.toUInt32` selects v16 with `pure-module/v14` for a
+single root, or v17 with `pure-module/v15` for multiple roots. Use the checkout
+CLI to reproduce these artifacts.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -182,10 +184,11 @@ specify each success and rejection condition, the decoded length bound, and
 both round trips on valid inputs. Its consumer checks the wire layout against
 Go's `encoding/binary` and exercises the raw and typed APIs.
 
-The [Wire16 codec and typed header](../examples/proofs/wire16) add eleven source
+The [Wire16 codec and typed header](../examples/proofs/wire16) add thirteen source
 claims. The expected propositions specify each byte by division and remainder,
 the decoded value by arithmetic, the header rejection order, and both codec
-and header round trips.
+and header round trips. Two further claims characterize each payload decision by
+the exact missing or consumed count in natural-number arithmetic.
 
 ## Evidence and assurance
 
@@ -235,5 +238,5 @@ and output protection, rejected theorem/expectation forms, deterministic evidenc
 and an external project with a Go-only consumer. The quota suite retains its
 library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header and wire16 regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all six through both the direct and sdist-rebuilt wheels, freshly checking 50
+all six through both the direct and sdist-rebuilt wheels, freshly checking 52
 source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).

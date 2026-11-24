@@ -21,6 +21,10 @@ inductive EncodeResult where
   | encoded (wire : ByteQuad)
   | reservedFlags
 
+inductive Availability where
+  | needMore (missing : UInt32)
+  | complete (consumed : UInt32)
+
 namespace Wire16
 
 def encodeBE (n : UInt16) : BytePair :=
@@ -40,5 +44,11 @@ def encode (h : Header) : EncodeResult :=
     let p := encodeBE h.length
     .encoded ⟨1, h.flags, p.hi, p.lo⟩
   else .reservedFlags
+
+/-- Classify the payload bytes available after the four-byte header. -/
+def classify (header : Header) (available : UInt32) : Availability :=
+  let length := header.length.toUInt32
+  if available < length then .needMore (length - available)
+  else .complete length
 
 end Wire16

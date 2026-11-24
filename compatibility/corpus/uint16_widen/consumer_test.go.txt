@@ -1,0 +1,17 @@
+package compatconsumer
+
+import (
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+func TestWidenEveryHalfword(t *testing.T) {
+	limits := x.DefaultLimits()
+	for i := range 1 << 16 {
+		got, err := x.RunTyped(uint16(i), limits)
+		if err != nil || got != uint32(i) {
+			t.Fatalf("widen(%04x) = %08x, %v", i, got, err)
+		}
+	}
+}

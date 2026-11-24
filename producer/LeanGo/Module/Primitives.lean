@@ -23,6 +23,8 @@ structure NumericPrimitive where
 def numericPrimitives : Array NumericPrimitive := #[
   { name := ``UInt8.toUInt16, operand := ``UInt8, result := ``UInt16,
     externalSymbol := "lean_uint8_to_uint16", arity := 1 },
+  { name := ``UInt16.toUInt32, operand := ``UInt16, result := ``UInt32,
+    externalSymbol := "lean_uint16_to_uint32", arity := 1 },
   { name := ``UInt16.toUInt8, operand := ``UInt16, result := ``UInt8,
     externalSymbol := "lean_uint16_to_uint8", arity := 1 },
   { name := ``UInt16.lor, operand := ``UInt16, result := ``UInt16,

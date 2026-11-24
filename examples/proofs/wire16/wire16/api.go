@@ -36,25 +36,25 @@ func apiReadUInt32(n *node) (uint32, bool) {
 	return n.scalar, true
 }
 
-func apiUInt64Node(value uint64) *node { return &node{typ: 7, scalar64: value, size: 1, depth: 1} }
+func apiUInt64Node(value uint64) *node { return &node{typ: 8, scalar64: value, size: 1, depth: 1} }
 func apiReadUInt64(n *node) (uint64, bool) {
-	if !apiNode(n, 7) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
+	if !apiNode(n, 8) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar64, true
 }
 
-func apiUInt8Node(value uint8) *node { return &node{typ: 8, scalar8: value, size: 1, depth: 1} }
+func apiUInt8Node(value uint8) *node { return &node{typ: 9, scalar8: value, size: 1, depth: 1} }
 func apiReadUInt8(n *node) (uint8, bool) {
-	if !apiNode(n, 8) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
+	if !apiNode(n, 9) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar8, true
 }
 
-func apiUInt16Node(value uint16) *node { return &node{typ: 9, scalar16: value, size: 1, depth: 1} }
+func apiUInt16Node(value uint16) *node { return &node{typ: 10, scalar16: value, size: 1, depth: 1} }
 func apiReadUInt16(n *node) (uint16, bool) {
-	if !apiNode(n, 9) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
+	if !apiNode(n, 10) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
 		return 0, false
 	}
 	return n.scalar16, true
@@ -65,27 +65,67 @@ func apiBoolNode(value bool) *node {
 	if value {
 		tag = 1
 	}
-	return &node{typ: 1, tag: tag, size: 1, depth: 1}
+	return &node{typ: 2, tag: tag, size: 1, depth: 1}
 }
 func apiReadBool(n *node) (bool, bool) {
-	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
+	if !apiNode(n, 2) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
 		return false, false
 	}
 	return n.tag == 1, true
+}
+
+// Availability is an immutable value; its zero value is invalid.
+type Availability struct{ v Value }
+
+func NewAvailabilityNeedMore(a0 uint32, l Limits) (Availability, error) {
+	v, err := apiMake(1, 0, []*node{apiUInt32Node(a0)}, l)
+	if err != nil {
+		return Availability{}, err
+	}
+	return Availability{v: v}, nil
+}
+func (v Availability) IsNeedMore() bool { return apiMatches(v.v, 1, 0, 1) }
+func (v Availability) AsNeedMore() (uint32, bool) {
+	if !apiMatches(v.v, 1, 0, 1) {
+		return 0, false
+	}
+	a0, ok := apiReadUInt32(v.v.n.fields[0])
+	if !ok {
+		return 0, false
+	}
+	return a0, true
+}
+func NewAvailabilityComplete(a0 uint32, l Limits) (Availability, error) {
+	v, err := apiMake(1, 1, []*node{apiUInt32Node(a0)}, l)
+	if err != nil {
+		return Availability{}, err
+	}
+	return Availability{v: v}, nil
+}
+func (v Availability) IsComplete() bool { return apiMatches(v.v, 1, 1, 1) }
+func (v Availability) AsComplete() (uint32, bool) {
+	if !apiMatches(v.v, 1, 1, 1) {
+		return 0, false
+	}
+	a0, ok := apiReadUInt32(v.v.n.fields[0])
+	if !ok {
+		return 0, false
+	}
+	return a0, true
 }
 
 // BytePair is an immutable value; its zero value is invalid.
 type BytePair struct{ v Value }
 
 func NewBytePair(a0 uint8, a1 uint8, l Limits) (BytePair, error) {
-	v, err := apiMake(2, 0, []*node{apiUInt8Node(a0), apiUInt8Node(a1)}, l)
+	v, err := apiMake(3, 0, []*node{apiUInt8Node(a0), apiUInt8Node(a1)}, l)
 	if err != nil {
 		return BytePair{}, err
 	}
 	return BytePair{v: v}, nil
 }
 func (v BytePair) Hi() (uint8, bool) {
-	if !apiMatches(v.v, 2, 0, 2) {
+	if !apiMatches(v.v, 3, 0, 2) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[0])
@@ -95,7 +135,7 @@ func (v BytePair) Hi() (uint8, bool) {
 	return value, true
 }
 func (v BytePair) Lo() (uint8, bool) {
-	if !apiMatches(v.v, 2, 0, 2) {
+	if !apiMatches(v.v, 3, 0, 2) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[1])
@@ -109,14 +149,14 @@ func (v BytePair) Lo() (uint8, bool) {
 type ByteQuad struct{ v Value }
 
 func NewByteQuad(a0 uint8, a1 uint8, a2 uint8, a3 uint8, l Limits) (ByteQuad, error) {
-	v, err := apiMake(3, 0, []*node{apiUInt8Node(a0), apiUInt8Node(a1), apiUInt8Node(a2), apiUInt8Node(a3)}, l)
+	v, err := apiMake(4, 0, []*node{apiUInt8Node(a0), apiUInt8Node(a1), apiUInt8Node(a2), apiUInt8Node(a3)}, l)
 	if err != nil {
 		return ByteQuad{}, err
 	}
 	return ByteQuad{v: v}, nil
 }
 func (v ByteQuad) B0() (uint8, bool) {
-	if !apiMatches(v.v, 3, 0, 4) {
+	if !apiMatches(v.v, 4, 0, 4) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[0])
@@ -126,7 +166,7 @@ func (v ByteQuad) B0() (uint8, bool) {
 	return value, true
 }
 func (v ByteQuad) B1() (uint8, bool) {
-	if !apiMatches(v.v, 3, 0, 4) {
+	if !apiMatches(v.v, 4, 0, 4) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[1])
@@ -136,7 +176,7 @@ func (v ByteQuad) B1() (uint8, bool) {
 	return value, true
 }
 func (v ByteQuad) B2() (uint8, bool) {
-	if !apiMatches(v.v, 3, 0, 4) {
+	if !apiMatches(v.v, 4, 0, 4) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[2])
@@ -146,7 +186,7 @@ func (v ByteQuad) B2() (uint8, bool) {
 	return value, true
 }
 func (v ByteQuad) B3() (uint8, bool) {
-	if !apiMatches(v.v, 3, 0, 4) {
+	if !apiMatches(v.v, 4, 0, 4) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[3])
@@ -163,7 +203,7 @@ func NewByteQuadFromBytes(data [4]byte, l Limits) (ByteQuad, error) {
 
 // Bytes copies the four fields in declaration order.
 func (v ByteQuad) Bytes() ([4]byte, error) {
-	if !apiMatches(v.v, 3, 0, 4) || v.v.n.size != 5 || v.v.n.depth != 2 {
+	if !apiMatches(v.v, 4, 0, 4) || v.v.n.size != 5 || v.v.n.depth != 2 {
 		return [4]byte{}, ErrMalformed
 	}
 	var data [4]byte
@@ -181,45 +221,45 @@ func (v ByteQuad) Bytes() ([4]byte, error) {
 type EncodeResult struct{ v Value }
 
 func NewEncodeResultEncoded(a0 ByteQuad, l Limits) (EncodeResult, error) {
-	v, err := apiMake(4, 0, []*node{a0.v.n}, l)
+	v, err := apiMake(5, 0, []*node{a0.v.n}, l)
 	if err != nil {
 		return EncodeResult{}, err
 	}
 	return EncodeResult{v: v}, nil
 }
-func (v EncodeResult) IsEncoded() bool { return apiMatches(v.v, 4, 0, 1) }
+func (v EncodeResult) IsEncoded() bool { return apiMatches(v.v, 5, 0, 1) }
 func (v EncodeResult) AsEncoded() (ByteQuad, bool) {
-	if !apiMatches(v.v, 4, 0, 1) {
+	if !apiMatches(v.v, 5, 0, 1) {
 		return ByteQuad{}, false
 	}
-	if !apiNode(v.v.n.fields[0], 3) {
+	if !apiNode(v.v.n.fields[0], 4) {
 		return ByteQuad{}, false
 	}
 	a0 := ByteQuad{v: Value{v.v.n.fields[0]}}
 	return a0, true
 }
 func NewEncodeResultReservedFlags(l Limits) (EncodeResult, error) {
-	v, err := apiMake(4, 1, []*node{}, l)
+	v, err := apiMake(5, 1, []*node{}, l)
 	if err != nil {
 		return EncodeResult{}, err
 	}
 	return EncodeResult{v: v}, nil
 }
-func (v EncodeResult) IsReservedFlags() bool { return apiMatches(v.v, 4, 1, 0) }
-func (v EncodeResult) AsReservedFlags() bool { return apiMatches(v.v, 4, 1, 0) }
+func (v EncodeResult) IsReservedFlags() bool { return apiMatches(v.v, 5, 1, 0) }
+func (v EncodeResult) AsReservedFlags() bool { return apiMatches(v.v, 5, 1, 0) }
 
 // Header is an immutable value; its zero value is invalid.
 type Header struct{ v Value }
 
 func NewHeader(a0 uint8, a1 uint16, l Limits) (Header, error) {
-	v, err := apiMake(5, 0, []*node{apiUInt8Node(a0), apiUInt16Node(a1)}, l)
+	v, err := apiMake(6, 0, []*node{apiUInt8Node(a0), apiUInt16Node(a1)}, l)
 	if err != nil {
 		return Header{}, err
 	}
 	return Header{v: v}, nil
 }
 func (v Header) Flags() (uint8, bool) {
-	if !apiMatches(v.v, 5, 0, 2) {
+	if !apiMatches(v.v, 6, 0, 2) {
 		return 0, false
 	}
 	value, ok := apiReadUInt8(v.v.n.fields[0])
@@ -229,7 +269,7 @@ func (v Header) Flags() (uint8, bool) {
 	return value, true
 }
 func (v Header) Length() (uint16, bool) {
-	if !apiMatches(v.v, 5, 0, 2) {
+	if !apiMatches(v.v, 6, 0, 2) {
 		return 0, false
 	}
 	value, ok := apiReadUInt16(v.v.n.fields[1])
@@ -243,41 +283,54 @@ func (v Header) Length() (uint16, bool) {
 type ParseResult struct{ v Value }
 
 func NewParseResultParsed(a0 Header, l Limits) (ParseResult, error) {
-	v, err := apiMake(6, 0, []*node{a0.v.n}, l)
+	v, err := apiMake(7, 0, []*node{a0.v.n}, l)
 	if err != nil {
 		return ParseResult{}, err
 	}
 	return ParseResult{v: v}, nil
 }
-func (v ParseResult) IsParsed() bool { return apiMatches(v.v, 6, 0, 1) }
+func (v ParseResult) IsParsed() bool { return apiMatches(v.v, 7, 0, 1) }
 func (v ParseResult) AsParsed() (Header, bool) {
-	if !apiMatches(v.v, 6, 0, 1) {
+	if !apiMatches(v.v, 7, 0, 1) {
 		return Header{}, false
 	}
-	if !apiNode(v.v.n.fields[0], 5) {
+	if !apiNode(v.v.n.fields[0], 6) {
 		return Header{}, false
 	}
 	a0 := Header{v: Value{v.v.n.fields[0]}}
 	return a0, true
 }
 func NewParseResultUnsupportedVersion(l Limits) (ParseResult, error) {
-	v, err := apiMake(6, 1, []*node{}, l)
+	v, err := apiMake(7, 1, []*node{}, l)
 	if err != nil {
 		return ParseResult{}, err
 	}
 	return ParseResult{v: v}, nil
 }
-func (v ParseResult) IsUnsupportedVersion() bool { return apiMatches(v.v, 6, 1, 0) }
-func (v ParseResult) AsUnsupportedVersion() bool { return apiMatches(v.v, 6, 1, 0) }
+func (v ParseResult) IsUnsupportedVersion() bool { return apiMatches(v.v, 7, 1, 0) }
+func (v ParseResult) AsUnsupportedVersion() bool { return apiMatches(v.v, 7, 1, 0) }
 func NewParseResultReservedFlags(l Limits) (ParseResult, error) {
-	v, err := apiMake(6, 2, []*node{}, l)
+	v, err := apiMake(7, 2, []*node{}, l)
 	if err != nil {
 		return ParseResult{}, err
 	}
 	return ParseResult{v: v}, nil
 }
-func (v ParseResult) IsReservedFlags() bool { return apiMatches(v.v, 6, 2, 0) }
-func (v ParseResult) AsReservedFlags() bool { return apiMatches(v.v, 6, 2, 0) }
+func (v ParseResult) IsReservedFlags() bool { return apiMatches(v.v, 7, 2, 0) }
+func (v ParseResult) AsReservedFlags() bool { return apiMatches(v.v, 7, 2, 0) }
+
+// RunClassify invokes its selected Lean root through RunRoot and its existing limits.
+func RunClassify(a0 Header, a1 uint32, l Limits) (Availability, error) {
+	out, err := RunRoot("Wire16.classify", []Value{{n: a0.v.n}, {n: apiUInt32Node(a1)}}, l)
+	if err != nil {
+		return Availability{}, err
+	}
+	if !apiNode(out.n, 1) {
+		return Availability{}, ErrMalformed
+	}
+	value := Availability{v: Value{out.n}}
+	return value, nil
+}
 
 // RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits.
 func RunDecodeBE(a0 BytePair, l Limits) (uint16, error) {
@@ -298,7 +351,7 @@ func RunEncode(a0 Header, l Limits) (EncodeResult, error) {
 	if err != nil {
 		return EncodeResult{}, err
 	}
-	if !apiNode(out.n, 4) {
+	if !apiNode(out.n, 5) {
 		return EncodeResult{}, ErrMalformed
 	}
 	value := EncodeResult{v: Value{out.n}}
@@ -311,7 +364,7 @@ func RunEncodeBE(a0 uint16, l Limits) (BytePair, error) {
 	if err != nil {
 		return BytePair{}, err
 	}
-	if !apiNode(out.n, 2) {
+	if !apiNode(out.n, 3) {
 		return BytePair{}, ErrMalformed
 	}
 	value := BytePair{v: Value{out.n}}
@@ -324,7 +377,7 @@ func RunParse(a0 ByteQuad, l Limits) (ParseResult, error) {
 	if err != nil {
 		return ParseResult{}, err
 	}
-	if !apiNode(out.n, 6) {
+	if !apiNode(out.n, 7) {
 		return ParseResult{}, ErrMalformed
 	}
 	value := ParseResult{v: Value{out.n}}

@@ -58,7 +58,7 @@
     }
   ],
   "contract_sha256": "8494cf05df9c4fac542270b442b7cba0c8ea286686420174f3c54c72a9cf52e0",
-  "generated_manifest_sha256": "00a8ad969a6249e0d1ffd16096f65034644cbe8bc753a5b73e812269a014695f",
+  "generated_manifest_sha256": "92dd0d5b0f482075b144132e209cde4240f140eb08c47afa9f413b3ccddcf586",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Words",
@@ -81,9 +81,9 @@
     "scripts/check_proofs.py": "6a1995c54ecb85c652ad4f09d5eb173adf127359df5fc1a56846a4dcaf7fe5fc",
     "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
     "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "13e4e1513a9c5a744b2296788caa7b12ee670df330087d3eb13d08ea3f1831ec",
+    "scripts/export_module.py": "fb0f610bc8ce6cf6686fe38bc0ef1c2b86b9759564046260f13ce9ee714064e0",
     "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "0b26730e4d56389d9bafbad7f0aff7045b84f28572fd4fea79eb253e6785d253",
+    "scripts/proof_contract.py": "aa8e8553a2aef3dccf36d90ecdae0d2829cfb0d82900f01bd5b3c6ccc41440e7",
     "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
   }
 }

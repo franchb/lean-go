@@ -110,7 +110,8 @@ its tagged example and
 [guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
 The extraction and Go runtime remain tested and trusted; the proofs establish
 the selected Lean statements.
-Alpha.10 adds `UInt16` byte casts, OR and shifts. Runtime
+Alpha.10 adds `UInt16` byte casts, OR and shifts. The development checkout also
+extracts `UInt16.toUInt32` for exact widening. Runtime
 division/remainder, direct UInt8/UInt64 casts and broad generic
 collections remain deferred.
 

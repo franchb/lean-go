@@ -49,12 +49,12 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 | [Words](../examples/proofs/words) | 7 | 699 boundary and seeded triples |
 | [Bytes](../examples/proofs/bytes) | 12 | 652 boundary, one-hot and seeded cases |
 | [Header](../examples/proofs/header) | 9 | All 262,144 valid headers plus rejection and limit cases |
-| [Wire16](../examples/proofs/wire16) | 11 | All 65,536 words and all 262,144 valid typed headers |
+| [Wire16](../examples/proofs/wire16) | 13 | All 65,536 words and all 262,144 valid typed headers |
 
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
 runs these six verifiers for both a direct wheel and an sdist-rebuilt wheel,
-freshly checking 50 source claims per wheel. Current regenerated manifests and
-proof evidence use module generator v12; the earlier demos retain their existing
+freshly checking 52 source claims per wheel. Current regenerated manifests and
+proof evidence use module generator v13; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
@@ -97,7 +97,7 @@ Success prints a JSON receipt with `"status": "passed"`,
 `"candidate": "0.1.0a10"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
-checkout, including generator v12; it does not establish publication. Interpret
+checkout, including generator v13; it does not establish publication. Interpret
 the hashes together with the recorded commit and working-tree changes. A receipt
 from a historical checkout records that checkout's package version and inputs.
 All temporary projects and caches owned by the verifier are removed. To retain

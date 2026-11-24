@@ -19,14 +19,15 @@ class WidthSchemaTests(unittest.TestCase):
     complete = bitwise.BitwiseSchemaTests.complete
 
     def test_executable_casts_select_exact_schema_in_every_container(self):
-        for name, _, _ in CASTS:
+        for name, single_version in [('UInt32.toUInt64', 10), ('UInt64.toUInt32', 10), ('UInt16.toUInt32', 16)]:
             leaf = dict(op='let', value=dict(kind='primitive', name=name, args=[1]), next=dict(op='return', var=2))
             bodies = [leaf, dict(op='join', join=dict(body=leaf), next=dict(op='jump')),
                       dict(op='join', join=dict(body=dict(op='return')), next=leaf),
                       dict(op='cases', alts=[dict(body=leaf)]),
                       dict(op='let', value=dict(kind='primitive', name='UInt64.land'), next=leaf)]
             for multi in (False, True):
-                expected = ('lean-go-ir/v11', 'pure-module/v9') if multi else ('lean-go-ir/v10', 'pure-module/v8')
+                version = single_version + int(multi)
+                expected = (f'lean-go-ir/v{version}', f'pure-module/v{version - 2}')
                 for body in bodies:
                     program, roots = self.raw(body, multi)
                     result = self.complete(program, roots)
@@ -41,7 +42,8 @@ class WidthSchemaTests(unittest.TestCase):
                     program['provenance'] = [dict(name=name, dependencies=[name])]
                     self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
         for name in ('UInt32.toUInt32', 'UInt64.toUInt64', 'UInt16.toUInt64', 'UInt32.toUInt16',
-                     'UInt32.toUInt64._boxed', 'UInt64.toUInt32.injected', 'Fake.UInt32.toUInt64'):
+                     'UInt32.toUInt64._boxed', 'UInt64.toUInt32.injected', 'Fake.UInt32.toUInt64',
+                     'UInt16.toUInt32._boxed', 'Fake.UInt16.toUInt32'):
             leaf['value']['name'] = name
             program, roots = self.raw(leaf)
             self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v6')

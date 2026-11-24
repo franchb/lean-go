@@ -20,6 +20,8 @@ const (
 	SchemaV13       = "lean-go-ir/v13"
 	SchemaV14       = "lean-go-ir/v14"
 	SchemaV15       = "lean-go-ir/v15"
+	SchemaV16       = "lean-go-ir/v16"
+	SchemaV17       = "lean-go-ir/v17"
 	ProfileV3       = "pure-module/v3"
 	ProfileV4       = "pure-module/v4"
 	ProfileV5       = "pure-module/v5"
@@ -31,6 +33,8 @@ const (
 	ProfileV11      = "pure-module/v11"
 	ProfileV12      = "pure-module/v12"
 	ProfileV13      = "pure-module/v13"
+	ProfileV14      = "pure-module/v14"
+	ProfileV15      = "pure-module/v15"
 	Stage           = "pure-mono"
 	LeanVersion     = leanversion.Version
 	LeanCommit      = leanversion.Commit
