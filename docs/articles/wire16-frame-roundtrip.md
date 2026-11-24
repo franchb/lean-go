@@ -35,6 +35,13 @@ It returns `io.EOF` when the stream ends between frames and
 `io.ErrUnexpectedEOF` for an unfinished header or payload. Each successful
 call returns an owned payload and reads exactly to the end of that frame.
 
+To send the same frame to an `io.Writer`, call
+`frame.WriteFrameTo(w, 3, []byte("Go"), limits)`. Success reports six wire
+bytes. If the transport accepts only the four header bytes before failing,
+the call returns four and the transport error. The
+[executable example](../../examples/proofs/wire16/frame/stream_write_test.go)
+pairs the stream writer with `ReadFrameFrom`.
+
 ## What the checks establish
 
 Lean checks thirteen [Wire16 propositions](../../examples/proofs/wire16/proof/Wire16Contract.lean).

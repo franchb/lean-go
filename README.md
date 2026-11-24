@@ -183,6 +183,7 @@ v17 for multiple roots, with profiles `pure-module/v14` and `pure-module/v15`
 and generator v13. The [Wire16 demo](examples/proofs/wire16) uses it to
 classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
+The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
 
 Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and

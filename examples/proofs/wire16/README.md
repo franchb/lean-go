@@ -80,6 +80,26 @@ The [frame writing walkthrough](../../../docs/articles/wire16-frame-roundtrip.md
 follows two frames through the writer and reader, then runs the Go fuzz target.
 The writer is available in the post-alpha.10 checkout.
 
+## Write a frame to a stream
+
+`frame.WriteFrameTo(w, flags, payload, limits)` validates and stages one
+complete frame, then calls `w.Write` once. The encoded frame is at most
+65,539 bytes, including the four-byte header. Invalid flags, an oversized
+payload, or a codec limit error return zero before the writer sees any bytes.
+
+The returned count includes header and payload bytes. A short write with a
+nil error becomes `io.ErrShortWrite`. Other write errors are returned with
+the count the writer reported, even if it accepted the entire frame. Check
+both results before retrying. Resending a partially written frame on the same
+stream would duplicate its prefix.
+
+Run the [stream writer example](frame/stream_write_test.go) to write a frame
+and read it back with `ReadFrameFrom`.
+
+```sh
+CGO_ENABLED=0 go test -run '^ExampleWriteFrameTo$' -v ./frame
+```
+
 ## Proofs and Go checks
 
 Thirteen kernel-checked propositions cover the two-byte codec, header and
