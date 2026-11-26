@@ -1,8 +1,8 @@
 # Check source proofs, generated Go and deployment
 
-Use the CLI and examples from the same checkout or release tag. Alpha.13
-uses generator v15 and defaults to stable Lean 4.36.0. Its other supported
-compiler is 4.36.0-rc2. [Release notes](releases/v0.1.0-alpha.13.md)
+Use the CLI and examples from the same checkout or release tag. Alpha.14
+uses generator v16 and defaults to stable Lean 4.36.0. Its other supported
+compiler is 4.36.0-rc2. [Release notes](releases/v0.1.0-alpha.14.md)
 
 This walkthrough checks fresh source theorems, generated artifacts and isolated
 Go consumers. APIs remain experimental. The [byte article](articles/proved-byte-codec.md)
@@ -60,17 +60,17 @@ freshly checking 54 source claims per wheel. Current regenerated manifests and
 proof evidence in the development checkout use generator v16. The CRC fold uses multi-root v21 IR. The other demos retain their earlier IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
-Alpha.13 also proves two composition claims for the checksummed Wire16 frame. The checker verifies the same two propositions against both component manifests, bringing the total to 56 distinct source claims. [Checksummed frame example](../examples/proofs/checkedframe)
+Alpha.14 also proves two composition claims for the checksummed Wire16 frame. A v2 proof contract checks those two propositions once and binds them to both component manifests, bringing the total to 56 distinct source claims. [Checksummed frame example](../examples/proofs/checkedframe)
 
-## Reproduce the alpha.13 tag
+## Reproduce the alpha.14 tag
 
 Install stable Lean 4.36.0 and run the tagged CLI against the same source tree.
 
 ```sh
-git clone --branch v0.1.0-alpha.13 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha13
-cd lean-go-alpha13
+git clone --branch v0.1.0-alpha.14 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha14
+cd lean-go-alpha14
 git rev-parse HEAD
-uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.13"
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.14"
 lean-go doctor
 release_cli=$(command -v lean-go)
 uv run --locked python scripts/check_clamp_demo.py --cli "$release_cli"
@@ -100,7 +100,7 @@ tool path, uses `CGO_ENABLED=0`, and disables module network access. It compares
 values above 2^53 and `math.MaxUint64`.
 
 Success prints a JSON receipt with `"status": "passed"`,
-`"candidate": "0.1.0a13"`, tool identities, checked claims, source/proof/tool
+`"candidate": "0.1.0a14"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
 checkout, including generator v16; it does not establish publication. Interpret
@@ -121,7 +121,7 @@ separate test checks the public Go module:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
-  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.13 \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.14 \
   go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
 ```
 
@@ -145,7 +145,7 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
 `replace`. The candidate checkout serves a synthetic archive as
-`v0.1.0-alpha.13` from that local proxy. This checks the local archive's Go
+`v0.1.0-alpha.14` from that local proxy. This checks the local archive's Go
 behavior; it does not establish public tag availability or the checksum of a
 future published module.
 

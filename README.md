@@ -28,7 +28,7 @@ for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uin
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
 [walkthrough](docs/getting-started.md) or read the
-[alpha.13 release notes](docs/releases/v0.1.0-alpha.13.md).
+[alpha.14 release notes](docs/releases/v0.1.0-alpha.14.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -48,10 +48,10 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 extracts fresh Go and exercises an isolated consumer.
 
 For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
-To install alpha.13 and reproduce its tagged examples, run
+To install alpha.14 and reproduce its tagged examples, run
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.13"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.14"
 ```
 
 To reproduce published alpha.7, use its
@@ -187,7 +187,7 @@ classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
 The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
 
-In the development checkout, a root of the form
+In alpha.14, a root of the form
 `def update (state : UInt32) (xs : List UInt8) := xs.foldl step state`
 can accept a read-only Go `[]byte`. The named step takes an accumulator and
 a byte and returns the same scalar type. The producer checks the elaborated
