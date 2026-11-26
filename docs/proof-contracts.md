@@ -1,9 +1,11 @@
 # Reusable source-proof contracts
 
 A proof contract lets a Lean library use the same checked-evidence workflow as
-the [quota library](quota.md). The development checker accepts packages whose
-manifest is `lean-go-manifest/v24` and whose program uses IR `lean-go-ir/v24`
-and profile `pure-module/v22`, with one or more roots in its `roots` array.
+the [quota library](quota.md). The development checker accepts metered
+packages (manifest `lean-go-manifest/v24`) and [native](native-mode.md)
+packages (manifest `lean-go-native-manifest/v1`, the default output of
+`lean-go generate`) whose program uses IR `lean-go-ir/v24` and profile
+`pure-module/v22`, with one or more roots in its `roots` array.
 Manifests from earlier releases are rejected; regenerate them with the current
 tool. Use the CLI and examples from the same tag to reproduce a release's proof
 evidence. The checker is included starting with the `v0.1.0-alpha.3` source release.
@@ -120,8 +122,27 @@ and both theorems. A change to either manifest invalidates the evidence.
 
 ## Generate and check an external project
 
-Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0
-and Python 3.15 through `uv`. Use the same checkout to regenerate artifacts and
+With the Go command, from any directory (it needs only Go 1.27.4 to build and
+the pinned Lean 4.36.0 to run; see the [CLI guide](cli.md)):
+
+```sh
+lean-go generate \
+  --source-dir /path/to/my-library/source \
+  --module Library --root Library.clamp \
+  --out /tmp/library-generated --ir-output /tmp/library.ir.json
+
+lean-go check-proofs \
+  --contract /path/to/my-library/proof-contract.json \
+  --manifest /tmp/library-generated/manifest.json \
+  --output /path/to/my-library/proof-evidence.json
+```
+
+This generates a native package; add `--mode metered` to `generate` for a
+metered one. The checker binds either.
+
+The Python wrappers below do the same and generate a metered package unless
+given `--mode native`. Run these commands from the lean-go checkout, using Go
+1.27.4, pinned Lean 4.36.0 and Python 3.15 through `uv`. Use the same checkout to regenerate artifacts and
 proof evidence; when using an installed CLI, install it from that
 [development checkout](cli.md#development-checkout). Reproducing a published
 release requires that release's examples and CLI together.
@@ -155,7 +176,18 @@ of checker scripts or Lean checking infrastructure. The
 [standalone clamp example](../examples/proofs/clamp) is a complete
 single-root project with an imported local runtime module, generated package and
 independent Go tests. The [article](articles/lean-proofs-to-go.md) explains its
-three source claims and the tested extraction boundary. Quota demonstrates
+three source claims and the tested extraction boundary. The example tracks the
+metered package `clamp/` with `proof-evidence.json` and the native package
+`clampnative/` with `native-proof-evidence.json`; both bind the same three
+claims:
+
+```sh
+cd examples/proofs/clamp
+lean-go check-proofs --contract proof-contract.json \
+  --manifest clampnative/manifest.json --evidence native-proof-evidence.json
+```
+
+Quota demonstrates
 multiple roots and keeps its existing command:
 
 ```sh
@@ -220,8 +252,15 @@ shortcuts such as `native_decide` are rejected.
 
 Manifest checks require the module, roots, profile and Lean identity to match.
 The full runtime source hash inventory must match the extraction inputs. The
-generated directory must contain exactly the manifest and four generated Go
-files, and every file hash must match. Snapshots and binding are checked again
+manifest schema fixes the package layout and the manifest lists its files:
+a metered package is the manifest and its four generated Go files
+(`api.go`, `control.go`, `runtime.go`, `schema.go`); a native package must
+record `"mode": "native"` and the current native generator, and its
+`generated_files` names its Go files (`functions.go`, `native.go`,
+`types.go` today; only plain lower-case non-test `.go` names are accepted).
+The generated directory must contain exactly the manifest and those files,
+and every file hash must match, so a missing, extra or changed file is
+rejected. Snapshots and binding are checked again
 after Lean finishes, before evidence can be written.
 
 The temporary workspace's snapshotted sources, trusted checker and fixed
@@ -231,7 +270,9 @@ already-staged checker program.
 
 `lean-go-proof-evidence/v1` records contract bytes, logical project/tool input
 hashes, the selected module and roots, manifest hash, theorem and expected names,
-statements and axiom dependencies. It has no machine-specific absolute paths.
+statements and axiom dependencies. Evidence for a native package also records
+`"generated_mode": "native"`, as does a native component's entry in composition
+evidence; metered evidence has no mode field. It has no machine-specific absolute paths.
 Changing a contract, proof, checker, runtime source or generated package requires
 fresh evidence. The quota sidecar now uses this shared schema; its runtime and
 Go API are unchanged.

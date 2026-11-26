@@ -27,6 +27,7 @@ import (
 )
 
 func main() {
+    // generated/wide is a metered package: every call takes Limits.
     result, err := wide.RunTyped(^uint64(0), 1, wide.DefaultLimits())
     if err != nil {
         panic(err)
@@ -71,7 +72,8 @@ LE(0x12345678) = [78 56 34 12] -> 0x12345678
 BE(0x12345678) = [12 34 56 78] -> 0x12345678
 ```
 
-Copy that directory to use its Go application offline. The generated API has
+Copy that directory to use its Go application offline. Its package is
+metered (generated with `--mode metered`). The generated API has
 `RunEncodeLE`/`RunEncodeBE` (`uint32` to `ByteQuad`) and
 `RunDecodeLE`/`RunDecodeBE` (`ByteQuad` to `uint32`). `NewByteQuad` constructs an
 input record. In alpha.9, `NewByteQuadFromBytes(wire, limits)`
@@ -144,18 +146,20 @@ def increment (counter : Counter) (amount : UInt64) : Counter :=
 end Example
 ```
 
-From the lean-go checkout, generate a package in the sibling project:
+From the lean-go checkout, build the Go command and generate a package in the
+sibling project:
 
 ```sh
-uv run --locked python scripts/generate.py \
-  --source-dir ../counter-example/lean \
-  --module Counter --root Example.increment \
-  --out ../counter-example/counter \
-  --ir-output ../counter-example/counter.ir.json
+go build -o ~/bin/lean-go ./cmd/lean-go
+cd ../counter-example
+lean-go generate --source-dir lean --module Counter --root Example.increment \
+  --out counter --ir-output counter.ir.json
 ```
 
-The generated directory is standalone Go source. In `../counter-example`, run
-`go mod init example.com/counter` and save this `main.go`:
+The generated directory is standalone [native](native-mode.md) Go source:
+`Counter` is a Go struct and `Example.increment` a Go function. In
+`../counter-example`, run `go mod init example.com/counter` and save this
+`main.go`:
 
 ```go
 package main
@@ -166,19 +170,39 @@ import (
 )
 
 func main() {
-    limits := counter.DefaultLimits()
-    input, err := counter.NewCounter(41, limits)
-    if err != nil { panic(err) }
-    output, err := counter.RunTyped(input, 1, limits)
-    if err != nil { panic(err) }
-    value, valid := output.Value()
-    fmt.Println(value, valid) // 42 true
+    output := counter.Increment(counter.Counter{Value: 41}, 1)
+    fmt.Println(output.Value) // 42
 }
 ```
 
-Run with the same cgo-disabled Go command. Record wrappers are immutable; their
-zero values are invalid. Constructors and calls validate limits. Errors distinguish
-malformed inputs, invalid limit settings and exhausted resource budgets.
+Run with the same cgo-disabled Go command. Every Go value of a generated type
+is a valid Lean value, and functions that do not recurse return no error.
+Native code has no resource budgets: a recursive function only reports
+`ErrDepth` past a fixed depth.
+
+For untrusted recursive input, add `--mode metered` to `generate`. The
+metered package runs the same IR on an explicit-stack interpreter with seven
+resource budgets per call:
+
+```go
+limits := counter.DefaultLimits()
+input, err := counter.NewCounter(41, limits)
+if err != nil { panic(err) }
+output, err := counter.RunTyped(input, 1, limits)
+if err != nil { panic(err) }
+value, valid := output.Value()
+fmt.Println(value, valid) // 42 true
+```
+
+Metered record wrappers are immutable; their zero values are invalid.
+Constructors and calls validate limits. Errors distinguish malformed inputs,
+invalid limit settings and exhausted resource budgets. The tracked packages
+under `generated/` and `examples/proofs/` are metered; the
+[clamp example](../examples/proofs/clamp) also carries a native package with
+its own proof evidence, and the [wire-format examples](wire-formats.md) are
+native. The legacy wrapper `uv run --locked python scripts/generate.py` takes
+the same arguments and keeps metered as its default (`--mode native` for
+native output).
 
 The producer accepts the documented pure, monomorphic subset and rejects
 unsupported forms. Its input Lean source must be trusted: elaboration can execute
