@@ -1,0 +1,16 @@
+name = "lean_go_validate"
+version = "0.0.0"
+defaultTargets = ["LeanGo", "Examples"]
+
+# Object level (`LeanGo.Validate`) and meta level (`LeanGo.Validate.Meta`).
+[[lean_lib]]
+name = "LeanGo"
+roots = ["LeanGo.Validate", "LeanGo.Validate.Meta", "LeanGo.Validate.Meta.Axioms"]
+
+# Evidence on tracked IR; includes the axiom gate (`Examples.AxiomCheck`).
+[[lean_lib]]
+name = "Examples"
+
+# Not built by default: statements that are stated but not (yet) proved.
+[[lean_lib]]
+name = "Open"
