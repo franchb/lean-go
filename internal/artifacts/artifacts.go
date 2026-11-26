@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -296,6 +297,14 @@ func Regenerate(root string, jobs int, cache *pipeline.Cache, progress io.Writer
 		}
 		sort.Strings(names)
 		for _, file := range names {
+			// The extracted package is one artifact, so files of an
+			// earlier emission mode are removed with it.
+			if path.Dir(file) == "internal/extracted" {
+				if file == "internal/extracted/manifest.json" {
+					artifacts = append(artifacts, FormatsDir+"/"+name+"/internal/extracted")
+				}
+				continue
+			}
 			artifacts = append(artifacts, FormatsDir+"/"+name+"/"+file)
 		}
 	}
