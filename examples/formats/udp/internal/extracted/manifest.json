@@ -1,9 +1,11 @@
 {
-  "schema": "lean-go-manifest/v24",
-  "generator": "lean-go-modulegen/v19",
-  "generator_source_sha256": "43eb0f9c29b7cd11ad2c493198e714931352e2dc44eced5dd451ade12407f539",
+  "schema": "lean-go-native-manifest/v1",
+  "mode": "native",
+  "generator": "lean-go-nativegen/v1",
+  "generator_source_sha256": "244e709c07ae3cab30ea6d1a2c203ddf2c7d4349aa854a678fc98ca1a94c732b",
   "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
-  "ir_sha256": "333276b25531e1e827775bff0014bd0bd2f49e02544a8c67c9275ca292a0ad92",
+  "ir_sha256": "7a7f6540b5b68d5e95baf0dddb1025daff44e7660729c3e61c9ec5bcb0fc2b48",
+  "max_depth": 10000,
   "program": {
     "schema": "lean-go-ir/v24",
     "profile": "pure-module/v22",
@@ -35,7 +37,7 @@
       "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "source/UdpHeader.lean": "5e2b60f805481fb7939fc6495be45206660eb448de0717e93b8115340616dd60",
-      "tool/lean-go/pipeline": "f917dae7c550571748c30c622433ae938cc4b8df6437599c3092432905268d28"
+      "tool/lean-go/pipeline": "a1cf66fde047cc6c88b48e2b2b18db1b4dff1f3e52c38935b3859e182091c875"
     },
     "types": [
       {
@@ -1590,64 +1592,12 @@
       }
     }
   },
-  "function_ids": {
-    "UdpHeader.be16w": 0,
-    "UdpHeader.classify": 1,
-    "UdpHeader.parse": 2,
-    "UdpHeader.payloadLength": 3,
-    "UdpHeader.serialize": 4,
-    "UdpHeader.u16": 5,
-    "UdpHeader.validate": 6
-  },
-  "constructor_ids": {
-    "Availability.complete": [
-      1,
-      1
-    ],
-    "Availability.needMore": [
-      1,
-      0
-    ],
-    "Bool.false": [
-      2,
-      0
-    ],
-    "Bool.true": [
-      2,
-      1
-    ],
-    "Header.mk": [
-      3,
-      0
-    ],
-    "ParseResult.lengthTooSmall": [
-      4,
-      1
-    ],
-    "ParseResult.ok": [
-      4,
-      0
-    ],
-    "Validity.lengthTooSmall": [
-      5,
-      1
-    ],
-    "Validity.valid": [
-      5,
-      0
-    ],
-    "Wire.mk": [
-      6,
-      0
-    ]
-  },
   "generated_files": {
-    "api.go": "4a8e93549f2f15ce16750c90756102313bdee7b5081996fb1dcf72b798de7172",
-    "control.go": "cdff1765cfd386e69f0e28c42953d91abb45823f4c487b8c11f3c71b9f745c3e",
-    "runtime.go": "44bbc7953117b3e07297bf8600f3c226e161fd48aac8f8408ec0e5b405c86569",
-    "schema.go": "b70a19d4f00fcdcc14774599bf4d410c97d688340943cff40e30b306af37de85"
+    "functions.go": "8a6a2870ad75dd419c8a02698e30468a90b62a60599ff96a75077a0e8017dfeb",
+    "native.go": "52e042627c3da5347b4dea53c330d317e1c30fae01a07d42f3d0d9bea139de14",
+    "types.go": "65839723d37948f0be1a497c2578b849d7751763f310ea4d9462badc56c3af89"
   },
-  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Native mode enforces no resource budgets other than MaxDepth.",
   "primitives": [
     {
       "name": "UInt16.lor",
@@ -1755,76 +1705,117 @@
     }
   ],
   "go_api": {
-    "entrypoints": {
-      "UdpHeader.classify": "RunClassify",
-      "UdpHeader.parse": "RunParse",
-      "UdpHeader.serialize": "RunSerialize",
-      "UdpHeader.validate": "RunValidate"
-    },
     "types": {
-      "Availability": "Availability",
-      "Bool": "bool",
-      "Header": "Header",
-      "ParseResult": "ParseResult",
-      "UInt16": "uint16",
-      "UInt32": "uint32",
-      "UInt64": "uint64",
-      "UInt8": "uint8",
-      "Validity": "Validity",
-      "Wire": "Wire"
-    },
-    "constructors": {
-      "Availability.complete": "NewAvailabilityComplete",
-      "Availability.needMore": "NewAvailabilityNeedMore",
-      "Header.mk": "NewHeader",
-      "ParseResult.lengthTooSmall": "NewParseResultLengthTooSmall",
-      "ParseResult.ok": "NewParseResultOk",
-      "Validity.lengthTooSmall": "NewValidityLengthTooSmall",
-      "Validity.valid": "NewValidityValid",
-      "Wire.mk": "NewWire"
-    },
-    "accessors": {
+      "Availability": {
+        "go": "Availability",
+        "kind": "sum",
+        "zero": "Availability.needMore",
+        "constructors": {
+          "Availability.complete": "AvailabilityComplete",
+          "Availability.needMore": "AvailabilityNeedMore"
+        },
+        "is": {
+          "Availability.complete": "IsComplete",
+          "Availability.needMore": "IsNeedMore"
+        },
+        "as": {
+          "Availability.complete": "AsComplete",
+          "Availability.needMore": "AsNeedMore"
+        }
+      },
+      "Bool": {
+        "go": "bool",
+        "kind": "bool"
+      },
       "Header": {
-        "checksum": "Checksum",
-        "dstPort": "DstPort",
-        "length": "Length",
-        "srcPort": "SrcPort"
+        "go": "Header",
+        "kind": "record",
+        "zero": "Header.mk",
+        "fields": [
+          "SrcPort",
+          "DstPort",
+          "Length",
+          "Checksum"
+        ]
+      },
+      "ParseResult": {
+        "go": "ParseResult",
+        "kind": "sum",
+        "zero": "ParseResult.ok",
+        "constructors": {
+          "ParseResult.lengthTooSmall": "ParseResultLengthTooSmall",
+          "ParseResult.ok": "ParseResultOk"
+        },
+        "is": {
+          "ParseResult.lengthTooSmall": "IsLengthTooSmall",
+          "ParseResult.ok": "IsOk"
+        },
+        "as": {
+          "ParseResult.ok": "AsOk"
+        }
+      },
+      "UInt16": {
+        "go": "uint16",
+        "kind": "scalar"
+      },
+      "UInt32": {
+        "go": "uint32",
+        "kind": "scalar"
+      },
+      "UInt64": {
+        "go": "uint64",
+        "kind": "scalar"
+      },
+      "UInt8": {
+        "go": "uint8",
+        "kind": "scalar"
+      },
+      "Validity": {
+        "go": "Validity",
+        "kind": "sum",
+        "zero": "Validity.valid",
+        "constructors": {
+          "Validity.lengthTooSmall": "ValidityLengthTooSmall",
+          "Validity.valid": "ValidityValid"
+        },
+        "is": {
+          "Validity.lengthTooSmall": "IsLengthTooSmall",
+          "Validity.valid": "IsValid"
+        },
+        "string": "String"
       },
       "Wire": {
-        "b0": "B0",
-        "b1": "B1",
-        "b2": "B2",
-        "b3": "B3",
-        "b4": "B4",
-        "b5": "B5",
-        "b6": "B6",
-        "b7": "B7"
+        "go": "Wire",
+        "kind": "record",
+        "zero": "Wire.mk",
+        "fields": [
+          "B0",
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6",
+          "B7"
+        ]
       }
     },
-    "destructors": {
-      "Availability.complete": {
-        "is": "IsComplete",
-        "as": "AsComplete"
+    "functions": {
+      "UdpHeader.classify": {
+        "go": "Classify",
+        "error": false
       },
-      "Availability.needMore": {
-        "is": "IsNeedMore",
-        "as": "AsNeedMore"
+      "UdpHeader.parse": {
+        "go": "Parse",
+        "error": false
       },
-      "ParseResult.lengthTooSmall": {
-        "is": "IsLengthTooSmall",
-        "as": "AsLengthTooSmall"
+      "UdpHeader.serialize": {
+        "go": "Serialize",
+        "error": false
       },
-      "ParseResult.ok": {
-        "is": "IsOk",
-        "as": "AsOk"
-      },
-      "Validity.lengthTooSmall": {
-        "is": "IsLengthTooSmall",
-        "as": "AsLengthTooSmall"
-      },
-      "Validity.valid": {
-        "is": "IsValid",
-        "as": "AsValid"
+      "UdpHeader.validate": {
+        "go": "Validate",
+        "error": false
       }
     }
   }

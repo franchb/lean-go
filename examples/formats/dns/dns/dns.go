@@ -113,8 +113,9 @@ func (e *Error) truncated() bool {
 	return e.Reason == ReasonTruncated
 }
 
-// ErrInternal wraps an unexpected failure of the extracted code, such as a
-// resource limit. It indicates a bug, not bad input.
+// ErrInternal wraps an unexpected result of the extracted code. The extracted
+// functions are total and have no resource limits, so it indicates a bug, not
+// bad input.
 var ErrInternal = errors.New("dns: internal codec failure")
 
 func internal(err error) error { return fmt.Errorf("%w: %v", ErrInternal, err) }
