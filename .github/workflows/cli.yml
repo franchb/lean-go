@@ -102,4 +102,6 @@ jobs:
           subprocess.run([str(cli), 'doctor'], check=True)
           for demo in ['clamp', 'flags', 'words', 'bytes', 'header', 'wire16', 'crc16']:
               subprocess.run([sys.executable, f'scripts/check_{demo}_demo.py', '--cli', str(cli)], check=True)
+          subprocess.run([sys.executable, 'scripts/check_checked_frame.py', '--cli', str(cli)], check=True)
           PYTHON
+          (cd examples/proofs/checkedframe && GOPROXY=off go test -count=1 ./... && GOPROXY=off go run .)
