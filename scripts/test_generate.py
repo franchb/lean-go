@@ -1,4 +1,3 @@
-import hashlib
 import importlib.util
 import tempfile
 import unittest
@@ -17,42 +16,12 @@ class InputFreshnessTests(unittest.TestCase):
             verify.assert_called_once_with(Path('/project'), Path('/source'), program)
         with self.assertRaisesRegex(ValueError, 'source directory'):
             generate.verify_inputs(Path('/project'), program)
-        for version in range(2, 24):
+        for version in range(1, 24):
             stale = {'schema': f'lean-go-ir/v{version}'}
             with self.subTest(schema=stale['schema']), mock.patch.object(generate, 'verify_module_inputs') as verify:
                 with self.assertRaises(ValueError):
                     generate.verify_inputs(Path('/project'), stale, Path('/source'))
                 verify.assert_not_called()
-
-    def snapshot(self, root):
-        inputs = {}
-        for name in generate.INPUT_FILES:
-            path = root / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(('snapshot:' + name).encode())
-            inputs[name] = hashlib.sha256(path.read_bytes()).hexdigest()
-        return {'inputs': inputs}
-
-    def test_fresh_snapshot(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            generate.verify_inputs(root, self.snapshot(root))
-
-    def test_stale_source_is_rejected(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            program = self.snapshot(root)
-            (root / generate.INPUT_FILES[0]).write_bytes(b'changed after export')
-            with self.assertRaisesRegex(ValueError, 'changed|mismatch|stale'):
-                generate.verify_inputs(root, program)
-
-    def test_wrong_key_set_is_rejected(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            program = self.snapshot(root)
-            program['inputs']['../outside'] = '0' * 64
-            with self.assertRaises(ValueError):
-                generate.verify_inputs(root, program)
 
     def test_overlapping_output_paths_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -76,7 +45,8 @@ class InputFreshnessTests(unittest.TestCase):
             (package / 'control.go').write_bytes(b'original generated source')
             (package / 'manifest.json').write_bytes(b'original manifest')
             before = {p.name: p.read_bytes() for p in package.iterdir()}
-            arguments = ['generate.py', '--out', str(package), '--ir-output', str(package / 'control.go')]
+            arguments = ['generate.py', '--source-dir', str(Path(tmp) / 'source'), '--module', 'Example',
+                         '--root', 'Example.run', '--out', str(package), '--ir-output', str(package / 'control.go')]
             with mock.patch.object(generate.sys, 'argv', arguments), mock.patch.object(generate.subprocess, 'run') as run:
                 with self.assertRaisesRegex(ValueError, 'overlap'):
                     generate.main()
@@ -84,6 +54,15 @@ class InputFreshnessTests(unittest.TestCase):
             self.assertEqual(before, {p.name: p.read_bytes() for p in package.iterdir()})
 
 class ModuleArgumentsTests(unittest.TestCase):
+    def test_module_arguments_are_required(self):
+        for arguments in ([], ['--out', '/tmp/unused', '--ir-output', '/tmp/unused.json']):
+            with self.subTest(arguments=arguments), \
+                 mock.patch.object(generate.sys, 'argv', ['generate.py', *arguments]), \
+                 mock.patch.object(generate.subprocess, 'run') as run:
+                with self.assertRaisesRegex(ValueError, '--source-dir, --module and --root are required'):
+                    generate.main()
+                run.assert_not_called()
+
     def test_partial_module_arguments_fail_before_processes(self):
         for arguments in (['--module', 'Example'], ['--root', 'Example.run'],
                           ['--source-dir', '/tmp/unused', '--module', 'Example']):

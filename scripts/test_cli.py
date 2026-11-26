@@ -23,8 +23,7 @@ class PackageTests(unittest.TestCase):
     def test_explicit_payload_covers_only_required_pipeline_sources(self):
         config = tomllib.loads((ROOT / 'pyproject.toml').read_text())
         mapping = config['tool']['hatch']['build']['targets']['wheel']['force-include']
-        expected = {'go.mod', 'feasibility/LeanGo/Feasibility/Model.lean',
-                    'producer/lean-toolchain', 'producer/lakefile.toml'}
+        expected = {'go.mod', 'producer/lean-toolchain', 'producer/lakefile.toml'}
         expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / 'producer').rglob('*.lean')
                         if '.lake' not in path.parts)
         expected.update('scripts/' + name + '.py' for name in
@@ -32,7 +31,7 @@ class PackageTests(unittest.TestCase):
                          'diagnostics', 'source_locations', 'module_diagnostics'])
         # The script entry points build cmd/lean-go, whose subcommands run the
         # Go pipeline: its packages and the embedded producer package ship too.
-        for directory in ['cmd/lean-go', 'internal/ir', 'internal/gogen',
+        for directory in ['cmd/lean-go',
                           'internal/leanversion', 'internal/moduleir', 'internal/modulegen',
                           'internal/nativegen', 'internal/cli', 'internal/pipeline',
                           'internal/artifacts', 'internal/wireformat', 'producer']:
@@ -126,11 +125,6 @@ class CommandTests(unittest.TestCase):
 
     def test_parent_relative_path_is_lexically_normalized(self):
         self.assertEqual(cli.absolute(Path('../source')), str(Path.cwd().parent / 'source'))
-
-    def test_pilot_defaults_belong_to_caller(self):
-        _, arguments = cli.pipeline_arguments(cli.parser().parse_args(['generate']))
-        self.assertEqual(arguments, ['--out', str(Path('generated/normalizer').absolute()),
-                                    '--ir-output', str(Path('testdata/normalizer.ir.json').absolute())])
 
     def test_module_does_not_gain_implicit_outputs(self):
         _, arguments = cli.pipeline_arguments(cli.parser().parse_args(

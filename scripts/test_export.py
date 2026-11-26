@@ -1,6 +1,5 @@
-"""Producer boundary tests; real compiler reproducibility is an explicit smoke test."""
+"""Shared producer helpers: compiler pins, process failures and atomic publication."""
 import importlib.util
-import json
 import os
 from pathlib import Path
 import subprocess
@@ -17,45 +16,9 @@ class ProducerTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="lean-go-producer-test-")
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name) / "source"
-        actual = Path(__file__).resolve().parents[1]
-        for name in producer.INPUTS:
-            target = self.root / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes((actual / name).read_bytes())
+        self.root = Path(self.temp.name)
         self.output = Path(self.temp.name) / "result.json"
         self.output.write_bytes(b"previous success\n")
-
-    def test_modified_model_preserves_output(self):
-        path = self.root / producer.MODEL
-        path.write_bytes(path.read_bytes() + b"\n")
-        with self.assertRaisesRegex(producer.ExportError, "model SHA-256"):
-            producer.export(self.root, self.output)
-        self.assertEqual(self.output.read_bytes(), b"previous success\n")
-
-    def test_fixed_configuration(self):
-        for name in ("producer/lakefile.toml", "producer/lean-toolchain"):
-            with self.subTest(name=name):
-                path = self.root / name
-                before = path.read_bytes()
-                path.write_bytes(before + b"\n")
-                with self.assertRaises(producer.ExportError):
-                    producer.export(self.root, self.output)
-                path.write_bytes(before)
-        self.assertEqual(self.output.read_bytes(), b"previous success\n")
-
-    def test_wrong_version_before_compilation_and_cleanup(self):
-        workspaces = []
-        def fake_run(command, workspace, env):
-            workspaces.append(workspace)
-            self.assertEqual(command[-1], "--version")
-            return "Lean (version 4.34.0, wrong commit)"
-        with patch.object(producer, "run", side_effect=fake_run), patch.object(producer.shutil, "which", return_value="tool"):
-            with self.assertRaisesRegex(producer.ExportError, "unexpected Lean version"):
-                producer.export(self.root, self.output)
-        self.assertTrue(workspaces)
-        self.assertTrue(all(not path.exists() for path in workspaces))
-        self.assertEqual(self.output.read_bytes(), b"previous success\n")
 
     def test_only_selected_version_and_commit_pass(self):
         for compiler in producer.SUPPORTED_COMPILERS:
@@ -82,81 +45,11 @@ class ProducerTests(unittest.TestCase):
             with patch.dict(os.environ, LEAN_GO_TOOLCHAIN=version), self.assertRaises(producer.ExportError):
                 producer.selected_compiler()
 
-    def test_fresh_workspace_contains_only_snapshots(self):
-        (self.root / "producer/rogue.olean").write_bytes(b"untrusted compiled source")
-        workspaces = []
-        compiler = producer.selected_compiler()
-        version = f"Lean (version {compiler.version}, test, commit {compiler.commit}, Release)"
-        def fake_run(command, workspace, env):
-            if workspace not in workspaces:
-                workspaces.append(workspace)
-                files = {str(p.relative_to(workspace)) for p in workspace.rglob("*") if p.is_file()}
-                self.assertEqual(files, {"lean-toolchain", "lakefile.toml", "Export.lean", "Reference.lean",
-                                        "LeanGo.lean", "LeanGo/Pilot/Export.lean", "LeanGo/Feasibility/Model.lean"})
-                self.assertEqual((workspace / "LeanGo/Feasibility/Model.lean").read_bytes(),
-                                 (self.root / producer.MODEL).read_bytes())
-                self.assertEqual((workspace / "lean-toolchain").read_bytes(), compiler.pin_file)
-                self.assertEqual(env["ELAN_TOOLCHAIN"], compiler.toolchain)
-                self.assertNotIn("LEAN_PATH", env)
-            if command[-1] == "--version":
-                (workspace / "lake-manifest.json").write_text('{"packages":[]}')
-                return version
-            if command[-1] == "Export.lean":
-                (workspace / "ir.json").write_text('{"types":[],"functions":[],"claims":[],"rewrites":[]}')
-            return ""
-        with patch.object(producer, "run", side_effect=fake_run), patch.object(producer.shutil, "which", return_value="tool"):
-            producer.export(self.root, self.output)
-            first = self.output.read_bytes()
-            producer.export(self.root, self.output)
-        self.assertEqual(first, self.output.read_bytes())
-        self.assertEqual(len(workspaces), 2)
-        self.assertNotEqual(*workspaces)
-        self.assertTrue(all(not path.exists() for path in workspaces))
-        result = json.loads(first)
-        self.assertEqual((result["lean_version"], result["lean_commit"]), compiler)
-        self.assertEqual(set(result["inputs"]), set(producer.INPUTS))
-        self.assertEqual(result["inputs"][producer.MODEL], producer.MODEL_SHA256)
-
     def test_failed_process_has_stderr(self):
         process = subprocess.CompletedProcess(["lean"], 9, "compiler stdout", "precise compiler stderr")
         with patch.object(producer.subprocess, "run", return_value=process):
             with self.assertRaisesRegex(producer.ExportError, "precise compiler stderr"):
                 producer.run(["lean"], self.root, {})
-
-    def test_failed_lean_preserves_output_and_cleans_only_own_workspace(self):
-        sentinel = self.root / "keep.txt"
-        sentinel.write_text("keep")
-        compiler = producer.selected_compiler()
-        version = f"Lean (version {compiler.version}, test, commit {compiler.commit}, Release)"
-        workspaces = []
-        def fake_run(command, workspace, env):
-            workspaces.append(workspace)
-            if command[-1] == "--version":
-                (workspace / "lake-manifest.json").write_text('{"packages":[]}')
-                return version
-            raise producer.ExportError("actual compiler failure")
-        with patch.object(producer, "run", side_effect=fake_run), patch.object(producer.shutil, "which", return_value="tool"):
-            with self.assertRaisesRegex(producer.ExportError, "actual compiler failure"):
-                producer.export(self.root, self.output)
-        self.assertEqual(self.output.read_bytes(), b"previous success\n")
-        self.assertEqual(sentinel.read_text(), "keep")
-        self.assertTrue(all(not path.exists() for path in workspaces))
-
-    def test_reference_strict_shapes_and_uint32(self):
-        producer.validate_reference(b'[{"tag":1,"id":4294967295},{"tag":0,"tri":0}]')
-        invalid = [b'[{"tag":1,"id":4294967296}]', b'[{"tag":1,"id":1.0}]',
-                   b'[{"tag":0,"tri":false}]', b'[{"tag":0,"tri":0,"id":0}]',
-                   b'[{"tag":0,"tag":0,"tri":0}]', b'[{"tag":2}]', b'[] trailing',
-                   b'[{"tag":0,"tri":NaN}]', b'\xff']
-        tree = {"tag":0,"tri":0}
-        for _ in range(64):
-            tree = {"tag":2,"left":tree}
-        invalid.append(json.dumps([tree]).encode())
-        invalid.append(json.dumps([{"tag":0,"tri":0}] * 1025).encode())
-        for data in invalid:
-            with self.subTest(data=data[:80]):
-                with self.assertRaises(producer.ExportError):
-                    producer.validate_reference(data)
 
     def test_second_publication_failure_rolls_back_both_outputs(self):
         second = Path(self.temp.name) / "second.json"

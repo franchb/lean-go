@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Generate pure Go from fresh pinned Lean output and verify input freshness."""
+"""Generate pure Go from a fresh pinned Lean module export and verify input freshness."""
 import argparse
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -15,29 +14,16 @@ from diagnostics import emit, requested_mode, stage, diagnostic, unexpected
 from export_module import (export_module, check_python, verify_inputs as verify_module_inputs,
                            select_roots, validate_name, validate_output, source_snapshot, PRODUCER_INPUTS)
 
-INPUT_FILES = (
-    'feasibility/LeanGo/Feasibility/Model.lean',
-    'producer/lean-toolchain', 'producer/lakefile.toml', 'producer/Export.lean',
-    'producer/LeanGo/Pilot/Export.lean', 'producer/Reference.lean', 'scripts/export.py',
-)
-
-
 MODULE_SCHEMAS = frozenset({"lean-go-ir/v24"})
 
 
 def verify_inputs(root, program, source_dir=None):
-    if program.get("schema") in MODULE_SCHEMAS:
-        if source_dir is None:
-            raise ValueError("module source directory is required for module freshness checks")
-        verify_module_inputs(root, source_dir, program)
-        return
-    inputs = program.get('inputs')
-    if not isinstance(inputs, dict) or set(inputs) != set(INPUT_FILES):
-        raise ValueError('producer input key set mismatch')
-    for name in INPUT_FILES:
-        actual = hashlib.sha256((root / name).read_bytes()).hexdigest()
-        if actual != inputs[name]:
-            raise ValueError(f'producer input changed after export: {name}')
+    schema = program.get("schema")
+    if schema not in MODULE_SCHEMAS:
+        raise ValueError(f"unsupported IR schema {schema!r}; regenerate the IR with the current lean-go tool")
+    if source_dir is None:
+        raise ValueError("module source directory is required for module freshness checks")
+    verify_module_inputs(root, source_dir, program)
 
 
 def validate_output_paths(output, ir_output):
@@ -98,28 +84,24 @@ def main(argv=None):
     with stage("toolchain", "toolchain_mismatch"):
         check_python()
     selected = (args.source_dir is not None, args.module is not None, args.root is not None)
-    if any(selected) and not all(selected):
-        raise ValueError('--source-dir, --module and --root must be supplied together')
-    module_mode = all(selected)
-    if module_mode and (args.out is None or args.ir_output is None):
+    if not all(selected):
+        raise ValueError('--source-dir, --module and --root are required and must be supplied together')
+    if args.out is None or args.ir_output is None:
         raise ValueError('module generation requires explicit --out and --ir-output paths')
-    args.out = args.out or Path('generated/normalizer')
-    args.ir_output = args.ir_output or Path('testdata/normalizer.ir.json')
     root = Path(__file__).resolve().parents[1]
     output = args.out if args.out.is_absolute() else root / args.out
     ir_output = args.ir_output if args.ir_output.is_absolute() else root / args.ir_output
     validate_output_paths(output, ir_output)
-    if module_mode:
-        validate_name(args.module)
-        entries = select_roots(args.root)
-        sources = source_snapshot(args.source_dir)
-        if args.module not in sources:
-            raise ValueError('requested source module does not exist')
-        validate_output(ir_output, args.source_dir, root, allow_missing_parent=True)
-        protected = [args.source_dir / relative for relative, _ in sources.values()]
-        protected.extend(root / name for name in PRODUCER_INPUTS)
-        if any(path.resolve().is_relative_to(output.resolve()) for path in protected):
-            raise ValueError('package output overlaps source or trusted producer inputs')
+    validate_name(args.module)
+    entries = select_roots(args.root)
+    sources = source_snapshot(args.source_dir)
+    if args.module not in sources:
+        raise ValueError('requested source module does not exist')
+    validate_output(ir_output, args.source_dir, root, allow_missing_parent=True)
+    protected = [args.source_dir / relative for relative, _ in sources.values()]
+    protected.extend(root / name for name in PRODUCER_INPUTS)
+    if any(path.resolve().is_relative_to(output.resolve()) for path in protected):
+        raise ValueError('package output overlaps source or trusted producer inputs')
     with stage('toolchain', 'toolchain_mismatch'):
         go = shutil.which('go')
         if go is None:
@@ -132,17 +114,7 @@ def main(argv=None):
             raise ValueError(f'expected Go 1.27.4, got {version}')
     with tempfile.TemporaryDirectory(prefix='lean-go-generate-') as temporary:
         ir_path = Path(temporary) / 'program.json'
-        if module_mode:
-            export_module(root, args.source_dir.resolve(), args.module, entries, ir_path)
-        else:
-            with stage('toolchain', 'toolchain_unavailable'):
-                lean, lake = shutil.which('lean'), shutil.which('lake')
-                if not lean or not lake:
-                    raise ExportError('pinned Lean and Lake executables must be available on PATH')
-            with stage('toolchain', 'toolchain_mismatch'):
-                compiler.check_version(run_process([lean, '--version'], root, environment, 'toolchain'))
-            run_process([sys.executable, str(root / 'scripts/export.py'), '--output', str(ir_path)],
-                        root, environment, 'build')
+        export_module(root, args.source_dir.resolve(), args.module, entries, ir_path)
         content = ir_path.read_bytes()
         program = json.loads(content)
         verify_inputs(root, program, args.source_dir)
@@ -185,16 +157,14 @@ def go_main(argv=None):
     """Script entry point: module extraction runs in the Go lean-go command.
 
     Paths keep this script's conventions: --source-dir is relative to the
-    working directory, --out and --ir-output to the repository root. With no
-    module arguments the audited pilot normalizer still uses the Python path.
+    working directory, --out and --ir-output to the repository root.
     """
     argv = sys.argv[1:] if argv is None else argv
     args = arguments().parse_args(argv)
-    if (args.source_dir, args.module, args.root) == (None, None, None):
-        return cli()
     # Argument errors need no Go build; the Go command reports them identically.
     if None in (args.source_dir, args.module, args.root):
-        emit(ValueError('--source-dir, --module and --root must be supplied together'), args.diagnostics)
+        emit(ValueError('--source-dir, --module and --root are required and must be supplied together'),
+             args.diagnostics)
         return 1
     if args.out is None or args.ir_output is None:
         emit(ValueError('module generation requires explicit --out and --ir-output paths'), args.diagnostics)

@@ -59,6 +59,7 @@ var Packages = []Package{
 	demo("wire16", "Wire16", "Wire16.classify", "Wire16.decodeBE", "Wire16.encode", "Wire16.encodeBE", "Wire16.parse"),
 	demo("crc16", "Crc16", "Crc16.update", "Crc16.updateByte"),
 	demo("adler32", "Adler32", "Adler32.checksum", "Adler32.initial", "Adler32.update"),
+	demo("normalizer", "Normalizer", "Normalizer.normalize"),
 }
 
 // Frame is the checked-frame composition over two demo packages.

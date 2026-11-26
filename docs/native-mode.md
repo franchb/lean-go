@@ -166,8 +166,8 @@ a huge tree pays for it. Use metered mode where inputs need resource limits.
 
 `go test ./internal/nativegen` (skipped with `-short`) does the following:
 
-- **Differential tests.** Every tracked IR file (`testdata/*.ir.json` except
-  `normalizer.ir.json`, and `examples/proofs/*/*.ir.json`, 18 programs) is
+- **Differential tests.** Every tracked IR file (`testdata/*.ir.json` and
+  `examples/proofs/*/*.ir.json`, 19 programs) is
   emitted in both modes into a fresh module. A generated driver compares every
   root on 1,500 seeded random inputs, exhaustive boundary products for
   scalar roots of up to three arguments, the zero value of every argument
@@ -243,7 +243,6 @@ LEAN_GO_NATIVE_BENCH=. go test -count=1 -v -run TestDifferential ./internal/nati
 - `==` on recursive handles, or on values containing them, compares identity.
 - Byte folds are recognized only for roots of the exact `foldl` shape.
 - A type with no finite value is rejected rather than given an error result.
-- Pilot (`lean-go-ir/v1`) IR is metered only.
 - The proof-contract checker and the example verifiers read metered
   manifests; they do not yet accept native manifests.
 - Native output is tested and trusted, like metered output; there is no

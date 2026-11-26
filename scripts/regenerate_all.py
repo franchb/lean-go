@@ -4,8 +4,7 @@
 This is a thin wrapper over `lean-go regenerate` (internal/artifacts), which
 produces each package, IR fixture, proof-evidence file and wire-format example
 in a fresh temporary tree, replaces tracked copies only after every artifact
-succeeded and lists the artifacts whose bytes changed. The pilot normalizer is
-not covered.
+succeeded and lists the artifacts whose bytes changed.
 """
 from __future__ import annotations
 

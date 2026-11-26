@@ -29,11 +29,7 @@ func trackedIR(t testing.TB) []string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, match := range matches {
-			if filepath.Base(match) != "normalizer.ir.json" {
-				files = append(files, match)
-			}
-		}
+		files = append(files, matches...)
 	}
 	slices.Sort(files)
 	if len(files) < 17 {

@@ -147,7 +147,7 @@ func runGenerate(p *parsed) (result *pipeline.GenerateResult, err error) {
 	}()
 	selected := []bool{p.has("source-dir"), p.has("module"), p.has("root")}
 	if !(selected[0] && selected[1] && selected[2]) {
-		return nil, errors.New("--source-dir, --module and --root must be supplied together")
+		return nil, errors.New("--source-dir, --module and --root are required and must be supplied together")
 	}
 	if !p.has("out") || !p.has("ir-output") {
 		return nil, errors.New("module generation requires explicit --out and --ir-output paths")

@@ -18,8 +18,7 @@ const regenerateSummary = `Regenerate every tracked module artifact through the 
 
 Each package, IR fixture, proof-evidence file and wire-format example is first
 produced in a fresh temporary tree. Tracked copies are replaced only after every
-artifact succeeded; the command then lists the artifacts whose bytes changed.
-The pilot normalizer is not covered.`
+artifact succeeded; the command then lists the artifacts whose bytes changed.`
 
 func regenerate(args []string, stdout, stderr io.Writer) int {
 	if wantsHelp(args) {

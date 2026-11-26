@@ -1,0 +1,11 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Normalizer",
+  "roots": ["Normalizer.normalize"],
+  "claims": [
+    {"theorem": "NormalizerProofs.normalize_is_normal", "expected": "NormalizerContract.normalize_is_normal"},
+    {"theorem": "NormalizerProofs.normalize_preserves_eval", "expected": "NormalizerContract.normalize_preserves_eval"}
+  ]
+}
