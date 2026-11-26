@@ -25,7 +25,7 @@ class QuotaCompatibilityTests(unittest.TestCase):
              base + ['--manifest', '/tmp/candidate/manifest.json', '--output', '/tmp/candidate-evidence.json']),
         ]
         for arguments, expected in cases:
-            with self.subTest(arguments=arguments), mock.patch.object(quota.check_proofs, 'main', return_value=7) as shared:
+            with self.subTest(arguments=arguments), mock.patch.object(quota.check_proofs, 'go_main', return_value=7) as shared:
                 self.assertEqual(quota.main(arguments), 7)
                 shared.assert_called_once_with(expected)
 

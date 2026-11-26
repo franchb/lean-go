@@ -19,7 +19,8 @@ def main(argv=None):
     root = args.root.absolute()
     manifest = args.manifest if args.manifest else root / 'generated/quota/manifest.json'
     output = args.output if args.output else root / 'libraries/quota/proof-evidence.json'
-    return check_proofs.main([
+    # The Go command owns the evidence format; the Python checker is only unit-tested.
+    return check_proofs.go_main([
         '--contract', str(root / 'libraries/quota/proof-contract.json'),
         '--manifest', str(manifest),
         '--output' if args.output else '--evidence', str(output),
