@@ -1,0 +1,69 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "DnsHeader",
+  "roots": [
+    "DnsHeader.parse",
+    "DnsHeader.serialize",
+    "DnsHeader.validate"
+  ],
+  "claims": [
+    {
+      "theorem": "DnsHeaderProofs.parse_ok_iff",
+      "expected": "DnsHeaderContract.parse_ok_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.parse_zNonzero_iff",
+      "expected": "DnsHeaderContract.parse_zNonzero_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.accepts_iff",
+      "expected": "DnsHeaderContract.accepts_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_valid_iff",
+      "expected": "DnsHeaderContract.validate_valid_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_qrTooWide_iff",
+      "expected": "DnsHeaderContract.validate_qrTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_opcodeTooWide_iff",
+      "expected": "DnsHeaderContract.validate_opcodeTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_aaTooWide_iff",
+      "expected": "DnsHeaderContract.validate_aaTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_tcTooWide_iff",
+      "expected": "DnsHeaderContract.validate_tcTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_rdTooWide_iff",
+      "expected": "DnsHeaderContract.validate_rdTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_raTooWide_iff",
+      "expected": "DnsHeaderContract.validate_raTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.validate_rcodeTooWide_iff",
+      "expected": "DnsHeaderContract.validate_rcodeTooWide_iff"
+    },
+    {
+      "theorem": "DnsHeaderProofs.parse_serialize",
+      "expected": "DnsHeaderContract.parse_serialize"
+    },
+    {
+      "theorem": "DnsHeaderProofs.serialize_parse",
+      "expected": "DnsHeaderContract.serialize_parse"
+    },
+    {
+      "theorem": "DnsHeaderProofs.parse_validate",
+      "expected": "DnsHeaderContract.parse_validate"
+    }
+  ]
+}

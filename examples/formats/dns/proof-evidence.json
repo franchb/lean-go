@@ -1,0 +1,157 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.accepts_iff",
+      "name": "DnsHeaderProofs.accepts_iff",
+      "statement": "∀ (w : Wire), (∃ h, DnsHeader.parse w = ParseResult.ok h) ↔ (w.b2.toNat * 256 + w.b3.toNat) / 16 % 8 = 0"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_ok_iff",
+      "name": "DnsHeaderProofs.parse_ok_iff",
+      "statement": "∀ (w : Wire) (h : Header),\n  DnsHeader.parse w = ParseResult.ok h ↔\n    (w.b2.toNat * 256 + w.b3.toNat) / 16 % 8 = 0 ∧\n      h.id.toNat = w.b0.toNat * 256 + w.b1.toNat ∧\n        h.qr.toNat = (w.b2.toNat * 256 + w.b3.toNat) / 32768 % 2 ∧\n          h.opcode.toNat = (w.b2.toNat * 256 + w.b3.toNat) / 2048 % 16 ∧\n            h.aa.toNat = (w.b2.toNat * 256 + w.b3.toNat) / 1024 % 2 ∧\n              h.tc.toNat = (w.b2.toNat * 256 + w.b3.toNat) / 512 % 2 ∧\n                h.rd.toNat = (w.b2.toNat * 256 + w.b3.toNat) / 256 % 2 ∧\n                  h.ra.toNat = (w.b2.toNat * 256 + w.b3.toNat) / 128 % 2 ∧\n                    h.rcode.toNat = (w.b2.toNat * 256 + w.b3.toNat) % 16 ∧\n                      h.qdcount.toNat = w.b4.toNat * 256 + w.b5.toNat ∧\n                        h.ancount.toNat = w.b6.toNat * 256 + w.b7.toNat ∧\n                          h.nscount.toNat = w.b8.toNat * 256 + w.b9.toNat ∧\n                            h.arcount.toNat = w.b10.toNat * 256 + w.b11.toNat"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_serialize",
+      "name": "DnsHeaderProofs.parse_serialize",
+      "statement": "∀ (h : Header),\n  h.qr.toNat < 2 ∧\n      h.opcode.toNat < 16 ∧ h.aa.toNat < 2 ∧ h.tc.toNat < 2 ∧ h.rd.toNat < 2 ∧ h.ra.toNat < 2 ∧ h.rcode.toNat < 16 →\n    DnsHeader.parse (DnsHeader.serialize h) = ParseResult.ok h"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_validate",
+      "name": "DnsHeaderProofs.parse_validate",
+      "statement": "∀ (w : Wire) (h : Header), DnsHeader.parse w = ParseResult.ok h → DnsHeader.validate h = Validity.valid"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_zNonzero_iff",
+      "name": "DnsHeaderProofs.parse_zNonzero_iff",
+      "statement": "∀ (w : Wire), DnsHeader.parse w = ParseResult.zNonzero ↔ ¬(w.b2.toNat * 256 + w.b3.toNat) / 16 % 8 = 0"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.serialize_parse",
+      "name": "DnsHeaderProofs.serialize_parse",
+      "statement": "∀ (w : Wire) (h : Header), DnsHeader.parse w = ParseResult.ok h → DnsHeader.serialize h = w"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_aaTooWide_iff",
+      "name": "DnsHeaderProofs.validate_aaTooWide_iff",
+      "statement": "∀ (h : Header), DnsHeader.validate h = Validity.aaTooWide ↔ h.qr.toNat < 2 ∧ h.opcode.toNat < 16 ∧ ¬h.aa.toNat < 2"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_opcodeTooWide_iff",
+      "name": "DnsHeaderProofs.validate_opcodeTooWide_iff",
+      "statement": "∀ (h : Header), DnsHeader.validate h = Validity.opcodeTooWide ↔ h.qr.toNat < 2 ∧ ¬h.opcode.toNat < 16"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_qrTooWide_iff",
+      "name": "DnsHeaderProofs.validate_qrTooWide_iff",
+      "statement": "∀ (h : Header), DnsHeader.validate h = Validity.qrTooWide ↔ ¬h.qr.toNat < 2"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_raTooWide_iff",
+      "name": "DnsHeaderProofs.validate_raTooWide_iff",
+      "statement": "∀ (h : Header),\n  DnsHeader.validate h = Validity.raTooWide ↔\n    h.qr.toNat < 2 ∧ h.opcode.toNat < 16 ∧ h.aa.toNat < 2 ∧ h.tc.toNat < 2 ∧ h.rd.toNat < 2 ∧ ¬h.ra.toNat < 2"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_rcodeTooWide_iff",
+      "name": "DnsHeaderProofs.validate_rcodeTooWide_iff",
+      "statement": "∀ (h : Header),\n  DnsHeader.validate h = Validity.rcodeTooWide ↔\n    h.qr.toNat < 2 ∧\n      h.opcode.toNat < 16 ∧ h.aa.toNat < 2 ∧ h.tc.toNat < 2 ∧ h.rd.toNat < 2 ∧ h.ra.toNat < 2 ∧ ¬h.rcode.toNat < 16"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_rdTooWide_iff",
+      "name": "DnsHeaderProofs.validate_rdTooWide_iff",
+      "statement": "∀ (h : Header),\n  DnsHeader.validate h = Validity.rdTooWide ↔\n    h.qr.toNat < 2 ∧ h.opcode.toNat < 16 ∧ h.aa.toNat < 2 ∧ h.tc.toNat < 2 ∧ ¬h.rd.toNat < 2"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_tcTooWide_iff",
+      "name": "DnsHeaderProofs.validate_tcTooWide_iff",
+      "statement": "∀ (h : Header),\n  DnsHeader.validate h = Validity.tcTooWide ↔ h.qr.toNat < 2 ∧ h.opcode.toNat < 16 ∧ h.aa.toNat < 2 ∧ ¬h.tc.toNat < 2"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_valid_iff",
+      "name": "DnsHeaderProofs.validate_valid_iff",
+      "statement": "∀ (h : Header),\n  DnsHeader.validate h = Validity.valid ↔\n    h.qr.toNat < 2 ∧\n      h.opcode.toNat < 16 ∧ h.aa.toNat < 2 ∧ h.tc.toNat < 2 ∧ h.rd.toNat < 2 ∧ h.ra.toNat < 2 ∧ h.rcode.toNat < 16"
+    }
+  ],
+  "contract_sha256": "25adc30918931d502cf146d7eb9b33e1c2660f8592f843810db53813fa205807",
+  "generated_manifest_sha256": "c9e06b1b5603c4b402bae6bc307ea0cbac49dc1e5e8d22a6df9a238e1c7a96da",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "DnsHeader",
+  "project_inputs": {
+    "proof/DnsHeaderContract.lean": "9180b0c8040b0d79bdd796cb439926ffc23dd740b68091c642690a6e5c4cbeaf",
+    "proof/DnsHeaderProofs.lean": "a1eef18a77b4206e634f27a9be88c070a4f0e971d5aecedaeed9fe8fd53ac149",
+    "source/DnsHeader.lean": "f9acbd13c61431440aaf2c8fae2ae634f52872221d5ff5553a2670b8cbae3ee9"
+  },
+  "roots": [
+    "DnsHeader.parse",
+    "DnsHeader.serialize",
+    "DnsHeader.validate"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
+    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
+    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
+    "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
+    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+    "scripts/proof_contract.py": "cfc5387c32127842ef19e63b132a097e0ae23104465e85d45c6f2dcf467f00a3",
+    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+  }
+}
