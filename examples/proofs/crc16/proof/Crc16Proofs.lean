@@ -60,10 +60,10 @@ private theorem fold_bytes (bytes : List UInt8) (state : UInt16) :
   | cons byte bytes ih => simp only [List.foldl_cons, ih, update_byte_spec]
 
 theorem chunks_spec (state : UInt16) (chunks : List (List UInt8)) :
-    (chunks.foldl (fun acc chunk => chunk.foldl Crc16.updateByte acc) state).toBitVec =
+    (chunks.foldl Crc16.update state).toBitVec =
       chunks.flatten.foldl referenceByte state.toBitVec := by
   induction chunks generalizing state with
   | nil => rfl
-  | cons chunk chunks ih => simp only [List.foldl_cons, List.flatten_cons, List.foldl_append, ih, fold_bytes]
+  | cons chunk chunks ih => simp only [List.foldl_cons, List.flatten_cons, List.foldl_append, ih, Crc16.update, fold_bytes]
 
 end Crc16Proofs

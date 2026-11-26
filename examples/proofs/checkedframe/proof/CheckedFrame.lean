@@ -7,7 +7,7 @@ def headerBytes (q : ByteQuad) : List UInt8 := [q.b0, q.b1, q.b2, q.b3]
 
 def trailerBytes (p : BytePair) : List UInt8 := [p.hi, p.lo]
 
-def checksum (body : List UInt8) : UInt16 := body.foldl Crc16.updateByte 0
+def checksum (body : List UInt8) : UInt16 := Crc16.update 0 body
 
 /-- The declared length counts payload bytes. The checksum covers header and payload. -/
 def encode (flags : UInt8) (payload : List UInt8) : Option (List UInt8) :=

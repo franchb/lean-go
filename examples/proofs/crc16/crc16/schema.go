@@ -8,10 +8,12 @@ func typeName(t int) string {
 	case 1:
 		return "Bool"
 	case 2:
-		return "UInt64"
+		return "List UInt8"
 	case 3:
-		return "UInt8"
+		return "UInt64"
 	case 4:
+		return "UInt8"
+	case 5:
 		return "UInt16"
 	}
 	return ""
@@ -25,6 +27,13 @@ func constructorName(t, tag int) string {
 		case 1:
 			return "Bool.true"
 		}
+	case 2:
+		switch tag {
+		case 0:
+			return "List.nil"
+		case 1:
+			return "List.cons"
+		}
 	}
 	return ""
 }
@@ -33,10 +42,10 @@ func inputShape(in *Input) (int, int, bool) {
 		return 0, 0, false
 	}
 	if in.Type == "UInt16" {
-		return 4, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt8 == 0 && in.UInt32 == 0 && in.UInt64 == 0
+		return 5, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt8 == 0 && in.UInt32 == 0 && in.UInt64 == 0
 	}
 	if in.Type == "UInt8" {
-		return 3, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt64 == 0 && in.UInt16 == 0
+		return 4, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt64 == 0 && in.UInt16 == 0
 	}
 	return inputOtherShape(in)
 }
@@ -48,7 +57,7 @@ func inputOtherShape(in *Input) (int, int, bool) {
 	case "UInt32":
 		return 0, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt64 == 0 && in.UInt8 == 0 && in.UInt16 == 0
 	case "UInt64":
-		return 2, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt8 == 0 && in.UInt16 == 0
+		return 3, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt8 == 0 && in.UInt16 == 0
 	case "Bool":
 		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
 			return 0, 0, false
@@ -59,6 +68,16 @@ func inputOtherShape(in *Input) (int, int, bool) {
 		case "Bool.true":
 			return 1, 1, len(in.Fields) == 0
 		}
+	case "List UInt8":
+		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
+			return 0, 0, false
+		}
+		switch in.Constructor {
+		case "List.nil":
+			return 2, 0, len(in.Fields) == 0
+		case "List.cons":
+			return 2, 1, len(in.Fields) == 2
+		}
 	}
 	return 0, 0, false
 }
@@ -67,8 +86,25 @@ func fieldType(t, tag, index int) int {
 	case 1:
 		switch tag {
 		}
+	case 2:
+		switch tag {
+		case 1:
+			switch index {
+			case 0:
+				return 4
+			case 1:
+				return 2
+			}
+		}
 	}
 	return -1
 }
-func rootParameters() []int { return []int{4, 3} }
-func rootResult() int       { return 4 }
+func rootSignature(root string) (int, int, []int, bool) {
+	switch root {
+	case "Crc16.update":
+		return 1, 5, []int{5, 2}, true
+	case "Crc16.updateByte":
+		return 2, 5, []int{5, 4}, true
+	}
+	return 0, 0, nil, false
+}

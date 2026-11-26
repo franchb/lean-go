@@ -43,6 +43,7 @@ sources = ["src"]
 "internal/modulegen/joins.go" = "lean_go/_payload/internal/modulegen/joins.go"
 "internal/modulegen/primitives.go" = "lean_go/_payload/internal/modulegen/primitives.go"
 "internal/modulegen/roots.go" = "lean_go/_payload/internal/modulegen/roots.go"
+"internal/modulegen/bytefold.go" = "lean_go/_payload/internal/modulegen/bytefold.go"
 "internal/modulegen/scalar.go" = "lean_go/_payload/internal/modulegen/scalar.go"
 "internal/modulegen/templates.go" = "lean_go/_payload/internal/modulegen/templates.go"
 "internal/modulegen/templates/api.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/api.go.tmpl"
@@ -118,6 +119,7 @@ include = [
   "/internal/modulegen/joins.go",
   "/internal/modulegen/primitives.go",
   "/internal/modulegen/roots.go",
+  "/internal/modulegen/bytefold.go",
   "/internal/modulegen/scalar.go",
   "/internal/modulegen/templates.go",
   "/internal/modulegen/templates/api.go.tmpl",

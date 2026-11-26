@@ -189,13 +189,16 @@ func (b *budget) make(typ, tag int, fields []*node) (*node, error) {
 	return &node{typ: typ, tag: tag, fields: fields, size: size, depth: depth}, nil
 }
 
-// Run invokes the selected Lean root. Argument occurrences share one input-node
-// budget. Errors return an invalid Value and never a partial result.
-func Run(args []Value, l Limits) (Value, error) {
+// RunRoot invokes an explicitly exported Lean root by its full source name.
+// Each call has independent resource budgets. Unknown and internal names fail.
+func RunRoot(root string, args []Value, l Limits) (Value, error) {
 	if err := checkLimits(l); err != nil {
 		return Value{}, err
 	}
-	expected := rootParameters()
+	entry, resultType, expected, ok := rootSignature(root)
+	if !ok {
+		return Value{}, ErrMalformed
+	}
 	if len(args) != len(expected) {
 		return Value{}, ErrMalformed
 	}
@@ -212,11 +215,11 @@ func Run(args []Value, l Limits) (Value, error) {
 		nodes[i] = v.n
 	}
 	b := &budget{limits: l}
-	result, err := execute(b, nodes)
+	result, err := execute(b, entry, nodes)
 	if err != nil {
 		return Value{}, err
 	}
-	if result == nil || result.typ != rootResult() || result.size == 0 || result.depth == 0 {
+	if result == nil || result.typ != resultType || result.size == 0 || result.depth == 0 {
 		return Value{}, ErrMalformed
 	}
 	if result.size > l.MaxOutputNodes || result.depth > l.MaxDepth {
