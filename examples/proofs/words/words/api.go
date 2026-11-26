@@ -44,67 +44,128 @@ func apiReadUInt64(n *node) (uint64, bool) {
 	return n.scalar64, true
 }
 
-// RunHigh invokes its selected Lean root through RunRoot and its existing limits.
+// scalarWork charges the same IR steps and logical scalar allocations as execute.
+func (b *budget) scalarWork(steps, allocations uint64) bool {
+	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
+		return false
+	}
+	b.steps += steps
+	b.allocations += allocations
+	return true
+}
+func scalarFunc0(b *budget, depth int, v1 uint64) (uint32, error) {
+	if err := b.enter(4, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(4, 3) {
+		return 0, ErrResource
+	}
+	v2 := uint64(32)
+	v3 := v1 >> (v2 & 63)
+	v4 := uint32(v3)
+	return v4, nil
+}
+
+// RunHigh runs the scalar root with native Go values and the public resource limits.
 func RunHigh(a0 uint64, l Limits) (uint32, error) {
-	out, err := RunRoot("Words.high", []Value{{n: apiUInt64Node(a0)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt32(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 1 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc0(&b, 0, a0)
+}
+func scalarFunc1(b *budget, depth int, v1 uint64) (uint32, error) {
+	if err := b.enter(2, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v2 := uint32(v1)
+	return v2, nil
 }
 
-// RunLow invokes its selected Lean root through RunRoot and its existing limits.
+// RunLow runs the scalar root with native Go values and the public resource limits.
 func RunLow(a0 uint64, l Limits) (uint32, error) {
-	out, err := RunRoot("Words.low", []Value{{n: apiUInt64Node(a0)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt32(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 1 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc1(&b, 0, a0)
+}
+func scalarFunc2(b *budget, depth int, v1 uint64) (uint32, error) {
+	if err := b.enter(2, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v2 := uint32(v1)
+	return v2, nil
 }
 
-// RunNarrow invokes its selected Lean root through RunRoot and its existing limits.
+// RunNarrow runs the scalar root with native Go values and the public resource limits.
 func RunNarrow(a0 uint64, l Limits) (uint32, error) {
-	out, err := RunRoot("Words.narrow", []Value{{n: apiUInt64Node(a0)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt32(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 1 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc2(&b, 0, a0)
+}
+func scalarFunc3(b *budget, depth int, v1 uint32, v2 uint32) (uint64, error) {
+	if err := b.enter(7, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(6, 5) {
+		return 0, ErrResource
+	}
+	v3 := uint64(v1)
+	v4 := uint64(32)
+	v5 := v3 << (v4 & 63)
+	v6 := uint64(v2)
+	v7 := v5 | v6
+	return v7, nil
 }
 
-// RunPack invokes its selected Lean root through RunRoot and its existing limits.
+// RunPack runs the scalar root with native Go values and the public resource limits.
 func RunPack(a0 uint32, a1 uint32, l Limits) (uint64, error) {
-	out, err := RunRoot("Words.pack", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt64(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 2 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc3(&b, 0, a0, a1)
+}
+func scalarFunc4(b *budget, depth int, v1 uint32) (uint64, error) {
+	if err := b.enter(2, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v2 := uint64(v1)
+	return v2, nil
 }
 
-// RunWiden invokes its selected Lean root through RunRoot and its existing limits.
+// RunWiden runs the scalar root with native Go values and the public resource limits.
 func RunWiden(a0 uint32, l Limits) (uint64, error) {
-	out, err := RunRoot("Words.widen", []Value{{n: apiUInt32Node(a0)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt64(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 1 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc4(&b, 0, a0)
 }

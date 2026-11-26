@@ -44,6 +44,13 @@ jobs:
           go env CGO_ENABLED GOTOOLCHAIN GOWORK
       - name: Test
         run: go test -count=1 -timeout=25m ./...
+      - name: Exercise checksummed frames offline
+        working-directory: examples/proofs/checkedframe
+        env:
+          GOPROXY: 'off'
+        run: |
+          go test -count=1 ./...
+          go run .
       - name: Fuzz frame round trips
         if: runner.os == 'Linux'
         working-directory: examples/proofs/wire16

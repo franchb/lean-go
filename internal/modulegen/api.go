@@ -91,9 +91,7 @@ func (g *generator) emitAPI() ([]byte, error) {
 			}
 		}
 	}
-	for _, root := range moduleir.RootNames(g.program) {
-		e.run(w, root)
-	}
+	e.emitEntrypoints(w)
 	return w.Bytes(), nil
 }
 

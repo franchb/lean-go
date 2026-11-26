@@ -192,6 +192,9 @@ selects IR v18 for one root or v19 for multiple roots, with profiles
 `pure-module/v16` and `pure-module/v17`. Generator v14 emits Go's `^`
 operator on two `uint16` values. The [CRC-16/XMODEM demo](examples/proofs/crc16)
 uses this operation in a proved one-byte update that Go can apply to successive chunks.
+The [checksummed frame example](examples/proofs/checkedframe) combines Wire16 and CRC-16,
+proves frame round trips with arbitrary trailing bytes, and checks the trailer against
+an independent reference CRC.
 
 Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
@@ -264,7 +267,8 @@ if !ok || !color.IsBlue() { panic("unexpected result") }
 Records have named getters such as `count.Value()` and `state.Count()`, returning
 a typed value and a validity flag. Sums have `IsLeaf`/`AsLeaf`-style methods.
 Constructors reject invalid zero wrappers and enforce input node/depth limits.
-`RunTyped` delegates to the same runtime and resource limits as `Run`. Generated
+Typed roots enforce the same resource limits as the raw API. Generator v15 emits native
+Go arithmetic for acyclic scalar-only call trees without joins. Generated
 names are deterministic; the manifest records collision resolutions. See the
 [typed API report](docs/research/extraction-typed-api.md) for the complete contract.
 
@@ -398,7 +402,7 @@ See [program differential testing](docs/research/differential-testing.md) for
 the grammar, commands and evidence limits.
 
 See [generated Go performance](docs/research/generated-go-performance.md) for
-maintained handwritten/typed/raw benchmarks and measured frame-slot reuse results.
+the CRC scalar benchmark, typed/raw resource-limit checks and recursive frame-slot measurements.
 
 ## Run the pilot
 
