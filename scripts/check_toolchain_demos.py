@@ -15,6 +15,7 @@ import check_adler32_demo
 import check_crc16_demo
 import check_flags_demo
 import check_header_demo
+import check_normalizer_demo
 import check_words_demo
 import check_wire16_demo
 from check_release_candidate import base_environment, pinned_go
@@ -24,7 +25,7 @@ from export_module import check_python
 from standalone_demo import copy_consumer_files, run_go_demo
 
 DEMOS = (check_clamp_demo, check_flags_demo, check_words_demo, check_bytes_demo, check_header_demo,
-         check_wire16_demo, check_crc16_demo, check_adler32_demo)
+         check_wire16_demo, check_crc16_demo, check_adler32_demo, check_normalizer_demo)
 
 
 def check_demo(demo, cli, go, workspace, env, identity):

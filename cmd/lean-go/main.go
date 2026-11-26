@@ -10,11 +10,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/franchb/lean-go/internal/gogen"
-	"github.com/franchb/lean-go/internal/ir"
 	"github.com/franchb/lean-go/internal/modulegen"
 	"github.com/franchb/lean-go/internal/moduleir"
 	"github.com/franchb/lean-go/internal/nativegen"
+	"github.com/franchb/lean-go/internal/publish"
 )
 
 func run(args []string) error {
@@ -44,21 +43,21 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return gogen.Publish(*output, files)
+	return publish.Package(*output, files)
 }
 
 // The envelope selects a decoder only. That decoder revalidates every original
 // byte, including duplicate keys and schema, before anything can be published.
 func compile(r io.Reader) (map[string][]byte, error) { return compileMode(r, "metered", 0) }
 
-// compileMode emits module IR as metered or native Go; the pilot IR is metered only.
+// compileMode emits module IR as metered or native Go.
 func compileMode(r io.Reader, mode string, maxDepth int) (map[string][]byte, error) {
-	data, err := io.ReadAll(io.LimitReader(r, ir.MaxBytes+1))
+	data, err := io.ReadAll(io.LimitReader(r, moduleir.MaxBytes+1))
 	if err != nil {
 		return nil, err
 	}
-	if len(data) > ir.MaxBytes {
-		return nil, fmt.Errorf("IR exceeds %d bytes", ir.MaxBytes)
+	if len(data) > moduleir.MaxBytes {
+		return nil, fmt.Errorf("IR exceeds %d bytes", moduleir.MaxBytes)
 	}
 	var envelope struct {
 		Schema string `json:"schema"`
@@ -67,15 +66,6 @@ func compileMode(r io.Reader, mode string, maxDepth int) (map[string][]byte, err
 		return nil, fmt.Errorf("IR envelope: %w", err)
 	}
 	switch envelope.Schema {
-	case ir.Schema:
-		if mode == "native" {
-			return nil, fmt.Errorf("native mode requires module IR, not %q", envelope.Schema)
-		}
-		program, err := ir.Decode(bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		return gogen.Generate(program)
 	case moduleir.Schema:
 		program, err := moduleir.Decode(bytes.NewReader(data))
 		if err != nil {

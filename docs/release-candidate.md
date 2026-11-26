@@ -32,6 +32,7 @@ uv run --locked python scripts/check_header_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_wire16_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_crc16_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_adler32_demo.py --cli "$checkout_cli"
+uv run --locked python scripts/check_normalizer_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_checked_frame.py --cli "$checkout_cli"
 ```
 
@@ -42,7 +43,7 @@ pipeline changes to refresh its bundled payload. See the
 
 Each verifier copies its standalone module, generates fresh artifacts through the
 installed CLI, compares package, IR and evidence bytes, and rechecks the source
-claims. All eight then deploy only Go sources and `go.mod`, running the tests and
+claims. All nine then deploy only Go sources and `go.mod`, running the tests and
 executable offline with cgo and downloads disabled and producer tools hidden.
 
 | Demo | Source claims | Independent finite Go cases |
@@ -55,10 +56,11 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 | [Wire16](../examples/proofs/wire16) | 13 | All 65,536 words and all 262,144 valid typed headers |
 | [Adler-32](../examples/proofs/adler32) | 2 | Empty and multi-block input, checksum agreement with `hash/adler32` and raw/typed resource boundaries |
 | [CRC-16/XMODEM](../examples/proofs/crc16) | 2 | Every byte from nine boundary states, the published check value and chunked input |
+| [Normalizer](../examples/proofs/normalizer) | 2 | All 7,265 expressions up to depth two under nine valuations, 512 seeded deeper expressions and a 1,001-negation chain |
 
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
-runs these eight verifiers for both a direct wheel and an sdist-rebuilt wheel,
-freshly checking 56 source claims per wheel. Current regenerated manifests and
+runs these nine verifiers for both a direct wheel and an sdist-rebuilt wheel,
+freshly checking 58 source claims per wheel. Current regenerated manifests and
 proof evidence in the development checkout use generator v19 and the single IR schema `lean-go-ir/v24`. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 

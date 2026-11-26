@@ -1,7 +1,3 @@
-/feasibility/.lake/
-/feasibility/.evidence/
-/feasibility/__pycache__/
-/feasibility/Mutant*.lean
 /scripts/__pycache__/
 /producer/.lake/
 /.venv/

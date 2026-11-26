@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/franchb/lean-go/internal/ir"
 	"github.com/franchb/lean-go/internal/leanversion"
 	"github.com/franchb/lean-go/internal/moduleir"
 )
@@ -60,10 +59,7 @@ func replaceJSONField(t *testing.T, document, key, separator, old, next string) 
 
 func fixtureIRDigest(t *testing.T, name string, wire []byte) string {
 	t.Helper()
-	var program any = new(moduleir.Program)
-	if name == "normalizer" {
-		program = new(ir.Program)
-	}
+	program := new(moduleir.Program)
 	if err := json.Unmarshal(wire, program); err != nil {
 		t.Fatal(err)
 	}

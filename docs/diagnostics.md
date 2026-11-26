@@ -53,8 +53,6 @@ A compiler crash, syntax error, failed producer build, or unclassified compiler
 exception is a build failure. It must **never count as an expected admission
 rejection** in compatibility tests. Other existing invariant failures may also
 remain build failures until their deliberate rejection site supplies a code.
-The fixed audited normalizer uses the build-failure fallback; the fine-grained
-admission codes describe ordinary module extraction.
 
 Locations refer to original files relative to the source snapshot. Lean's
 imported declaration metadata supplies the name's selection range. For generated

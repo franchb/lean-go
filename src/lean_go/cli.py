@@ -96,12 +96,9 @@ def pipeline_arguments(args):
             for name, path in args.component_manifest:
                 command.extend(['--component-manifest', name, absolute(Path(path))])
         return 'check_proofs.py', [*command, mode, absolute(args.output or args.evidence)]
-    module_mode = any(value is not None for value in (args.source_dir, args.module, args.root))
-    output = args.out if module_mode else args.out or Path('generated/normalizer')
-    ir = args.ir_output if module_mode else args.ir_output or Path('testdata/normalizer.ir.json')
-    protect_install([output, ir])
+    protect_install([args.out, args.ir_output])
     command = []
-    for flag, value in [('--source-dir', args.source_dir), ('--out', output), ('--ir-output', ir)]:
+    for flag, value in [('--source-dir', args.source_dir), ('--out', args.out), ('--ir-output', args.ir_output)]:
         if value is not None:
             command.extend([flag, absolute(value)])
     if args.module is not None:

@@ -84,14 +84,6 @@ func TestCompileJoinSchema(t *testing.T) {
 }
 
 func TestCompileSchemaDispatch(t *testing.T) {
-	data, err := os.ReadFile("../../testdata/normalizer.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	files, err := compile(bytes.NewReader(data))
-	if err != nil || len(files) != 3 {
-		t.Fatalf("v1 dispatch: files=%d err=%v", len(files), err)
-	}
 	for _, data := range [][]byte{
 		[]byte(`{"schema":"lean-go-ir/v99"}`),
 		[]byte(`{"schema":"lean-go-ir/v24","schema":"lean-go-ir/v1"}`),
@@ -102,7 +94,7 @@ func TestCompileSchemaDispatch(t *testing.T) {
 			t.Fatal("invalid envelope accepted")
 		}
 	}
-	for n := 2; n < 26; n++ {
+	for n := 1; n < 26; n++ {
 		if n == 24 {
 			continue
 		}

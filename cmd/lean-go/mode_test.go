@@ -34,11 +34,14 @@ func TestNativeMode(t *testing.T) {
 func TestModeErrors(t *testing.T) {
 	dir := t.TempDir()
 	module := filepath.Join("..", "..", "testdata", "trees.ir.json")
-	pilot := filepath.Join("..", "..", "testdata", "normalizer.ir.json")
+	stale := filepath.Join(t.TempDir(), "stale.ir.json")
+	if err := os.WriteFile(stale, []byte(`{"schema":"lean-go-ir/v1"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
 	for _, args := range [][]string{
 		{"-in", module, "-out", filepath.Join(dir, "a"), "-mode", "fast"},
 		{"-in", module, "-out", filepath.Join(dir, "b"), "-native-max-depth", "5"},
-		{"-in", pilot, "-out", filepath.Join(dir, "c"), "-mode", "native"},
+		{"-in", stale, "-out", filepath.Join(dir, "c"), "-mode", "native"},
 		{"-in", module, "-out", filepath.Join(dir, "d"), "-mode", "native", "-native-max-depth", "-1"},
 	} {
 		if err := run(args); err == nil {

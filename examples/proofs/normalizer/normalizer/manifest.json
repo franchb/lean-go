@@ -1,0 +1,1049 @@
+{
+  "schema": "lean-go-manifest/v24",
+  "generator": "lean-go-modulegen/v19",
+  "generator_source_sha256": "43eb0f9c29b7cd11ad2c493198e714931352e2dc44eced5dd451ade12407f539",
+  "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
+  "ir_sha256": "cbc4399ae98067e68029091838efa1e0755ef8ae24e1488b1d784fc66fba395c",
+  "program": {
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
+    "stage": "pure-mono",
+    "lean_version": "4.36.0",
+    "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+    "module": "Normalizer",
+    "roots": [
+      "Normalizer.normalize"
+    ],
+    "features": [
+      "uint32"
+    ],
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
+      "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
+      "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
+      "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
+      "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
+      "producer/LeanGo/Module/Primitives.lean": "3dbb9443255ba8d052ac5906ca890053c56bfe41df14169cf0fa3c2f5779b0fe",
+      "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
+      "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
+      "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+      "scripts/export.py": "29ddf8d85b5db2fee00fdbd82a5e7ce731db4ee3acf1fecb93c46166b0ee4cd4",
+      "scripts/export_module.py": "97d39b82eebcdaee9bf47103571c4b69e247ee7f7e2f6c2d819fd8fee0396bea",
+      "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+      "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
+      "source/Normalizer.lean": "9c60193bad3cd71b8524d7912b2a23c5602c1261872e8dc0c5f45ffa08a00618"
+    },
+    "types": [
+      {
+        "name": "Bool",
+        "constructors": [
+          {
+            "name": "Bool.false",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Bool.true",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Normalizer.Expr",
+        "constructors": [
+          {
+            "name": "Normalizer.Expr.lit",
+            "tag": 0,
+            "fields": [
+              "Normalizer.Tri"
+            ]
+          },
+          {
+            "name": "Normalizer.Expr.var",
+            "tag": 1,
+            "fields": [
+              "UInt32"
+            ]
+          },
+          {
+            "name": "Normalizer.Expr.neg",
+            "tag": 2,
+            "fields": [
+              "Normalizer.Expr"
+            ]
+          },
+          {
+            "name": "Normalizer.Expr.conj",
+            "tag": 3,
+            "fields": [
+              "Normalizer.Expr",
+              "Normalizer.Expr"
+            ]
+          },
+          {
+            "name": "Normalizer.Expr.disj",
+            "tag": 4,
+            "fields": [
+              "Normalizer.Expr",
+              "Normalizer.Expr"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Normalizer.Tri",
+        "constructors": [
+          {
+            "name": "Normalizer.Tri.f",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Normalizer.Tri.u",
+            "tag": 1,
+            "fields": []
+          },
+          {
+            "name": "Normalizer.Tri.t",
+            "tag": 2,
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [
+      {
+        "source": "Bool.not",
+        "target": "Bool.Internal.not",
+        "theorem": "Bool.not_eq_internalNot",
+        "axioms": [
+          "Quot.sound"
+        ]
+      }
+    ],
+    "provenance": [
+      {
+        "name": "Bool.Internal.not",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Bool.not",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Expr",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Expr.below",
+        "dependencies": [
+          "Normalizer.Expr",
+          "Normalizer.Expr.rec",
+          "Normalizer.Tri",
+          "PProd",
+          "PUnit",
+          "UInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Expr.brecOn",
+        "dependencies": [
+          "Normalizer.Expr",
+          "Normalizer.Expr.below",
+          "Normalizer.Expr.brecOn.go",
+          "PProd"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Expr.brecOn.go",
+        "dependencies": [
+          "Normalizer.Expr",
+          "Normalizer.Expr.below",
+          "Normalizer.Expr.conj",
+          "Normalizer.Expr.disj",
+          "Normalizer.Expr.lit",
+          "Normalizer.Expr.neg",
+          "Normalizer.Expr.rec",
+          "Normalizer.Expr.var",
+          "Normalizer.Tri",
+          "PProd",
+          "PProd.mk",
+          "PUnit",
+          "PUnit.unit",
+          "UInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Expr.casesOn",
+        "dependencies": [
+          "Normalizer.Expr",
+          "Normalizer.Expr.conj",
+          "Normalizer.Expr.disj",
+          "Normalizer.Expr.lit",
+          "Normalizer.Expr.neg",
+          "Normalizer.Expr.rec",
+          "Normalizer.Expr.var",
+          "Normalizer.Tri",
+          "UInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Tri",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Tri.casesOn",
+        "dependencies": [
+          "Normalizer.Tri",
+          "Normalizer.Tri.f",
+          "Normalizer.Tri.rec",
+          "Normalizer.Tri.t",
+          "Normalizer.Tri.u"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Tri.neg",
+        "dependencies": [
+          "Normalizer.Tri",
+          "Normalizer.Tri.f",
+          "Normalizer.Tri.neg.match_1",
+          "Normalizer.Tri.t",
+          "Normalizer.Tri.u",
+          "Unit"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.Tri.neg.match_1",
+        "dependencies": [
+          "Normalizer.Tri",
+          "Normalizer.Tri.casesOn",
+          "Normalizer.Tri.f",
+          "Normalizer.Tri.t",
+          "Normalizer.Tri.u",
+          "Unit",
+          "Unit.unit"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Normalizer.normalize",
+        "dependencies": [
+          "Bool.false",
+          "Normalizer.Expr",
+          "Normalizer.normalizeAux"
+        ],
+        "rewrites": [
+          {
+            "source": "Bool.not",
+            "target": "Bool.Internal.not",
+            "theorem": "Bool.not_eq_internalNot",
+            "axioms": [
+              "Quot.sound"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Normalizer.normalizeAux",
+        "dependencies": [
+          "Bool",
+          "Bool.false",
+          "Bool.not",
+          "Bool.true",
+          "Eq",
+          "Normalizer.Expr",
+          "Normalizer.Expr.brecOn",
+          "Normalizer.Expr.conj",
+          "Normalizer.Expr.disj",
+          "Normalizer.Expr.lit",
+          "Normalizer.Expr.neg",
+          "Normalizer.Expr.var",
+          "Normalizer.Tri",
+          "Normalizer.Tri.neg",
+          "Normalizer.normalizeAux._f",
+          "Normalizer.normalizeAux.match_1",
+          "UInt32",
+          "instDecidableEqBool",
+          "ite"
+        ],
+        "rewrites": [
+          {
+            "source": "Bool.not",
+            "target": "Bool.Internal.not",
+            "theorem": "Bool.not_eq_internalNot",
+            "axioms": [
+              "Quot.sound"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Normalizer.normalizeAux._f",
+        "dependencies": [
+          "Bool",
+          "Bool.false",
+          "Bool.not",
+          "Bool.true",
+          "Eq",
+          "Normalizer.Expr",
+          "Normalizer.Expr.below",
+          "Normalizer.Expr.conj",
+          "Normalizer.Expr.disj",
+          "Normalizer.Expr.lit",
+          "Normalizer.Expr.neg",
+          "Normalizer.Expr.var",
+          "Normalizer.Tri",
+          "Normalizer.Tri.neg",
+          "Normalizer.normalizeAux.match_1",
+          "PProd",
+          "UInt32",
+          "instDecidableEqBool",
+          "ite"
+        ],
+        "rewrites": [
+          {
+            "source": "Bool.not",
+            "target": "Bool.Internal.not",
+            "theorem": "Bool.not_eq_internalNot",
+            "axioms": [
+              "Quot.sound"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Normalizer.normalizeAux.match_1",
+        "dependencies": [
+          "Normalizer.Expr",
+          "Normalizer.Expr.casesOn",
+          "Normalizer.Expr.conj",
+          "Normalizer.Expr.disj",
+          "Normalizer.Expr.lit",
+          "Normalizer.Expr.neg",
+          "Normalizer.Expr.var",
+          "Normalizer.Tri",
+          "UInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "instDecidableEqBool",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "ite",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Normalizer.Tri.neg",
+        "params": [
+          {
+            "id": 1,
+            "type": "Normalizer.Tri"
+          }
+        ],
+        "result": "Normalizer.Tri",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Normalizer.Tri",
+          "result": "Normalizer.Tri",
+          "alts": [
+            {
+              "constructor": "Normalizer.Tri.f",
+              "params": [],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 2,
+                  "type": "Normalizer.Tri"
+                },
+                "value": {
+                  "kind": "constructor",
+                  "name": "Normalizer.Tri.t",
+                  "args": []
+                },
+                "next": {
+                  "op": "return",
+                  "var": 2
+                }
+              }
+            },
+            {
+              "constructor": "Normalizer.Tri.u",
+              "params": [],
+              "body": {
+                "op": "return",
+                "var": 1
+              }
+            },
+            {
+              "constructor": "Normalizer.Tri.t",
+              "params": [],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 3,
+                  "type": "Normalizer.Tri"
+                },
+                "value": {
+                  "kind": "constructor",
+                  "name": "Normalizer.Tri.f",
+                  "args": []
+                },
+                "next": {
+                  "op": "return",
+                  "var": 3
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Normalizer.normalize",
+        "params": [
+          {
+            "id": 1,
+            "type": "Normalizer.Expr"
+          }
+        ],
+        "result": "Normalizer.Expr",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "Bool"
+          },
+          "value": {
+            "kind": "constructor",
+            "name": "Bool.false",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "Normalizer.Expr"
+            },
+            "value": {
+              "kind": "call",
+              "name": "Normalizer.normalizeAux",
+              "args": [
+                2,
+                1
+              ]
+            },
+            "next": {
+              "op": "return",
+              "var": 3
+            }
+          }
+        }
+      },
+      {
+        "name": "Normalizer.normalizeAux",
+        "params": [
+          {
+            "id": 1,
+            "type": "Bool"
+          },
+          {
+            "id": 2,
+            "type": "Normalizer.Expr"
+          }
+        ],
+        "result": "Normalizer.Expr",
+        "body": {
+          "op": "cases",
+          "var": 2,
+          "type": "Normalizer.Expr",
+          "result": "Normalizer.Expr",
+          "alts": [
+            {
+              "constructor": "Normalizer.Expr.lit",
+              "params": [
+                {
+                  "id": 3,
+                  "type": "Normalizer.Tri"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 1,
+                "type": "Bool",
+                "result": "Normalizer.Expr",
+                "alts": [
+                  {
+                    "constructor": "Bool.false",
+                    "params": [],
+                    "body": {
+                      "op": "return",
+                      "var": 2
+                    }
+                  },
+                  {
+                    "constructor": "Bool.true",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 4,
+                        "type": "Normalizer.Tri"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Normalizer.Tri.neg",
+                        "args": [
+                          3
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 5,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "constructor",
+                          "name": "Normalizer.Expr.lit",
+                          "args": [
+                            4
+                          ]
+                        },
+                        "next": {
+                          "op": "return",
+                          "var": 5
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "constructor": "Normalizer.Expr.var",
+              "params": [
+                {
+                  "id": 6,
+                  "type": "UInt32"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 1,
+                "type": "Bool",
+                "result": "Normalizer.Expr",
+                "alts": [
+                  {
+                    "constructor": "Bool.false",
+                    "params": [],
+                    "body": {
+                      "op": "return",
+                      "var": 2
+                    }
+                  },
+                  {
+                    "constructor": "Bool.true",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 7,
+                        "type": "Normalizer.Expr"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Normalizer.Expr.neg",
+                        "args": [
+                          2
+                        ]
+                      },
+                      "next": {
+                        "op": "return",
+                        "var": 7
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "constructor": "Normalizer.Expr.neg",
+              "params": [
+                {
+                  "id": 8,
+                  "type": "Normalizer.Expr"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 1,
+                "type": "Bool",
+                "result": "Normalizer.Expr",
+                "alts": [
+                  {
+                    "constructor": "Bool.false",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 9,
+                        "type": "Bool"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Bool.true",
+                        "args": []
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 10,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Normalizer.normalizeAux",
+                          "args": [
+                            9,
+                            8
+                          ]
+                        },
+                        "next": {
+                          "op": "return",
+                          "var": 10
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "constructor": "Bool.true",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 11,
+                        "type": "Bool"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Bool.false",
+                        "args": []
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 12,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Normalizer.normalizeAux",
+                          "args": [
+                            11,
+                            8
+                          ]
+                        },
+                        "next": {
+                          "op": "return",
+                          "var": 12
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "constructor": "Normalizer.Expr.conj",
+              "params": [
+                {
+                  "id": 13,
+                  "type": "Normalizer.Expr"
+                },
+                {
+                  "id": 14,
+                  "type": "Normalizer.Expr"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 1,
+                "type": "Bool",
+                "result": "Normalizer.Expr",
+                "alts": [
+                  {
+                    "constructor": "Bool.false",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 15,
+                        "type": "Normalizer.Expr"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Normalizer.normalizeAux",
+                        "args": [
+                          1,
+                          13
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 16,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Normalizer.normalizeAux",
+                          "args": [
+                            1,
+                            14
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 17,
+                            "type": "Normalizer.Expr"
+                          },
+                          "value": {
+                            "kind": "constructor",
+                            "name": "Normalizer.Expr.conj",
+                            "args": [
+                              15,
+                              16
+                            ]
+                          },
+                          "next": {
+                            "op": "return",
+                            "var": 17
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "constructor": "Bool.true",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 18,
+                        "type": "Normalizer.Expr"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Normalizer.normalizeAux",
+                        "args": [
+                          1,
+                          13
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 19,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Normalizer.normalizeAux",
+                          "args": [
+                            1,
+                            14
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 20,
+                            "type": "Normalizer.Expr"
+                          },
+                          "value": {
+                            "kind": "constructor",
+                            "name": "Normalizer.Expr.disj",
+                            "args": [
+                              18,
+                              19
+                            ]
+                          },
+                          "next": {
+                            "op": "return",
+                            "var": 20
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "constructor": "Normalizer.Expr.disj",
+              "params": [
+                {
+                  "id": 21,
+                  "type": "Normalizer.Expr"
+                },
+                {
+                  "id": 22,
+                  "type": "Normalizer.Expr"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 1,
+                "type": "Bool",
+                "result": "Normalizer.Expr",
+                "alts": [
+                  {
+                    "constructor": "Bool.false",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 23,
+                        "type": "Normalizer.Expr"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Normalizer.normalizeAux",
+                        "args": [
+                          1,
+                          21
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 24,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Normalizer.normalizeAux",
+                          "args": [
+                            1,
+                            22
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 25,
+                            "type": "Normalizer.Expr"
+                          },
+                          "value": {
+                            "kind": "constructor",
+                            "name": "Normalizer.Expr.disj",
+                            "args": [
+                              23,
+                              24
+                            ]
+                          },
+                          "next": {
+                            "op": "return",
+                            "var": 25
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "constructor": "Bool.true",
+                    "params": [],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 26,
+                        "type": "Normalizer.Expr"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Normalizer.normalizeAux",
+                        "args": [
+                          1,
+                          21
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 27,
+                          "type": "Normalizer.Expr"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Normalizer.normalizeAux",
+                          "args": [
+                            1,
+                            22
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 28,
+                            "type": "Normalizer.Expr"
+                          },
+                          "value": {
+                            "kind": "constructor",
+                            "name": "Normalizer.Expr.conj",
+                            "args": [
+                              26,
+                              27
+                            ]
+                          },
+                          "next": {
+                            "op": "return",
+                            "var": 28
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "api": {
+      "records": {}
+    }
+  },
+  "function_ids": {
+    "Normalizer.Tri.neg": 0,
+    "Normalizer.normalize": 1,
+    "Normalizer.normalizeAux": 2
+  },
+  "constructor_ids": {
+    "Bool.false": [
+      1,
+      0
+    ],
+    "Bool.true": [
+      1,
+      1
+    ],
+    "Normalizer.Expr.conj": [
+      2,
+      3
+    ],
+    "Normalizer.Expr.disj": [
+      2,
+      4
+    ],
+    "Normalizer.Expr.lit": [
+      2,
+      0
+    ],
+    "Normalizer.Expr.neg": [
+      2,
+      2
+    ],
+    "Normalizer.Expr.var": [
+      2,
+      1
+    ],
+    "Normalizer.Tri.f": [
+      3,
+      0
+    ],
+    "Normalizer.Tri.t": [
+      3,
+      2
+    ],
+    "Normalizer.Tri.u": [
+      3,
+      1
+    ]
+  },
+  "generated_files": {
+    "api.go": "09776dd10dcdd77ab9eed2a44917c40a3be81acb315f85c51ff6a4e460732015",
+    "control.go": "14d8f816e134b918af361b74d4708dd1ea7811b592f0f12460bd3d838ba3ede2",
+    "runtime.go": "e24c482440533544cf30b1b56e9a3d2974234172680ccfbfa1e0adcef9f28cff",
+    "schema.go": "27fab66aace7c3f4028cec575376574db4544ded91ba57e0e505467b122e0e23"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [],
+  "go_api": {
+    "entrypoint": "RunTyped",
+    "types": {
+      "Bool": "bool",
+      "Normalizer.Expr": "Expr",
+      "Normalizer.Tri": "Tri",
+      "UInt16": "uint16",
+      "UInt32": "uint32",
+      "UInt64": "uint64",
+      "UInt8": "uint8"
+    },
+    "constructors": {
+      "Normalizer.Expr.conj": "NewExprConj",
+      "Normalizer.Expr.disj": "NewExprDisj",
+      "Normalizer.Expr.lit": "NewExprLit",
+      "Normalizer.Expr.neg": "NewExprNeg",
+      "Normalizer.Expr.var": "NewExprVar",
+      "Normalizer.Tri.f": "NewTriF",
+      "Normalizer.Tri.t": "NewTriT",
+      "Normalizer.Tri.u": "NewTriU"
+    },
+    "accessors": {},
+    "destructors": {
+      "Normalizer.Expr.conj": {
+        "is": "IsConj",
+        "as": "AsConj"
+      },
+      "Normalizer.Expr.disj": {
+        "is": "IsDisj",
+        "as": "AsDisj"
+      },
+      "Normalizer.Expr.lit": {
+        "is": "IsLit",
+        "as": "AsLit"
+      },
+      "Normalizer.Expr.neg": {
+        "is": "IsNeg",
+        "as": "AsNeg"
+      },
+      "Normalizer.Expr.var": {
+        "is": "IsVar",
+        "as": "AsVar"
+      },
+      "Normalizer.Tri.f": {
+        "is": "IsF",
+        "as": "AsF"
+      },
+      "Normalizer.Tri.t": {
+        "is": "IsT",
+        "as": "AsT"
+      },
+      "Normalizer.Tri.u": {
+        "is": "IsU",
+        "as": "AsU"
+      }
+    }
+  }
+}

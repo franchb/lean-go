@@ -4,7 +4,7 @@
 Each package, IR fixture and proof-evidence file is first produced in a fresh
 temporary tree with scripts/generate.py and scripts/check_proofs.py. Tracked
 copies are replaced only after every artifact succeeded; the command then lists
-the artifacts whose bytes changed. The pilot normalizer is not covered.
+the artifacts whose bytes changed.
 """
 from __future__ import annotations
 
