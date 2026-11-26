@@ -163,6 +163,19 @@ func RunChecksum(a0 State, l Limits) (uint32, error) {
 	return value, nil
 }
 
+// RunCombine invokes its selected Lean root through RunRoot and its existing limits.
+func RunCombine(a0 uint32, a1 uint32, a2 uint64, l Limits) (uint32, error) {
+	out, err := RunRoot("Adler32.combine", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}, {n: apiUInt64Node(a2)}}, l)
+	if err != nil {
+		return 0, err
+	}
+	value, ok := apiReadUInt32(out.n)
+	if !ok {
+		return 0, ErrMalformed
+	}
+	return value, nil
+}
+
 // RunInitial invokes its selected Lean root through RunRoot and its existing limits.
 func RunInitial(l Limits) (State, error) {
 	out, err := RunRoot("Adler32.initial", []Value{}, l)
@@ -175,7 +188,7 @@ func RunInitial(l Limits) (State, error) {
 	value := State{v: Value{out.n}}
 	return value, nil
 }
-func scalarFunc2(b *budget, depth int, v1 uint32) (uint32, error) {
+func scalarFunc6(b *budget, depth int, v1 uint32) (uint32, error) {
 	if err := b.enter(4, depth); err != nil {
 		return 0, err
 	}
@@ -196,7 +209,7 @@ func scalarFunc2(b *budget, depth int, v1 uint32) (uint32, error) {
 	v4 := v1 - v2
 	return v4, nil
 }
-func scalarFunc3(b *budget, depth int, v1 [2]uint32, v2 uint8) ([2]uint32, error) {
+func scalarFunc8(b *budget, depth int, v1 [2]uint32, v2 uint8) ([2]uint32, error) {
 	if err := b.enter(10, depth); err != nil {
 		return [2]uint32{}, err
 	}
@@ -210,7 +223,7 @@ func scalarFunc3(b *budget, depth int, v1 [2]uint32, v2 uint8) ([2]uint32, error
 	}
 	v5 := uint32(v2)
 	v6 := v3 + v5
-	v7, err := scalarFunc2(b, depth+1, v6)
+	v7, err := scalarFunc6(b, depth+1, v6)
 	if err != nil {
 		return [2]uint32{}, err
 	}
@@ -218,7 +231,7 @@ func scalarFunc3(b *budget, depth int, v1 [2]uint32, v2 uint8) ([2]uint32, error
 		return [2]uint32{}, ErrResource
 	}
 	v8 := v4 + v7
-	v9, err := scalarFunc2(b, depth+1, v8)
+	v9, err := scalarFunc6(b, depth+1, v8)
 	if err != nil {
 		return [2]uint32{}, err
 	}
@@ -255,7 +268,7 @@ func RunUpdate(state State, data []byte, l Limits) (State, error) {
 		if !b.scalarWork(4, 0) {
 			return State{}, ErrResource
 		}
-		next, err := scalarFunc3(&b, i+1, words, value)
+		next, err := scalarFunc8(&b, i+1, words, value)
 		if err != nil {
 			return State{}, err
 		}

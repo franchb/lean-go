@@ -187,3 +187,39 @@ func TestRecordLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestCombine(t *testing.T) {
+	l := x.DefaultLimits()
+	wrap := append(bytes.Repeat([]byte{255}, 256), 240) // low sum is zero
+	random := make([]byte, 65522)
+	rand.New(rand.NewSource(1950)).Read(random)
+	for _, data := range [][]byte{nil, []byte("Wikipedia"), wrap, append(bytes.Clone(wrap), 0, 255), random} {
+		splits := []int{0, 1, 15, 255, 256, 257, 65520, 65521, len(data)}
+		for _, i := range splits {
+			if i > len(data) {
+				continue
+			}
+			left, right := adler32.Checksum(data[:i]), adler32.Checksum(data[i:])
+			got, err := x.RunCombine(left, right, uint64(len(data)-i), l)
+			if want := adler32.Checksum(data); err != nil || got != want {
+				t.Fatalf("len %d, split %d: %08x, %v; want %08x", len(data), i, got, err, want)
+			}
+		}
+	}
+}
+
+// A string of n zero bytes keeps the low sum and adds it to the high sum n
+// times. This supplies an independent full-width oracle without allocating n bytes.
+func TestCombineLargeZeroSuffix(t *testing.T) {
+	left := adler32.Checksum([]byte("prefix"))
+	const prime uint64 = 65521
+	low, high := uint64(left&65535), uint64(left>>16)
+	for _, n := range []uint64{0, 1, prime - 1, prime, prime + 1, 1<<32 - 1, 1 << 32, 1<<32 + 1, 1 << 63, ^uint64(0)} {
+		right := uint32(n%prime)<<16 | 1
+		want := uint32((high+(n%prime)*low)%prime)<<16 | uint32(low)
+		got, err := x.RunCombine(left, right, n, x.DefaultLimits())
+		if err != nil || got != want {
+			t.Fatalf("zero suffix %d: %08x, %v; want %08x", n, got, err, want)
+		}
+	}
+}

@@ -3,6 +3,16 @@
   "claims": [
     {
       "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Adler32Contract.combine_spec",
+      "name": "Adler32CombineProofs.combine_spec",
+      "statement": "Adler32Contract.combine_spec"
+    },
+    {
+      "axioms": [
         "Quot.sound",
         "propext"
       ],
@@ -20,18 +30,20 @@
       "statement": "Adler32Contract.step_spec"
     }
   ],
-  "contract_sha256": "f076f6ac42270ab55cb2fa639a2a4ee53ef084c0df83d743be28415e5e7ab548",
-  "generated_manifest_sha256": "9ad2edf51e9685ec67972760124cde8c515148b19a18c9e141452d87b16e7d98",
+  "contract_sha256": "ac269a50adfca19781d2ba0f355f5d7d6f31c7b62ddef0b3dbce5545f946a307",
+  "generated_manifest_sha256": "c93ef23a549fa8c021a573f3f7ce4bcccf68590ed38676c8b280c5e24ad530ad",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Adler32",
   "project_inputs": {
-    "proof/Adler32Contract.lean": "10e473d5b89501513f3c10c5926b1df7d1cb6b313ed1141f17e3f06bcd642e10",
-    "proof/Adler32Proofs.lean": "726c51e12f468cdcf5f9f4ea922cbabacf0b6ae8ceefd3cb24e43f4a45fa4575",
-    "source/Adler32.lean": "9263491c9a5af3553ca52f3997f37bff7e10291cc929c509ef20fa1508bf9c69"
+    "proof/Adler32CombineProofs.lean": "8128923c746fd03fc462c7b9d4eb1a05217a4410ecb575d2af1e327ede7f1368",
+    "proof/Adler32Contract.lean": "06316335ba8d0ef0b5ec7ffd00e273d3a510d78fa5894a6c5d05065a3a7ac240",
+    "proof/Adler32Proofs.lean": "2407f92446d5f16aebed47057c8285f2261400cb8ad79e43490b3f3e6b58cffd",
+    "source/Adler32.lean": "f94a2d3d8eb502bcaa9b97ebfca8d87f8ca0e5b5a17a9f4ae64ab0ebceb5cce9"
   },
   "roots": [
     "Adler32.checksum",
+    "Adler32.combine",
     "Adler32.initial",
     "Adler32.update"
   ],

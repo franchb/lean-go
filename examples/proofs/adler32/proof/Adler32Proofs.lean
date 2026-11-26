@@ -46,7 +46,8 @@ private theorem preserves (s : Adler32.State) (b : UInt8) (hs : reduced s) :
   rw [lo, hi]
   exact ⟨Nat.mod_lt _ (by decide), Nat.mod_lt _ (by decide)⟩
 
-private theorem bytes (bs : List UInt8) (s : Adler32.State) (hs : reduced s) :
+/-- An update from any reduced state preserves the invariant and matches the reference fold. -/
+theorem update_reference (bs : List UInt8) (s : Adler32.State) (hs : reduced s) :
     reduced (Adler32.update s bs) ∧
     observe (Adler32.update s bs) = bs.foldl referenceByte (observe s) := by
   induction bs generalizing s with
@@ -60,7 +61,7 @@ private theorem chunks (cs : List (List UInt8)) (s : Adler32.State) (hs : reduce
   induction cs generalizing s with
   | nil => rfl
   | cons c cs ih =>
-    obtain ⟨bound, eqn⟩ := bytes c s hs
+    obtain ⟨bound, eqn⟩ := update_reference c s hs
     simp only [List.foldl_cons, List.flatten_cons, List.foldl_append, ih _ bound, eqn]
 
 theorem chunks_spec : Adler32Contract.chunks_spec := fun cs => chunks cs Adler32.initial (by decide : 1 < 65521 ∧ 0 < 65521)

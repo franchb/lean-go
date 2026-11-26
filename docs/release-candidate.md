@@ -53,16 +53,16 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 | [Bytes](../examples/proofs/bytes) | 12 | 652 boundary, one-hot and seeded cases |
 | [Header](../examples/proofs/header) | 9 | All 262,144 valid headers plus rejection and limit cases |
 | [Wire16](../examples/proofs/wire16) | 13 | All 65,536 words and all 262,144 valid typed headers |
-| [Adler-32](../examples/proofs/adler32) | 2 | Empty and multi-block input, checksum agreement with `hash/adler32` and raw/typed resource boundaries |
+| [Adler-32](../examples/proofs/adler32) | 3 | Streaming and independently combined checksums, full-width lengths and raw/typed resource boundaries |
 | [CRC-16/XMODEM](../examples/proofs/crc16) | 2 | Every byte from nine boundary states, the published check value and chunked input |
 
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
 runs these eight verifiers for both a direct wheel and an sdist-rebuilt wheel,
-freshly checking 56 source claims per wheel. Current regenerated manifests and
+freshly checking 57 source claims per wheel. Current regenerated manifests and
 proof evidence in the development checkout use generator v18. Adler-32 uses multi-root v23 IR and CRC-16 uses v21. The other demos retain their earlier IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
-Alpha.14 also proves two composition claims for the checksummed Wire16 frame. A v2 proof contract checks those two propositions once and binds them to both component manifests, bringing the tagged total to 56 distinct source claims. Alpha.15 adds two Adler-32 claims for a total of 58. [Checksummed frame example](../examples/proofs/checkedframe)
+Alpha.14 also proves two composition claims for the checksummed Wire16 frame. A v2 proof contract checks those two propositions once and binds them to both component manifests, bringing the tagged total to 56 distinct source claims. Alpha.15 adds two Adler-32 claims for a total of 58. The development checkout also proves independent checksum combination, bringing its total to 59. [Checksummed frame example](../examples/proofs/checkedframe)
 
 ## Reproduce the alpha.15 tag
 
