@@ -60,7 +60,8 @@ def runSimp (consts : Array Name) (extra : Array Term) : TacticM Unit := do
   let ids : Array Term := consts.map fun n => mkCIdent n
   let lemmas ← (ids ++ extra).mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
   evalTactic (← `(tactic|
-    simp only [ir_simp, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq,
+    simp only [ir_simp, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
+      Bool.false_eq_true, Bool.true_eq_false, decide_true, decide_false, Bool.not_true, Bool.not_false,
       List.foldl_cons, List.foldl_nil, Option.some.injEq, $lemmas,*, *]))
 
 /-- Run `t`; on an exception or a logged error, restore the state and report failure. -/
@@ -90,7 +91,9 @@ partial def loop (consts : Array Name) (extra : Array Term) (fuel : Nat) (counte
   if (← getGoals).isEmpty then return
   let g ← getMainGoal
   let tgt ← instantiateMVars (← g.getType)
+  trace[debug] m!"validate_obl step:{indentD g}"
   if let some t := findScrutinee tgt then
+    trace[debug] m!"scrutinee: {t}"
     let subgoals ← g.withContext do
       if t.isFVar then
         let gs ← g.cases t.fvarId!
@@ -113,14 +116,33 @@ partial def loop (consts : Array Name) (extra : Array Term) (fuel : Nat) (counte
     return
   -- source-side control flow
   setGoals [g]
+  trace[debug] m!"split"
   if ← tryTac (evalTactic (← `(tactic| split))) then
     let gs ← getGoals
     for sg in gs do
       setGoals [sg]
+      if ← tryTac (evalTactic (← `(tactic| contradiction))) then continue
       loop consts extra (fuel - 1) counter
     return
   if ← tryTac (evalTactic (← `(tactic| rfl))) then return
   throwError "validate_obl: stuck at{indentExpr tgt}"
+
+/-- Destruct every local of structure type (single constructor, no recursion),
+recursively through structure-typed fields. This is always safe (no case
+explosion, no infinite unfolding) and lets both the IR side and the source
+side compute through record fields before `simp` runs. -/
+partial def destructStructures (g : MVarId) : MetaM (List MVarId) := g.withContext do
+  for d in (← getLCtx) do
+    if d.isImplementationDetail then continue
+    let ty ← whnfR (← instantiateMVars d.type)
+    let .const n _ := ty.getAppFn | continue
+    unless ty.getAppNumArgs == 0 && isStructure (← getEnv) n do continue
+    let gs ← g.cases d.fvarId
+    let mut out := []
+    for sg in gs do
+      out := out ++ (← destructStructures sg.mvarId)
+    return out
+  return [g]
 
 syntax (name := validateObl) "validate_obl" (" [" term,* "]")? : tactic
 
@@ -132,7 +154,9 @@ syntax (name := validateObl) "validate_obl" (" [" term,* "]")? : tactic
   let g ← getMainGoal
   let consts ← g.withContext do obligationConsts (← g.getType)
   let counter ← IO.mkRef 0
-  loop consts extra 200 counter
+  for sg in ← destructStructures g do
+    setGoals [sg]
+    loop consts extra 200 counter
 
 /-- `∀ args, Spec.env S name args = Callable.call f args`, by unfolding the
 specification list `S` (no definitional unfolding of source functions). -/

@@ -5,4 +5,7 @@ import Examples.Crc16
 import Examples.Adler32
 import Examples.Quota
 import Examples.Trees
+import Examples.Counters
+import Examples.Records
+import Examples.Reduced
 import Examples.AxiomCheck
