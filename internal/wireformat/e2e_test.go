@@ -43,7 +43,7 @@ func TestEndToEnd(t *testing.T) {
 			}
 			dir := filepath.Join(t.TempDir(), f.Name)
 			start := time.Now()
-			if err := Render(f, dir, pipeline.DefaultCache()); err != nil {
+			if err := Render(f, dir, Options{Cache: pipeline.DefaultCache(), StrictGo: true}); err != nil {
 				t.Fatal(err)
 			}
 			t.Logf("%s: rendered, extracted and proof-checked %d claims in %s", f.Name, f.ClaimCount(), time.Since(start).Round(time.Second))

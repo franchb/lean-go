@@ -113,6 +113,7 @@ var generateOptions = []option{
 	{name: "mode", values: 1, choices: []string{"metered", "native"}, meta: "metered|native", help: "Go emission mode (default metered)"},
 	{name: "replace", help: "replace an existing differing generated package after success"},
 	{name: "no-cache", help: "build the producer from scratch instead of using the cache"},
+	{name: "strict-go", help: "refuse to run unless lean-go was built with the pinned Go release"},
 }
 
 const generateSummary = "Generate fresh pure Go from Lean source in a private, fresh Lake workspace."
@@ -130,14 +131,28 @@ func generate(args []string, stdout, stderr io.Writer) int {
 	if mode == "" {
 		mode = "text"
 	}
+	// A JSON failure report must stay the only stderr document, so in JSON
+	// mode the toolchain warning is printed only after success.
+	if warning := pipeline.GoWarning(); warning != "" && mode == "text" && !p.has("strict-go") {
+		fmt.Fprintln(stderr, warning)
+	}
 	result, err := runGenerate(p)
 	if err != nil {
 		pipeline.EmitDiagnostics(stderr, err, mode)
 		return 1
 	}
+	if result.Warning != "" && mode == "json" {
+		fmt.Fprintln(stderr, result.Warning)
+	}
 	fmt.Fprintln(stdout, result.Summary())
 	return 0
 }
+
+// generateFunc and checkProofsFunc are variables so tests can observe the
+// requests and inject implementation failures.
+var checkProofsFunc = pipeline.CheckProofs
+
+var generateFunc = pipeline.Generate
 
 func runGenerate(p *parsed) (result *pipeline.GenerateResult, err error) {
 	defer func() {
@@ -152,11 +167,11 @@ func runGenerate(p *parsed) (result *pipeline.GenerateResult, err error) {
 	if !p.has("out") || !p.has("ir-output") {
 		return nil, errors.New("module generation requires explicit --out and --ir-output paths")
 	}
-	return pipeline.Generate(pipeline.GenerateOptions{
+	return generateFunc(pipeline.GenerateOptions{
 		SourceDir: p.one("source-dir"), Module: p.one("module"), Roots: p.all("root"),
 		Out: p.one("out"), IROutput: p.one("ir-output"),
 		Emit:    pipeline.EmitOptions{Mode: p.one("mode")},
-		Replace: p.has("replace"), Cache: cacheFor(p.has("no-cache")),
+		Replace: p.has("replace"), Cache: cacheFor(p.has("no-cache")), StrictGo: p.has("strict-go"),
 	})
 }
 
@@ -225,7 +240,7 @@ func checkProofs(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return usageFailure(stderr, "check-proofs", proofSummary, proofOptions, err)
 	}
-	summary, err := pipeline.CheckProofs(pipeline.CheckProofsOptions{
+	summary, err := checkProofsFunc(pipeline.CheckProofsOptions{
 		Contract: p.one("contract"), Manifest: p.one("manifest"), ComponentManifests: p.pairs("component-manifest"),
 		Output: p.one("output"), Evidence: p.one("evidence"),
 	})
@@ -252,6 +267,7 @@ var formatOptions = []option{
 	{name: "out", values: 1, meta: "DIR", help: "output directory"},
 	{name: "sources-only", help: "write generated sources without running extraction and the proof check"},
 	{name: "no-cache", help: "build the producer from scratch instead of using the cache"},
+	{name: "strict-go", help: "refuse to run unless lean-go was built with the pinned Go release"},
 	{name: "repo", values: 1, meta: "DIR", help: "ignored; kept for compatibility with lean-go-format"},
 }
 
@@ -300,7 +316,7 @@ func FormatRun(args []string, stdout io.Writer) error {
 	if p.has("sources-only") {
 		return wireformat.WriteFiles(p.one("out"), f.Files())
 	}
-	return wireformat.GenerateAll(f, p.one("out"), cacheFor(p.has("no-cache")))
+	return wireformat.GenerateAll(f, p.one("out"), wireformat.Options{Cache: cacheFor(p.has("no-cache")), StrictGo: p.has("strict-go")})
 }
 
 // repositoryRoot finds the lean-go checkout containing dir.

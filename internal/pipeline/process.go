@@ -39,7 +39,13 @@ func universal(s string) string {
 
 // run executes one producer process with captured output. Failures carry the
 // child's complete diagnostics in the message, as the Python pipeline did.
-func run(command []string, dir string, env []string) (string, error) {
+// run and lookPath are variables so tests can stand in for Lean and Lake.
+var (
+	run      = runProcess
+	lookPath = findExecutable
+)
+
+func runProcess(command []string, dir string, env []string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), processTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
@@ -75,7 +81,7 @@ func pythonList(items []string) string {
 }
 
 // lookPath finds a required executable on PATH.
-func lookPath(name string) (string, bool) {
+func findExecutable(name string) (string, bool) {
 	path, err := exec.LookPath(name)
 	return path, err == nil
 }

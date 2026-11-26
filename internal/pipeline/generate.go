@@ -83,6 +83,10 @@ type GenerateOptions struct {
 	// Replace swaps an existing differing package after full success.
 	Replace bool
 	Cache   *Cache
+	// StrictGo refuses to run unless this binary was built with RequiredGo,
+	// whose go/format output the tracked artifacts use. Otherwise a binary
+	// built by another Go release continues with a warning in the result.
+	StrictGo bool
 
 	harness func(module string, roots []string) string
 }
@@ -93,6 +97,18 @@ type GenerateResult struct {
 	IR            []byte
 	Files         map[string][]byte
 	Cache         CacheStatus
+	// Warning is a one-line note, such as a Go toolchain other than RequiredGo.
+	Warning string
+}
+
+// GoWarning returns the non-strict toolchain warning, or "" for RequiredGo.
+func GoWarning() string { return goWarning(goVersion()) }
+
+func goWarning(version string) string {
+	if checkGoVersion(version) == nil {
+		return ""
+	}
+	return fmt.Sprintf("lean-go: warning: built with %s, not the pinned %s; generated Go may differ from tracked artifacts in formatting", version, RequiredGo)
 }
 
 // Summary is the human-readable success line.
@@ -196,8 +212,9 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if _, err := SelectedCompiler(); err != nil {
 		return nil, staged("toolchain", "toolchain_mismatch", err)
 	}
-	if err := checkGoVersion(runtime.Version()); err != nil {
-		return nil, staged("toolchain", "toolchain_mismatch", err)
+	warning := goWarning(goVersion())
+	if warning != "" && opts.StrictGo {
+		return nil, staged("toolchain", "toolchain_mismatch", checkGoVersion(goVersion()))
 	}
 	resolvedSource, err := resolvePath(opts.SourceDir)
 	if err != nil {
@@ -231,5 +248,8 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if err := PublishFile(irOutput, exported.IR, true); err != nil {
 		return nil, staged("emission", "emission_failed", err)
 	}
-	return &GenerateResult{Out: output, IROutput: irOutput, IR: exported.IR, Files: files, Cache: exported.Cache}, nil
+	return &GenerateResult{Out: output, IROutput: irOutput, IR: exported.IR, Files: files, Cache: exported.Cache, Warning: warning}, nil
 }
+
+// goVersion is a variable so tests can simulate another build toolchain.
+var goVersion = runtime.Version
