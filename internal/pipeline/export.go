@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/franchb/lean-go/internal/moduleir"
-	"github.com/franchb/lean-go/producer"
 )
 
 // Program identity written into every module IR.
@@ -33,6 +32,9 @@ type ExportOptions struct {
 	Roots     []string
 	// Cache, when non-nil, reuses a verified producer build.
 	Cache *Cache
+	// Validation, when non-nil, translation-validates the exported IR in a
+	// separate Lean process after the export is complete (validate_run.go).
+	Validation *ValidationOptions
 
 	// harness replaces the generated export command in tests.
 	harness func(module string, roots []string) string
@@ -43,6 +45,8 @@ type ExportResult struct {
 	IR      []byte
 	Sources Snapshot
 	Cache   CacheStatus
+	// Validation is set when ExportOptions.Validation was.
+	Validation *ValidationResult
 }
 
 // LakeConfig is the fixed dependency-free Lake configuration for a snapshot.
@@ -213,7 +217,8 @@ func ExportModule(opts ExportOptions) (*ExportResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	for name, data := range producer.ModuleFiles() {
+	validating := opts.Validation != nil
+	for name, data := range producerFiles(validating) {
 		if err := writeFile(filepath.Join(workspace, filepath.FromSlash(name)), data); err != nil {
 			return nil, err
 		}
@@ -228,13 +233,13 @@ func ExportModule(opts ExportOptions) (*ExportResult, error) {
 	if err := checkLakeManifest(workspace); err != nil {
 		return nil, err
 	}
-	cached, status := opts.Cache.prepareProducer(lake, versionText, compiler, env)
+	cached, status := opts.Cache.prepareProducer(lake, versionText, compiler, env, validating)
 	if cached != nil {
 		if err := writeTree(filepath.Join(workspace, ".lake", "build"), cached); err != nil {
 			return nil, err
 		}
 	}
-	build := append([]string{lake, "build", "LeanGo.Module.Export"}, sources.Modules()...)
+	build := append(append([]string{lake, "build"}, producerTargets(validating)...), sources.Modules()...)
 	if err := runCompiler(build, workspace, env, mapped, false); err != nil {
 		return nil, err
 	}
@@ -256,7 +261,17 @@ func ExportModule(opts ExportOptions) (*ExportResult, error) {
 	if err := verifySources(opts.SourceDir, sources); err != nil {
 		return nil, err
 	}
-	return &ExportResult{IR: result, Sources: sources, Cache: status}, nil
+	exported := &ExportResult{IR: result, Sources: sources, Cache: status}
+	if validating {
+		exported.Validation, err = runValidation(validationRun{
+			workspace: workspace, lake: lake, lean: lean, env: env, module: opts.Module, roots: roots,
+			ir: result, compiler: compiler, options: *opts.Validation,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return exported, nil
 }
 
 func checkLakeManifest(workspace string) error {

@@ -17,20 +17,36 @@ var pipelineSources embed.FS
 // Provenance keys naming the Go tool itself. Extraction records the pipeline
 // digest; proof evidence records both.
 const (
-	ToolInput      = "tool/lean-go/pipeline"
-	ProofToolInput = "tool/lean-go/proofcheck"
+	ToolInput           = "tool/lean-go/pipeline"
+	ProofToolInput      = "tool/lean-go/proofcheck"
+	ValidationToolInput = "tool/lean-go/validate"
 )
 
 // SourceDigest identifies the extraction pipeline: this package's non-test Go
-// sources except the proof checker (proof_*.go), together with the shared
-// compiler policy. Files are ordered by name and framed with their byte
-// lengths, in the style of internal/moduleir.SourceDigest.
-func SourceDigest() string { return sourceDigest(false) }
+// sources except the proof checker (proof_*.go) and the translation-validation
+// runner (validate_*.go), together with the shared compiler policy. Files are
+// ordered by name and framed with their byte lengths, in the style of
+// internal/moduleir.SourceDigest. The validation runner starts only after the
+// IR is complete and cannot change it; validation reports record its digest.
+func SourceDigest() string { return sourceDigest("") }
 
 // ProofSourceDigest identifies the proof checker sources (proof_*.go).
-func ProofSourceDigest() string { return sourceDigest(true) }
+func ProofSourceDigest() string { return sourceDigest("proof_") }
 
-func sourceDigest(proofs bool) string {
+// ValidationSourceDigest identifies the validation runner sources (validate_*.go).
+func ValidationSourceDigest() string { return sourceDigest("validate_") }
+
+// sourceFamily is the digest family of a non-test pipeline source file.
+func sourceFamily(name string) string {
+	for _, prefix := range []string{"proof_", "validate_"} {
+		if strings.HasPrefix(name, prefix) {
+			return prefix
+		}
+	}
+	return ""
+}
+
+func sourceDigest(family string) string {
 	h := sha256.New()
 	leanversion.HashSource(h)
 	entries, err := pipelineSources.ReadDir(".")
@@ -38,7 +54,7 @@ func sourceDigest(proofs bool) string {
 		panic(err)
 	}
 	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), "_test.go") || strings.HasPrefix(entry.Name(), "proof_") != proofs {
+		if strings.HasSuffix(entry.Name(), "_test.go") || sourceFamily(entry.Name()) != family {
 			continue
 		}
 		data, err := pipelineSources.ReadFile(entry.Name())
@@ -65,6 +81,18 @@ func Digest(data []byte) string {
 func ProducerInventory() map[string]string {
 	out := map[string]string{ToolInput: SourceDigest()}
 	for name, data := range producer.ModuleFiles() {
+		out["producer/"+name] = Digest(data)
+	}
+	return out
+}
+
+// ValidationInventory names the translation-validation library a validation
+// report depends on: every embedded validation file under its checkout path
+// ("producer/LeanGo/Validate/X.lean") and the validation runner digest. It is
+// recorded in validation reports only, never in IR inputs or manifests.
+func ValidationInventory() map[string]string {
+	out := map[string]string{ValidationToolInput: ValidationSourceDigest()}
+	for name, data := range producer.ValidationFiles() {
 		out["producer/"+name] = Digest(data)
 	}
 	return out

@@ -16,6 +16,13 @@ import (
 //go:embed lean-toolchain LeanGo/Module/*.lean LeanGo/Proofs/Check.lean
 var files embed.FS
 
+// The translation-validation library and the #lean_go_validate command are
+// embedded separately: they are staged and hashed only when a run requests
+// validation, so the extraction inputs of other runs are unchanged.
+//
+//go:embed LeanGo/Validate.lean LeanGo/Validate/*.lean LeanGo/Validate/Meta/*.lean
+var validation embed.FS
+
 // ToolchainFile is the checkout's default compiler pin file.
 const ToolchainFile = "lean-toolchain"
 
@@ -52,6 +59,35 @@ func ModuleFiles() map[string][]byte {
 func ModuleNames() []string {
 	var names []string
 	for name := range ModuleFiles() {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// ValidationFiles returns every embedded translation-validation file, keyed
+// by its path relative to the producer directory, for example
+// "LeanGo/Validate/Command.lean". These files are not part of ModuleFiles.
+func ValidationFiles() map[string][]byte {
+	out := map[string][]byte{}
+	err := fs.WalkDir(validation, ".", func(name string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() || !strings.HasSuffix(name, ".lean") {
+			return err
+		}
+		data, err := validation.ReadFile(name)
+		out[name] = data
+		return err
+	})
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+// ValidationNames returns the sorted keys of ValidationFiles.
+func ValidationNames() []string {
+	var names []string
+	for name := range ValidationFiles() {
 		names = append(names, name)
 	}
 	sort.Strings(names)
