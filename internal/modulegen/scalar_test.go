@@ -8,7 +8,8 @@ import (
 	"github.com/franchb/lean-go/internal/moduleir"
 )
 
-func TestNativeScalarBudgetParity(t *testing.T) {
+func crcProgram(t *testing.T) *moduleir.Program {
+	t.Helper()
 	fixture, err := os.ReadFile("../../examples/proofs/crc16/crc16.ir.json")
 	if err != nil {
 		t.Fatal(err)
@@ -17,10 +18,39 @@ func TestNativeScalarBudgetParity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return p
+}
+
+func TestByteFoldWithNonNativeStep(t *testing.T) {
+	p := crcProgram(t)
+	for i := range p.Functions {
+		f := &p.Functions[i]
+		if f.Name == "Crc16.updateByte" {
+			f.Body = &moduleir.Code{Op: "join", Join: &moduleir.Join{ID: 10001, Params: []moduleir.Param{}, Body: f.Body}, Next: &moduleir.Code{Op: "jump", Target: 10001, Args: []int{}}}
+		}
+	}
+	files, err := Generate(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runGenerated(t, files, `package extracted
+import "testing"
+func TestFallback(t *testing.T){
+    l:=DefaultLimits()
+    got,err:=RunUpdate(0,[]byte("123456789"),l)
+    if err!=nil || got!=0x31c3 {t.Fatal(got,err)}
+    l.MaxDepth=1
+    if _,err:=RunUpdate(0,[]byte{42},l);err!=ErrResource {t.Fatal(err)}
+    if got,err:=RunUpdate(0x1234,nil,l);err!=nil || got!=0x1234 {t.Fatal(got,err)}
+}`)
+}
+
+func TestNativeScalarBudgetParity(t *testing.T) {
+	p := crcProgram(t)
 	// Unused pure temporaries still consume steps, slots and allocations.
 	for i := range p.Functions {
 		f := &p.Functions[i]
-		if f.Name != p.Root {
+		if f.Name != "Crc16.updateByte" {
 			continue
 		}
 		f.Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 10001, Type: "UInt16"},
@@ -47,8 +77,8 @@ func TestParity(t *testing.T) {
 			args:=[]Value{{apiUInt16Node(state)},{apiUInt8Node(byt)}}
 			check:=func(l Limits){
 				t.Helper()
-				got,err:=RunTyped(state,byt,l)
-				v,wantErr:=Run(args,l)
+				got,err:=RunUpdateByte(state,byt,l)
+				v,wantErr:=RunRoot("Crc16.updateByte",args,l)
 				want,ok:=v.UInt16()
 				if err!=wantErr || got!=want || ok!=(wantErr==nil) {
 					t.Fatalf("%04x %02x %+v: typed %04x/%v, raw %04x/%v",state,byt,l,got,err,want,wantErr)

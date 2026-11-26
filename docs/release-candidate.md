@@ -57,8 +57,7 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
 runs these seven verifiers for both a direct wheel and an sdist-rebuilt wheel,
 freshly checking 54 source claims per wheel. Current regenerated manifests and
-proof evidence use module generator v15; the earlier demos retain their existing
-IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
+proof evidence in the development checkout use generator v16. The CRC fold uses multi-root v21 IR. The other demos retain their earlier IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
 Alpha.13 also proves two composition claims for the checksummed Wire16 frame. The checker verifies the same two propositions against both component manifests, bringing the total to 56 distinct source claims. [Checksummed frame example](../examples/proofs/checkedframe)
@@ -104,7 +103,7 @@ Success prints a JSON receipt with `"status": "passed"`,
 `"candidate": "0.1.0a13"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
-checkout, including generator v15; it does not establish publication. Interpret
+checkout, including generator v16; it does not establish publication. Interpret
 the hashes together with the recorded commit and working-tree changes. A receipt
 from a historical checkout records that checkout's package version and inputs.
 All temporary projects and caches owned by the verifier are removed. To retain

@@ -1,0 +1,22 @@
+package compatconsumer
+
+import (
+	"bytes"
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+func TestByteFold(t *testing.T) {
+	for _, data := range [][]byte{nil, {}, {1, 2, 255}, bytes.Repeat([]byte{0xff}, 256)} {
+		state := uint32(0xfffffffe)
+		want := state
+		for _, b := range data {
+			want += uint32(b)
+		}
+		got, err := x.RunTyped(state, data, x.DefaultLimits())
+		if err != nil || got != want {
+			t.Fatalf("length %d: got %x, %v; want %x", len(data), got, err, want)
+		}
+	}
+}

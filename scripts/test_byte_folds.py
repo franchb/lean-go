@@ -31,3 +31,7 @@ def run (s : UInt32) (bytes : List UInt8) := bytes.foldl tick s
         ):
             with self.subTest(source=source), self.assertRaises(export_module.ExportError):
                 self.export(source + '\n')
+
+
+if __name__ == '__main__':
+    unittest.main()

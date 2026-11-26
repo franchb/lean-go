@@ -63,14 +63,18 @@ def read_regular(path, limit=MAX_DOCUMENT_BYTES):
     return data
 
 
-def project_directory(root, value):
+def project_path(root, value):
     if (not isinstance(value, str) or not value or value.startswith('/') or
             any(char in '\\:<>"|?*' or ord(char) < 32 or ord(char) == 127 or
                 0xD800 <= ord(char) <= 0xDFFF for char in value) or
             any(part in {'', '.', '..'} or part.endswith((' ', '.')) for part in value.split('/'))):
         raise ExportError('contract directories must be canonical portable relative paths')
     relative = PurePosixPath(value)
-    directory = root.joinpath(*relative.parts)
+    return root.joinpath(*relative.parts)
+
+
+def project_directory(root, value):
+    directory = project_path(root, value)
     if directory.resolve() != directory or not directory.is_dir():
         raise ExportError('contract directory is missing or contains a symlink')
     return directory

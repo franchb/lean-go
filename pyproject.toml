@@ -73,6 +73,7 @@ sources = ["src"]
 "producer/Reference.lean" = "lean_go/_payload/producer/Reference.lean"
 "producer/lakefile.toml" = "lean_go/_payload/producer/lakefile.toml"
 "producer/lean-toolchain" = "lean_go/_payload/producer/lean-toolchain"
+"scripts/composition_contract.py" = "lean_go/_payload/scripts/composition_contract.py"
 "scripts/check_proofs.py" = "lean_go/_payload/scripts/check_proofs.py"
 "scripts/export.py" = "lean_go/_payload/scripts/export.py"
 "scripts/export_module.py" = "lean_go/_payload/scripts/export_module.py"
@@ -149,6 +150,7 @@ include = [
   "/producer/Reference.lean",
   "/producer/lakefile.toml",
   "/producer/lean-toolchain",
+  "/scripts/composition_contract.py",
   "/scripts/check_proofs.py",
   "/scripts/export.py",
   "/scripts/export_module.py",

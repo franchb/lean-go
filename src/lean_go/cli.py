@@ -28,7 +28,10 @@ def parser():
     generate.add_argument('--diagnostics', choices=('text', 'json'), default='text')
     proofs = commands.add_parser('check-proofs', help='freshly check and bind source proofs')
     proofs.add_argument('--contract', type=Path, required=True)
-    proofs.add_argument('--manifest', type=Path, required=True)
+    packages = proofs.add_mutually_exclusive_group(required=True)
+    packages.add_argument('--manifest', type=Path, help='generated manifest for a v1 contract')
+    packages.add_argument('--component-manifest', nargs=2, action='append', metavar=('NAME', 'PATH'),
+                          help='bind a v2 component by name; repeat once per component')
     mode = proofs.add_mutually_exclusive_group(required=True)
     mode.add_argument('--output', type=Path, help='write freshly checked evidence')
     mode.add_argument('--evidence', type=Path, help='freshly verify existing evidence')
@@ -84,9 +87,13 @@ def pipeline_arguments(args):
     if args.command == 'check-proofs':
         protect_install([args.output, args.evidence])
         mode = '--output' if args.output is not None else '--evidence'
-        return 'check_proofs.py', ['--contract', absolute(args.contract),
-                                   '--manifest', absolute(args.manifest), mode,
-                                   absolute(args.output or args.evidence)]
+        command = ['--contract', absolute(args.contract)]
+        if args.manifest is not None:
+            command.extend(['--manifest', absolute(args.manifest)])
+        else:
+            for name, path in args.component_manifest:
+                command.extend(['--component-manifest', name, absolute(Path(path))])
+        return 'check_proofs.py', [*command, mode, absolute(args.output or args.evidence)]
     module_mode = any(value is not None for value in (args.source_dir, args.module, args.root))
     output = args.out if module_mode else args.out or Path('generated/normalizer')
     ir = args.ir_output if module_mode else args.ir_output or Path('testdata/normalizer.ir.json')
