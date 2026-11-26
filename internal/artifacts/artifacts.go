@@ -24,6 +24,10 @@ type Package struct {
 	Contract, Evidence             string
 }
 
+// Validation is the tracked translation-validation report of the package's
+// IR, next to the IR file (x.ir.json becomes x.validation.json).
+func (p Package) Validation() string { return pipeline.DefaultReportPath(p.IR) }
+
 // Name is the package directory's base name.
 func (p Package) Name() string { return filepath.Base(filepath.FromSlash(p.Package)) }
 
@@ -93,6 +97,7 @@ func GeneratePackage(root, stage string, spec Package, cache *pipeline.Cache) er
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{
 		SourceDir: at(root, spec.SourceDir), Module: spec.Module, Roots: spec.Roots,
 		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Cache: cache, StrictGo: true,
+		Validation: trackedValidation(at(stage, spec.Validation())),
 	}); err != nil {
 		return fmt.Errorf("%s: %w", spec.Package, err)
 	}
@@ -137,6 +142,9 @@ func GenerateFormat(root, stage, name string, cache *pipeline.Cache) error {
 		return err
 	}
 	if err := wireformat.Render(f, at(stage, FormatsDir+"/"+name), wireformat.Options{Cache: cache, StrictGo: true}); err != nil {
+		return fmt.Errorf("%s/%s: %w", FormatsDir, name, err)
+	}
+	if err := ValidateFormat(stage, name, cache); err != nil {
 		return fmt.Errorf("%s/%s: %w", FormatsDir, name, err)
 	}
 	return nil
@@ -270,7 +278,7 @@ func Regenerate(root string, jobs int, cache *pipeline.Cache, progress io.Writer
 	fmt.Fprintf(progress, "regenerated %s\n", Frame.Evidence)
 	var artifacts []string
 	for _, spec := range Packages {
-		artifacts = append(artifacts, spec.Package, spec.IR)
+		artifacts = append(artifacts, spec.Package, spec.IR, spec.Validation())
 		if spec.Evidence != "" {
 			artifacts = append(artifacts, spec.Evidence)
 		}

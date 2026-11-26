@@ -227,7 +227,7 @@ func runValidation(r validationRun) (*ValidationResult, error) {
 				return nil, err
 			}
 		}
-		command := []string{lean, "-M", strconv.Itoa(opts.MemoryMB), validationHarnessPath}
+		command := []string{lean, "-M", strconv.Itoa(opts.MemoryMB), "-DElab.async=false", validationHarnessPath}
 		outcome := runValidationProcess(command, r.workspace, env, opts.ProcessTimeout)
 		record := ValidationAttempt{Skip: nonNil(skip), ExitCode: outcome.exitCode, TimedOut: outcome.timedOut, WallMs: outcome.elapsed.Milliseconds()}
 		if !outcome.ok() {

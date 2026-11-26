@@ -12,6 +12,7 @@ var regenerateOptions = []option{
 	{name: "jobs", values: 1, meta: "N", help: "concurrent regenerations (default 2)"},
 	{name: "repo", values: 1, meta: "DIR", help: "lean-go checkout (default: the one containing the working directory)"},
 	{name: "no-cache", help: "build the producer from scratch instead of using the cache"},
+	{name: "coverage", help: "only print the translation-validation coverage table of the tracked reports"},
 }
 
 const regenerateSummary = `Regenerate every tracked module artifact through the real pipeline.
@@ -41,6 +42,15 @@ func regenerate(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		fmt.Fprintf(stderr, "regeneration failed; tracked artifacts unchanged: %v\n", err)
 		return 1
+	}
+	if p.has("coverage") {
+		rows, err := artifacts.Coverage(root)
+		if err != nil {
+			fmt.Fprintf(stderr, "coverage failed: %v\n", err)
+			return 1
+		}
+		fmt.Fprint(stdout, artifacts.CoverageTable(rows))
+		return 0
 	}
 	changed, total, err := artifacts.Regenerate(root, jobs, cacheFor(p.has("no-cache")), stdout)
 	for _, path := range changed {

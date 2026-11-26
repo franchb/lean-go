@@ -207,6 +207,9 @@ func TestTrackedArtifactParity(t *testing.T) {
 			}
 			comparePackage(t, spec.Package, at(stage, spec.Package), at(root, spec.Package))
 			compareIR(t, spec.IR, readFile(t, at(stage, spec.IR)), readFile(t, at(root, spec.IR)))
+			if !bytes.Equal(readFile(t, at(stage, spec.Validation())), readFile(t, at(root, spec.Validation()))) {
+				t.Errorf("%s differs from the tracked validation report", spec.Validation())
+			}
 			if spec.Evidence != "" {
 				compareEvidence(t, spec.Evidence, readFile(t, at(stage, spec.Evidence)), readFile(t, at(root, spec.Evidence)))
 			}
