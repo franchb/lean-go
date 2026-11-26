@@ -303,7 +303,7 @@ func Evidence(contractPath, manifestPath string) ([]byte, *Contract, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	manifest, err := VerifyManifest(manifestPath, contract, project, compiler)
+	manifest, mode, err := verifyPackage(manifestPath, contract, project, compiler)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -344,6 +344,10 @@ func Evidence(contractPath, manifestPath string) ([]byte, *Contract, error) {
 	record.Set("project_inputs", digestInputs(project.inputs()))
 	record.Set("tool_inputs", tools.digests)
 	record.Set("generated_manifest_sha256", Digest(manifest))
+	// Metered evidence keeps its original fields; other modes are recorded.
+	if mode != MeteredMode {
+		record.Set("generated_mode", mode)
+	}
 	record.Set("claims", claims)
 	record.Set("assurance", assurance)
 	data, err := encodeEvidence(record)
