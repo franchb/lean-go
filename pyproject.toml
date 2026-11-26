@@ -48,6 +48,7 @@ sources = ["src"]
 "internal/modulegen/templates.go" = "lean_go/_payload/internal/modulegen/templates.go"
 "internal/modulegen/templates/api.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/api.go.tmpl"
 "internal/modulegen/templates/runtime.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/runtime.go.tmpl"
+"internal/nativegen/body.go" = "lean_go/_payload/internal/nativegen/body.go"
 "internal/nativegen/functions.go" = "lean_go/_payload/internal/nativegen/functions.go"
 "internal/nativegen/generate.go" = "lean_go/_payload/internal/nativegen/generate.go"
 "internal/nativegen/model.go" = "lean_go/_payload/internal/nativegen/model.go"
@@ -132,6 +133,7 @@ include = [
   "/internal/modulegen/templates.go",
   "/internal/modulegen/templates/api.go.tmpl",
   "/internal/modulegen/templates/runtime.go.tmpl",
+  "/internal/nativegen/body.go",
   "/internal/nativegen/functions.go",
   "/internal/nativegen/generate.go",
   "/internal/nativegen/model.go",
