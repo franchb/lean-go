@@ -34,8 +34,8 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.13 release](docs/releases/v0.1.0-alpha.13.md), Python package
-`0.1.0a13`, includes seven standalone demos with 54 source claims and a checksummed frame with two composition claims. Generator v15 uses native Go scalars for eligible typed roots and retains the existing IR schemas.
+The [alpha.14 release](docs/releases/v0.1.0-alpha.14.md), Python package
+`0.1.0a14`, includes seven standalone demos with 54 source claims and a checksummed frame with two composition claims. Generator v16 extracts byte folds to Go slices. The frame uses a v2 composition contract to bind both component manifests.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.

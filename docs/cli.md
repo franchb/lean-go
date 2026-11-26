@@ -2,26 +2,26 @@
 
 `lean-go-tools` installs the `lean-go` command for generation and source-proof
 checks. For development, follow the [checkout installation](#development-checkout).
-Alpha.13 defaults to Lean/Lake **4.36.0** at commit
+Alpha.14 defaults to Lean/Lake **4.36.0** at commit
 `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Install Go 1.27.4, then install
 the compiler and the tagged CLI with Python 3.15 via uv.
 
 ```sh
 elan toolchain install leanprover/lean4:v4.36.0
-uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.13"
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.14"
 lean-go --version
 lean-go doctor
 ```
 
-The version command prints `lean-go 0.1.0a13`. To generate and check proofs with
+The version command prints `lean-go 0.1.0a14`. To generate and check proofs with
 rc2, install `leanprover/lean4:v4.36.0-rc2` and set `LEAN_GO_TOOLCHAIN=4.36.0-rc2`
-for both commands. Alpha.13 records the selected compiler in the IR, manifest
+for both commands. Alpha.14 records the selected compiler in the IR, manifest
 and proof evidence. Use the default compiler to reproduce the tagged examples.
-[Release notes](releases/v0.1.0-alpha.13.md)
+[Release notes](releases/v0.1.0-alpha.14.md)
 
-When upgrading from alpha.12, regenerate the Go package, IR and proof evidence
-together with generator v15. The IR schemas stay the same. Eligible scalar typed roots now use native Go operations.
-[Tagged alpha.12 guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.12/docs/cli.md)
+When upgrading from alpha.13, regenerate the Go package, IR and proof evidence
+together with generator v16. The CRC example now exports both the byte and chunk roots in v21 IR. The checked-frame example uses a single v2 proof-evidence file.
+[Tagged alpha.13 guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.13/docs/cli.md)
 
 Use `uv tool update-shell` if your shell cannot find `lean-go`. The install
 and doctor commands also work in PowerShell. For multiline POSIX shell examples
@@ -69,7 +69,7 @@ uv run --locked python scripts/check_checked_frame.py --cli "$checkout_cli"
 
 On Windows, use the executable in `.venv/Scripts/lean-go.exe`. Reinstall after
 pipeline changes so the installed payload matches the checkout. This checkout
-reports package version `0.1.0a13`. Record the commit and source/tool hashes when
+reports package version `0.1.0a14`. Record the commit and source/tool hashes when
 sharing results; the version string alone is not proof of publication or byte
 identity. Pair generated artifacts with the same checkout and toolchain when
 reproducing their hashes. Later compiler versions need explicit [compatibility qualification](compiler-compatibility.md);
