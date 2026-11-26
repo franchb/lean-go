@@ -88,7 +88,7 @@
     }
   ],
   "contract_sha256": "480824820e5d9ca89b8d28fdbc62c4e01aa70dd9e4fdce548ab7eacbf918caef",
-  "generated_manifest_sha256": "e26e5a0dfb67cff66664a8d2d629ad7d2cf58ef4deaaed62cae0cc0c30bbf84e",
+  "generated_manifest_sha256": "d4ed20f70fc90ebfb0114497632da205b740c3850657026435a0487e3abb232e",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Quota",

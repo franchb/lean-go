@@ -74,15 +74,118 @@ func apiReadBool(n *node) (bool, bool) {
 	return n.tag == 1, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
-func RunTyped(a0 uint16, a1 uint8, l Limits) (uint16, error) {
-	out, err := Run([]Value{{n: apiUInt16Node(a0)}, {n: apiUInt8Node(a1)}}, l)
+// scalarWork charges the same IR steps and logical scalar allocations as execute.
+func (b *budget) scalarWork(steps, allocations uint64) bool {
+	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
+		return false
+	}
+	b.steps += steps
+	b.allocations += allocations
+	return true
+}
+func scalarFunc0(b *budget, depth int, v1 uint16) (uint16, error) {
+	if err := b.enter(8, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(6, 5) {
+		return 0, ErrResource
+	}
+	v2 := uint16(1)
+	v3 := v1 << (v2 & 15)
+	v4 := uint32(v1)
+	v5 := uint32(32768)
+	v6 := v4 < v5
+	if v6 {
+		if !b.scalarWork(1, 0) {
+			return 0, ErrResource
+		}
+		return v3, nil
+	}
+	if !b.scalarWork(3, 2) {
+		return 0, ErrResource
+	}
+	v7 := uint16(4129)
+	v8 := v3 ^ v7
+	return v8, nil
+}
+func scalarFunc1(b *budget, depth int, v1 uint16, v2 uint8) (uint16, error) {
+	if err := b.enter(14, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(5, 4) {
+		return 0, ErrResource
+	}
+	v3 := uint16(v2)
+	v4 := uint16(8)
+	v5 := v3 << (v4 & 15)
+	v6 := v1 ^ v5
+	v7, err := scalarFunc0(b, depth+1, v6)
 	if err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt16(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
 	}
-	return value, nil
+	v8, err := scalarFunc0(b, depth+1, v7)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v9, err := scalarFunc0(b, depth+1, v8)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v10, err := scalarFunc0(b, depth+1, v9)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v11, err := scalarFunc0(b, depth+1, v10)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v12, err := scalarFunc0(b, depth+1, v11)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v13, err := scalarFunc0(b, depth+1, v12)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v14, err := scalarFunc0(b, depth+1, v13)
+	if err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	return v14, nil
+}
+
+// RunTyped runs the scalar root with native Go values and the public resource limits.
+func RunTyped(a0 uint16, a1 uint8, l Limits) (uint16, error) {
+	if err := checkLimits(l); err != nil {
+		return 0, err
+	}
+	if l.MaxNodes < 2 {
+		return 0, ErrResource
+	}
+	b := budget{limits: l}
+	return scalarFunc1(&b, 0, a0, a1)
 }

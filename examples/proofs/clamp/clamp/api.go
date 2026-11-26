@@ -58,15 +58,59 @@ func apiReadBool(n *node) (bool, bool) {
 	return n.tag == 1, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
-func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
-	out, err := Run([]Value{{n: apiUInt64Node(a0)}, {n: apiUInt64Node(a1)}}, l)
+// scalarWork charges the same IR steps and logical scalar allocations as execute.
+func (b *budget) scalarWork(steps, allocations uint64) bool {
+	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
+		return false
+	}
+	b.steps += steps
+	b.allocations += allocations
+	return true
+}
+func scalarFunc0(b *budget, depth int, v1 uint64, v2 uint64) (uint64, error) {
+	if err := b.enter(3, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v3 := v1 <= v2
+	if v3 {
+		if !b.scalarWork(1, 0) {
+			return 0, ErrResource
+		}
+		return v1, nil
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	return v2, nil
+}
+func scalarFunc1(b *budget, depth int, v1 uint64, v2 uint64) (uint64, error) {
+	if err := b.enter(3, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
+	}
+	v3, err := scalarFunc0(b, depth+1, v1, v2)
 	if err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt64(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if !b.scalarWork(1, 0) {
+		return 0, ErrResource
 	}
-	return value, nil
+	return v3, nil
+}
+
+// RunTyped runs the scalar root with native Go values and the public resource limits.
+func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
+	if err := checkLimits(l); err != nil {
+		return 0, err
+	}
+	if l.MaxNodes < 2 {
+		return 0, ErrResource
+	}
+	b := budget{limits: l}
+	return scalarFunc1(&b, 0, a0, a1)
 }

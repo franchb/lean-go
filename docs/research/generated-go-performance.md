@@ -9,6 +9,25 @@ The quota and numeric workloads retain their previous allocation counts.
 These are local measurements of the compiled Go state machine, not throughput
 promises or evidence of a formally verified compiler.
 
+## Scalar CRC-16 execution
+
+Generator v15 emits native unsigned integers and booleans for typed roots whose entire call tree is scalar, acyclic and free of join points. Each straight-line block charges its IR steps and logical allocations, including unused bindings. Function entries charge their original frame and slot budgets. Checked limits admit a one-node scalar result. Structured calls, self recursion, joins and the public raw API use the existing executor. The parity test compares the typed and raw result and error while sweeping each resource limit across both CRC branches. [Generator regression test](../../internal/modulegen/scalar_test.go)
+
+The CRC benchmark updates 1,024 bytes from state zero, with input byte `i % 256` at each offset `i`. On Linux/amd64 with Go 1.27.4, an Intel i5-14600K and cgo disabled, the alpha.12 allocation profile attributed 91.4% of allocated bytes to scalar result-node construction. Five alternating measurements of the release and new binaries gave these medians:
+
+| Generated CRC update | Time per 1 KiB | Heap bytes | Heap allocations |
+| --- | ---: | ---: | ---: |
+| Alpha.12 | 2.071 ms | 4,692,608 | 58,248 |
+| Native scalar path | 58.33 µs | 0 | 0 |
+
+Timing varied with host load. All five runs agreed on the allocation counts. To reproduce, run from `examples/proofs/crc16` in both checkouts, copying the benchmark file into the older checkout:
+
+```sh
+CGO_ENABLED=0 GOTOOLCHAIN=local go test -run '^$' -bench BenchmarkCRC1KiB -benchmem -cpu 1 -count 5 -benchtime 700ms
+```
+
+The benchmark checks the generated checksum against an independent bit-at-a-time implementation before timing. [CRC benchmark](../../examples/proofs/crc16/benchmark_test.go)
+
 ## Workloads
 
 The maintained [`benchmarks`](../../benchmarks) package compares independently

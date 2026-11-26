@@ -58,54 +58,102 @@ func apiReadBool(n *node) (bool, bool) {
 	return n.tag == 1, true
 }
 
-// RunClear invokes its selected Lean root through RunRoot and its existing limits.
-func RunClear(a0 uint32, a1 uint32, l Limits) (uint32, error) {
-	out, err := RunRoot("Flags.clear", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}}, l)
-	if err != nil {
+// scalarWork charges the same IR steps and logical scalar allocations as execute.
+func (b *budget) scalarWork(steps, allocations uint64) bool {
+	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
+		return false
+	}
+	b.steps += steps
+	b.allocations += allocations
+	return true
+}
+func scalarFunc0(b *budget, depth int, v1 uint32, v2 uint32) (uint32, error) {
+	if err := b.enter(4, depth); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt32(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if !b.scalarWork(3, 2) {
+		return 0, ErrResource
 	}
-	return value, nil
+	v3 := ^v2
+	v4 := v1 & v3
+	return v4, nil
 }
 
-// RunContains invokes its selected Lean root through RunRoot and its existing limits.
-func RunContains(a0 uint32, a1 uint32, l Limits) (bool, error) {
-	out, err := RunRoot("Flags.contains", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}}, l)
-	if err != nil {
+// RunClear runs the scalar root with native Go values and the public resource limits.
+func RunClear(a0 uint32, a1 uint32, l Limits) (uint32, error) {
+	if err := checkLimits(l); err != nil {
+		return 0, err
+	}
+	if l.MaxNodes < 2 {
+		return 0, ErrResource
+	}
+	b := budget{limits: l}
+	return scalarFunc0(&b, 0, a0, a1)
+}
+func scalarFunc1(b *budget, depth int, v1 uint32, v2 uint32) (bool, error) {
+	if err := b.enter(4, depth); err != nil {
 		return false, err
 	}
-	value, ok := apiReadBool(out.n)
-	if !ok {
-		return false, ErrMalformed
+	if !b.scalarWork(3, 2) {
+		return false, ErrResource
 	}
-	return value, nil
+	v3 := v1 & v2
+	v4 := v3 == v2
+	return v4, nil
 }
 
-// RunSet invokes its selected Lean root through RunRoot and its existing limits.
+// RunContains runs the scalar root with native Go values and the public resource limits.
+func RunContains(a0 uint32, a1 uint32, l Limits) (bool, error) {
+	if err := checkLimits(l); err != nil {
+		return false, err
+	}
+	if l.MaxNodes < 2 {
+		return false, ErrResource
+	}
+	b := budget{limits: l}
+	return scalarFunc1(&b, 0, a0, a1)
+}
+func scalarFunc2(b *budget, depth int, v1 uint32, v2 uint32) (uint32, error) {
+	if err := b.enter(3, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v3 := v1 | v2
+	return v3, nil
+}
+
+// RunSet runs the scalar root with native Go values and the public resource limits.
 func RunSet(a0 uint32, a1 uint32, l Limits) (uint32, error) {
-	out, err := RunRoot("Flags.set", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt32(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 2 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc2(&b, 0, a0, a1)
+}
+func scalarFunc3(b *budget, depth int, v1 uint32, v2 uint32) (uint32, error) {
+	if err := b.enter(3, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v3 := v1 ^ v2
+	return v3, nil
 }
 
-// RunToggle invokes its selected Lean root through RunRoot and its existing limits.
+// RunToggle runs the scalar root with native Go values and the public resource limits.
 func RunToggle(a0 uint32, a1 uint32, l Limits) (uint32, error) {
-	out, err := RunRoot("Flags.toggle", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}}, l)
-	if err != nil {
+	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
-	value, ok := apiReadUInt32(out.n)
-	if !ok {
-		return 0, ErrMalformed
+	if l.MaxNodes < 2 {
+		return 0, ErrResource
 	}
-	return value, nil
+	b := budget{limits: l}
+	return scalarFunc3(&b, 0, a0, a1)
 }

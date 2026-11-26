@@ -264,7 +264,8 @@ if !ok || !color.IsBlue() { panic("unexpected result") }
 Records have named getters such as `count.Value()` and `state.Count()`, returning
 a typed value and a validity flag. Sums have `IsLeaf`/`AsLeaf`-style methods.
 Constructors reject invalid zero wrappers and enforce input node/depth limits.
-`RunTyped` delegates to the same runtime and resource limits as `Run`. Generated
+Typed roots enforce the same resource limits as the raw API. Generator v15 emits native
+Go arithmetic for acyclic scalar-only call trees without joins. Generated
 names are deterministic; the manifest records collision resolutions. See the
 [typed API report](docs/research/extraction-typed-api.md) for the complete contract.
 
@@ -398,7 +399,7 @@ See [program differential testing](docs/research/differential-testing.md) for
 the grammar, commands and evidence limits.
 
 See [generated Go performance](docs/research/generated-go-performance.md) for
-maintained handwritten/typed/raw benchmarks and measured frame-slot reuse results.
+the CRC scalar benchmark, typed/raw resource-limit checks and recursive frame-slot measurements.
 
 ## Run the pilot
 
