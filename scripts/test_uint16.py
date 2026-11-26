@@ -1,4 +1,4 @@
-"""Ordinary UInt16 source admission and executable shift/cast semantics."""
+"""Ordinary UInt16 source admission and executable bitwise and cast semantics."""
 import json
 import os
 import unittest
@@ -83,13 +83,57 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
         self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v17', 'pure-module/v15'))
         self.assertEqual(producer.emitted_primitives(multi), {'UInt16.toUInt32', 'UInt16.toUInt8'})
 
+    def test_xor_exact_notation_and_erased_profile(self):
+        for modern, expression, source_name in (
+                (False, 'UInt16.xor a b', 'UInt16.xor'),
+                (True, 'a ^^^ b', 'instXorOpUInt16')):
+            with self.subTest(expression=expression):
+                program = self.export(f'def run (a b : UInt16) := {expression}', modern=modern)
+                self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v18', 'pure-module/v16'))
+                function, = program['functions']
+                self.assertEqual([p['type'] for p in function['params']], ['UInt16', 'UInt16'])
+                self.assertEqual(function['result'], 'UInt16')
+                self.assertEqual(function['body']['value'], {
+                    'kind': 'primitive', 'name': 'UInt16.xor', 'args': [p['id'] for p in function['params']]})
+                self.assertEqual(program['rewrites'], [])
+                self.assertIn(source_name, {p['name'] for p in program['provenance']})
+                erased = self.export(f'def run (a b : UInt16) :=\n  let _unused := {expression}\n  a', modern=modern)
+                self.assertEqual((erased['schema'], erased['profile']), ('lean-go-ir/v14', 'pure-module/v12'))
+                self.assertFalse(producer.emitted_primitives(erased))
+                self.assertIn(source_name, {p['name'] for p in erased['provenance']})
+
+    def test_xor_multi_root_outranks_widening(self):
+        (self.source / 'Numeric.lean').write_text(
+            'namespace Numeric\ndef run (a b : UInt16) := a ^^^ b\n'
+            'def second (a : UInt16) := a.toUInt32\nend Numeric\n')
+        producer.export_module(self.root, self.source, 'Numeric', ['Numeric.run', 'Numeric.second'], self.output)
+        program = json.loads(self.output.read_bytes())
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v19', 'pure-module/v17'))
+        self.assertEqual(program['roots'], ['Numeric.run', 'Numeric.second'])
+        self.assertEqual(producer.emitted_primitives(program), {'UInt16.xor', 'UInt16.toUInt32'})
+
+    def test_xor_primitive_and_notation_rewrite_history(self):
+        wide.check_primitive_history(self, [('UInt16.xor', 'UInt16', False)], 'lean-go-ir/v18')
+        prelude = ('def replacement : XorOp UInt16 := instXorOpUInt16\n'
+                   'theorem replacement_eq : instXorOpUInt16 = replacement := rfl\n')
+        call = 'def run (a b : UInt16) := a ^^^ b\n'
+        erased = 'def run (a b : UInt16) :=\n  let _unused := a ^^^ b\n  a\n'
+        for source in wide.rewrite_sources(prelude, call, erased):
+            self.assert_rejected(source, 'rewrite|replacement|repeated compilation')
+
+    def test_xor_erased_notation_audits_logical_helper(self):
+        probe = self.imported_attribute_probe('externAttr', 'BitVec.instXorOp',
+                                             '{ entries := [.standard `all "untrusted"] }')
+        self.assert_rejected('def run (a b : UInt16) :=\n  let _unused := a ^^^ b\n  a',
+                             'Numeric source extern changed', probe=probe)
+
     def test_widening_rewrite_history(self):
         wide.check_primitive_history(self, [('UInt16.toUInt32', 'UInt16', True)], 'lean-go-ir/v16')
 
     def test_reject_unadmitted_widths_operators_and_alias(self):
         sources = [
             'def run (a : UInt16) :=\n  let _unused := a * a\n  a',
-            'def run (a : UInt16) := a &&& a', 'def run (a : UInt16) := a ^^^ a',
+            'def run (a : UInt16) := a &&& a', 'def run (a : UInt16) := ~~~a',
             'def run (a : UInt16) := a / a', 'def run (a : UInt16) := a % a',
             'def run (a b : UInt16) := decide (a < b)', 'def run (a : UInt16) := a.toUInt64',
             'def run (a : UInt64) := a.toUInt16', 'def run (a : UInt16) := a.toNat',
@@ -119,7 +163,7 @@ def run (a b : UInt8) :=
 '''
         self.assert_rejected(source, 'rewrite|replacement|repeated compilation')
 
-    def test_native_dynamic_shift_counts_and_byte_casts(self):
+    def test_native_bitwise_operations_and_byte_casts(self):
         compiler = producer.selected_compiler()
         env = dict(os.environ, ELAN_TOOLCHAIN=compiler.toolchain, CGO_ENABLED='0')
         compiler.check_version(producer.run(['lean', '--version'], self.directory, env))
@@ -131,16 +175,16 @@ def run (a b : UInt8) :=
     let n := arg.toNat!
     let w := (n / 65536).toUInt16
     let c := n.toUInt16
-    IO.println s!"{w <<< c} {w >>> c} {w ||| c} {w.toUInt8} {c.toUInt8.toUInt16}"
+    IO.println s!"{w <<< c} {w >>> c} {w ||| c} {w ^^^ c} {w.toUInt8} {c.toUInt8.toUInt16}"
 ''')
         producer.run(['lake', 'build', 'reference'], self.directory, env)
-        words = [0, 1, 255, 256, 0x8001, 65535]
-        counts = [0, 1, 7, 8, 15, 16, 17, 255, 256, 65535]
+        words = [0, 1, 255, 256, 0x5555, 0x8001, 0xaaaa, 65535]
+        counts = [0, 1, 7, 8, 15, 16, 17, 255, 256, 0x5555, 0xaaaa, 65535]
         pairs = [(w, c) for w in words for c in counts]
         exe = self.directory / '.lake/build/bin' / ('reference.exe' if os.name == 'nt' else 'reference')
         output = producer.run([str(exe), *(str((w << 16) + c) for w, c in pairs)], self.directory, env)
         values = [list(map(int, line.split())) for line in output.splitlines()]
-        self.assertEqual(values, [[(w << (c % 16)) & 65535, w >> (c % 16), w | c, w & 255, c & 255]
+        self.assertEqual(values, [[(w << (c % 16)) & 65535, w >> (c % 16), w | c, w ^ c, w & 255, c & 255]
                                   for w, c in pairs])
 
 

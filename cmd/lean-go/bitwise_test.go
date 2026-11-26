@@ -13,6 +13,7 @@ func TestCompileCapabilitySchemas(t *testing.T) {
 		{moduleir.SchemaV12, moduleir.SchemaV13, moduleir.ProfileV10, moduleir.ProfileV11, "UInt8", "UInt32.toUInt8", "lean-go-manifest/v12", "lean-go-manifest/v13"},
 		{moduleir.SchemaV14, moduleir.SchemaV15, moduleir.ProfileV12, moduleir.ProfileV13, "UInt16", "UInt8.toUInt16", "lean-go-manifest/v14", "lean-go-manifest/v15"},
 		{moduleir.SchemaV16, moduleir.SchemaV17, moduleir.ProfileV14, moduleir.ProfileV15, "UInt32", "UInt16.toUInt32", "lean-go-manifest/v16", "lean-go-manifest/v17"},
+		{moduleir.SchemaV18, moduleir.SchemaV19, moduleir.ProfileV16, moduleir.ProfileV17, "UInt16", "UInt16.xor", "lean-go-manifest/v18", "lean-go-manifest/v19"},
 		{moduleir.SchemaV10, moduleir.SchemaV11, moduleir.ProfileV8, moduleir.ProfileV9, "UInt32", "UInt64.toUInt32", "lean-go-manifest/v10", "lean-go-manifest/v11"},
 	} {
 		for _, multiple := range []bool{false, true} {
@@ -22,7 +23,7 @@ func TestCompileCapabilitySchemas(t *testing.T) {
 				primitive, _ := moduleir.LookupPrimitive(capability.primitive)
 				p.Functions[i].Params[0].Type = primitive.Params[0]
 				p.Functions[i].Result = capability.result
-				p.Functions[i].Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 2, Type: capability.result}, Value: &moduleir.Value{Kind: "primitive", Name: capability.primitive, Args: []int{1}}, Next: &moduleir.Code{Op: "return", Var: 2}}
+				p.Functions[i].Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 2, Type: capability.result}, Value: &moduleir.Value{Kind: "primitive", Name: capability.primitive, Args: []int{1, 1}[:len(primitive.Params)]}, Next: &moduleir.Code{Op: "return", Var: 2}}
 			}
 			entry, manifest := "func RunFirst(", capability.multiManifest
 			if !multiple {

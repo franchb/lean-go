@@ -13,6 +13,8 @@ Alpha.10 added support for `UInt16` packages with v14 IR/manifest and
 In alpha.11, an executable `UInt16.toUInt32` selects v16 with `pure-module/v14` for a
 single root, or v17 with `pure-module/v15` for multiple roots. Use the CLI and
 examples from the same tag to reproduce their proof evidence.
+An executable UInt16 XOR selects v18/`pure-module/v16` for one root or
+v19/`pure-module/v17` for multiple roots in the development checker.
 The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
@@ -190,6 +192,10 @@ the decoded value by arithmetic, the header rejection order, and both codec
 and header round trips. Two further claims characterize each payload decision by
 the exact missing or consumed count in natural-number arithmetic.
 
+The [CRC-16/XMODEM example](../examples/proofs/crc16) proves that one UInt16
+byte update agrees with eight independent message-bit steps, then lifts the
+result to arbitrary chunk boundaries in the proof module.
+
 ## Evidence and assurance
 
 The fresh workspace uses fixed, dependency-free Lake scaffolding and the pinned
@@ -236,7 +242,7 @@ CGO_ENABLED=0 go test -count=1 ./...
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
-library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header and wire16 regenerate artifacts with an installed CLI,
+library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16 and crc16 regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all six through both the direct and sdist-rebuilt wheels, freshly checking 52
+all seven through both the direct and sdist-rebuilt wheels, freshly checking 54
 source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).

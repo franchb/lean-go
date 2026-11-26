@@ -76,7 +76,7 @@ Each function takes `Limits` as its last argument and returns `(result, error)`.
 Raw callers use `RunRoot` with the corresponding `Words.*` name and immutable
 `Value` arguments. The five selected roots share `lean-go-ir/v11`,
 `lean-go-manifest/v11`, profile `pure-module/v9` and generator
-`lean-go-modulegen/v13` in this checkout. Only those roots are exported; proof helpers are absent
+`lean-go-modulegen/v14` in this checkout. Only those roots are exported; proof helpers are absent
 from the runtime package.
 
 Every call starts fresh logical budgets. `widen`, `narrow` and `low` need one
@@ -175,8 +175,8 @@ external workspace, compares exact bytes, and freshly checks the tracked evidenc
 It then deploys only `go.mod` and Go sources, hides producer tools and C compilers
 from `PATH`, disables module/checksum downloads and cgo, and runs both tests and
 the executable with isolated caches. Root `go test ./...` includes the same
-Go-only copy check. Current installed-CLI CI runs clamp, flags, words, bytes, header and wire16
+Go-only copy check. Current installed-CLI CI runs clamp, flags, words, bytes, header, wire16 and crc16
 through both the direct wheel and a wheel rebuilt from the source distribution
-on Linux and Windows, checking 52 source claims per wheel. Published alpha.7's
+on Linux and Windows, checking 54 source claims per wheel. Published alpha.7's
 exact-tag workflow covers its three demos; local checkout checks do not validate
 the published tag's artifact hashes.

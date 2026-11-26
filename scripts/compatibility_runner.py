@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import zipfile
 
@@ -122,6 +123,26 @@ def run_case(case, corpus, workspace, role, identity, go, env, commands):
     return outcome
 
 
+def build_native_oracle(fixture, directory, consumer, identity, env, commands):
+    # Compile the same fixture source that produced the IR. Keep Lake caches out of replay bundles.
+    with tempfile.TemporaryDirectory(prefix='lean-go-native-oracle-') as tmp:
+        project = Path(tmp)
+        shutil.copytree(directory / 'source', project, dirs_exist_ok=True)
+        for name in ('Reference.lean', 'lakefile.toml'):
+            if (project / name).exists():
+                raise HarnessError(f'native oracle conflicts with fixture source: {name}')
+            shutil.copyfile(fixture / 'native' / name, project / name)
+        lake = Path(identity['bin']) / 'lake'
+        built = commands.run('native-oracle-build', [lake, 'build', 'reference'], project, env, directory)
+        if built.returncode:
+            return 'native_oracle_build_failed'
+        binary = project / '.lake/build/bin/reference'
+        oracle = commands.run('native-oracle-run', [binary, consumer / 'oracle.bin'], project, env, directory)
+        if oracle.returncode or not (consumer / 'oracle.bin').is_file():
+            return 'native_oracle_failed'
+    return None
+
+
 def check_accepted(case, fixture, directory, consumer, identity, go, env, commands):
     try:
         program = parse_json((directory / 'program.ir.json').read_bytes())
@@ -134,6 +155,10 @@ def check_accepted(case, fixture, directory, consumer, identity, go, env, comman
     (directory / 'program.canonical.json').write_text(canonical)
     outcome = {'status': 'fixture_shape_changed' if missing else 'accepted',
                'canonical_ir_sha256': digest(canonical.encode()), 'missing_shapes': missing}
+    if (fixture / 'native').is_dir():
+        failure = build_native_oracle(fixture, directory, consumer, identity, env, commands)
+        if failure:
+            return dict(outcome, status=failure)
     # Even a shape change retains independent behavior evidence when emission succeeded.
     shutil.copyfile(fixture / 'consumer_test.go.txt', consumer / 'consumer_test.go')
     (consumer / 'go.mod').write_text('module compatconsumer\n\ngo 1.27.4\n')

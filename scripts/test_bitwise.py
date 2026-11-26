@@ -52,6 +52,22 @@ class BitwiseSchemaTests(unittest.TestCase):
             self.assertEqual(self.complete(program, roots)['schema'],
                              'lean-go-ir/v9' if multi else 'lean-go-ir/v8')
 
+    def test_uint16_xor_selection_uses_only_executable_leaves(self):
+        for multi in (False, True):
+            leaf = dict(op='let', value=dict(kind='primitive', name='UInt16.xor', args=[1, 2]), next=dict(op='return'))
+            program, roots = self.raw(dict(op='return'), multi)
+            program['functions'].append(dict(name='Example.helper', body=dict(
+                op='join', join=dict(body=dict(op='return')), next=dict(op='cases', alts=[dict(body=leaf)]))))
+            expected = ('lean-go-ir/v19', 'pure-module/v17') if multi else ('lean-go-ir/v18', 'pure-module/v16')
+            result = self.complete(program, roots)
+            self.assertEqual((result['schema'], result['profile']), expected)
+            program['provenance'] = [dict(name='instXorOpUInt16', dependencies=['UInt16.xor'])]
+            for kind, name in (('call', 'UInt16.xor'), ('constructor', 'UInt16.xor'),
+                               ('primitive', 'UInt16.xor._boxed'), ('primitive', 'Fake.UInt16.xor'),
+                               ('primitive', 'instXorOpUInt16')):
+                leaf['value'].update(kind=kind, name=name)
+                self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
+
     def test_exact_names_and_all_operations(self):
         for width in (32, 64):
             for op in OPERATIONS:
@@ -81,10 +97,10 @@ class BitwiseManifestTests(ContractFixture):
             self.document['roots'] = ['Example.identity', 'Example.second'] if multi else ['Example.identity']
             self.write_contract()
             self.write_manifest()
-            accepted = ((7, 5), (9, 7), (11, 9), (13, 11), (15, 13), (17, 15)) if multi else ((6, 4), (8, 6), (10, 8), (12, 10), (14, 12), (16, 14))
-            for manifest_version in range(6, 18):
-                for ir_version in range(6, 18):
-                    for profile in range(4, 16):
+            accepted = ((7, 5), (9, 7), (11, 9), (13, 11), (15, 13), (17, 15), (19, 17)) if multi else ((6, 4), (8, 6), (10, 8), (12, 10), (14, 12), (16, 14), (18, 16))
+            for manifest_version in range(6, 20):
+                for ir_version in range(6, 20):
+                    for profile in range(4, 18):
                         self.manifest['schema'] = f'lean-go-manifest/v{manifest_version}'
                         self.manifest['program'].update(schema=f'lean-go-ir/v{ir_version}',
                                                         profile=f'pure-module/v{profile}')

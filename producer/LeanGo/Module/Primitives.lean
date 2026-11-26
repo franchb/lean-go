@@ -29,6 +29,8 @@ def numericPrimitives : Array NumericPrimitive := #[
     externalSymbol := "lean_uint16_to_uint8", arity := 1 },
   { name := ``UInt16.lor, operand := ``UInt16, result := ``UInt16,
     externalSymbol := "lean_uint16_lor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt16.xor, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_xor", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt16.shiftLeft, operand := ``UInt16, result := ``UInt16,
     externalSymbol := "lean_uint16_shift_left", axioms := #[``propext] },
   { name := ``UInt16.shiftRight, operand := ``UInt16, result := ``UInt16,
@@ -122,7 +124,7 @@ def numericSourceSupport : Array Name := #[
   ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt8, ``instMulUInt32, ``instMulUInt64, ``outParam,
   ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64,
   ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
-  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt8, ``instXorOpUInt32, ``instXorOpUInt64,
+  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt8, ``instXorOpUInt16, ``instXorOpUInt32, ``instXorOpUInt64,
   ``Complement.complement, ``instComplementUInt8, ``instComplementUInt32, ``instComplementUInt64,
   ``HShiftLeft.hShiftLeft, ``instHShiftLeftOfShiftLeft, ``ShiftLeft.shiftLeft,
   ``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
@@ -210,7 +212,7 @@ def expectedNumericAxioms (n : Name) : Array Name :=
   else if n == ``Std.LinearPreorderPackage.toPreorderPackage ||
       n == ``Std.LinearOrderPackage.toLinearPreorderPackage then #[``propext]
   else if #[``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
-      ``instXorOpUInt8, ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt8, ``instComplementUInt32,
+      ``instXorOpUInt8, ``instXorOpUInt16, ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt8, ``instComplementUInt32,
       ``instComplementUInt64].contains n then #[``propext, ``Quot.sound]
   else if #[``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
       ``instShiftRightUInt8, ``instShiftRightUInt16, ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]

@@ -284,7 +284,9 @@ def complete_program(raw, module, entries, identities, compiler):
         types = emitted_types(program)
     except (KeyError, TypeError) as exc:
         raise ExportError('unexpected module producer executable fields') from exc
-    if 'UInt16.toUInt32' in primitives:
+    if 'UInt16.xor' in primitives:
+        version, profile = 18, 16
+    elif 'UInt16.toUInt32' in primitives:
         version, profile = 16, 14
     elif 'UInt16' in types or primitives & UINT16_PRIMITIVES:
         version, profile = 14, 12
