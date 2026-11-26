@@ -3,6 +3,7 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -94,8 +95,16 @@ func TestCacheStoreVerifyAndTamper(t *testing.T) {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(cache.Dir)
-	if err != nil || info.Mode().Perm() != 0o700 {
-		t.Fatalf("cache directory permissions %v %v", info.Mode(), err)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Windows has no POSIX permission bits (Go reports 0777 for every
+	// directory); there the user profile's ACLs protect the cache directory.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o700 {
+		t.Fatalf("cache directory permissions %v", info.Mode())
+	}
+	if err := checkPrivate(cache.Dir); err != nil {
+		t.Fatal(err)
 	}
 	got, err := cache.lookup("key")
 	if err != nil || len(got) != 2 || string(got["ir/LeanGo/Module/Export.c"]) != "c" {
@@ -116,11 +125,14 @@ func TestCacheStoreVerifyAndTamper(t *testing.T) {
 	if extra, _ := cache.lookup("key"); extra != nil {
 		t.Fatal("an entry with an unlisted file was trusted")
 	}
-	if err := os.Chmod(cache.Dir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := cache.lookup("key"); err == nil {
-		t.Fatal("a cache directory accessible to other users was used")
+	// Group or world access disables the cache where POSIX permissions exist.
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(cache.Dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := cache.lookup("key"); err == nil {
+			t.Fatal("a cache directory accessible to other users was used")
+		}
 	}
 	if cacheKey("Lean (version 4.36.0, x, commit a, Release)") == cacheKey("Lean (version 4.36.0, x, commit b, Release)") {
 		t.Fatal("the cache key ignores the compiler identity")
