@@ -10,15 +10,19 @@ generate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(generate)
 
 class InputFreshnessTests(unittest.TestCase):
-    def test_all_module_schemas_use_module_freshness(self):
+    def test_module_schema_uses_module_freshness(self):
+        program = {'schema': 'lean-go-ir/v24'}
+        with mock.patch.object(generate, 'verify_module_inputs') as verify:
+            generate.verify_inputs(Path('/project'), program, Path('/source'))
+            verify.assert_called_once_with(Path('/project'), Path('/source'), program)
+        with self.assertRaisesRegex(ValueError, 'source directory'):
+            generate.verify_inputs(Path('/project'), program)
         for version in range(2, 24):
-            schema = f'lean-go-ir/v{version}'
-            program = {'schema': schema}
-            with self.subTest(schema=schema), mock.patch.object(generate, 'verify_module_inputs') as verify:
-                generate.verify_inputs(Path('/project'), program, Path('/source'))
-                verify.assert_called_once_with(Path('/project'), Path('/source'), program)
-            with self.subTest(schema=schema), self.assertRaisesRegex(ValueError, 'source directory'):
-                generate.verify_inputs(Path('/project'), program)
+            stale = {'schema': f'lean-go-ir/v{version}'}
+            with self.subTest(schema=stale['schema']), mock.patch.object(generate, 'verify_module_inputs') as verify:
+                with self.assertRaises(ValueError):
+                    generate.verify_inputs(Path('/project'), stale, Path('/source'))
+                verify.assert_not_called()
 
     def snapshot(self, root):
         inputs = {}

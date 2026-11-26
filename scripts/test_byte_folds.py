@@ -18,7 +18,7 @@ def run (s : UInt32) (bytes : List UInt8) := bytes.foldl tick s
         for modern in (False, True):
             with self.subTest(modern=modern):
                 ir = self.export(source, modern=modern)
-                self.assertEqual(ir['schema'], 'lean-go-ir/v20')
+                self.assertEqual(ir['features'], ['byte_fold', 'uint32', 'uint8', 'width_conversion'])
                 self.assertIn('Numeric.tick', [f['name'] for f in ir['functions']])
                 self.assertEqual(next(t for t in ir['types'] if t['name'] == 'List UInt8')['constructors'][1]['fields'],
                                  ['UInt8', 'List UInt8'])
@@ -31,7 +31,7 @@ def see (s : Pair) (b : UInt8) : Pair := ⟨s.count + 1, s.total + b.toUInt32⟩
 def run (s : Pair) (bs : List UInt8) := bs.foldl see s
 """
         ir = self.export(source)
-        self.assertEqual(ir['schema'], 'lean-go-ir/v22')
+        self.assertEqual(ir['features'], ['byte_fold', 'record_fold', 'uint32', 'uint8', 'width_conversion'])
         self.assertEqual(ir['api']['records']['Numeric.Pair'], ['count', 'total'])
 
     def test_reject_other_accumulators(self):

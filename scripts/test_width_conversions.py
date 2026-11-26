@@ -1,59 +1,49 @@
-"""Exact mixed-width capability selection and adversarial producer admission."""
+"""Exact mixed-width feature declaration and adversarial producer admission."""
 import copy
 import json
 import os
-from pathlib import Path
 import unittest
-from unittest import mock
 
 import export_module as producer
-import generate
 import test_bitwise as bitwise
 import test_uint64_admission as wide
 
 CASTS = (('UInt32.toUInt64', 'UInt32', 'UInt64'), ('UInt64.toUInt32', 'UInt64', 'UInt32'))
 
 
-class WidthSchemaTests(unittest.TestCase):
-    raw = bitwise.BitwiseSchemaTests.raw
-    complete = bitwise.BitwiseSchemaTests.complete
+class WidthFeatureTests(unittest.TestCase):
+    raw = bitwise.BitwiseFeatureTests.raw
+    complete = bitwise.BitwiseFeatureTests.complete
 
-    def test_executable_casts_select_exact_schema_in_every_container(self):
-        for name, single_version in [('UInt32.toUInt64', 10), ('UInt64.toUInt32', 10), ('UInt16.toUInt32', 16)]:
+    def converts(self, program, roots):
+        return 'width_conversion' in self.complete(program, roots)['features']
+
+    def test_executable_casts_declare_feature_in_every_container(self):
+        for name in ('UInt32.toUInt64', 'UInt64.toUInt32', 'UInt16.toUInt32'):
             leaf = dict(op='let', value=dict(kind='primitive', name=name, args=[1]), next=dict(op='return', var=2))
             bodies = [leaf, dict(op='join', join=dict(body=leaf), next=dict(op='jump')),
                       dict(op='join', join=dict(body=dict(op='return')), next=leaf),
                       dict(op='cases', alts=[dict(body=leaf)]),
                       dict(op='let', value=dict(kind='primitive', name='UInt64.land'), next=leaf)]
             for multi in (False, True):
-                version = single_version + int(multi)
-                expected = (f'lean-go-ir/v{version}', f'pure-module/v{version - 2}')
                 for body in bodies:
                     program, roots = self.raw(body, multi)
-                    result = self.complete(program, roots)
-                    self.assertEqual((result['schema'], result['profile']), expected)
+                    self.assertTrue(self.converts(program, roots))
                 program, roots = self.raw(dict(op='return'), multi)
                 program['functions'].append(dict(name='Example.helper', body=leaf))
-                self.assertEqual(self.complete(program, roots)['schema'], expected[0])
+                self.assertTrue(self.converts(program, roots))
                 for kind in ('call', 'constructor'):
                     body = copy.deepcopy(leaf)
                     body['value']['kind'] = kind
                     program, roots = self.raw(body, multi)
                     program['provenance'] = [dict(name=name, dependencies=[name])]
-                    self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
+                    self.assertFalse(self.converts(program, roots))
         for name in ('UInt32.toUInt32', 'UInt64.toUInt64', 'UInt16.toUInt64', 'UInt32.toUInt16',
                      'UInt32.toUInt64._boxed', 'UInt64.toUInt32.injected', 'Fake.UInt32.toUInt64',
                      'UInt16.toUInt32._boxed', 'Fake.UInt16.toUInt32'):
             leaf['value']['name'] = name
             program, roots = self.raw(leaf)
-            self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v6')
-
-    def test_freshness_dispatch(self):
-        for schema in ('lean-go-ir/v10', 'lean-go-ir/v11', 'lean-go-ir/v12', 'lean-go-ir/v13'):
-            with mock.patch.object(generate, 'verify_module_inputs') as verify:
-                generate.verify_inputs(Path('/repo'), {'schema': schema}, Path('/source'))
-                verify.assert_called_once()
-
+            self.assertFalse(self.converts(program, roots))
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1', 'set LEAN_GO_MODULES=1 for fresh Lean builds')
@@ -68,14 +58,14 @@ class WidthAdmissionTests(unittest.TestCase):
         for name, operand, result in CASTS:
             for modern in (False, True):
                 program = self.export(f'def run (a : {operand}) : {result} := {name} a\n', modern=modern)
-                self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v10', 'pure-module/v8'))
+                self.assertEqual(program['features'], ['uint32', 'uint64', 'width_conversion'])
                 function = program['functions'][0]
                 self.assertEqual([p['type'] for p in function['params']], [operand])
                 self.assertEqual(function['result'], result)
                 values = [node['value'] for node in self.nodes(function['body']) if node['op'] == 'let']
                 self.assertEqual([(v['kind'], v['name'], len(v['args'])) for v in values], [('primitive', name, 1)])
             program = self.export(f'def run (a : {operand}) :=\n  let _unused := {name} a\n  a\n')
-            self.assertEqual(program['schema'], 'lean-go-ir/v6')
+            self.assertEqual(program['features'], [operand.lower()])
             self.assertIn(name, {item['name'] for item in program['provenance']})
             self.assertFalse(producer.emitted_primitives(program) & producer.WIDTH_CONVERSIONS)
 
@@ -135,7 +125,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
                     self.assert_rejected(f'def run (a : {operand}) := {name} a\n', diagnostic, probe=probe)
 
     def test_local_scoped_late_erased_and_closed_scope_history(self):
-        wide.check_primitive_history(self, [(name, operand, True) for name, operand, _ in CASTS], 'lean-go-ir/v10')
+        wide.check_primitive_history(self, [(name, operand, True) for name, operand, _ in CASTS], 'width_conversion')
 
 
 if __name__ == '__main__':

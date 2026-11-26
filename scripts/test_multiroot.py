@@ -31,23 +31,23 @@ class RootSelectionTests(unittest.TestCase):
     def test_producer_identity_and_exact_selection_fields(self):
         common = dict(module='Example', types=[], functions=[], claims=[], rewrites=[],
                       provenance=[], api={'records': {}})
-        single = producer.complete_program(json.dumps(dict(common, root='Example.a')).encode(),
+        single = producer.complete_program(json.dumps(dict(common, roots=['Example.a'])).encode(),
                                            'Example', ['Example.a'], {}, producer.selected_compiler())
-        self.assertEqual((single['schema'], single['profile']), ('lean-go-ir/v6', 'pure-module/v4'))
-        self.assertNotIn('roots', single)
         roots = ['Example.a', 'Example.b']
         multi = producer.complete_program(json.dumps(dict(common, roots=roots)).encode(),
                                           'Example', roots, {}, producer.selected_compiler())
-        self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v7', 'pure-module/v5'))
-        self.assertNotIn('root', multi)
+        for program, selected in ((single, ['Example.a']), (multi, roots)):
+            self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
+            self.assertEqual(program['roots'], selected)
+            self.assertNotIn('root', program)
         for changed in (dict(common, roots=list(reversed(roots))), dict(common, roots=['Example.a']),
                         dict(common, roots=roots, root='Example.a'), dict(common, root='Example.a'),
                         dict(common, roots=roots, module='Other')):
             with self.subTest(changed=changed), self.assertRaises(producer.ExportError):
                 producer.complete_program(json.dumps(changed).encode(), 'Example', roots, {}, producer.selected_compiler())
 
-    def test_multi_root_schema_uses_module_freshness(self):
-        program = {'schema': 'lean-go-ir/v7'}
+    def test_module_schema_uses_module_freshness(self):
+        program = {'schema': 'lean-go-ir/v24'}
         with mock.patch.object(generate, 'verify_module_inputs') as verify:
             generate.verify_inputs(Path('/project'), program, Path('/source'))
             verify.assert_called_once_with(Path('/project'), Path('/source'), program)
@@ -72,7 +72,7 @@ class RootSelectionTests(unittest.TestCase):
             def export(root, source_dir, module, entries, output):
                 self.assertEqual(source_dir, source.resolve())
                 self.assertEqual((module, entries), ('Example', ['Example.a', 'Example.z']))
-                output.write_text('{"schema":"lean-go-ir/v7"}')
+                output.write_text('{"schema":"lean-go-ir/v24"}')
             with mock.patch.object(generate.sys, 'argv', arguments), \
                     mock.patch.object(generate.shutil, 'which', return_value='go'), \
                     mock.patch.object(generate.subprocess, 'run', side_effect=process), \
@@ -82,7 +82,7 @@ class RootSelectionTests(unittest.TestCase):
             exported.assert_called_once()
             self.assertEqual(len(commands), 2)
             self.assertIn('./cmd/lean-go', commands[1])
-            self.assertEqual(json.loads((work / 'program.json').read_text())['schema'], 'lean-go-ir/v7')
+            self.assertEqual(json.loads((work / 'program.json').read_text())['schema'], 'lean-go-ir/v24')
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1', 'set LEAN_GO_MODULES=1 for fresh Lean builds')
@@ -119,7 +119,7 @@ end Shared
         self.assertEqual(self.output.read_bytes(), original)
         self.assertEqual(program['roots'], sorted(roots))
         self.assertNotIn('root', program)
-        self.assertEqual(program['schema'], 'lean-go-ir/v7')
+        self.assertEqual(program['schema'], 'lean-go-ir/v24')
         functions = {item['name']: item for item in program['functions']}
         self.assertEqual(sum(item['name'] == 'Shared.bump' for item in program['functions']), 1)
         self.assertEqual(sum(item['name'] == 'Shared.Box' for item in program['types']), 1)
@@ -132,15 +132,15 @@ end Shared
         self.assertTrue(set(roots) | {'Shared.bump'} <= provenance)
         self.assertIn('source/Shared.lean', program['inputs'])
 
-    def test_one_root_list_retains_single_root_v6_contract(self):
+    def test_one_root_uses_the_same_roots_array(self):
         self.shared_sources()
         program = self.export(['Shared.read'])
         original = self.output.read_bytes()
         self.export('Shared.read')
         self.assertEqual(self.output.read_bytes(), original)
-        self.assertEqual(program['root'], 'Shared.read')
-        self.assertNotIn('roots', program)
-        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v6', 'pure-module/v4'))
+        self.assertEqual(program['roots'], ['Shared.read'])
+        self.assertNotIn('root', program)
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
 
     def test_bad_second_root_never_publishes_partial_output(self):
         (self.source / 'Example.lean').write_text('''namespace Example

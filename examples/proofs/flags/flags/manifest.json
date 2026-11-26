@@ -1,12 +1,12 @@
 {
-  "schema": "lean-go-manifest/v9",
-  "generator": "lean-go-modulegen/v18",
-  "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
-  "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "b73840484b437a063c6b35ae624eab61c583427ad1d58e0e6748d8c65b45231e",
+  "schema": "lean-go-manifest/v24",
+  "generator": "lean-go-modulegen/v19",
+  "generator_source_sha256": "43eb0f9c29b7cd11ad2c493198e714931352e2dc44eced5dd451ade12407f539",
+  "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
+  "ir_sha256": "84834de4cd94edaca515999dfe161f914cfbf2f2f796dec3da4ecebf88566ed8",
   "program": {
-    "schema": "lean-go-ir/v9",
-    "profile": "pure-module/v7",
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
     "stage": "pure-mono",
     "lean_version": "4.36.0",
     "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
@@ -17,10 +17,14 @@
       "Flags.set",
       "Flags.toggle"
     ],
+    "features": [
+      "bitwise",
+      "uint32"
+    ],
     "inputs": {
       "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
       "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
-      "producer/LeanGo/Module/Export.lean": "f5edc14f5fa343117e5733bbfeeefd15b712382ab65276305fb418c061a4fb02",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
@@ -29,7 +33,7 @@
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
       "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-      "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
+      "scripts/export_module.py": "97d39b82eebcdaee9bf47103571c4b69e247ee7f7e2f6c2d819fd8fee0396bea",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
       "source/Flags.lean": "78a38931c752cceb4f5988b0728db12b4aa329064915baf631fd9cefbbfb30e4"
@@ -366,10 +370,10 @@
     ]
   },
   "generated_files": {
-    "api.go": "4ca2a4b60af4240520aef853a9ae584c33b3936ccd071b0a5449928015058e55",
+    "api.go": "5bcf0cd44fae2597c2d66d53f2b8dbd8d05828d3abce5f909e9edf6c60b692e2",
     "control.go": "f24f6ca423e02dd5fa34fb68506252127ebf0a9b7dcee6c55074069c00d5ccd7",
-    "runtime.go": "e019dc734dbb893ad22218a428445011fd7a63abfa372cabf13c92eb362aac59",
-    "schema.go": "b40034c5c7269a7bd9ce23879d66e0b795bc42a0c3d12f316cbf1099989b9895"
+    "runtime.go": "44bbc7953117b3e07297bf8600f3c226e161fd48aac8f8408ec0e5b405c86569",
+    "schema.go": "c295189571f42847859b6352d3dfcc19b6caec4ba6fb84aec0e69c990482d4d4"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
   "primitives": [
@@ -427,8 +431,10 @@
     },
     "types": {
       "Bool": "bool",
+      "UInt16": "uint16",
       "UInt32": "uint32",
-      "UInt64": "uint64"
+      "UInt64": "uint64",
+      "UInt8": "uint8"
     },
     "constructors": {},
     "accessors": {},

@@ -29,8 +29,7 @@ structure Envelope where
   mode : Mode
 def run (x : Envelope) : Envelope := x
 ''')
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
-        self.assertEqual(program['profile'], 'pure-module/v4')
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
         self.assertEqual(program['api'], {'records': {
             'Records.Base': ['first', 'second'],
             'Records.Nested': ['base'],

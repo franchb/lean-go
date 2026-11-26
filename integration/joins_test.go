@@ -9,10 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	joins "github.com/franchb/lean-go/generated/joins"
+	"github.com/franchb/lean-go/internal/moduleir"
 )
 
 // Inputs are count, nested.count, enabled, raw, delta, flag. Native outputs
@@ -419,8 +421,8 @@ func requireJoinControl(t *testing.T, data []byte, minimum, nesting int) {
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program["schema"] != "lean-go-ir/v6" || program["profile"] != "pure-module/v4" {
-		t.Fatalf("unexpected join IR schema/profile: %v/%v", program["schema"], program["profile"])
+	if program["schema"] != moduleir.Schema || program["profile"] != moduleir.Profile || !slices.Contains(program["features"].([]any), any(moduleir.FeatureJoin)) {
+		t.Fatalf("unexpected join IR schema/profile/features: %v/%v/%v", program["schema"], program["profile"], program["features"])
 	}
 	joinCount, jumpCount, maxDepth := 0, 0, 0
 	var visit func(any, int)

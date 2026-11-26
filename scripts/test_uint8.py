@@ -1,4 +1,4 @@
-"""Exact byte capability selection and fresh source admission."""
+"""Exact byte feature declaration and fresh source admission."""
 import copy
 import os
 import unittest
@@ -9,21 +9,24 @@ import test_uint64_admission as wide
 OPS = ('add', 'sub', 'mul', 'decEq', 'decLt', 'decLe', 'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight')
 CASTS = (('UInt8.toUInt32', 'UInt8', 'UInt32'), ('UInt32.toUInt8', 'UInt32', 'UInt8'))
 
-class ByteSchemaTests(unittest.TestCase):
-    raw = bitwise.BitwiseSchemaTests.raw
-    complete = bitwise.BitwiseSchemaTests.complete
+class ByteFeatureTests(unittest.TestCase):
+    raw = bitwise.BitwiseFeatureTests.raw
+    complete = bitwise.BitwiseFeatureTests.complete
 
-    def test_executable_byte_types_literals_and_primitives_select_capability(self):
+    def features(self, program, roots):
+        return self.complete(program, roots)['features']
+
+    def test_executable_byte_types_literals_and_primitives_declare_features(self):
         for multi in (False, True):
-            expected = ('lean-go-ir/v13', 'pure-module/v11') if multi else ('lean-go-ir/v12', 'pure-module/v10')
-            def check(program, roots):
-                result = self.complete(program, roots)
-                self.assertEqual((result['schema'], result['profile']), expected)
             for name in (*(f'UInt8.{op}' for op in OPS), *(cast[0] for cast in CASTS)):
+                family = ('width_conversion' if name in {cast[0] for cast in CASTS} else
+                          'bitwise' if name.split('.')[1] in bitwise.OPERATIONS + ('shiftLeft',) else None)
                 leaf = dict(op='let', bind=dict(type='UInt32'), value=dict(kind='primitive', name=name), next=dict(op='return'))
                 for body in (leaf, dict(op='join', join=dict(body=leaf), next=dict(op='jump')), dict(op='cases', alts=[dict(body=leaf)])):
                     program, roots = self.raw(body, multi)
-                    check(program, roots)
+                    features = self.features(program, roots)
+                    self.assertIn('uint32', features)
+                    self.assertEqual(family in features, family is not None, (name, features))
             for position in ('param', 'result', 'field', 'bind', 'join', 'alt', 'literal'):
                 program, roots = self.raw(dict(op='return'), multi)
                 f = program['functions'][0]
@@ -34,13 +37,13 @@ class ByteSchemaTests(unittest.TestCase):
                 if position == 'join': f['body'] = dict(op='join', join=dict(params=[dict(type='UInt8')], body=dict(op='return')), next=dict(op='jump'))
                 if position == 'alt': f['body'] = dict(op='cases', alts=[dict(params=[dict(type='UInt8')], body=dict(op='return'))])
                 if position == 'literal': f['body'] = dict(op='let', value=dict(kind='uint8', name='255'), next=dict(op='return'))
-                check(program, roots)
+                self.assertIn('uint8', self.features(program, roots), position)
             program, roots = self.raw(dict(op='return'), multi)
             program['provenance'] = [dict(name='UInt8.add', dependencies=['UInt8', 'UInt32.toUInt8'])]
-            self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
+            self.assertEqual(self.features(program, roots), [])
             for name in ('UInt8.add._boxed', 'UInt8.toUInt64', 'UInt64.toUInt8', 'UInt16.add', 'Fake.UInt8.add'):
                 program, roots = self.raw(dict(op='let', value=dict(kind='primitive', name=name), next=dict(op='return')), multi)
-                self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
+                self.assertEqual(self.features(program, roots), [])
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1', 'set LEAN_GO_MODULES=1 for fresh Lean builds')
 class ByteAdmissionTests(unittest.TestCase):
@@ -61,7 +64,7 @@ class ByteAdmissionTests(unittest.TestCase):
             body = body.replace(f'UInt8.{op} a b', f'decide ({prop})')
         for modern in (False, True):
             program = self.export(body, modern=modern)
-            self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v12', 'pure-module/v10'))
+            self.assertLessEqual({'bitwise', 'uint32', 'uint8', 'width_conversion'}, set(program['features']))
             self.assertEqual(producer.emitted_primitives(program), {f'UInt8.{op}' for op in OPS} | {c[0] for c in CASTS})
             self.assertNotIn('UInt8', {t['name'] for t in program['types']})
             self.assertEqual([p['type'] for p in program['functions'][0]['params']], ['UInt8', 'UInt8', 'UInt32'])
@@ -74,16 +77,16 @@ class ByteAdmissionTests(unittest.TestCase):
                        'structure Box where\n  value : UInt8\ndef run (a : UInt8) : Box := ⟨a⟩\n',
                        '@[noinline] def helper (a b : UInt8) := a + b\ndef run (flag : Bool) (a b : UInt8) := if flag then helper a b else helper b a\n',
                        'def run (a : UInt8) :=\n  let _unused := a.toUInt32\n  a\n'):
-            self.assertEqual(self.export(source)['schema'], 'lean-go-ir/v12')
+            self.assertIn('uint8', self.export(source)['features'])
         program = self.export('def run (a b : UInt32) :=\n  let _unused : UInt8 := a.toUInt8 + b.toUInt8\n  a\n')
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
+        self.assertEqual(program['features'], ['uint32'])
         self.assertFalse(producer.emitted_primitives(program))
         self.assertIn('instAddUInt8', {p['name'] for p in program['provenance']})
         (self.source / 'Numeric.lean').write_text('namespace Numeric\ndef run (a : UInt8) := a\ndef second (a : UInt32) := a.toUInt8\nend Numeric\n')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.run', 'Numeric.second'], self.output)
         import json
         multi = json.loads(self.output.read_bytes())
-        self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v13', 'pure-module/v11'))
+        self.assertEqual(multi['features'], ['uint32', 'uint8', 'width_conversion'])
 
     def test_unsupported_widths_aliases_and_operators_remain_rejected(self):
         for source in ('def run (a b : UInt8) := a / b\n',
@@ -165,7 +168,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
         if (numericBoundaryIssues (← getEnv) name).isEmpty then
           throwError "accepted source corruption: {name}"
 '''
-        self.assertEqual(self.export('def run (a : UInt8) := a.toUInt32\n', probe=probe)['schema'], 'lean-go-ir/v12')
+        self.assertIn('width_conversion', self.export('def run (a : UInt8) := a.toUInt32\n', probe=probe)['features'])
 
     def test_pristine_logical_closure_helpers_are_not_runtime_leaves(self):
         for helper, primitive, operand in (('UInt8.toNat', 'UInt8.toUInt32', 'UInt8'),
@@ -178,7 +181,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
     def test_local_scoped_late_erased_and_closed_scope_history(self):
         wide.check_primitive_history(self, [('UInt8.toUInt32', 'UInt8', True),
                                             ('UInt32.toUInt8', 'UInt32', True),
-                                            ('UInt8.shiftLeft', 'UInt8', False)], 'lean-go-ir/v12')
+                                            ('UInt8.shiftLeft', 'UInt8', False)], 'uint8')
 
 
 if __name__ == '__main__':

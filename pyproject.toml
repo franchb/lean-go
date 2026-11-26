@@ -58,6 +58,7 @@ sources = ["src"]
 "internal/moduleir/api.go" = "lean_go/_payload/internal/moduleir/api.go"
 "internal/moduleir/code.go" = "lean_go/_payload/internal/moduleir/code.go"
 "internal/moduleir/decode.go" = "lean_go/_payload/internal/moduleir/decode.go"
+"internal/moduleir/features.go" = "lean_go/_payload/internal/moduleir/features.go"
 "internal/moduleir/identity.go" = "lean_go/_payload/internal/moduleir/identity.go"
 "internal/moduleir/joins.go" = "lean_go/_payload/internal/moduleir/joins.go"
 "internal/moduleir/primitives.go" = "lean_go/_payload/internal/moduleir/primitives.go"

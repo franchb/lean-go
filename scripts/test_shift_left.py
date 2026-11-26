@@ -29,14 +29,14 @@ class ShiftLeftAdmissionTests(unittest.TestCase):
         for modern in (False, True):
             direct = self.export(body % ('UInt32.shiftLeft a b', 'UInt64.shiftLeft c d'), modern=modern)
             notation = self.export(body % ('a <<< b', 'c <<< d'), modern=modern)
-            for key in ('types', 'functions', 'root', 'api', 'schema', 'profile', 'claims', 'rewrites', 'stage'):
+            for key in ('types', 'functions', 'roots', 'features', 'api', 'schema', 'profile', 'claims', 'rewrites', 'stage'):
                 self.assertEqual(direct[key], notation[key], key)
-            self.assertEqual((notation['schema'], notation['profile']), ('lean-go-ir/v6', 'pure-module/v4'))
+            self.assertEqual(notation['features'], ['bitwise', 'uint32', 'uint64'])
             self.assertEqual(producer.emitted_primitives(notation), {'UInt32.shiftLeft', 'UInt64.shiftLeft'})
             self.assertTrue(set(WRAPPERS) - {'ShiftLeft.shiftLeft'} <=
                             {item['name'] for item in notation['provenance']})
 
-    def test_multi_root_helper_and_cases_keep_existing_schema(self):
+    def test_multi_root_helper_and_cases(self):
         (self.source / 'Numeric.lean').write_text('''namespace Numeric
 @[noinline] def helper (a b : UInt64) : UInt64 := a <<< b
 def run (flag : Bool) (a b : UInt64) := if flag then helper a b else helper b a
@@ -45,7 +45,7 @@ end Numeric
 ''')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.second', 'Numeric.run'], self.output)
         program = json.loads(self.output.read_bytes())
-        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v7', 'pure-module/v5'))
+        self.assertLessEqual({'bitwise', 'uint32', 'uint64'}, set(program['features']))
         self.assertEqual(program['roots'], ['Numeric.run', 'Numeric.second'])
         self.assertEqual(producer.emitted_primitives(program), {'UInt32.shiftLeft', 'UInt64.shiftLeft'})
         self.assertTrue(any(node['op'] == 'cases' for fn in program['functions'] for node in self.nodes(fn['body'])))
@@ -58,7 +58,7 @@ def run (a b : UInt{width}) :=
   let _unused := a <<< b
   a
 ''')
-            self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v6', 'pure-module/v4'))
+            self.assertEqual(program['features'], [f'uint{width}'])
             self.assertFalse(producer.emitted_primitives(program))
             self.assertIn(f'instShiftLeftUInt{width}', {item['name'] for item in program['provenance']})
             self.assertNotIn('Numeric.dead', {fn['name'] for fn in program['functions']})
@@ -150,7 +150,8 @@ class ShiftLeftNativeTests(unittest.TestCase):
                     self.assertEqual(observation.signature, ())
                     ir = json.loads((runner.last_work / 'program.ir.json').read_bytes())
                     self.assertEqual(producer.emitted_primitives(ir), {f'UInt{width}.shiftLeft'})
-                    self.assertEqual((ir['schema'], ir['profile']), ('lean-go-ir/v6', 'pure-module/v4'))
+                    self.assertEqual((ir['schema'], ir['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
+                    self.assertIn('bitwise', ir['features'])
                     results.append(result)
                 self.assertEqual(*results)
 

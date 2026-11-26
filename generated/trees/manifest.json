@@ -1,21 +1,24 @@
 {
-  "schema": "lean-go-manifest/v6",
-  "generator": "lean-go-modulegen/v18",
-  "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
-  "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "1e50b9bd3f24fab1842fb1579f8702946ed80163052ea1f1b48fa509e0bcb577",
+  "schema": "lean-go-manifest/v24",
+  "generator": "lean-go-modulegen/v19",
+  "generator_source_sha256": "43eb0f9c29b7cd11ad2c493198e714931352e2dc44eced5dd451ade12407f539",
+  "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
+  "ir_sha256": "f896c936aed7043f6e0a8b5e47180ea6d27c131d7572159aea76cf660c74c6d8",
   "program": {
-    "schema": "lean-go-ir/v6",
-    "profile": "pure-module/v4",
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
     "stage": "pure-mono",
     "lean_version": "4.36.0",
     "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
     "module": "Trees",
-    "root": "Trees.mirror",
+    "roots": [
+      "Trees.mirror"
+    ],
+    "features": [],
     "inputs": {
       "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
       "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
-      "producer/LeanGo/Module/Export.lean": "f5edc14f5fa343117e5733bbfeeefd15b712382ab65276305fb418c061a4fb02",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
@@ -24,7 +27,7 @@
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
       "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-      "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
+      "scripts/export_module.py": "97d39b82eebcdaee9bf47103571c4b69e247ee7f7e2f6c2d819fd8fee0396bea",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
       "source/Choice/Model.lean": "dbed9b4d36db3041a62929e7b181792cefd3d34e005f4b688b90f4559b4b2901",
@@ -435,10 +438,10 @@
     ]
   },
   "generated_files": {
-    "api.go": "b553bb00e544acc0350c733567fdad03b40299e78806ca10bffe76f67dc34741",
+    "api.go": "37f4b755e05584c46744a31cb796d31264edbe378f3570af2160c8808788fce1",
     "control.go": "bec46597ac460b4439e5560a711f1727939880404ee51fe78b55d42f829b264f",
-    "runtime.go": "dfd64e8774d320a481b4eb2ad3a9ab09ed616955d9eeb74fab0c4b9f2b2d1016",
-    "schema.go": "f4386716891183e399036cb69c46725dc57702986b3f8630d4e29e0473ccba17"
+    "runtime.go": "e24c482440533544cf30b1b56e9a3d2974234172680ccfbfa1e0adcef9f28cff",
+    "schema.go": "55ca72cb2ddca546bdd731559945e76b6c14de194bec31b5ef66890d0d98b5b9"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
   "primitives": [],
@@ -447,8 +450,10 @@
     "types": {
       "Trees.Color": "Color",
       "Trees.Tree": "Tree",
+      "UInt16": "uint16",
       "UInt32": "uint32",
-      "UInt64": "uint64"
+      "UInt64": "uint64",
+      "UInt8": "uint8"
     },
     "constructors": {
       "Trees.Color.blue": "NewColorBlue",

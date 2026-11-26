@@ -128,7 +128,7 @@ func (v *validator) validateMetadata(p *Program) error {
 	if err := validateRoots(p); err != nil {
 		return err
 	}
-	if p.Features == nil || p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
+	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}
 	if len(p.Claims) != 0 {

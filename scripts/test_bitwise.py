@@ -1,4 +1,4 @@
-"""Executable schema selection, source admission and independent native bitwise checks."""
+"""Executable feature declaration, source admission and independent native bitwise checks."""
 import copy
 import json
 import os
@@ -10,24 +10,28 @@ import export_module as producer
 import generate
 from unittest import mock
 import test_uint64_admission as wide
-from test_proof_contracts import ContractFixture
 from differential_model import Expr, Program, deserialize, evaluate, render_lean, serialize
 
 OPERATIONS = ('land', 'lor', 'xor', 'complement', 'shiftRight')
 
 
-class BitwiseSchemaTests(unittest.TestCase):
+class BitwiseFeatureTests(unittest.TestCase):
     def raw(self, body, multi=False):
         program = dict(module='Example', functions=[dict(name='Example.run', body=body)],
                        types=[], claims=[], rewrites=[], provenance=[], api={'records': {}})
         roots = ['Example.run', 'Example.second'] if multi else ['Example.run']
-        program['roots' if multi else 'root'] = roots if multi else roots[0]
+        program['roots'] = roots
         return program, roots
 
     def complete(self, program, roots):
         return producer.complete_program(json.dumps(program).encode(), 'Example', roots, {}, producer.selected_compiler())
 
-    def test_only_emitted_primitive_nodes_select_new_schema(self):
+    def bitwise(self, program, roots):
+        result = self.complete(program, roots)
+        self.assertEqual((result['schema'], result['profile']), (producer.SCHEMA, producer.PROFILE))
+        return 'bitwise' in result['features']
+
+    def test_only_emitted_primitive_nodes_declare_bitwise(self):
         value = dict(kind='primitive', name='UInt64.complement', args=[1])
         leaf = dict(op='let', value=value, next=dict(op='return', var=2))
         bodies = [leaf, dict(op='join', join=dict(body=leaf), next=dict(op='jump')),
@@ -35,86 +39,52 @@ class BitwiseSchemaTests(unittest.TestCase):
         for multi in (False, True):
             for body in bodies:
                 program, roots = self.raw(body, multi)
-                result = self.complete(program, roots)
-                self.assertEqual((result['schema'], result['profile']),
-                                 ('lean-go-ir/v9', 'pure-module/v7') if multi else
-                                 ('lean-go-ir/v8', 'pure-module/v6'))
+                self.assertTrue(self.bitwise(program, roots))
             # Source evidence and call names do not authorize an executable leaf.
             for kind in ('call', 'constructor'):
                 body = copy.deepcopy(leaf)
                 body['value']['kind'] = kind
                 program, roots = self.raw(body, multi)
                 program['provenance'] = [dict(name='UInt64.complement')]
-                result = self.complete(program, roots)
-                self.assertEqual(result['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
+                self.assertFalse(self.bitwise(program, roots))
             program, roots = self.raw(dict(op='return', var=1), multi)
             program['functions'].append(dict(name='Example.helper', body=leaf))
-            self.assertEqual(self.complete(program, roots)['schema'],
-                             'lean-go-ir/v9' if multi else 'lean-go-ir/v8')
+            self.assertTrue(self.bitwise(program, roots))
 
-    def test_uint16_xor_selection_uses_only_executable_leaves(self):
+    def test_uint16_xor_uses_only_executable_leaves(self):
         for multi in (False, True):
             leaf = dict(op='let', value=dict(kind='primitive', name='UInt16.xor', args=[1, 2]), next=dict(op='return'))
             program, roots = self.raw(dict(op='return'), multi)
             program['functions'].append(dict(name='Example.helper', body=dict(
                 op='join', join=dict(body=dict(op='return')), next=dict(op='cases', alts=[dict(body=leaf)]))))
-            expected = ('lean-go-ir/v19', 'pure-module/v17') if multi else ('lean-go-ir/v18', 'pure-module/v16')
-            result = self.complete(program, roots)
-            self.assertEqual((result['schema'], result['profile']), expected)
+            self.assertEqual(self.complete(program, roots)['features'], ['bitwise', 'join'])
             program['provenance'] = [dict(name='instXorOpUInt16', dependencies=['UInt16.xor'])]
             for kind, name in (('call', 'UInt16.xor'), ('constructor', 'UInt16.xor'),
                                ('primitive', 'UInt16.xor._boxed'), ('primitive', 'Fake.UInt16.xor'),
                                ('primitive', 'instXorOpUInt16')):
                 leaf['value'].update(kind=kind, name=name)
-                self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v7' if multi else 'lean-go-ir/v6')
+                self.assertEqual(self.complete(program, roots)['features'], ['join'])
 
     def test_exact_names_and_all_operations(self):
-        for width in (32, 64):
-            for op in OPERATIONS:
+        for width in (8, 32, 64):
+            for op in OPERATIONS + ('shiftLeft',):
                 body = dict(op='let', value=dict(kind='primitive', name=f'UInt{width}.{op}', args=[]),
                             next=dict(op='return', var=1))
                 program, roots = self.raw(body)
-                self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v8')
-        for name in ('UInt32.land._boxed', 'UInt16.land', 'UInt32.add', 'UInt64.shiftLeft'):
+                self.assertTrue(self.bitwise(program, roots))
+        for name in ('UInt32.land._boxed', 'UInt16.land', 'UInt16.complement', 'UInt32.add', 'UInt32.toUInt64'):
             body['value']['name'] = name
             program, roots = self.raw(body)
-            self.assertEqual(self.complete(program, roots)['schema'], 'lean-go-ir/v6')
+            self.assertFalse(self.bitwise(program, roots))
 
-    def test_new_schemas_keep_module_freshness_and_malformed_error(self):
-        for schema in ('lean-go-ir/v8', 'lean-go-ir/v9'):
-            with mock.patch.object(generate, 'verify_module_inputs') as verify:
-                generate.verify_inputs(Path('/repo'), {'schema': schema}, Path('/source'))
-                verify.assert_called_once()
+    def test_module_freshness_and_malformed_error(self):
+        with mock.patch.object(generate, 'verify_module_inputs') as verify:
+            generate.verify_inputs(Path('/repo'), {'schema': producer.SCHEMA}, Path('/source'))
+            verify.assert_called_once()
         for body in (None, {}, dict(op='let'), dict(op='join', join=[]), dict(op='cases', alts=None)):
             program, roots = self.raw(body)
             with self.assertRaises(producer.ExportError):
                 self.complete(program, roots)
-
-
-class BitwiseManifestTests(ContractFixture):
-    def test_exact_manifest_ir_profile_triples(self):
-        for multi in (False, True):
-            self.document['roots'] = ['Example.identity', 'Example.second'] if multi else ['Example.identity']
-            self.write_contract()
-            self.write_manifest()
-            accepted = ((7, 5), (9, 7), (11, 9), (13, 11), (15, 13), (17, 15), (19, 17)) if multi else ((6, 4), (8, 6), (10, 8), (12, 10), (14, 12), (16, 14), (18, 16))
-            for manifest_version in range(6, 20):
-                for ir_version in range(6, 20):
-                    for profile in range(4, 18):
-                        self.manifest['schema'] = f'lean-go-manifest/v{manifest_version}'
-                        self.manifest['program'].update(schema=f'lean-go-ir/v{ir_version}',
-                                                        profile=f'pure-module/v{profile}')
-                        self.save_manifest()
-                        if manifest_version == ir_version and (ir_version, profile) in accepted:
-                            self.verify_manifest()
-                        else:
-                            with self.assertRaises(producer.ExportError):
-                                self.verify_manifest()
-            for schema in (None, [], {}, 8, True):
-                self.manifest['schema'] = schema
-                self.save_manifest()
-                with self.assertRaises(producer.ExportError):
-                    self.verify_manifest()
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1', 'set LEAN_GO_MODULES=1 for fresh Lean builds')
@@ -137,7 +107,7 @@ class BitwiseAdmissionTests(unittest.TestCase):
             source = ('structure Result where\n' + '\n'.join(fields) + '\n'
                       'def run (a32 b32 : UInt32) (a64 b64 : UInt64) : Result :=\n  ⟨' + ', '.join(values) + '⟩\n')
             program = self.export(source, modern=direct)
-            self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v8', 'pure-module/v6'))
+            self.assertEqual(program['features'], ['bitwise', 'uint32', 'uint64'])
             leaves = [node['value'] for function in program['functions'] for node in self.nodes(function['body'])
                       if node['op'] == 'let' and node['value']['kind'] == 'primitive']
             self.assertEqual({leaf['name'] for leaf in leaves},
@@ -145,16 +115,16 @@ class BitwiseAdmissionTests(unittest.TestCase):
             for leaf in leaves:
                 self.assertEqual(len(leaf['args']), 1 if leaf['name'].endswith('.complement') else 2)
 
-    def test_source_only_bitwise_and_multi_root_selection(self):
+    def test_source_only_bitwise_and_multi_root_features(self):
         program = self.export('def run (a b : UInt32) : UInt32 :=\n  let _unused := a &&& b\n  a\n')
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
+        self.assertEqual(program['features'], ['uint32'])
         # Provenance stops at the trusted wrapper; its pristine closure audits land.
         self.assertIn('instAndOpUInt32', {item['name'] for item in program['provenance']})
         self.assertFalse(producer.emitted_primitives(program) & producer.BITWISE_PRIMITIVES)
         (self.source / 'Numeric.lean').write_text('namespace Numeric\ndef run (a : UInt32) := ~~~a\ndef second (a : UInt64) := a >>> 64\nend Numeric\n')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.second', 'Numeric.run'], self.output)
         program = json.loads(self.output.read_bytes())
-        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v9', 'pure-module/v7'))
+        self.assertEqual(program['features'], ['bitwise', 'uint32', 'uint64'])
         self.assertEqual(program['roots'], ['Numeric.run', 'Numeric.second'])
 
     def test_exact_primitive_and_wrapper_mutations_reject(self):

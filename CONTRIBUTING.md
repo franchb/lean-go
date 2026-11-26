@@ -28,6 +28,8 @@ Edit generator and producer sources rather than generated Go files. Generate int
 a fresh output path: differing existing artifacts are intentionally preserved and
 rejected. Review the resulting source, IR and manifest together. Source bytes are
 hashed; keep repository text in LF form.
+To regenerate every tracked module artifact and its proof evidence after a generator,
+validator or producer change, run `uv run --locked python scripts/regenerate_all.py`.
 
 For a library with source proofs, use a [proof contract](docs/proof-contracts.md)
 and independently authored expected propositions. Review the requirements,
@@ -38,7 +40,8 @@ The [alpha.15 release](docs/releases/v0.1.0-alpha.15.md), Python package
 `0.1.0a15`, includes eight standalone demos with 56 source claims and a checksummed frame with two composition claims. Generator v18 emits native loops for eligible two-word record folds. The frame uses a v2 composition contract to bind both component manifests.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
-the checkout uses generator v18 and adds the [Adler-32 record fold](examples/proofs/adler32).
+the checkout uses generator v19 with the single IR schema `lean-go-ir/v24` and adds the
+[Adler-32 record fold](examples/proofs/adler32).
 After changing a demo or CLI handoff, run the relevant verifier unit tests and
 the complete installed-wheel smoke:
 

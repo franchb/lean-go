@@ -17,19 +17,16 @@ import (
 )
 
 func typedProgram() *moduleir.Program {
-	p := testProgram()
-	p.Schema, p.Profile = moduleir.SchemaV5, moduleir.ProfileV3
-	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
-	return p
+	return testProgram()
 }
 
 func TestTypedTreeFacade(t *testing.T) {
-	files, err := Generate(typedProgram())
+	files, err := generate(typedProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(files["api.go"]) == 0 {
-		t.Fatal("v5 has no typed facade")
+		t.Fatal("missing typed facade")
 	}
 	runGenerated(t, files, typedTreeTests)
 }
@@ -63,13 +60,13 @@ func typedRecordProgram() *moduleir.Program {
 		{Name: "Example.Count", Constructors: []moduleir.Constructor{{Name: "Example.Count.mk", Fields: []string{"UInt32"}}}},
 	}
 	p.API.Records = map[string][]string{"Example.Config": {"count", "enabled"}, "Example.Count": {"value"}}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "Example.Config"}}, Result: "Example.Config", Body: &moduleir.Code{Op: "return", Var: 1}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "Example.Config"}}, Result: "Example.Config", Body: &moduleir.Code{Op: "return", Var: 1}}}
 	p.Provenance = p.Provenance[:1]
 	return p
 }
 
 func TestTypedRecordFacade(t *testing.T) {
-	files, err := Generate(typedRecordProgram())
+	files, err := generate(typedRecordProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +86,7 @@ func TestTypedScalarRoots(t *testing.T) {
 				p.Types = []moduleir.TypeDecl{}
 			}
 			p.Functions[0].Params[0].Type, p.Functions[0].Result = typ, typ
-			files, err := Generate(p)
+			files, err := generate(p)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -108,7 +105,6 @@ func TestScalar(t *testing.T){for _,input:=range []SCALAR{VALUES}{out,e:=RunType
 
 func TestFourByteRecordBridge(t *testing.T) {
 	p := typedRecordProgram()
-	p.Schema, p.Profile = moduleir.SchemaV12, moduleir.ProfileV10
 	p.Types, p.Functions[0].Params = nil, nil
 	p.API.Records = map[string][]string{}
 	quad := []string{"UInt8", "UInt8", "UInt8", "UInt8"}
@@ -130,7 +126,7 @@ func TestFourByteRecordBridge(t *testing.T) {
 		}
 	}
 	p.Functions[0].Result = "Example.Digest"
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,9 +169,9 @@ func TestBridge(t *testing.T) {
 }`)
 }
 
-func TestTypedManifestAndLegacyCompatibility(t *testing.T) {
+func TestTypedManifest(t *testing.T) {
 	p := typedRecordProgram()
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,28 +188,8 @@ func TestTypedManifestAndLegacyCompatibility(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Schema != "lean-go-manifest/v5" || m.Generator != Version || m.API.Entrypoint != "RunTyped" || m.API.Types["UInt32"] != "uint32" || m.API.Types["Bool"] != "bool" || m.API.Constructors["Example.Count.mk"] != "NewCount" || m.API.Accessors["Example.Count"]["value"] != "Value" {
+	if m.Schema != moduleir.ManifestSchema || m.Generator != Version || m.API.Entrypoint != "RunTyped" || m.API.Types["UInt32"] != "uint32" || m.API.Types["Bool"] != "bool" || m.API.Constructors["Example.Count.mk"] != "NewCount" || m.API.Accessors["Example.Count"]["value"] != "Value" {
 		t.Fatalf("wrong typed manifest: %+v", m)
-	}
-	for _, legacy := range []*moduleir.Program{testProgram(), numericProgram(), joinTestProgram()} {
-		old, err := Generate(legacy)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, ok := old["api.go"]; ok || bytes.Contains(old["manifest.json"], []byte(`"go_api"`)) {
-			t.Fatal("legacy facade changed")
-		}
-		legacy.Schema, legacy.Profile = moduleir.SchemaV5, moduleir.ProfileV3
-		legacy.API = &moduleir.APIMetadata{Records: map[string][]string{}}
-		current, err := Generate(legacy)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, name := range []string{"runtime.go", "schema.go", "control.go"} {
-			if !bytes.Equal(old[name], current[name]) {
-				t.Fatal("legacy raw output changed", name)
-			}
-		}
 	}
 }
 
@@ -241,14 +217,14 @@ func namingProgram() *moduleir.Program {
 	for i, typ := range p.Types {
 		params[i] = moduleir.Param{ID: i + 1, Type: typ.Name}
 	}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: params, Result: p.Types[0].Name, Body: &moduleir.Code{Op: "return", Var: 1}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: params, Result: p.Types[0].Name, Body: &moduleir.Code{Op: "return", Var: 1}}}
 	p.Provenance = p.Provenance[:1]
 	return p
 }
 
 func TestTypedNameCollisionsAndDeterminism(t *testing.T) {
 	p := namingProgram()
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +245,7 @@ func TestTypedNameCollisionsAndDeterminism(t *testing.T) {
 	for _, names := range []map[string]string{m.API.Types, m.API.Constructors, m.API.Accessors["Z.Record"]} {
 		seen := map[string]bool{}
 		for _, name := range names {
-			if name == "uint32" {
+			if name == "uint8" || name == "uint16" || name == "uint32" || name == "uint64" {
 				continue
 			}
 			first, _ := utf8.DecodeRuneInString(name)
@@ -288,7 +264,7 @@ func TestTypedNameCollisionsAndDeterminism(t *testing.T) {
 			p.API.Records[name] = []string{"value"}
 		}
 	}
-	again, err := Generate(p)
+	again, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,7 +279,7 @@ func TestNames(t *testing.T){l:=DefaultLimits();zero,e:=NewTreeLeaf2(l);if e!=ni
 }
 
 func TestAPIRuntimeNamesReserved(t *testing.T) {
-	files, err := Generate(typedProgram())
+	files, err := generate(typedProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +333,7 @@ func TestTypedCanonicalBoolAndMalformedScalars(t *testing.T) {
 			t.Fatal("noncanonical Bool mapped", typ)
 		}
 	}
-	files, err := Generate(typedRecordProgram())
+	files, err := generate(typedRecordProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -379,9 +355,9 @@ func TestTypedNullaryScalarRoots(t *testing.T) {
 				value = &moduleir.Value{Kind: "constructor", Name: "Bool.true", Args: []int{}}
 				want = "true"
 			}
-			p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{}, Result: typ, Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: typ}, Value: value, Next: &moduleir.Code{Op: "return", Var: 1}}}}
+			p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{}, Result: typ, Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: typ}, Value: value, Next: &moduleir.Code{Op: "return", Var: 1}}}}
 			p.Provenance = p.Provenance[:1]
-			files, err := Generate(p)
+			files, err := generate(p)
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -94,8 +94,7 @@ class RecordAdmissionTests(unittest.TestCase):
         records = {item['name'] for item in program['provenance']}
         self.assertTrue(set(names) <= records, set(names) - records)
         self.assertTrue({item['name'] for item in program['functions']} <= records)
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
-        self.assertEqual(program['profile'], 'pure-module/v4')
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
         self.assert_typed_boundaries(program)
 
     def assert_rejected(self, body, diagnostic):

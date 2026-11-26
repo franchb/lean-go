@@ -135,7 +135,7 @@ class ModuleExportTests(unittest.TestCase):
             self.assertIn('set_option compiler.postponeCompile false', text)
         else:
             self.assertIn('import Example', (workspace / 'LeanGo/Module/Harness.lean').read_text())
-            (workspace / 'ir.json').write_text(json.dumps(dict(module='Example', root='identity',
+            (workspace / 'ir.json').write_text(json.dumps(dict(module='Example', roots=['identity'],
                 types=[], functions=[], claims=[], rewrites=[], provenance=[], api={'records': {}})))
         return ''
 
@@ -147,11 +147,13 @@ class ModuleExportTests(unittest.TestCase):
         with mock.patch.object(producer, 'run', side_effect=self.fake_run):
             self.export()
         program = json.loads(self.output.read_bytes())
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
+        self.assertEqual(program['schema'], 'lean-go-ir/v24')
         self.assertEqual(program['api'], {'records': {}})
-        self.assertEqual(program['profile'], 'pure-module/v4')
+        self.assertEqual(program['profile'], 'pure-module/v22')
+        self.assertEqual(program['features'], [])
         self.assertIn('producer/LeanGo/Module/Primitives.lean', program['inputs'])
-        self.assertEqual(program['root'], 'identity')
+        self.assertEqual(program['roots'], ['identity'])
+        self.assertNotIn('root', program)
         self.assertEqual(program['inputs']['source/Example.lean'],
                          hashlib.sha256((self.source / 'Example.lean').read_bytes()).hexdigest())
 

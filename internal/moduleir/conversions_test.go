@@ -1,8 +1,6 @@
 package moduleir
 
 import (
-	"bytes"
-	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -13,24 +11,8 @@ func conversionProgram(name string) *Program {
 		operand, result = result, operand
 	}
 	p := numericProgram(&Value{Kind: "primitive", Name: name, Args: []int{1}}, result)
-	p.Schema, p.Profile = SchemaV10, ProfileV8
-	p.API = &APIMetadata{Records: map[string][]string{}}
 	p.Functions[0].Params = []Param{{ID: 1, Type: operand}}
-	return p
-}
-
-func conversionRoots(p *Program) {
-	if !HasMultipleRoots(p.Schema) {
-		return
-	}
-	p.Roots = []string{p.Root, p.Root + "2"}
-	p.Root = ""
-	f := p.Functions[0]
-	f.Name = p.Roots[1]
-	p.Functions = append(p.Functions, f)
-	provenance := p.Provenance[0]
-	provenance.Name = f.Name
-	p.Provenance = append(p.Provenance, provenance)
+	return declare(p)
 }
 
 func TestWidthConversionCatalogAndArguments(t *testing.T) {
@@ -45,7 +27,7 @@ func TestWidthConversionCatalogAndArguments(t *testing.T) {
 		if fresh.Params[0] != p.Functions[0].Params[0].Type {
 			t.Fatal("mutable catalog")
 		}
-		if err := Validate(p); err != nil {
+		if err := check(p); err != nil {
 			t.Fatal(err)
 		}
 		for _, change := range []func(*Program){
@@ -58,7 +40,7 @@ func TestWidthConversionCatalogAndArguments(t *testing.T) {
 		} {
 			p := conversionProgram(name)
 			change(p)
-			if err := Validate(p); err == nil {
+			if err := check(p); err == nil {
 				t.Fatal("accepted invalid conversion", name)
 			}
 		}
@@ -67,82 +49,8 @@ func TestWidthConversionCatalogAndArguments(t *testing.T) {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatal("admitted unknown conversion", name)
 		}
-		if err := Validate(conversionProgram(name)); err == nil {
+		if err := check(conversionProgram(name)); err == nil {
 			t.Fatal("validated unknown conversion", name)
-		}
-	}
-}
-
-func TestWidthConversionLegacyRejection(t *testing.T) {
-	pairs := [][2]string{{Schema, Profile}, {SchemaV3, ProfileV2}, {SchemaV4, ProfileV3}, {SchemaV5, ProfileV3}, {SchemaV6, ProfileV4}, {SchemaV7, ProfileV5}, {SchemaV8, ProfileV6}, {SchemaV9, ProfileV7}}
-	for _, pair := range pairs {
-		for _, name := range []string{"UInt32.toUInt64", "UInt64.toUInt32"} {
-			p := conversionProgram(name)
-			p.Schema, p.Profile = pair[0], pair[1]
-			if !HasTypedAPI(p.Schema) {
-				p.API = nil
-			}
-			// An old schema may model UInt64 as an ADT; it still cannot admit the cast.
-			if !HasUInt64(p.Schema) {
-				p.Types = []TypeDecl{{Name: "UInt64", Constructors: []Constructor{{Name: "UInt64.mk", Fields: []string{"UInt32"}}}}}
-			}
-			conversionRoots(p)
-			if err := Validate(p); err == nil {
-				t.Fatal("legacy conversion accepted", pair, name)
-			}
-		}
-	}
-}
-
-func TestWidthConversionSchemaContracts(t *testing.T) {
-	for _, pair := range [][2]string{{SchemaV10, ProfileV8}, {SchemaV11, ProfileV9}} {
-		p := conversionProgram("UInt32.toUInt64")
-		p.Schema, p.Profile = pair[0], pair[1]
-		conversionRoots(p)
-		if !HasUInt64(p.Schema) || !HasTypedAPI(p.Schema) || HasMultipleRoots(p.Schema) != (p.Schema == SchemaV11) {
-			t.Fatal("capabilities", pair)
-		}
-		raw, _ := json.Marshal(p)
-		if _, err := Decode(bytes.NewReader(raw)); err != nil {
-			t.Fatal(err)
-		}
-		forbidden := `,"roots":[]`
-		if HasMultipleRoots(p.Schema) {
-			forbidden = `,"root":""`
-		}
-		malformed := append(append([]byte{}, raw[:len(raw)-1]...), []byte(forbidden+"}")...)
-		if _, err := Decode(bytes.NewReader(malformed)); err == nil {
-			t.Fatal("irrelevant root field")
-		}
-		api := p.API
-		p.API = nil
-		if err := Validate(p); err == nil {
-			t.Fatal("missing API")
-		}
-		p.API = api
-		for _, bad := range []string{Profile, ProfileV2, ProfileV3, ProfileV4, ProfileV5, ProfileV6, ProfileV7, ProfileV8, ProfileV9} {
-			if bad == pair[1] {
-				continue
-			}
-			p.Profile = bad
-			if err := Validate(p); err == nil {
-				t.Fatal("cross-pair", pair[0], bad)
-			}
-		}
-		p.Profile = pair[1]
-		if HasMultipleRoots(p.Schema) {
-			for _, roots := range [][]string{nil, {}, {p.Roots[0]}, {p.Roots[1], p.Roots[0]}, {p.Roots[0], p.Roots[0]}} {
-				copy := *p
-				copy.Roots = roots
-				if err := Validate(&copy); err == nil {
-					t.Fatal("invalid roots", roots)
-				}
-			}
-		}
-	}
-	for _, schema := range []string{"lean-go-ir/v24", "lean-go-ir/v100", "lean-go-ir/v19x"} {
-		if HasUInt64(schema) || HasTypedAPI(schema) || HasMultipleRoots(schema) {
-			t.Fatal("unknown capability", schema)
 		}
 	}
 }

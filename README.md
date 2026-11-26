@@ -8,22 +8,23 @@ use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python a
 needed for regeneration, not deployment.
 
 The original audited normalizer remains available as a separate v1 profile.
-Exports using existing operations retain `pure-module/v4` with v6 IR for one root,
-including UInt32 and UInt64 arithmetic, comparisons, local joins and source record
-names for typed Go APIs. Multiple roots use `pure-module/v5` with v7 IR and share
-one generated package.
-Alpha.6 adds bitwise AND, OR, XOR, complement and logical right shift for both
-widths. Emitted bitwise operations select v8/v9 IR with `pure-module/v6` or
-`pure-module/v7`; see the [bitwise report](docs/research/extraction-bitwise.md).
-Earlier v2–v7 IR retain their original restrictions and APIs.
+In this checkout every module export uses one IR schema, `lean-go-ir/v24`, with
+profile `pure-module/v22`, manifest `lean-go-manifest/v24` and generator
+`lean-go-modulegen/v19`. A `roots` array names one or more roots; several roots
+share one generated package. The IR's sorted `features` list declares the
+capability families a program uses (`bitwise`, `byte_fold`, `join`, `record_fold`,
+`uint8`, `uint16`, `uint32`, `uint64`, `width_conversion`), and the Go validator
+recomputes it. IR and manifests from earlier releases are rejected; regenerate
+them with the current tool. Every generated package carries the same runtime for
+all four scalar widths.
+Alpha.6 added bitwise AND, OR, XOR, complement and logical right shift; see the
+[bitwise report](docs/research/extraction-bitwise.md).
 Published alpha.7 adds exact `UInt32.toUInt64` zero extension and
-`UInt64.toUInt32` truncation modulo 2^32. Emitted conversions select v10/v11 IR
-with `pure-module/v8` or `pure-module/v9`; see the
+`UInt64.toUInt32` truncation modulo 2^32; see the
 [width-conversion report](docs/research/extraction-width-conversions.md).
 
 Published **alpha.8** adds scalar `UInt8`, byte/word conversions and a
-[proved byte codec](examples/proofs/bytes). Its generator v10 uses v12/v13 IR
-for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uint8.md)
+[proved byte codec](examples/proofs/bytes). [UInt8 extraction report](docs/research/extraction-uint8.md)
 
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
@@ -76,10 +77,9 @@ Alpha.7 includes a [standalone word-packing module](examples/proofs/words)
 with five scalar roots and seven universal source proofs: value-preserving
 widening, modulo narrowing, both conversion round trips, and packing/unpacking
 identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
-Words uses v11 IR/manifest and `pure-module/v9`. The alpha.8 release contains
-all four standalone demos with module generator v10, including demos whose IR
-schema stays unchanged. Pair examples and CLI from the same checkout or tag;
-published alpha.7 reproduction uses its historical artifacts and generator v9.
+The alpha.8 release contains all four standalone demos. Pair examples and CLI
+from the same checkout or tag; published alpha.7 reproduction uses its
+historical artifacts.
 
 ## Use the proved byte codec
 
@@ -175,14 +175,10 @@ Alpha.10 extracts `UInt16` literals, records and
 `UInt8.toUInt16`, `UInt16.toUInt8`, `|||`, `<<<` and `>>>` on the supported
 operand types. The Go scalar is `uint16`. Widening preserves the byte value,
 narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
-In alpha.10 and alpha.11, without `UInt16.toUInt32`, an executable `UInt16` selects v14 IR for one root or v15 for multiple roots
-with `pure-module/v12` or `pure-module/v13`. Alpha.10 ships generator v12. Pair the CLI and examples from the same tag when
-regenerating artifacts.
+Pair the CLI and examples from the same tag when regenerating artifacts.
 
 Alpha.11 extracts ordinary `UInt16.toUInt32` as a
-value-preserving Go conversion. An executable use selects v16 for one root or
-v17 for multiple roots, with profiles `pure-module/v14` and `pure-module/v15`
-and generator v13. The [Wire16 demo](examples/proofs/wire16) uses it to
+value-preserving Go conversion. The [Wire16 demo](examples/proofs/wire16) uses it to
 classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
 The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
@@ -190,8 +186,7 @@ The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
 Alpha.15 accepts a byte fold whose accumulator is a Lean
 structure with exactly two direct `UInt32` fields. Its typed Go entrypoint
 takes the generated record and a borrowed `[]byte`, then returns an updated
-record. These exports use IR v22 for one root or v23 for multiple roots and
-generator v18. The Adler-32 example proves chunk equivalence to two natural
+record. The Adler-32 example proves chunk equivalence to two natural
 number sums modulo 65521 and checks the packed checksum against Go's
 `hash/adler32`. [Adler-32 example](examples/proofs/adler32)
 
@@ -200,23 +195,19 @@ In alpha.14, a root of the form
 can accept a read-only Go `[]byte`. The named step takes an accumulator and
 a byte and returns the same scalar type. The producer checks the elaborated
 application and the compiler's empty and nonempty branches before lowering it.
-Single-root exports use IR v20 and multi-root exports use v21. The raw API
+The raw API
 represents the same input with `List.nil` and `List.cons`. The slice API charges
 the corresponding logical nodes, depth, steps, frames and slots. Long streams
 can carry their accumulator between bounded calls.
 
-In alpha.12, an executable `UInt16.xor` or ordinary `a ^^^ b`
-selects IR v18 for one root or v19 for multiple roots, with profiles
-`pure-module/v16` and `pure-module/v17`. Generator v14 emits Go's `^`
-operator on two `uint16` values. The [CRC-16/XMODEM demo](examples/proofs/crc16)
+Since alpha.12, an executable `UInt16.xor` or ordinary `a ^^^ b`
+emits Go's `^` operator on two `uint16` values. The [CRC-16/XMODEM demo](examples/proofs/crc16)
 uses this operation in a proved one-byte update that Go can apply to successive chunks.
 The [checksummed frame example](examples/proofs/checkedframe) combines Wire16 and CRC-16,
 proves frame round trips with arbitrary trailing bytes, and checks the trailer against
 an independent reference CRC.
 
-Earlier schemas keep their
-restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
-`pure-module/v4` or `pure-module/v5`. Other conversions, including direct
+Other conversions, including direct
 UInt8/UInt64 casts, division, remainder, other numeric operations and types,
 generic collections, polymorphism,
 higher-order code, mutual function recursion, effects, and unsupported compiler

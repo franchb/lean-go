@@ -19,8 +19,10 @@ for both commands. Alpha.15 records the selected compiler in the IR, manifest
 and proof evidence. Use the default compiler to reproduce the tagged examples.
 [Release notes](releases/v0.1.0-alpha.15.md)
 
-When upgrading from alpha.14, regenerate the Go package, IR and proof evidence
-together with generator v18. Record byte folds use v22/v23 IR. The Adler-32 example passes its two-word state directly through the generated Go loop.
+When upgrading from alpha.14 to alpha.15, regenerate the Go package, IR and proof evidence
+together with generator v18. Record byte folds use v22/v23 IR in alpha.15. This
+development checkout accepts only `lean-go-ir/v24` IR and `lean-go-manifest/v24`
+manifests from generator v19; regenerate earlier artifacts with its CLI. The Adler-32 example passes its two-word state directly through the generated Go loop.
 [Tagged alpha.14 guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.14/docs/cli.md)
 
 Use `uv tool update-shell` if your shell cannot find `lean-go`. The install
@@ -78,14 +80,14 @@ the installed producer keeps its exact version and commit checks.
 
 The [Words example](../examples/proofs/words), introduced in alpha.7, uses exact
 `UInt32.toUInt64` and `UInt64.toUInt32` conversions, five roots and seven source
-claims. This checkout's regenerated Words artifacts keep v11 IR/manifest and
-`pure-module/v9` but use `lean-go-modulegen/v18`, as do its regenerated clamp and
-flags artifacts. Their manifests and proof evidence require this checkout's CLI.
+claims. This checkout's regenerated Words, clamp and flags artifacts use
+`lean-go-ir/v24`, `pure-module/v22` and `lean-go-modulegen/v19`. Their manifests
+and proof evidence require this checkout's CLI.
 The [byte codec](../examples/proofs/bytes) additionally requires the
-alpha.8 UInt8 capability: v13 IR/manifest and `pure-module/v11` for its four roots.
+alpha.8 UInt8 capability for its four roots.
 Its twelve proofs and Go-only application are explained in the
 [byte walkthrough](articles/proved-byte-codec.md). See the
-[UInt8 report](research/extraction-uint8.md) for the selective schema rules.
+[UInt8 report](research/extraction-uint8.md) for the historical schema rules.
 Published alpha.7's generator remains v9 and has no UInt8 support.
 
 ## Generate from your project

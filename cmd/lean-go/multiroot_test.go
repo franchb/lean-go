@@ -13,7 +13,7 @@ import (
 
 func multiRootFixture() *moduleir.Program {
 	p := &moduleir.Program{
-		Schema: moduleir.SchemaV7, Profile: moduleir.ProfileV5, Stage: moduleir.Stage,
+		Schema: moduleir.Schema, Profile: moduleir.Profile, Stage: moduleir.Stage,
 		LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit,
 		Module: "Exports", Roots: []string{"Exports.first", "Exports.second"},
 		Inputs: map[string]string{"Exports.lean": strings.Repeat("0", 64)}, Types: []moduleir.TypeDecl{},
@@ -24,7 +24,7 @@ func multiRootFixture() *moduleir.Program {
 		p.Functions = append(p.Functions, moduleir.Function{Name: name, Params: []moduleir.Param{{ID: 1, Type: "UInt64"}}, Result: "UInt64", Body: &moduleir.Code{Op: "return", Var: 1}})
 		p.Provenance = append(p.Provenance, moduleir.Provenance{Name: name, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}})
 	}
-	return p
+	return declare(p)
 }
 
 func TestCompileMultiRootSchema(t *testing.T) {

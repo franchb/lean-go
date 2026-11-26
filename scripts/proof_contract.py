@@ -6,10 +6,11 @@ import hashlib
 from pathlib import Path, PurePosixPath
 
 from export import ExportError, parse_json
-from export_module import (MAX_FILES, MAX_SOURCE_BYTES, select_roots,
-                           source_snapshot, validate_name)
+from export_module import (MAX_FILES, MAX_SOURCE_BYTES, PROFILE as MODULE_PROFILE,
+                           SCHEMA as MODULE_SCHEMA, select_roots, source_snapshot, validate_name)
 
 SCHEMA = 'lean-go-proof-contract/v1'
+MANIFEST_SCHEMA = 'lean-go-manifest/v24'
 MAX_DOCUMENT_BYTES = 4 * 1024 * 1024
 MAX_CONTRACT_BYTES = 64 * 1024
 MAX_CLAIMS = 64
@@ -133,25 +134,15 @@ def verify_manifest(path, contract, project, compiler):
         raise ExportError('manifest must be separate from generated Go files')
     raw = read_regular(path)
     manifest = parse_json(raw)
-    multi = len(contract.roots) > 1
-    pairs = ({'v7': 'v5', 'v9': 'v7', 'v11': 'v9', 'v13': 'v11', 'v15': 'v13', 'v17': 'v15', 'v19': 'v17', 'v21': 'v19', 'v23': 'v21'}
-             if multi else {'v6': 'v4', 'v8': 'v6', 'v10': 'v8', 'v12': 'v10', 'v14': 'v12', 'v16': 'v14', 'v18': 'v16', 'v20': 'v18', 'v22': 'v20'})
-    if not isinstance(manifest, dict):
-        raise ExportError('generated manifest schema does not match root count')
-    versions = {'lean-go-manifest/' + version: (version, profile)
-                for version, profile in pairs.items()}
-    schema = manifest.get('schema')
-    pair = versions.get(schema) if isinstance(schema, str) else None
-    if pair is None:
-        raise ExportError('generated manifest schema does not match root count')
-    version, profile = pair
+    if not isinstance(manifest, dict) or manifest.get('schema') != MANIFEST_SCHEMA:
+        found = manifest.get('schema') if isinstance(manifest, dict) else None
+        raise ExportError(f'unsupported generated manifest schema {found!r}; '
+                          f'regenerate the package with the current lean-go tool ({MANIFEST_SCHEMA})')
     program = manifest.get('program')
-    selection, forbidden = ('roots', 'root') if multi else ('root', 'roots')
-    expected = dict(schema='lean-go-ir/' + version, profile='pure-module/' + profile,
-                    stage='pure-mono', module=contract.module,
+    expected = dict(schema=MODULE_SCHEMA, profile=MODULE_PROFILE,
+                    stage='pure-mono', module=contract.module, roots=list(contract.roots),
                     lean_version=compiler.version, lean_commit=compiler.commit)
-    expected[selection] = list(contract.roots) if multi else contract.roots[0]
-    if (not isinstance(program, dict) or forbidden in program or
+    if (not isinstance(program, dict) or 'root' in program or
             any(program.get(key) != value for key, value in expected.items())):
         raise ExportError('generated program, roots or Lean pin differ from contract')
     inputs = program.get('inputs')

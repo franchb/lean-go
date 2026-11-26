@@ -51,8 +51,7 @@ class LocalAdmissionTests(unittest.TestCase):
         self.assertEqual(provenance[helper],
                          dict(name=helper, dependencies=[owner], rewrites=[]))
         self.assertIn(owner, provenance)
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
-        self.assertEqual(program['profile'], 'pure-module/v4')
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
         self.assertTrue(any(call['name'] == helper for caller in program['functions']
                             for call in self.calls(caller)),
                         'the lifted function must have an emitted direct call')

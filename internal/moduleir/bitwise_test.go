@@ -15,12 +15,10 @@ func bitwiseProgram(width, operation string) *Program {
 		args = []int{1}
 	}
 	p := numericProgram(&Value{Kind: "primitive", Name: width + "." + operation, Args: args}, width)
-	p.Schema, p.Profile = SchemaV8, ProfileV6
-	p.API = &APIMetadata{Records: map[string][]string{}}
 	for i := range p.Functions[0].Params {
 		p.Functions[0].Params[i].Type = width
 	}
-	return p
+	return declare(p)
 }
 
 func TestBitwiseSignaturesAndArguments(t *testing.T) {
@@ -46,7 +44,7 @@ func TestBitwiseSignaturesAndArguments(t *testing.T) {
 				if fresh.Params[0] != width {
 					t.Fatal("mutable registry")
 				}
-				if err := Validate(p); err != nil {
+				if err := check(p); err != nil {
 					t.Fatal(err)
 				}
 				for n := 0; n <= 3; n++ {
@@ -55,7 +53,7 @@ func TestBitwiseSignaturesAndArguments(t *testing.T) {
 					}
 					p := bitwiseProgram(width, operation)
 					p.Functions[0].Body.Value.Args = []int{1, 2, 1}[:n]
-					if err := Validate(p); err == nil {
+					if err := check(p); err == nil {
 						t.Fatalf("accepted arity %d", n)
 					}
 				}
@@ -78,7 +76,7 @@ func TestBitwiseSignaturesAndArguments(t *testing.T) {
 				} {
 					p := bitwiseProgram(width, operation)
 					change(p)
-					if err := Validate(p); err == nil {
+					if err := check(p); err == nil {
 						t.Fatal("accepted invalid primitive")
 					}
 				}
@@ -92,42 +90,10 @@ func TestBitwiseSignaturesAndArguments(t *testing.T) {
 	}
 }
 
-func TestBitwiseLegacySchemaGate(t *testing.T) {
-	pairs := [][2]string{{Schema, Profile}, {SchemaV3, ProfileV2}, {SchemaV4, ProfileV3}, {SchemaV5, ProfileV3}, {SchemaV6, ProfileV4}, {SchemaV7, ProfileV5}}
-	for _, pair := range pairs {
-		for _, width := range []string{"UInt32", "UInt64"} {
-			for _, op := range bitwiseOperations {
-				p := bitwiseProgram(width, op)
-				p.Schema, p.Profile = pair[0], pair[1]
-				if !HasTypedAPI(p.Schema) {
-					p.API = nil
-				}
-				if HasMultipleRoots(p.Schema) {
-					p.Roots = []string{p.Root, p.Root + "2"}
-					p.Root = ""
-					f := p.Functions[0]
-					f.Name = p.Roots[1]
-					p.Functions = append(p.Functions, f)
-					provenance := p.Provenance[0]
-					provenance.Name = f.Name
-					p.Provenance = append(p.Provenance, provenance)
-				}
-				if err := Validate(p); err == nil {
-					t.Fatal("legacy schema accepted bitwise", pair, width, op)
-				}
-			}
-		}
-	}
-}
-
-func TestBitwiseSchemaRootAndAPIContracts(t *testing.T) {
+func TestBitwiseRootAndAPIContracts(t *testing.T) {
 	single := bitwiseProgram("UInt32", "complement")
 	multi := multiRootProgram()
-	multi.Schema, multi.Profile = SchemaV9, ProfileV7
 	for _, p := range []*Program{single, multi} {
-		if !HasUInt64(p.Schema) || !HasTypedAPI(p.Schema) {
-			t.Fatal("missing inherited capability")
-		}
 		raw, _ := json.Marshal(p)
 		decoded, err := Decode(bytes.NewReader(raw))
 		if err != nil {
@@ -136,36 +102,21 @@ func TestBitwiseSchemaRootAndAPIContracts(t *testing.T) {
 		if !reflect.DeepEqual(RootNames(p), RootNames(decoded)) {
 			t.Fatal("root selection changed")
 		}
-		forbidden := `,"roots":[]`
-		if HasMultipleRoots(p.Schema) {
-			forbidden = `,"root":""`
-		}
-		malformed := append(append([]byte{}, raw[:len(raw)-1]...), []byte(forbidden+"}")...)
+		malformed := append(append([]byte{}, raw[:len(raw)-1]...), []byte(`,"root":""}`)...)
 		if _, err := Decode(bytes.NewReader(malformed)); err == nil {
 			t.Fatal("accepted irrelevant root field")
 		}
 		api := p.API
 		p.API = nil
-		if err := Validate(p); err == nil {
+		if err := check(p); err == nil {
 			t.Fatal("accepted missing API metadata")
 		}
 		p.API = api
-		profile := p.Profile
-		for _, bad := range []string{ProfileV4, ProfileV5, ProfileV6, ProfileV7} {
-			if bad == profile {
-				continue
-			}
-			p.Profile = bad
-			if err := Validate(p); err == nil {
-				t.Fatal("accepted schema/profile cross-pair", p.Schema, bad)
-			}
-		}
-		p.Profile = profile
 	}
-	for _, roots := range [][]string{nil, {}, {"Example.first"}, {"Example.second", "Example.first"}, {"Example.first", "Example.first"}} {
+	for _, roots := range [][]string{nil, {}, {"Example.second", "Example.first"}, {"Example.first", "Example.first"}} {
 		multi.Roots = roots
-		if err := Validate(multi); err == nil {
-			t.Fatal("accepted invalid v9 cardinality/order", roots)
+		if err := check(multi); err == nil {
+			t.Fatal("accepted invalid root cardinality/order", roots)
 		}
 	}
 }

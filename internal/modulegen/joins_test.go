@@ -3,6 +3,7 @@ package modulegen
 import (
 	"bytes"
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"github.com/franchb/lean-go/internal/moduleir"
@@ -10,16 +11,15 @@ import (
 
 func joinTestProgram() *moduleir.Program {
 	p := testProgram()
-	p.Schema, p.Profile = moduleir.SchemaV4, moduleir.ProfileV3
 	p.Types = []moduleir.TypeDecl{}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt32"}}, Result: "UInt32",
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "UInt32"}}, Result: "UInt32",
 		Body: &moduleir.Code{Op: "join", Join: &moduleir.Join{ID: 2, Params: []moduleir.Param{}, Body: &moduleir.Code{Op: "return", Var: 1}}, Next: &moduleir.Code{Op: "jump", Target: 2, Args: []int{}}}}}
 	p.Provenance = p.Provenance[:1]
 	return p
 }
 
 func TestZeroArityJoinExecutionAndCosts(t *testing.T) {
-	files, err := Generate(joinTestProgram())
+	files, err := generate(joinTestProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestNestedJoinsAcrossCall(t *testing.T) {
 		Next: &moduleir.Code{Op: "join", Join: &moduleir.Join{ID: 10, Params: []moduleir.Param{{ID: 11, Type: "UInt32"}}, Body: &moduleir.Code{Op: "jump", Target: 3, Args: []int{11, 1, 11}}}, Next: &moduleir.Code{Op: "jump", Target: 10, Args: []int{2}}}}
 	p.Functions = append(p.Functions, moduleir.Function{Name: "Example.second", Params: []moduleir.Param{{ID: 1, Type: "UInt32"}, {ID: 2, Type: "UInt32"}}, Result: "UInt32", Body: let(3, "primitive", "UInt32.sub", []int{1, 2}, ret(3))})
 	p.Provenance = append(p.Provenance, moduleir.Provenance{Name: "Example.second", Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}})
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,26 +67,24 @@ func TestNested(t *testing.T){
 
 func TestJoinFunctionSelfRecursion(t *testing.T) {
 	p := testProgram()
-	p.Schema, p.Profile = moduleir.SchemaV4, moduleir.ProfileV3
 	for i := range p.Functions {
 		p.Functions[i].Body = &moduleir.Code{Op: "join", Join: &moduleir.Join{ID: 100, Params: []moduleir.Param{}, Body: p.Functions[i].Body}, Next: &moduleir.Code{Op: "jump", Target: 100, Args: []int{}}}
 	}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
 	runGenerated(t, files, boundaryTest)
 }
 
-func TestJoinManifestAndCompatibility(t *testing.T) {
+func TestJoinManifest(t *testing.T) {
 	p := numericProgram()
-	p.Schema, p.Profile = moduleir.SchemaV4, moduleir.ProfileV3
 	p.Functions[0].Body = &moduleir.Code{Op: "join", Join: &moduleir.Join{ID: 100, Params: []moduleir.Param{}, Body: p.Functions[0].Body}, Next: &moduleir.Code{Op: "jump", Target: 100, Args: []int{}}}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := Generate(p)
+	again, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +102,7 @@ func TestJoinManifestAndCompatibility(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v4" || manifest.Generator != Version || len(manifest.Primitives) != len(numericOperations) {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.Generator != Version || len(manifest.Primitives) != len(numericOperations) {
 		t.Fatal("wrong join manifest", manifest.Schema, manifest.Generator, manifest.Primitives)
 	}
 	raw, err := json.Marshal(manifest.Program)
@@ -114,33 +112,7 @@ func TestJoinManifestAndCompatibility(t *testing.T) {
 	if _, err := moduleir.Decode(bytes.NewReader(raw)); err != nil {
 		t.Fatal("manifest program round trip", err)
 	}
-	for _, old := range []*moduleir.Program{testProgram(), numericProgram()} {
-		previous, err := Generate(old)
-		if err != nil {
-			t.Fatal(err)
-		}
-		var previousManifest struct {
-			Schema string `json:"schema"`
-		}
-		if err := json.Unmarshal(previous["manifest.json"], &previousManifest); err != nil {
-			t.Fatal(err)
-		}
-		want := "lean-go-manifest/v2"
-		if old.Schema == moduleir.SchemaV3 {
-			want = "lean-go-manifest/v3"
-		}
-		if previousManifest.Schema != want {
-			t.Fatal("legacy manifest schema changed", previousManifest.Schema, want)
-		}
-		old.Schema, old.Profile = moduleir.SchemaV4, moduleir.ProfileV3
-		updated, err := Generate(old)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, name := range []string{"runtime.go", "schema.go", "control.go"} {
-			if !bytes.Equal(previous[name], updated[name]) {
-				t.Fatal("profile changed old Go output", name)
-			}
-		}
+	if !slices.Contains(manifest.Program.Features, moduleir.FeatureJoin) {
+		t.Fatal("manifest program does not declare joins", manifest.Program.Features)
 	}
 }

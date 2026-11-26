@@ -10,10 +10,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	reduced "github.com/franchb/lean-go/generated/reduced"
+	"github.com/franchb/lean-go/internal/moduleir"
 )
 
 // Wire rows are flag, unused Count, left Count, right Count, bias Count, depth.
@@ -438,15 +440,16 @@ func requireReducedOwner(t *testing.T, records []reducedProvenance, owner string
 func requireReducedIR(t *testing.T, data []byte, root string, rootParams, retained []string) {
 	t.Helper()
 	var program struct {
-		Schema, Profile, Root string
-		Functions             []reducedFunction
-		Provenance            []reducedProvenance
+		Schema, Profile string
+		Roots           []string
+		Functions       []reducedFunction
+		Provenance      []reducedProvenance
 	}
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program.Schema != "lean-go-ir/v6" || program.Profile != "pure-module/v4" || program.Root != root {
-		t.Fatalf("unexpected reduced schema/profile/root: %s/%s/%s", program.Schema, program.Profile, program.Root)
+	if program.Schema != moduleir.Schema || program.Profile != moduleir.Profile || !slices.Equal(program.Roots, []string{root}) {
+		t.Fatalf("unexpected reduced schema/profile/roots: %s/%s/%v", program.Schema, program.Profile, program.Roots)
 	}
 	functions := make(map[string]reducedFunction)
 	for _, function := range program.Functions {

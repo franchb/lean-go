@@ -59,7 +59,7 @@ executable offline with cgo and downloads disabled and producer tools hidden.
 The full installation smoke, `uv run --locked python scripts/check_cli_install.py`,
 runs these eight verifiers for both a direct wheel and an sdist-rebuilt wheel,
 freshly checking 56 source claims per wheel. Current regenerated manifests and
-proof evidence in the development checkout use generator v18. Adler-32 uses multi-root v23 IR and CRC-16 uses v21. The other demos retain their earlier IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
+proof evidence in the development checkout use generator v19 and the single IR schema `lean-go-ir/v24`. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
 Alpha.14 also proves two composition claims for the checksummed Wire16 frame. A v2 proof contract checks those two propositions once and binds them to both component manifests, bringing the tagged total to 56 distinct source claims. Alpha.15 adds two Adler-32 claims for a total of 58. [Checksummed frame example](../examples/proofs/checkedframe)
@@ -106,7 +106,7 @@ Success prints a JSON receipt with `"status": "passed"`,
 `"candidate": "0.1.0a15"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
-checkout, including generator v18; it does not establish publication. Interpret
+checkout, including generator v19; it does not establish publication. Interpret
 the hashes together with the recorded commit and working-tree changes. A receipt
 from a historical checkout records that checkout's package version and inputs.
 All temporary projects and caches owned by the verifier are removed. To retain
