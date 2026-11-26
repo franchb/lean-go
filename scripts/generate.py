@@ -180,7 +180,8 @@ def go_main(argv=None):
     for flag, value in (('--out', args.out), ('--ir-output', args.ir_output)):
         if value is not None:
             command.extend([flag, str(value if value.is_absolute() else root / value)])
-    command.extend(['--diagnostics', args.diagnostics, '--mode', args.mode])
+    # Checkout scripts and CI reproduce tracked bytes, so they require the pinned Go.
+    command.extend(['--diagnostics', args.diagnostics, '--mode', args.mode, '--strict-go'])
     try:
         return go_cli(command, root)
     except (ValueError, OSError) as error:

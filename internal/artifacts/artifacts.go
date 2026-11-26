@@ -92,7 +92,7 @@ func at(root, relative string) string { return filepath.Join(root, filepath.From
 func GeneratePackage(root, stage string, spec Package, cache *pipeline.Cache) error {
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{
 		SourceDir: at(root, spec.SourceDir), Module: spec.Module, Roots: spec.Roots,
-		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Cache: cache,
+		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Cache: cache, StrictGo: true,
 	}); err != nil {
 		return fmt.Errorf("%s: %w", spec.Package, err)
 	}
@@ -136,7 +136,7 @@ func GenerateFormat(root, stage, name string, cache *pipeline.Cache) error {
 	if err != nil {
 		return err
 	}
-	if err := wireformat.Render(f, at(stage, FormatsDir+"/"+name), cache); err != nil {
+	if err := wireformat.Render(f, at(stage, FormatsDir+"/"+name), wireformat.Options{Cache: cache, StrictGo: true}); err != nil {
 		return fmt.Errorf("%s/%s: %w", FormatsDir, name, err)
 	}
 	return nil

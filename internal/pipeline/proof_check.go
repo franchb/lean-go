@@ -186,6 +186,9 @@ func verifyProofWorkspace(workspace string, files map[string][]byte) error {
 }
 
 // prove compiles only snapshots in fixed, dependency-free scaffolding.
+// proveClaims is a variable so protocol tests can stand in for Lean.
+var proveClaims = prove
+
 func prove(claims [][2]string, project *ProjectSnapshot, tools *toolInputs, compiler Compiler) ([]any, error) {
 	env := childEnvironment(compiler)
 	lean, okLean := lookPath("lean")
@@ -304,19 +307,31 @@ func Evidence(contractPath, manifestPath string) ([]byte, *Contract, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	claims, err := prove(contract.Claims, project, tools, compiler)
+	claims, err := proveClaims(contract.Claims, project, tools, compiler)
 	if err != nil {
 		return nil, nil, err
 	}
 	changed := exportError("proof inputs or generated package changed during checking")
+	// Like the Python checker, a failing recheck reports its own error.
 	again, err := LoadContract(contractPath)
-	if err != nil || !again.equal(contract) {
+	if err != nil {
+		return nil, nil, err
+	}
+	if !again.equal(contract) {
 		return nil, nil, changed
 	}
-	if fresh, err := SnapshotProject(contract); err != nil || !fresh.equal(project) {
+	freshProject, err := SnapshotProject(contract)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !freshProject.equal(project) {
 		return nil, nil, changed
 	}
-	if fresh, err := VerifyManifest(manifestPath, contract, project, compiler); err != nil || string(fresh) != string(manifest) {
+	freshManifest, err := VerifyManifest(manifestPath, contract, project, compiler)
+	if err != nil {
+		return nil, nil, err
+	}
+	if string(freshManifest) != string(manifest) {
 		return nil, nil, changed
 	}
 	record := NewObject()
@@ -349,17 +364,23 @@ func CompositionEvidence(c *Composition, bindings map[string]string) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	claims, err := prove(c.Claims, project, tools, compiler)
+	claims, err := proveClaims(c.Claims, project, tools, compiler)
 	if err != nil {
 		return nil, err
 	}
 	changed := exportError("composition inputs or generated packages changed during checking")
 	fresh, err := LoadComposition(c.Path)
-	if err != nil || !fresh.equal(c) {
+	if err != nil {
+		return nil, err
+	}
+	if !fresh.equal(c) {
 		return nil, changed
 	}
 	again, againComponents, err := compositionInputs(fresh, bindings, compiler)
-	if err != nil || !again.equal(project) || !reflect.DeepEqual(againComponents, components) {
+	if err != nil {
+		return nil, err
+	}
+	if !again.equal(project) || !reflect.DeepEqual(againComponents, components) {
 		return nil, changed
 	}
 	record := NewObject()
@@ -452,7 +473,11 @@ func CheckProofs(opts CheckProofsOptions) (string, error) {
 		if fresh, err = CompositionEvidence(contract, bindings); err != nil {
 			return "", err
 		}
-		if again, err := LoadComposition(opts.Contract); err != nil || !again.equal(contract) {
+		again, err := LoadComposition(opts.Contract)
+		if err != nil {
+			return "", err
+		}
+		if !again.equal(contract) {
 			return "", exportError("composition contract changed during checking")
 		}
 		if _, err = validateCompositionOutput(output, contract, bindings); err != nil {
@@ -470,7 +495,11 @@ func CheckProofs(opts CheckProofsOptions) (string, error) {
 		if fresh, _, err = Evidence(opts.Contract, opts.Manifest); err != nil {
 			return "", err
 		}
-		if again, err := LoadContract(opts.Contract); err != nil || !again.equal(contract) {
+		again, err := LoadContract(opts.Contract)
+		if err != nil {
+			return "", err
+		}
+		if !again.equal(contract) {
 			return "", exportError("proof contract changed during checking")
 		}
 		if _, err = validateEvidencePath(output, contract, opts.Manifest); err != nil {

@@ -13,7 +13,7 @@ lean-go doctor
 
 | Command | Purpose |
 | --- | --- |
-| `lean-go generate` | Lean sources → IR → Go package (`--source-dir`, `--module`, repeated `--root`, `--out`, `--ir-output`, `--mode metered\|native`, `--diagnostics text\|json`, `--replace`, `--no-cache`) |
+| `lean-go generate` | Lean sources → IR → Go package (`--source-dir`, `--module`, repeated `--root`, `--out`, `--ir-output`, `--mode metered\|native`, `--diagnostics text\|json`, `--replace`, `--no-cache`, `--strict-go`) |
 | `lean-go emit` | IR file → Go package (`--in FILE --out DIR [--mode ...] [--replace]`) |
 | `lean-go check-proofs` | proof contracts and composition contracts, as described below |
 | `lean-go format check\|generate` | [wire formats](wire-formats.md); `lean-go-format` remains as an alias |
@@ -30,8 +30,14 @@ directory. Existing differing package output is preserved and rejected unless
 generation fully succeeded, and only when it is recognizably a package that
 lean-go generated (a lean-go manifest and no files other than generated
 ones). The IR file is rewritten atomically. Generated Go is formatted by the
-`go/format` package compiled into the binary, so reproducing tracked bytes
-requires a binary built with Go 1.27.4; `generate` refuses to run otherwise.
+`go/format` package compiled into the binary, so byte-exact reproduction of
+tracked artifacts requires a binary built with Go 1.27.4. A binary built by
+another Go release still generates, printing a one-line warning on stderr that
+names both versions (in `--diagnostics=json` mode, after success only, so a
+failure report stays the only stderr document). `--strict-go` turns the warning
+into a `toolchain_mismatch` failure; `lean-go regenerate`, the checkout's
+Python wrappers and CI use it. The builder's Go version is not recorded in
+manifests.
 
 For `go generate`, add a directive next to the package that consumes the output:
 

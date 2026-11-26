@@ -23,6 +23,12 @@ const (
 	MaxRoots       = 64
 )
 
+// Snapshot limits as variables, so tests can lower them.
+var (
+	maxFiles       = MaxFiles
+	maxSourceBytes = MaxSourceBytes
+)
+
 var identifier = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*$`)
 
 var reservedModules = map[string]bool{"Lean": true, "Init": true, "Std": true, "LeanGo": true, "Lake": true}
@@ -89,14 +95,33 @@ func (s Snapshot) Modules() []string {
 }
 
 func absolutePath(path string) (string, error) {
-	if filepath.IsAbs(path) {
-		return lexicalPath(path), nil
+	if !filepath.IsAbs(path) {
+		wd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+		path = wd + string(filepath.Separator) + path
 	}
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
+	path = lexicalPath(path)
+	// Collapse ".." lexically, as the installed CLI always did, unless a
+	// symlink on the way could make that wrong: then the path is kept so the
+	// symlink checks see it.
+	// Check every literal prefix (filepath.Dir would clean ".." away first).
+	prefix := filepath.VolumeName(path)
+	for _, part := range strings.Split(filepath.ToSlash(path[len(prefix):]), "/") {
+		if part == "" {
+			prefix += string(filepath.Separator)
+			continue
+		}
+		if !strings.HasSuffix(prefix, string(filepath.Separator)) {
+			prefix += string(filepath.Separator)
+		}
+		prefix += part
+		if isSymlink(prefix) {
+			return path, nil
+		}
 	}
-	return lexicalPath(wd + string(filepath.Separator) + path), nil
+	return filepath.Clean(path), nil
 }
 
 // lexicalPath normalizes like Python's pathlib: repeated separators and "."
@@ -228,7 +253,7 @@ func SourceSnapshot(sourceDir string) (Snapshot, error) {
 			if err != nil || info.Mode()&fs.ModeSymlink != 0 || !info.Mode().IsRegular() {
 				return exportErrorf("source must be a regular file: %s", relative)
 			}
-			if len(out) >= MaxFiles || total+int(info.Size()) > MaxSourceBytes {
+			if len(out) >= maxFiles || total+int(info.Size()) > maxSourceBytes {
 				return exportError("source snapshot exceeds file or byte limit")
 			}
 			data, err := os.ReadFile(path)
@@ -236,7 +261,7 @@ func SourceSnapshot(sourceDir string) (Snapshot, error) {
 				return err
 			}
 			total += len(data)
-			if total > MaxSourceBytes {
+			if total > maxSourceBytes {
 				return exportError("source snapshot exceeds file or byte limit")
 			}
 			if _, dup := out.Lookup(module); dup {

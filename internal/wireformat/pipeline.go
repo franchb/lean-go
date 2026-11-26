@@ -12,9 +12,8 @@ import (
 // runPipeline is the only place that calls the lean-go extraction pipeline.
 // It extracts the runtime Lean in dir into dir/internal/extracted (recording
 // the IR next to it), then checks the proof contract against the fresh
-// manifest and writes dir/proof-evidence.json. Both steps run in-process;
-// cache selects the producer build cache (nil disables it).
-func runPipeline(dir string, f *Format, cache *pipeline.Cache) error {
+// manifest and writes dir/proof-evidence.json. Both steps run in-process.
+func runPipeline(dir string, f *Format, opts Options) error {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return err
@@ -22,7 +21,7 @@ func runPipeline(dir string, f *Format, cache *pipeline.Cache) error {
 	at := func(rel string) string { return filepath.Join(dir, rel) }
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{
 		SourceDir: at("source"), Module: f.Module, Roots: f.Roots(),
-		Out: at(f.ExtractedDir()), IROutput: at(f.IRPath()), Cache: cache,
+		Out: at(f.ExtractedDir()), IROutput: at(f.IRPath()), Cache: opts.Cache, StrictGo: opts.StrictGo,
 	}); err != nil {
 		return fmt.Errorf("extraction failed: %w", err)
 	}
@@ -35,16 +34,23 @@ func runPipeline(dir string, f *Format, cache *pipeline.Cache) error {
 	return nil
 }
 
+// Options configures extraction: the producer build cache (nil disables it)
+// and whether the binary must have been built with the pinned Go release.
+type Options struct {
+	Cache    *pipeline.Cache
+	StrictGo bool
+}
+
 // GenerateAll renders a format into a fresh directory, runs the pipeline
 // there, and copies every resulting file into out. Files of out that the
 // generator does not produce are left alone.
-func GenerateAll(f *Format, out string, cache *pipeline.Cache) error {
+func GenerateAll(f *Format, out string, opts Options) error {
 	tmp, err := os.MkdirTemp("", "lean-go-format-")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tmp)
-	if err := Render(f, tmp, cache); err != nil {
+	if err := Render(f, tmp, opts); err != nil {
 		return err
 	}
 	return filepath.WalkDir(tmp, func(path string, d fs.DirEntry, err error) error {
@@ -69,9 +75,9 @@ func GenerateAll(f *Format, out string, cache *pipeline.Cache) error {
 
 // Render writes generated sources into the empty directory dir and runs the
 // pipeline there.
-func Render(f *Format, dir string, cache *pipeline.Cache) error {
+func Render(f *Format, dir string, opts Options) error {
 	if err := WriteFiles(dir, f.Files()); err != nil {
 		return err
 	}
-	return runPipeline(dir, f, cache)
+	return runPipeline(dir, f, opts)
 }

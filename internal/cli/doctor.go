@@ -27,9 +27,12 @@ func doctor(args []string, stdout, stderr io.Writer) int {
 		}
 		fmt.Fprintf(stdout, "%s %s: %s\n", state, label, detail)
 	}
-	goErr := pipeline.CheckBuildToolchain()
-	detail := runtime.Version() + " (requires " + pipeline.RequiredGo + " for reproducible go/format output)"
-	report(goErr == nil, "Go toolchain used to build lean-go", detail)
+	// Another Go release still works; only byte-exact reproduction needs the pin.
+	state := "OK"
+	if pipeline.CheckBuildToolchain() != nil {
+		state = "WARN"
+	}
+	fmt.Fprintf(stdout, "%s Go toolchain used to build lean-go: %s (tracked artifacts and --strict-go use %s)\n", state, runtime.Version(), pipeline.RequiredGo)
 	compiler, err := pipeline.SelectedCompiler()
 	if err != nil {
 		report(false, "Lean selection", err.Error())
