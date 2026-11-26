@@ -9,9 +9,8 @@ import (
 // The adapter is split in two files. <name>.go is plain Go over []byte: it
 // defines Header, the typed errors and the public functions, and it decides
 // nothing about the format itself. lean.go is the backend glue that calls
-// the extracted package; it is the only file that knows the extracted API,
-// so moving to another emission mode means regenerating lean.go only (see
-// backendTyped in gobackend.go).
+// the native extracted package; it is the only file that knows the
+// extracted API (see backendNative in gobackend.go).
 
 func goType(bits int) string { return fmt.Sprintf("uint%d", bits) }
 func goField(s *Sub) string  { return cap1(s.Name) }
@@ -118,7 +117,7 @@ func gofmt(name, src string) string {
 func (f *Format) GoFiles() map[string]string {
 	return map[string]string{
 		f.Name + ".go":          gofmt(f.Name+".go", f.adapterGo()),
-		"lean.go":               gofmt("lean.go", backendTyped(f)),
+		"lean.go":               gofmt("lean.go", backendNative(f)),
 		f.Name + "_gen_test.go": gofmt(f.Name+"_gen_test.go", f.testsGo()),
 	}
 }
@@ -226,8 +225,9 @@ func (e *Error) truncated() bool {
 	return e.Reason == ReasonTruncated%s
 }
 
-// ErrInternal wraps an unexpected failure of the extracted code, such as a
-// resource limit. It indicates a bug, not bad input.
+// ErrInternal wraps an unexpected result of the extracted code. The extracted
+// functions are total and have no resource limits, so it indicates a bug, not
+// bad input.
 var ErrInternal = errors.New("%s: internal codec failure")
 
 func internal(err error) error { return fmt.Errorf("%%w: %%v", ErrInternal, err) }
