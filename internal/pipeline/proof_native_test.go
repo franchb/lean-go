@@ -18,10 +18,8 @@ import (
 // manifest paths.
 func emitProject(t *testing.T, name, mode string) (string, string) {
 	t.Helper()
-	root, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	// t.TempDir directly: on Windows it can contain short names.
+	root := t.TempDir()
 	source := filepath.Join("..", "..", "examples", "proofs", name)
 	for _, sub := range []string{"source", "proof"} {
 		copyTree(t, filepath.Join(source, sub), filepath.Join(root, sub))
