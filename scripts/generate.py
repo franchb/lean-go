@@ -65,7 +65,7 @@ def run_process(command, root, environment, phase):
             raise error
         return result.stdout
 
-def main(argv=None):
+def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out', type=Path)
     parser.add_argument('--ir-output', type=Path)
@@ -76,7 +76,11 @@ def main(argv=None):
     parser.add_argument("--diagnostics", choices=("text", "json"), default="text")
     parser.add_argument('--mode', choices=('metered', 'native'), default='metered',
                         help='Go emission mode: resource-metered (default) or plain native Go')
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv=None):
+    args = arguments().parse_args(argv)
     with stage("toolchain", "toolchain_mismatch"):
         check_python()
     selected = (args.source_dir is not None, args.module is not None, args.root is not None)
@@ -123,6 +127,67 @@ def main(argv=None):
     print(f'Generated {output}; recorded producer IR in {ir_output}')
 
 
+def go_cli(arguments, root=None):
+    """Build this checkout's Go lean-go command and run it with arguments.
+
+    The script entry points are thin wrappers over the Go pipeline, so every
+    command-line use exercises one implementation. A fresh binary is built
+    from the checkout (or installed payload) next to this script; Go's build
+    cache keeps that fast.
+    """
+    root = Path(__file__).resolve().parents[1] if root is None else Path(root)
+    with stage('toolchain', 'toolchain_mismatch'):
+        go = shutil.which('go')
+        if go is None:
+            raise ValueError('Go is unavailable; put the pinned Go executable on PATH')
+    environment = dict(os.environ, CGO_ENABLED='0', GOTOOLCHAIN='local', GOWORK='off', GOFLAGS='')
+    with tempfile.TemporaryDirectory(prefix='lean-go-build-') as directory:
+        binary = Path(directory) / ('lean-go.exe' if os.name == 'nt' else 'lean-go')
+        build = subprocess.run([go, 'build', '-buildvcs=false', '-o', str(binary), './cmd/lean-go'],
+                               cwd=root, env=environment, check=False, text=True, capture_output=True)
+        if build.returncode:
+            error = ValueError('building the Go lean-go command failed: ' +
+                               (build.stderr.strip() or build.stdout.strip()))
+            error.diagnostic = diagnostic(error, stage='toolchain', code='toolchain_failed')
+            raise error
+        return subprocess.run([str(binary), *arguments], env=environment, check=False).returncode
+
+
+def go_main(argv=None):
+    """Script entry point: module extraction runs in the Go lean-go command.
+
+    Paths keep this script's conventions: --source-dir is relative to the
+    working directory, --out and --ir-output to the repository root.
+    """
+    argv = sys.argv[1:] if argv is None else argv
+    args = arguments().parse_args(argv)
+    # Argument errors need no Go build; the Go command reports them identically.
+    if None in (args.source_dir, args.module, args.root):
+        emit(ValueError('--source-dir, --module and --root are required and must be supplied together'),
+             args.diagnostics)
+        return 1
+    if args.out is None or args.ir_output is None:
+        emit(ValueError('module generation requires explicit --out and --ir-output paths'), args.diagnostics)
+        return 1
+    root = Path(__file__).resolve().parents[1]
+    command = ['generate']
+    if args.source_dir is not None:
+        command.extend(['--source-dir', str(args.source_dir.absolute())])
+    if args.module is not None:
+        command.extend(['--module', args.module])
+    for entry in args.root or []:
+        command.extend(['--root', entry])
+    for flag, value in (('--out', args.out), ('--ir-output', args.ir_output)):
+        if value is not None:
+            command.extend([flag, str(value if value.is_absolute() else root / value)])
+    command.extend(['--diagnostics', args.diagnostics, '--mode', args.mode])
+    try:
+        return go_cli(command, root)
+    except (ValueError, OSError) as error:
+        emit(error, args.diagnostics)
+        return 1
+
+
 def cli():
     try:
         main()
@@ -136,4 +201,4 @@ def cli():
 
 
 if __name__ == "__main__":
-    sys.exit(cli())
+    sys.exit(go_main())

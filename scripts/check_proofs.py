@@ -187,7 +187,7 @@ def validate_evidence_path(path, contract, manifest, tool_root=TOOL_ROOT):
     return output
 
 
-def main(argv=None):
+def arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--contract', type=Path, required=True)
     packages = parser.add_mutually_exclusive_group(required=True)
@@ -197,7 +197,34 @@ def main(argv=None):
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--evidence', type=Path, help='freshly verify existing evidence')
     mode.add_argument('--output', type=Path, help='write freshly checked evidence')
-    args = parser.parse_args(argv)
+    return parser
+
+
+def go_main(argv=None):
+    """Script entry point: proof checking runs in the Go lean-go command.
+
+    Paths are relative to the working directory, as before.
+    """
+    from generate import go_cli
+    args = arguments().parse_args(sys.argv[1:] if argv is None else argv)
+    command = ['check-proofs', '--contract', str(args.contract.absolute())]
+    if args.manifest is not None:
+        command.extend(['--manifest', str(args.manifest.absolute())])
+    for name, path in args.component_manifest or []:
+        command.extend(['--component-manifest', name, str(Path(path).absolute())])
+    if args.output is not None:
+        command.extend(['--output', str(args.output.absolute())])
+    else:
+        command.extend(['--evidence', str(args.evidence.absolute())])
+    try:
+        return go_cli(command)
+    except (ValueError, OSError) as exc:
+        print(f'proof check failed: {exc}', file=sys.stderr)
+        return 1
+
+
+def main(argv=None):
+    args = arguments().parse_args(argv)
     path = args.output or args.evidence
     if args.component_manifest:
         contract = load_composition(args.contract)
@@ -227,8 +254,4 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
-    try:
-        sys.exit(main())
-    except (ExportError, OSError) as exc:
-        print(f'proof check failed: {exc}', file=sys.stderr)
-        sys.exit(1)
+    sys.exit(go_main())

@@ -14,7 +14,7 @@ import (
 	"github.com/franchb/lean-go/internal/leanversion"
 	"github.com/franchb/lean-go/internal/modulegen"
 	"github.com/franchb/lean-go/internal/moduleir"
-	"github.com/franchb/lean-go/internal/publish"
+	"github.com/franchb/lean-go/internal/pipeline"
 )
 
 func goBinary() string {
@@ -96,7 +96,7 @@ func TestFailedGenerationPreservesPackage(t *testing.T) {
 	}
 	dir := t.TempDir()
 	out := filepath.Join(dir, "package")
-	if err = publish.Package(out, files); err != nil {
+	if err = pipeline.PublishPackage(out, files, false); err != nil {
 		t.Fatal(err)
 	}
 	before := directoryFiles(t, out)

@@ -1,5 +1,94 @@
 # Install the lean-go CLI
 
+## Go command (development checkout)
+
+This checkout's extraction pipeline is a single Go binary. It needs only the
+pinned Lean on `PATH`; Python and uv are not involved. Build it with Go 1.27.4:
+
+```sh
+go install github.com/franchb/lean-go/cmd/lean-go@<version>   # or, in a checkout:
+go build -o ~/bin/lean-go ./cmd/lean-go
+lean-go doctor
+```
+
+| Command | Purpose |
+| --- | --- |
+| `lean-go generate` | Lean sources → IR → Go package (`--source-dir`, `--module`, repeated `--root`, `--out`, `--ir-output`, `--mode metered\|native`, `--diagnostics text\|json`, `--replace`, `--no-cache`) |
+| `lean-go emit` | IR file → Go package (`--in FILE --out DIR [--mode ...] [--replace]`) |
+| `lean-go check-proofs` | proof contracts and composition contracts, as described below |
+| `lean-go format check\|generate` | [wire formats](wire-formats.md); `lean-go-format` remains as an alias |
+| `lean-go regenerate` | contributor command: regenerate every tracked artifact and wire-format example |
+| `lean-go doctor`, `lean-go version` | check Lean, Lake, the build toolchain and the producer cache; print the tool identity |
+
+`generate` keeps the safety properties of the original pipeline: every run uses
+a fresh private Lake workspace, source snapshots are limited to 256 files and
+8 MiB without symlinks or reserved module names, Lean and Lake must report the
+exact pinned version and commit, and diagnostics follow
+[diagnostics.md](diagnostics.md). Relative paths belong to the working
+directory. Existing differing package output is preserved and rejected unless
+`--replace` is given: then the existing directory is replaced only after
+generation fully succeeded, and only when it is recognizably a package that
+lean-go generated (a lean-go manifest and no files other than generated
+ones). The IR file is rewritten atomically. Generated Go is formatted by the
+`go/format` package compiled into the binary, so reproducing tracked bytes
+requires a binary built with Go 1.27.4; `generate` refuses to run otherwise.
+
+For `go generate`, add a directive next to the package that consumes the output:
+
+```go
+//go:generate lean-go generate --source-dir ../lean --module Clamp --root Clamp.clamp --out ./clamp --ir-output ./clamp.ir.json --replace
+```
+
+The producer Lean sources are embedded in the binary (package `producer`) and
+written into the private workspace at run time; `--source-dir` holds only your
+code. The pipeline is the `internal/pipeline` package, which tests and the
+other commands call in-process.
+
+### Producer build cache
+
+Compiling the embedded producer is most of an extraction's time. `generate`
+therefore keeps the compiled producer in a content-addressed cache, by default
+under the user cache directory (`$XDG_CACHE_HOME/lean-go/producer` or
+`~/.cache/lean-go/producer` on Linux, `~/Library/Caches/lean-go/producer` on
+macOS, `%LocalAppData%\lean-go\producer` on Windows). The key is a SHA-256 of
+the cache format, the exact `lean --version` text (release, commit and target),
+the producer's Lake library stanza and every embedded producer file. Entries
+are built only in a producer-only workspace, never next to user sources, are
+published atomically, and are verified file by file against their recorded
+digests before use; the directory must be owned by you and closed to other
+users (mode `0700` on POSIX systems), otherwise the cache is ignored. A cache
+hit produces byte-identical IR and Go to a cold build; the parity tests check
+this.
+
+**Trust consequence.** Compiled files in the cache are trusted like any local
+build cache, such as Go's `GOCACHE`: anyone who can write your cache directory
+can change what the producer does, and therefore what Go it emits. The digest
+check detects corruption and partial writes, not a deliberate edit by your own
+account. Use `--no-cache` (or `LEAN_GO_NO_CACHE=1`) to force a fresh producer
+build, for example when producing release artifacts; `LEAN_GO_CACHE_DIR` moves
+the cache. The proof checker never uses the cache: proofs are always rebuilt.
+
+### Provenance inventory
+
+The IR `inputs` map names everything the producer consumed, without machine
+paths: `source/<path>` for each snapshotted source file,
+`producer/LeanGo/Module/<File>.lean` for each embedded producer file, and
+`tool/lean-go/pipeline`, the SHA-256 of the extraction pipeline's non-test Go
+sources (`internal/pipeline` except `proof_*.go`, plus the shared compiler
+policy), framed like the validator digest in `internal/moduleir/identity.go`.
+Proof evidence `tool_inputs` records the embedded `producer/lean-toolchain`
+and `producer/LeanGo/Proofs/Check.lean` plus `tool/lean-go/pipeline` and
+`tool/lean-go/proofcheck` (the `proof_*.go` sources). The manifest already
+records the emitter (`generator_source_sha256`) and validator digests.
+Changing any of these sources changes the inventory; regenerate the tracked
+artifacts with `lean-go regenerate`.
+
+The Python entry points `scripts/generate.py`, `scripts/check_proofs.py` and
+`scripts/regenerate_all.py` are thin wrappers that build and run this command,
+keeping their historical path conventions.
+
+## Python package
+
 `lean-go-tools` installs the `lean-go` command for generation and source-proof
 checks. For development, follow the [checkout installation](#development-checkout).
 Alpha.15 defaults to Lean/Lake **4.36.0** at commit

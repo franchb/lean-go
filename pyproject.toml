@@ -27,7 +27,6 @@ sources = ["src"]
 [tool.hatch.build.targets.wheel.force-include]
 "cmd/lean-go/main.go" = "lean_go/_payload/cmd/lean-go/main.go"
 "go.mod" = "lean_go/_payload/go.mod"
-"internal/publish/publish.go" = "lean_go/_payload/internal/publish/publish.go"
 "internal/modulegen/api.go" = "lean_go/_payload/internal/modulegen/api.go"
 "internal/modulegen/api_names.go" = "lean_go/_payload/internal/modulegen/api_names.go"
 "internal/modulegen/emit.go" = "lean_go/_payload/internal/modulegen/emit.go"
@@ -48,6 +47,40 @@ sources = ["src"]
 "internal/nativegen/primitives.go" = "lean_go/_payload/internal/nativegen/primitives.go"
 "internal/nativegen/types.go" = "lean_go/_payload/internal/nativegen/types.go"
 "internal/leanversion/identity.go" = "lean_go/_payload/internal/leanversion/identity.go"
+"producer/embed.go" = "lean_go/_payload/producer/embed.go"
+"internal/artifacts/artifacts.go" = "lean_go/_payload/internal/artifacts/artifacts.go"
+"internal/cli/args.go" = "lean_go/_payload/internal/cli/args.go"
+"internal/cli/cli.go" = "lean_go/_payload/internal/cli/cli.go"
+"internal/cli/doctor.go" = "lean_go/_payload/internal/cli/doctor.go"
+"internal/cli/regenerate.go" = "lean_go/_payload/internal/cli/regenerate.go"
+"internal/pipeline/cache.go" = "lean_go/_payload/internal/pipeline/cache.go"
+"internal/pipeline/cache_other.go" = "lean_go/_payload/internal/pipeline/cache_other.go"
+"internal/pipeline/cache_unix.go" = "lean_go/_payload/internal/pipeline/cache_unix.go"
+"internal/pipeline/compiler.go" = "lean_go/_payload/internal/pipeline/compiler.go"
+"internal/pipeline/diagnostics.go" = "lean_go/_payload/internal/pipeline/diagnostics.go"
+"internal/pipeline/export.go" = "lean_go/_payload/internal/pipeline/export.go"
+"internal/pipeline/features.go" = "lean_go/_payload/internal/pipeline/features.go"
+"internal/pipeline/generate.go" = "lean_go/_payload/internal/pipeline/generate.go"
+"internal/pipeline/identity.go" = "lean_go/_payload/internal/pipeline/identity.go"
+"internal/pipeline/process.go" = "lean_go/_payload/internal/pipeline/process.go"
+"internal/pipeline/proof_check.go" = "lean_go/_payload/internal/pipeline/proof_check.go"
+"internal/pipeline/proof_contract.go" = "lean_go/_payload/internal/pipeline/proof_contract.go"
+"internal/pipeline/publish.go" = "lean_go/_payload/internal/pipeline/publish.go"
+"internal/pipeline/pyjson.go" = "lean_go/_payload/internal/pipeline/pyjson.go"
+"internal/pipeline/sources.go" = "lean_go/_payload/internal/pipeline/sources.go"
+"internal/wireformat/formula.go" = "lean_go/_payload/internal/wireformat/formula.go"
+"internal/wireformat/generate.go" = "lean_go/_payload/internal/wireformat/generate.go"
+"internal/wireformat/goadapter.go" = "lean_go/_payload/internal/wireformat/goadapter.go"
+"internal/wireformat/gobackend.go" = "lean_go/_payload/internal/wireformat/gobackend.go"
+"internal/wireformat/gotests.go" = "lean_go/_payload/internal/wireformat/gotests.go"
+"internal/wireformat/layout.go" = "lean_go/_payload/internal/wireformat/layout.go"
+"internal/wireformat/leanproof.go" = "lean_go/_payload/internal/wireformat/leanproof.go"
+"internal/wireformat/leanrt.go" = "lean_go/_payload/internal/wireformat/leanrt.go"
+"internal/wireformat/model.go" = "lean_go/_payload/internal/wireformat/model.go"
+"internal/wireformat/pipeline.go" = "lean_go/_payload/internal/wireformat/pipeline.go"
+"internal/wireformat/proofs.go" = "lean_go/_payload/internal/wireformat/proofs.go"
+"internal/wireformat/proofs_main.go" = "lean_go/_payload/internal/wireformat/proofs_main.go"
+"internal/wireformat/spec.go" = "lean_go/_payload/internal/wireformat/spec.go"
 "internal/moduleir/api.go" = "lean_go/_payload/internal/moduleir/api.go"
 "internal/moduleir/code.go" = "lean_go/_payload/internal/moduleir/code.go"
 "internal/moduleir/decode.go" = "lean_go/_payload/internal/moduleir/decode.go"
@@ -101,7 +134,6 @@ include = [
   "/src/lean_go/cli.py",
   "/cmd/lean-go/main.go",
   "/go.mod",
-  "/internal/publish/publish.go",
   "/internal/modulegen/api.go",
   "/internal/modulegen/api_names.go",
   "/internal/modulegen/emit.go",
@@ -122,6 +154,40 @@ include = [
   "/internal/nativegen/primitives.go",
   "/internal/nativegen/types.go",
   "/internal/leanversion/identity.go",
+  "/producer/embed.go",
+  "/internal/artifacts/artifacts.go",
+  "/internal/cli/args.go",
+  "/internal/cli/cli.go",
+  "/internal/cli/doctor.go",
+  "/internal/cli/regenerate.go",
+  "/internal/pipeline/cache.go",
+  "/internal/pipeline/cache_other.go",
+  "/internal/pipeline/cache_unix.go",
+  "/internal/pipeline/compiler.go",
+  "/internal/pipeline/diagnostics.go",
+  "/internal/pipeline/export.go",
+  "/internal/pipeline/features.go",
+  "/internal/pipeline/generate.go",
+  "/internal/pipeline/identity.go",
+  "/internal/pipeline/process.go",
+  "/internal/pipeline/proof_check.go",
+  "/internal/pipeline/proof_contract.go",
+  "/internal/pipeline/publish.go",
+  "/internal/pipeline/pyjson.go",
+  "/internal/pipeline/sources.go",
+  "/internal/wireformat/formula.go",
+  "/internal/wireformat/generate.go",
+  "/internal/wireformat/goadapter.go",
+  "/internal/wireformat/gobackend.go",
+  "/internal/wireformat/gotests.go",
+  "/internal/wireformat/layout.go",
+  "/internal/wireformat/leanproof.go",
+  "/internal/wireformat/leanrt.go",
+  "/internal/wireformat/model.go",
+  "/internal/wireformat/pipeline.go",
+  "/internal/wireformat/proofs.go",
+  "/internal/wireformat/proofs_main.go",
+  "/internal/wireformat/spec.go",
   "/internal/moduleir/api.go",
   "/internal/moduleir/code.go",
   "/internal/moduleir/decode.go",

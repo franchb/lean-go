@@ -17,7 +17,10 @@ uv run --locked lean-go generate \
   --diagnostics=json
 ```
 
-The same option works on `scripts/generate.py` and `scripts/export_module.py`.
+The same option works on `scripts/generate.py` and `scripts/export_module.py`,
+and on the Go command's `lean-go generate` ([Go command](cli.md#go-command-development-checkout)),
+which `scripts/generate.py` now wraps; it emits the same stages, codes, messages,
+locations and key order.
 Failures return a nonzero exit status and print one JSON document on stderr,
 without additional child-process logs or a second generic error. Child failure
 logs may appear inside the report's escaped `message` string. Failure produces
