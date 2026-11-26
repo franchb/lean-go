@@ -192,6 +192,9 @@ selects IR v18 for one root or v19 for multiple roots, with profiles
 `pure-module/v16` and `pure-module/v17`. Generator v14 emits Go's `^`
 operator on two `uint16` values. The [CRC-16/XMODEM demo](examples/proofs/crc16)
 uses this operation in a proved one-byte update that Go can apply to successive chunks.
+The [checksummed frame example](examples/proofs/checkedframe) combines Wire16 and CRC-16,
+proves frame round trips with arbitrary trailing bytes, and checks the trailer against
+an independent reference CRC.
 
 Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and

@@ -60,6 +60,8 @@ proof evidence use module generator v15; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
+The development checkout also proves two composition claims for the checksummed Wire16 frame. The checker verifies the same two propositions against both component manifests, bringing the total to 56 distinct source claims. [Checksummed frame example](../examples/proofs/checkedframe)
+
 ## Reproduce the alpha.12 tag
 
 Install stable Lean 4.36.0 and run the tagged CLI against the same source tree.

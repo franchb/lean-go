@@ -9,6 +9,7 @@ import sys
 import tempfile
 
 import check_bytes_demo
+import check_checked_frame
 import check_clamp_demo
 import check_crc16_demo
 import check_flags_demo
@@ -92,8 +93,12 @@ def main():
         go = pinned_go(workspace, env)
         for demo in DEMOS:
             check_demo(demo, cli, go, workspace, env, identity)
+        check_checked_frame.verify(cli, workspace, workspace, env)
+        composed = workspace / 'checkedframe'
+        copy_consumer_files(check_checked_frame.FRAME, composed, ('checkedframe/frame.go',))
+        run_go_demo(composed, go, env, workspace, check_checked_frame.OUTPUT, run)
     print(f"Lean {identity['version']} ({identity['commit']}): "
-          f"{sum(len(d.SPEC.claims) for d in DEMOS)} source proofs passed")
+          f"{sum(len(d.SPEC.claims) for d in DEMOS) + len(check_checked_frame.CLAIMS)} distinct source claims passed")
 
 
 if __name__ == '__main__':
