@@ -127,7 +127,7 @@
     }
   ],
   "contract_sha256": "25adc30918931d502cf146d7eb9b33e1c2660f8592f843810db53813fa205807",
-  "generated_manifest_sha256": "1c743b111cd45b699d8a33555cc7305cac858a5467767b9d1bf2425310b9a592",
+  "generated_manifest_sha256": "f2ea0373941bd36392aee7342cfc853da5748ff30fff736ccf5f8cfe6aa3e6b9",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "DnsHeader",
@@ -145,13 +145,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
-    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
-    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "97d39b82eebcdaee9bf47103571c4b69e247ee7f7e2f6c2d819fd8fee0396bea",
-    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "cd43488489fa8f82799e411637ce5116fd50c7483c05083db3cac5d02932cc26",
-    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+    "tool/lean-go/pipeline": "bc70121dcc70a85e0690de07d6e553195cf01dcbc834d037043155aa43fafab4",
+    "tool/lean-go/proofcheck": "c310bfe5b180af9b6123a1a999b15b4c8607dcf2ee3a18f0091a39f3241ca427"
   }
 }
