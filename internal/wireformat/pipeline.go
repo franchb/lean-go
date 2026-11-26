@@ -21,7 +21,8 @@ func runPipeline(dir string, f *Format, opts Options) error {
 	at := func(rel string) string { return filepath.Join(dir, rel) }
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{
 		SourceDir: at("source"), Module: f.Module, Roots: f.Roots(),
-		Out: at(f.ExtractedDir()), IROutput: at(f.IRPath()), Cache: opts.Cache, StrictGo: opts.StrictGo,
+		Out: at(f.ExtractedDir()), IROutput: at(f.IRPath()), Emit: pipeline.EmitOptions{Mode: "metered"},
+		Cache: opts.Cache, StrictGo: opts.StrictGo,
 	}); err != nil {
 		return fmt.Errorf("extraction failed: %w", err)
 	}

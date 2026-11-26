@@ -17,24 +17,27 @@ import (
 )
 
 // Package is one generated package, its IR fixture and optional bound evidence.
-// Paths are slash-separated and relative to the checkout root.
+// Paths are slash-separated and relative to the checkout root. Mode is the
+// emission mode, always explicit so a change of the default leaves tracked
+// bytes alone.
 type Package struct {
 	Package, IR, SourceDir, Module string
 	Roots                          []string
 	Contract, Evidence             string
+	Mode                           string
 }
 
 // Name is the package directory's base name.
 func (p Package) Name() string { return filepath.Base(filepath.FromSlash(p.Package)) }
 
 func fixture(name, module string, roots ...string) Package {
-	return Package{Package: "generated/" + name, IR: "testdata/" + name + ".ir.json", SourceDir: "examples/modules", Module: module, Roots: roots}
+	return Package{Package: "generated/" + name, IR: "testdata/" + name + ".ir.json", SourceDir: "examples/modules", Module: module, Roots: roots, Mode: "metered"}
 }
 
 func demo(name, module string, roots ...string) Package {
 	base := "examples/proofs/" + name
 	return Package{Package: base + "/" + name, IR: base + "/" + name + ".ir.json", SourceDir: base + "/source",
-		Module: module, Roots: roots, Contract: base + "/proof-contract.json", Evidence: base + "/proof-evidence.json"}
+		Module: module, Roots: roots, Contract: base + "/proof-contract.json", Evidence: base + "/proof-evidence.json", Mode: "metered"}
 }
 
 // Packages are the tracked module packages, in scripts/regenerate_all.py order.
@@ -50,7 +53,7 @@ var Packages = []Package{
 	fixture("wide", "Wide", "Wide.compute"),
 	{Package: "generated/quota", IR: "testdata/quota.ir.json", SourceDir: "libraries/quota/source", Module: "Quota",
 		Roots:    []string{"Quota.create", "Quota.release", "Quota.remaining", "Quota.reserve"},
-		Contract: "libraries/quota/proof-contract.json", Evidence: "libraries/quota/proof-evidence.json"},
+		Contract: "libraries/quota/proof-contract.json", Evidence: "libraries/quota/proof-evidence.json", Mode: "metered"},
 	demo("clamp", "Clamp", "Clamp.clamp"),
 	demo("flags", "Flags", "Flags.clear", "Flags.contains", "Flags.set", "Flags.toggle"),
 	demo("words", "Words", "Words.high", "Words.low", "Words.narrow", "Words.pack", "Words.widen"),
@@ -92,7 +95,8 @@ func at(root, relative string) string { return filepath.Join(root, filepath.From
 func GeneratePackage(root, stage string, spec Package, cache *pipeline.Cache) error {
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{
 		SourceDir: at(root, spec.SourceDir), Module: spec.Module, Roots: spec.Roots,
-		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Cache: cache, StrictGo: true,
+		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Emit: pipeline.EmitOptions{Mode: spec.Mode},
+		Cache: cache, StrictGo: true,
 	}); err != nil {
 		return fmt.Errorf("%s: %w", spec.Package, err)
 	}

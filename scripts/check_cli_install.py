@@ -125,7 +125,7 @@ def multi_root_workflow(cli, directory, contract, go, env):
     package = consumer / 'clamp'
     run([cli, 'generate', '--source-dir', contract.source_dir, '--module', contract.module,
          '--root', 'Clamp.clamp', '--root', 'Clamp.Bounds.cap',
-         '--out', package, '--ir-output', directory / 'multi.json'], directory, env)
+         '--out', package, '--ir-output', directory / 'multi.json', '--mode', 'metered'], directory, env)
     manifest = json.loads((package / 'manifest.json').read_bytes())
     assert manifest['program']['roots'] == ['Clamp.Bounds.cap', 'Clamp.clamp']
     assert 'func RunTyped(' not in (package / 'api.go').read_text()
@@ -156,7 +156,7 @@ def producer_workflow(cli, directory, env, *, multiple_roots):
     relative = lambda path: os.path.relpath(path, caller)
     generation = [cli, 'generate', '--source-dir', relative(contract.source_dir),
                   '--module', contract.module, '--root', contract.roots[0],
-                  '--out', relative(package), '--ir-output', relative(ir)]
+                  '--out', relative(package), '--ir-output', relative(ir), '--mode', 'metered']
     run([cli, 'doctor'], caller, env)
     run(generation, caller, env)
     before = snapshot(package)
