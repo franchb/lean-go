@@ -50,6 +50,7 @@ type apiEmitter struct {
 	g       *generator
 	names   *goAPI
 	scalars map[string]apiScalar
+	records map[string]string // native two-word records, indexed by source type
 }
 
 func (g *generator) emitAPI() ([]byte, error) {
@@ -58,7 +59,7 @@ func (g *generator) emitAPI() ([]byte, error) {
 		return nil, err
 	}
 	w := bytes.NewBuffer(template)
-	e := apiEmitter{g: g, names: g.api, scalars: apiScalars(g.program)}
+	e := apiEmitter{g: g, names: g.api, scalars: apiScalars(g.program), records: foldRecords(g.program)}
 	if _, ok := e.scalars["Bool"]; ok {
 		typ := g.types["Bool"]
 		fmt.Fprintf(w, "func apiBoolNode(value bool)*node{tag:=0;if value{tag=1};return &node{typ:%d,tag:tag,size:1,depth:1}}\n", typ)

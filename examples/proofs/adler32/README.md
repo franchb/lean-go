@@ -10,7 +10,7 @@ CGO_ENABLED=0 go run .
 # Adler-32("Wikipedia") = 0x11E60398
 ```
 
-`RunInitial` creates the immutable seed. `RunUpdate(state, data, limits)` borrows a Go byte slice for the call and returns the next state. Carry that result between chunks. `RunChecksum` returns the packed `uint32`. Each update admits the equivalent Lean list under its resource limits and executes the checked recurrence. The example processes up to 256 bytes per call, so callers can supply input larger than a single call's budget. [Lean implementation](source/Adler32.lean) · [Go example](main.go)
+`RunInitial` creates the immutable seed. `RunUpdate(state, data, limits)` borrows a Go byte slice for the call and returns the next state. Carry that result between chunks. `RunChecksum` returns the packed `uint32`. The generated update loops over the slice with both state fields in Go locals. It charges the equivalent Lean list and call tree to the resource limits. The example processes up to 256 bytes per call, so callers can supply input larger than a single call's budget. [Lean implementation](source/Adler32.lean) · [Go example](main.go)
 
 The source proof checks one step from any state with both sums below 65521 against a natural-number reference. From the standard seed, any list of chunks gives the same pair of sums as processing its concatenation with that reference. Go tests compare the packed checksum and streaming prefixes with `hash/adler32` and compare the raw and slice APIs at each of the seven resource limits. [Contract](proof/Adler32Contract.lean) · [Proofs](proof/Adler32Proofs.lean) · [Go tests](main_test.go)
 

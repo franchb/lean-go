@@ -3,15 +3,20 @@ package modulegen
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/franchb/lean-go/internal/moduleir"
 )
 
-// scalarRoots selects typed entrypoints whose entire call tree runs on native
-// scalar values. IR validation excludes mutual recursion and bounds function
+// nativeEligibility checks whether an entire call tree can run on scalar values
+// and, for record folds, fixed pairs of UInt32. IR validation excludes mutual recursion and bounds function
 // count and code size. Self recursion and joins retain the explicit stack.
-func (e *apiEmitter) scalarRoots() map[string]bool {
+func (e *apiEmitter) nativeEligibility(records bool) func(string) bool {
+	canUse := func(typ string) bool {
+		_, scalar := e.scalars[typ]
+		return scalar || records && e.records[typ] != ""
+	}
 	eligible := make(map[string]bool)
 	var visit func(string) bool
 	visit = func(name string) bool {
@@ -20,11 +25,11 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 		}
 		eligible[name] = false
 		f := e.g.functions[name]
-		if _, ok := e.scalars[f.decl.Result]; !ok {
+		if !canUse(f.decl.Result) {
 			return false
 		}
 		for _, p := range f.decl.Params {
-			if _, ok := e.scalars[p.Type]; !ok {
+			if !canUse(p.Type) {
 				return false
 			}
 		}
@@ -32,11 +37,11 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 			switch c.Op {
 			case "return":
 			case "cases":
-				if _, ok := e.scalars["Bool"]; !ok || c.Type != "Bool" {
+				if !canUse(c.Type) || (c.Type != "Bool" && e.records[c.Type] == "") {
 					return false
 				}
 			case "let":
-				if _, ok := e.scalars[c.Bind.Type]; !ok {
+				if !canUse(c.Bind.Type) {
 					return false
 				}
 				if c.Value.Kind == "call" && !visit(c.Value.Name) {
@@ -49,12 +54,18 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 		eligible[name] = true
 		return true
 	}
+	return visit
+}
+
+func (e *apiEmitter) scalarRoots() map[string]bool {
+	scalar := e.nativeEligibility(false)
+	record := e.nativeEligibility(true)
 	roots := make(map[string]bool)
 	for _, name := range moduleir.RootNames(e.g.program) {
-		if step := e.names.ByteFolds[name]; step != "" && visit(step) {
+		if step := e.names.ByteFolds[name]; step != "" && (scalar(step) || e.records[e.g.functions[name].decl.Result] != "" && record(step)) {
 			roots[step] = true
 		}
-		if visit(name) {
+		if scalar(name) {
 			roots[name] = true
 		}
 	}
@@ -81,7 +92,7 @@ func (b *budget) scalarWork(steps, allocations uint64) bool {
 				e.emitScalarFunction(w, callee, emitted)
 			}
 			e.byteFoldEntry(w, e.g.functions[root], callee, roots[step])
-		} else if roots[root] {
+		} else if roots[root] && e.records[e.g.functions[root].decl.Result] == "" {
 			e.emitScalarFunction(w, e.g.functions[root], emitted)
 			e.scalarEntry(w, root)
 		} else {
@@ -99,8 +110,12 @@ func (e *apiEmitter) emitScalarFunction(w *bytes.Buffer, f *function, emitted ma
 	for i := len(f.nodes) - 1; i >= 0; i-- {
 		c := f.nodes[i]
 		switch c.Op {
-		case "return", "cases":
+		case "return":
 			used[c.Var] = true
+		case "cases":
+			if e.records[c.Type] == "" || slices.ContainsFunc(c.Alts[0].Params, func(p moduleir.Param) bool { return used[p.ID] }) {
+				used[c.Var] = true
+			}
 		case "let":
 			if !used[c.Bind.ID] && c.Value.Kind != "call" {
 				continue
@@ -115,16 +130,26 @@ func (e *apiEmitter) emitScalarFunction(w *bytes.Buffer, f *function, emitted ma
 	}
 	fmt.Fprintf(w, "func scalarFunc%d(b *budget, depth int", f.id)
 	for _, p := range f.decl.Params {
-		fmt.Fprintf(w, ", v%d %s", p.ID, e.scalars[p.Type].GoType)
+		fmt.Fprintf(w, ", v%d %s", p.ID, e.nativeType(p.Type))
 	}
-	fmt.Fprintf(w, ")(%s,error){\n", e.scalars[f.decl.Result].GoType)
+	fmt.Fprintf(w, ")(%s,error){\n", e.nativeType(f.decl.Result))
 	zero := e.zero(f.decl.Result)
+	if e.records[f.decl.Result] != "" {
+		zero = "[2]uint32{}"
+	}
 	fmt.Fprintf(w, "if err:=b.enter(%d,depth); err!=nil {return %s,err}\n", len(f.slots), zero)
 	e.emitScalarBlock(w, f.decl.Body, used, zero)
 	w.WriteString("}\n")
 }
 
-// A block contains only pure scalar bindings followed by a call, branch or
+func (e *apiEmitter) nativeType(typ string) string {
+	if e.records[typ] != "" {
+		return "[2]uint32"
+	}
+	return e.scalars[typ].GoType
+}
+
+// A block contains only pure bindings followed by a call, branch or
 // return. Every binding costs one logical allocation even if its value is dead.
 func (e *apiEmitter) emitScalarBlock(w *bytes.Buffer, first *moduleir.Code, used map[int]bool, zero string) {
 	c := first
@@ -143,6 +168,16 @@ func (e *apiEmitter) emitScalarBlock(w *bytes.Buffer, first *moduleir.Code, used
 	case "return":
 		fmt.Fprintf(w, "return v%d,nil\n", c.Var)
 	case "cases":
+		if e.records[c.Type] != "" {
+			alt := c.Alts[0]
+			for i, p := range alt.Params {
+				if used[p.ID] {
+					fmt.Fprintf(w, "v%d := v%d[%d]\n", p.ID, c.Var, i)
+				}
+			}
+			e.emitScalarBlock(w, alt.Body, used, zero)
+			return
+		}
 		positive, negative := c.Alts[0], c.Alts[1]
 		if positive.Constructor != "Bool.true" {
 			positive, negative = negative, positive
@@ -179,6 +214,9 @@ func (e *apiEmitter) scalarExpression(c *moduleir.Code) string {
 		}
 		return primitiveExpression(value.Name, left, right)
 	case "constructor":
+		if e.records[c.Bind.Type] != "" {
+			return fmt.Sprintf("[2]uint32{v%d,v%d}", value.Args[0], value.Args[1])
+		}
 		return fmt.Sprint(value.Name == "Bool.true")
 	default:
 		return fmt.Sprintf("%s(%s)", e.scalars[c.Bind.Type].GoType, value.Name)

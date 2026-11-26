@@ -105,7 +105,7 @@ func TestGeneratedUInt16(t *testing.T) {
 		names = append(names, leaf.Name)
 	}
 	want := []string{"UInt16.lor", "UInt16.shiftLeft", "UInt16.shiftRight", "UInt16.toUInt8", "UInt8.toUInt16"}
-	if manifest.Schema != "lean-go-manifest/v15" || manifest.Generator != "lean-go-modulegen/v17" || !slices.Equal(names, want) || manifest.GoAPI.Types["UInt16"] != "uint16" {
+	if manifest.Schema != "lean-go-manifest/v15" || manifest.Generator != "lean-go-modulegen/v18" || !slices.Equal(names, want) || manifest.GoAPI.Types["UInt16"] != "uint16" {
 		t.Fatalf("manifest: %s, %s, %v, %v", manifest.Schema, manifest.Generator, names, manifest.GoAPI.Types)
 	}
 	runGenerated(t, files, uint16Consumer)
@@ -135,7 +135,7 @@ func TestGeneratedUInt16ToUInt32(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v16" || manifest.Generator != "lean-go-modulegen/v17" || len(manifest.Primitives) != 1 {
+	if manifest.Schema != "lean-go-manifest/v16" || manifest.Generator != "lean-go-modulegen/v18" || len(manifest.Primitives) != 1 {
 		t.Fatal(manifest)
 	}
 	leaf := manifest.Primitives[0]
@@ -185,7 +185,7 @@ func TestGeneratedUInt16Xor(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v18" || manifest.Generator != "lean-go-modulegen/v17" || len(manifest.Primitives) != 1 {
+	if manifest.Schema != "lean-go-manifest/v18" || manifest.Generator != "lean-go-modulegen/v18" || len(manifest.Primitives) != 1 {
 		t.Fatal(manifest)
 	}
 	leaf := manifest.Primitives[0]

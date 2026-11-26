@@ -46,6 +46,46 @@ func TestChecksum(t *testing.T) {
 	}
 }
 
+var benchmarkState x.State
+
+func BenchmarkRecordFold256(b *testing.B) {
+	data := bytes.Repeat([]byte{255}, 256)
+	l := x.DefaultLimits()
+	seed, err := x.RunInitial(l)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	for b.Loop() {
+		benchmarkState, err = x.RunUpdate(seed, data, l)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestRecordFoldAllocations(t *testing.T) {
+	l := x.DefaultLimits()
+	seed, err := x.RunInitial(l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	allocations := func(n int) float64 {
+		data := make([]byte, n)
+		return testing.AllocsPerRun(20, func() {
+			benchmarkState, err = x.RunUpdate(seed, data, l)
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+	short, long := allocations(1), allocations(1024)
+	if long != short || long > 8 {
+		t.Fatalf("heap allocations for 1 byte = %.0f, 1024 bytes = %.0f", short, long)
+	}
+}
+
 func rawArgs(t *testing.T, low, high uint32, data []byte) []x.Value {
 	t.Helper()
 	state := &x.Input{Type: "Adler32.State", Constructor: "Adler32.State.mk", Fields: []*x.Input{

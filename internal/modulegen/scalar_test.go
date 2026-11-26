@@ -52,6 +52,31 @@ func TestRecordFoldRequiresSchemaAndSourceMetadata(t *testing.T) {
 	}
 }
 
+func TestExportedRecordStepAndFold(t *testing.T) {
+	fixture, err := os.ReadFile("../../examples/proofs/adler32/adler32.ir.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := moduleir.Decode(bytes.NewReader(fixture))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Roots = []string{"Adler32.checksum", "Adler32.initial", "Adler32.step", "Adler32.update"}
+	files, err := Generate(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runGenerated(t, files, `package extracted
+import "testing"
+func TestBoth(t *testing.T) {
+	l:=DefaultLimits()
+	s,err:=RunInitial(l);if err!=nil{t.Fatal(err)}
+	a,err:=RunStep(s,255,l);if err!=nil{t.Fatal(err)}
+	b,err:=RunUpdate(s,[]byte{255},l);if err!=nil{t.Fatal(err)}
+	v,_:=a.High();w,_:=b.High();if v!=256 || w!=v {t.Fatal(v,w)}
+}`)
+}
+
 func TestByteFoldWithNonNativeStep(t *testing.T) {
 	p := crcProgram(t)
 	for i := range p.Functions {
