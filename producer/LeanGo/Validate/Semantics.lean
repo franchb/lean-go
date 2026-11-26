@@ -118,7 +118,7 @@ variable (ρ : Callees) (E : Env) (J : Joins)
 @[ir_simp] theorem Code.eval_cases (x : Nat) (ty r : String) (alts : Alts) :
     (Code.cases x ty r alts).eval ρ E J = (E.get x).bind fun v => alts.eval ρ v E J := by
   rw [Code.eval]
-@[ir_simp] theorem Code.eval_join (j : Nat) (ps : List Param) (body next : Code) :
+theorem Code.eval_join (j : Nat) (ps : List Param) (body next : Code) :
     (Code.join j ps body next).eval ρ E J =
       next.eval ρ E ((j, fun args => (E.bindParams ps args).bind fun E' => body.eval ρ E' J) :: J) := by
   rw [Code.eval]
@@ -136,6 +136,34 @@ variable (ρ : Callees) (E : Env) (J : Joins)
 @[ir_simp] theorem evalBody_eq (fn : Function) (args : List Value) :
     evalBody ρ fn args = (Env.bindParams [] fn.params args).bind fun E => fn.body.eval ρ E [] := by
   rw [evalBody]
+
+/-- `Code.eval_join` with the continuation abstracted: there is a `k` that
+behaves as the join body on every argument list. Symbolic evaluation uses this
+to name each join's closure by a fresh variable instead of copying (and
+simplifying under binders) the body at every occurrence; the body is then
+evaluated only when a jump applies `k` to concrete arguments. -/
+theorem Code.eval_join_exists (j : Nat) (ps : List Param) (body next : Code) :
+    ∃ k : List Value → Option Value,
+      (∀ args, k args = (E.bindParams ps args).bind fun E' => body.eval ρ E' J) ∧
+      (Code.join j ps body next).eval ρ E J = next.eval ρ E ((j, k) :: J) :=
+  ⟨_, fun _ => rfl, by rw [Code.eval]⟩
+end
+
+/-! ## Called functions -/
+
+mutual
+/-- Names of all functions called anywhere in a body (with repetitions). -/
+def Code.calls : Code → List String
+  | .ret _ => []
+  | .bind _ (.call f _) next => f :: Code.calls next
+  | .bind _ _ next => Code.calls next
+  | .cases _ _ _ alts => Alts.calls alts
+  | .join _ _ body next => Code.calls body ++ Code.calls next
+  | .jump _ _ => []
+
+def Alts.calls : Alts → List String
+  | .nil => []
+  | .cons _ _ _ body rest => Code.calls body ++ Alts.calls rest
 end
 
 /-- First function of the program with the given name. -/

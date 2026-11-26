@@ -56,13 +56,136 @@ def findScrutinee (e : Expr) : Option Expr :=
     x.isAppOfArity ``LeanGo.Validate.Value.view 1 &&
       x.appArg!.isAppOfArity ``LeanGo.Validate.Encode.encode 3).map fun x => x.appArg!.appArg!
 
-def runSimp (consts : Array Name) (extra : Array Term) : TacticM Unit := do
+/-! Literal normal forms (see `UIntW.shiftLeft_lit`, `UIntW.ofNat_lit`):
+a scalar literal outside its width's range (the source may write
+`4294967297 : UInt32`, the IR records `1`) is reduced, and a shift by a literal
+amount becomes a multiplication by the power of two (the compiler turns
+`x * 256` into `x <<< 8`). Each step is an instance of a proved lemma whose
+side condition is `rfl` on closed natural numbers. -/
+simproc_decl reduceUInt8Lit ((OfNat.ofNat _ : UInt8)) := fun e => do
+  let_expr OfNat.ofNat _ n _ ← e | return .continue
+  let some v ← Nat.fromExpr? n | return .continue
+  if v < 256 then return .continue
+  let m := v % 256
+  let pf := mkApp3 (mkConst ``LeanGo.Validate.UInt8.ofNat_lit) (mkRawNatLit v) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := toExpr (UInt8.ofNat m), proof? := some pf }
+simproc_decl shiftLitUInt8 ((_ <<< _ : UInt8)) := fun e => do
+  let_expr HShiftLeft.hShiftLeft _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 8)
+  let rhs ← mkAppM ``HMul.hMul #[x, toExpr (UInt8.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt8.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl reduceUInt16Lit ((OfNat.ofNat _ : UInt16)) := fun e => do
+  let_expr OfNat.ofNat _ n _ ← e | return .continue
+  let some v ← Nat.fromExpr? n | return .continue
+  if v < 65536 then return .continue
+  let m := v % 65536
+  let pf := mkApp3 (mkConst ``LeanGo.Validate.UInt16.ofNat_lit) (mkRawNatLit v) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := toExpr (UInt16.ofNat m), proof? := some pf }
+simproc_decl shiftLitUInt16 ((_ <<< _ : UInt16)) := fun e => do
+  let_expr HShiftLeft.hShiftLeft _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 16)
+  let rhs ← mkAppM ``HMul.hMul #[x, toExpr (UInt16.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt16.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl reduceUInt32Lit ((OfNat.ofNat _ : UInt32)) := fun e => do
+  let_expr OfNat.ofNat _ n _ ← e | return .continue
+  let some v ← Nat.fromExpr? n | return .continue
+  if v < 4294967296 then return .continue
+  let m := v % 4294967296
+  let pf := mkApp3 (mkConst ``LeanGo.Validate.UInt32.ofNat_lit) (mkRawNatLit v) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := toExpr (UInt32.ofNat m), proof? := some pf }
+simproc_decl shiftLitUInt32 ((_ <<< _ : UInt32)) := fun e => do
+  let_expr HShiftLeft.hShiftLeft _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 32)
+  let rhs ← mkAppM ``HMul.hMul #[x, toExpr (UInt32.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt32.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl reduceUInt64Lit ((OfNat.ofNat _ : UInt64)) := fun e => do
+  let_expr OfNat.ofNat _ n _ ← e | return .continue
+  let some v ← Nat.fromExpr? n | return .continue
+  if v < 18446744073709551616 then return .continue
+  let m := v % 18446744073709551616
+  let pf := mkApp3 (mkConst ``LeanGo.Validate.UInt64.ofNat_lit) (mkRawNatLit v) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := toExpr (UInt64.ofNat m), proof? := some pf }
+simproc_decl shiftLitUInt64 ((_ <<< _ : UInt64)) := fun e => do
+  let_expr HShiftLeft.hShiftLeft _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 64)
+  let rhs ← mkAppM ``HMul.hMul #[x, toExpr (UInt64.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt64.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+
+/-- One symbolic-evaluation pass. Join declarations are *not* unfolded here
+(`Code.eval_join` is not in `ir_simp`): `generalizeJoin` names each
+join's continuation first, so its body is evaluated only at jumps, with the
+jump's arguments, instead of being copied into (and simplified under) every
+enclosing closure. `withJoins := true` is the fallback for a join that sits
+under a binder and therefore cannot be generalized. -/
+def runSimp (consts : Array Name) (extra : Array Term) (withJoins := false) : TacticM Unit := do
   let ids : Array Term := consts.map fun n => mkCIdent n
   let lemmas ← (ids ++ extra).mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
-  evalTactic (← `(tactic|
-    simp only [ir_simp, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
-      Bool.false_eq_true, Bool.true_eq_false, decide_true, decide_false, Bool.not_true, Bool.not_false,
-      List.foldl_cons, List.foldl_nil, Option.some.injEq, $lemmas,*, *]))
+  if withJoins then
+    evalTactic (← `(tactic|
+      simp only [ir_simp, $(VV `Code.eval_join):ident, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
+        Bool.false_eq_true, Bool.true_eq_false, decide_true, decide_false, Bool.not_true, Bool.not_false,
+        List.foldl_cons, List.foldl_nil, Option.some.injEq, Nat.reducePow, Nat.reduceMod,
+        $(mkCIdent `LeanGo.Validate.Meta.reduceUInt8Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt16Lit):ident,
+        $(mkCIdent `LeanGo.Validate.Meta.reduceUInt32Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt64Lit):ident,
+        $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt8):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt16):ident,
+        $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt32):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt64):ident, $lemmas,*, *]))
+  else
+    evalTactic (← `(tactic|
+      simp only [ir_simp, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
+        Bool.false_eq_true, Bool.true_eq_false, decide_true, decide_false, Bool.not_true, Bool.not_false,
+        List.foldl_cons, List.foldl_nil, Option.some.injEq, Nat.reducePow, Nat.reduceMod,
+        $(mkCIdent `LeanGo.Validate.Meta.reduceUInt8Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt16Lit):ident,
+        $(mkCIdent `LeanGo.Validate.Meta.reduceUInt32Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt64Lit):ident,
+        $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt8):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt16):ident,
+        $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt32):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt64):ident, $lemmas,*, *]))
+
+/-- First `Code.eval ρ (Code.join …) E J` in the goal that is closed (not under
+a binder), so that its continuation can be generalized. -/
+def findJoin (e : Expr) : Option Expr :=
+  e.find? fun x =>
+    x.isAppOfArity ``LeanGo.Validate.Code.eval 4 &&
+      (x.getArg! 1).isAppOfArity ``LeanGo.Validate.Code.join 4 && !x.hasLooseBVars
+
+/-- Some join declaration remains, possibly under a binder. -/
+def hasJoin (e : Expr) : Bool :=
+  (e.find? fun x =>
+    x.isAppOfArity ``LeanGo.Validate.Code.eval 4 &&
+      (x.getArg! 1).isAppOfArity ``LeanGo.Validate.Code.join 4).isSome
+
+/-- Replace a closed join declaration by its continuation with a fresh
+closure variable `k` and the hypothesis `∀ args, k args = body…`
+(`Code.eval_join_exists`). -/
+def generalizeJoin (x : Expr) (counter : IO.Ref Nat) : TacticM Unit := do
+  let args := x.getAppArgs
+  let cargs := args[1]!.getAppArgs
+  let pf ← mkAppM ``LeanGo.Validate.Code.eval_join_exists
+    #[args[0]!, args[2]!, args[3]!, cargs[0]!, cargs[1]!, cargs[2]!, cargs[3]!]
+  let n ← counter.modifyGet fun n => (n, n + 1)
+  let k := mkIdent (Name.mkSimple s!"kir{n}")
+  let hk := mkIdent (Name.mkSimple s!"hkir{n}")
+  let heq := mkIdent (Name.mkSimple s!"heqir{n}")
+  let stx ← Term.exprToSyntax pf
+  evalTactic (← `(tactic| (obtain ⟨$k, $hk, $heq⟩ := $stx; rw [$heq:ident]; clear $heq)))
 
 /-- Run `t`; on an exception or a logged error, restore the state and report failure. -/
 def tryTac (t : TacticM Unit) : TacticM Bool := do
@@ -92,6 +215,10 @@ partial def loop (consts : Array Name) (extra : Array Term) (fuel : Nat) (counte
   let g ← getMainGoal
   let tgt ← instantiateMVars (← g.getType)
   trace[debug] m!"validate_obl step:{indentD g}"
+  if let some x := findJoin tgt then
+    trace[debug] m!"join: generalize"
+    generalizeJoin x counter
+    return ← loop consts extra (fuel - 1) counter
   if let some t := findScrutinee tgt then
     trace[debug] m!"scrutinee: {t}"
     let subgoals ← g.withContext do
@@ -114,6 +241,11 @@ partial def loop (consts : Array Name) (extra : Array Term) (fuel : Nat) (counte
       setGoals [sg]
       loop consts extra (fuel - 1) counter
     return
+  -- a join under a binder: unfold it the old way
+  setGoals [g]
+  if hasJoin tgt then
+    if ← tryTac (runSimp consts extra (withJoins := true)) then
+      return ← loop consts extra (fuel - 1) counter
   -- source-side control flow
   setGoals [g]
   trace[debug] m!"split"
@@ -124,7 +256,10 @@ partial def loop (consts : Array Name) (extra : Array Term) (fuel : Nat) (counte
       if ← tryTac (evalTactic (← `(tactic| contradiction))) then continue
       loop consts extra (fuel - 1) counter
     return
-  if ← tryTac (evalTactic (← `(tactic| rfl))) then return
+  -- Only reducible unfolding: a default-transparency `rfl` can produce proofs
+  -- that the kernel checks by evaluating fixed-width arithmetic on symbolic
+  -- operands (observed: >12 GB on `DnsHeader.word1`).
+  if ← tryTac (evalTactic (← `(tactic| with_reducible rfl))) then return
   throwError "validate_obl: stuck at{indentExpr tgt}"
 
 /-- Destruct every local of structure type (single constructor, no recursion),
@@ -137,6 +272,8 @@ partial def destructStructures (g : MVarId) : MetaM (List MVarId) := g.withConte
     let ty ← whnfR (← instantiateMVars d.type)
     let .const n _ := ty.getAppFn | continue
     unless ty.getAppNumArgs == 0 && isStructure (← getEnv) n do continue
+    -- scalars are structures too, but their encoding is the scalar itself
+    if n == ``UInt8 || n == ``UInt16 || n == ``UInt32 || n == ``UInt64 then continue
     let gs ← g.cases d.fvarId
     let mut out := []
     for sg in gs do

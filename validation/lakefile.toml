@@ -1,16 +1,14 @@
 name = "lean_go_validate"
 version = "0.0.0"
-defaultTargets = ["LeanGo", "Examples"]
+defaultTargets = ["Examples"]
 
-# Object level (`LeanGo.Validate`) and meta level (`LeanGo.Validate.Meta`).
-[[lean_lib]]
-name = "LeanGo"
-roots = ["LeanGo.Validate", "LeanGo.Validate.Meta", "LeanGo.Validate.Meta.Axioms"]
+# The library itself (`LeanGo.Validate`, `LeanGo.Validate.Meta`,
+# `LeanGo.Validate.Command`) lives in the producer package, where the export
+# workspace can import it. This package holds only evidence built on top of it.
+[[require]]
+name = "lean_go_producer"
+path = "../producer"
 
 # Evidence on tracked IR; includes the axiom gate (`Examples.AxiomCheck`).
 [[lean_lib]]
 name = "Examples"
-
-# Not built by default: statements that are stated but not (yet) proved.
-[[lean_lib]]
-name = "Open"

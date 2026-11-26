@@ -195,4 +195,120 @@ theorem PreFixed.of_allValid {P : Program} {ρ : Callees} (h : AllValid P ρ P.f
     PreFixed P ρ :=
   fun fn hmem => AllValid.mem h fn hmem
 
+/-! ## Restriction to a call-closed set of functions
+
+A whole-program statement for one entry point needs only the functions it can
+reach. `PreFixedOn P ρ S` asks for the pre-fixed-point condition only for the
+functions named in `S`, and that their bodies call only functions in `S`.
+`run_le_on` is Park induction restricted to `S`. -/
+
+/-- `ρ₁ ⊑ ρ₂` on the functions named in `S`. -/
+def EnvLEOn (S : List String) (ρ₁ ρ₂ : Callees) : Prop :=
+  ∀ f ∈ S, ∀ args, ρ₁ f args ⊑ ρ₂ f args
+
+mutual
+theorem Code.eval_mono_on {S : List String} {ρ₁ ρ₂ : Callees} (h : EnvLEOn S ρ₁ ρ₂) :
+    ∀ (c : Code) (E : Env) (J₁ J₂ : Joins), (∀ f ∈ c.calls, f ∈ S) → JoinsLE J₁ J₂ →
+      c.eval ρ₁ E J₁ ⊑ c.eval ρ₂ E J₂
+  | .ret x, E, J₁, J₂, _, _ => Approx.refl _
+  | .bind p v next, E, J₁, J₂, hc, hJ => by
+    simp only [Code.eval]
+    have hv : v.eval ρ₁ E ⊑ v.eval ρ₂ E := by
+      cases v with
+      | call f xs =>
+        exact Approx.bind (Approx.refl _) fun args => h f (hc f (by simp [Code.calls])) args
+      | lit _ => exact Approx.refl _
+      | prim _ _ => exact Approx.refl _
+      | ctor _ _ _ => exact Approx.refl _
+    have hn : ∀ f ∈ next.calls, f ∈ S := by
+      intro f hf; apply hc f; cases v <;> simp [Code.calls, hf]
+    exact Approx.bind hv fun val => Code.eval_mono_on h next ((p.id, val) :: E) J₁ J₂ hn hJ
+  | .cases x _ _ alts, E, J₁, J₂, hc, hJ => by
+    simp only [Code.eval]
+    exact Approx.bind (Approx.refl _) fun v =>
+      Alts.eval_mono_on h alts v E J₁ J₂ (fun f hf => hc f (by simpa [Code.calls] using hf)) hJ
+  | .join j ps body next, E, J₁, J₂, hc, hJ => by
+    simp only [Code.eval]
+    have hb : ∀ f ∈ body.calls, f ∈ S := fun f hf => hc f (by simp [Code.calls, hf])
+    have hn : ∀ f ∈ next.calls, f ∈ S := fun f hf => hc f (by simp [Code.calls, hf])
+    refine Code.eval_mono_on h next E _ _ hn ⟨rfl, ?_, hJ⟩
+    intro args
+    exact Approx.bind (Approx.refl _) fun E' => Code.eval_mono_on h body E' J₁ J₂ hb hJ
+  | .jump j xs, E, J₁, J₂, _, hJ => by
+    simp only [Code.eval]
+    cases hx : E.getAll xs with
+    | none =>
+      have : ∀ J : Joins, ((J.get j).bind fun k => (none : Option (List Value)).bind k) = none := by
+        intro J; cases J.get j <;> rfl
+      rw [this, this]; exact Approx.refl _
+    | some args =>
+      have : ∀ J : Joins, ((J.get j).bind fun k => (some args).bind k) =
+          ((J.get j).bind fun k => k args) := by
+        intro J; rfl
+      rw [this, this]; exact JoinsLE.get hJ j args
+
+theorem Alts.eval_mono_on {S : List String} {ρ₁ ρ₂ : Callees} (h : EnvLEOn S ρ₁ ρ₂) :
+    ∀ (alts : Alts) (v : Value) (E : Env) (J₁ J₂ : Joins), (∀ f ∈ alts.calls, f ∈ S) →
+      JoinsLE J₁ J₂ → alts.eval ρ₁ v E J₁ ⊑ alts.eval ρ₂ v E J₂
+  | .nil, _, _, _, _, _, _ => Approx.refl _
+  | .cons _ tag ps body rest, v, E, J₁, J₂, hc, hJ => by
+    simp only [Alts.eval]
+    have hb : ∀ f ∈ body.calls, f ∈ S := fun f hf => hc f (by simp [Alts.calls, hf])
+    have hr : ∀ f ∈ rest.calls, f ∈ S := fun f hf => hc f (by simp [Alts.calls, hf])
+    split
+    · split
+      · exact Approx.bind (Approx.refl _) fun E' => Code.eval_mono_on h body E' J₁ J₂ hb hJ
+      · exact Alts.eval_mono_on h rest v E J₁ J₂ hr hJ
+    · exact Approx.refl _
+end
+
+theorem evalBody_mono_on {S : List String} {ρ₁ ρ₂ : Callees} (h : EnvLEOn S ρ₁ ρ₂)
+    (fn : Function) (hc : ∀ f ∈ fn.body.calls, f ∈ S) (args : List Value) :
+    evalBody ρ₁ fn args ⊑ evalBody ρ₂ fn args :=
+  Approx.bind (Approx.refl _) fun E => Code.eval_mono_on h fn.body E [] [] hc trivial
+
+/-- Pre-fixed point on the functions named in `S`, whose bodies call only `S`. -/
+def PreFixedOn (P : Program) (ρ : Callees) (S : List String) : Prop :=
+  ∀ fn ∈ P.functions, fn.name ∈ S → (∀ f ∈ fn.body.calls, f ∈ S) ∧ FnValid P ρ fn
+
+/-- **Park induction on a call-closed set.** -/
+theorem run_le_on {P : Program} {ρ : Callees} {S : List String} (h : PreFixedOn P ρ S) :
+    ∀ n, EnvLEOn S (P.run n) ρ
+  | 0 => fun _ _ _ => Approx.none_le _
+  | n + 1 => by
+    intro f hf args
+    simp only [Program.run]
+    split
+    · rename_i fn hfn
+      obtain ⟨hmem, hname⟩ := Program.find?_spec hfn
+      obtain ⟨hcalls, hvalid⟩ := h fn hmem (hname ▸ hf)
+      split
+      · rename_i htyped
+        have h₁ := evalBody_mono_on (run_le_on h n) fn hcalls args
+        have h₂ := hvalid args htyped
+        rw [hname] at h₂
+        exact h₁.trans h₂
+      · exact Approx.none_le _
+    · exact Approx.none_le _
+
+/-- Per-function conjunction of the `PreFixedOn` conditions, by recursion on
+a concrete function list. -/
+def AllValidOn (P : Program) (ρ : Callees) (S : List String) : List Function → Prop
+  | [] => True
+  | fn :: fns => (fn.name ∈ S → (∀ f ∈ fn.body.calls, f ∈ S) ∧ FnValid P ρ fn) ∧ AllValidOn P ρ S fns
+
+theorem AllValidOn.mem {P : Program} {ρ : Callees} {S : List String} :
+    ∀ {fns : List Function}, AllValidOn P ρ S fns → ∀ fn ∈ fns,
+      fn.name ∈ S → (∀ f ∈ fn.body.calls, f ∈ S) ∧ FnValid P ρ fn
+  | [], _, _, hmem => by simp at hmem
+  | g :: gs, h, fn, hmem => by
+    simp only [List.mem_cons] at hmem
+    rcases hmem with rfl | hmem
+    · exact h.1
+    · exact AllValidOn.mem h.2 fn hmem
+
+theorem PreFixedOn.of_allValidOn {P : Program} {ρ : Callees} {S : List String}
+    (h : AllValidOn P ρ S P.functions) : PreFixedOn P ρ S :=
+  fun fn hmem => AllValidOn.mem h fn hmem
+
 end LeanGo.Validate
