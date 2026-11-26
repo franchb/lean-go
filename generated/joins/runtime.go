@@ -5,9 +5,11 @@ import "errors"
 
 // Input is mutable caller-owned data. Type and constructor names are Lean names.
 // Scalars use their type name, no constructor or fields, and only their active payload.
-// ADTs require UInt32=0 and UInt64=0.
+// ADTs require UInt32=0 and UInt64=0 and UInt8=0 and UInt16=0.
 type Input struct {
 	Type, Constructor string
+	UInt8             uint8
+	UInt16            uint16
 	UInt32            uint32
 	UInt64            uint64
 	Fields            []*Input
@@ -25,6 +27,8 @@ var (
 
 type node struct {
 	typ, tag    int
+	scalar8     uint8
+	scalar16    uint16
 	scalar      uint32
 	scalar64    uint64
 	fields      []*node
@@ -46,18 +50,10 @@ func (v Value) Constructor() string {
 	}
 	return constructorName(v.n.typ, v.n.tag)
 }
-func (v Value) UInt32() (uint32, bool) {
-	if v.n == nil || v.n.typ != 0 {
-		return 0, false
-	}
-	return v.n.scalar, true
-}
-func (v Value) UInt64() (uint64, bool) {
-	if v.n == nil || v.n.typ != 6 {
-		return 0, false
-	}
-	return v.n.scalar64, true
-}
+func (v Value) UInt8() (uint8, bool)   { return apiReadUInt8(v.n) }
+func (v Value) UInt16() (uint16, bool) { return apiReadUInt16(v.n) }
+func (v Value) UInt32() (uint32, bool) { return apiReadUInt32(v.n) }
+func (v Value) UInt64() (uint64, bool) { return apiReadUInt64(v.n) }
 
 // Fields returns a fresh slice; modifying it cannot change the owned value.
 func (v Value) Fields() []Value {
@@ -128,7 +124,7 @@ func Import(input *Input, l Limits) (Value, error) {
 		if err != nil {
 			return Value{}, err
 		}
-		result = &node{typ: f.typ, tag: f.tag, scalar: f.input.UInt32, scalar64: f.input.UInt64, fields: f.fields, size: size, depth: depth}
+		result = &node{typ: f.typ, tag: f.tag, scalar8: f.input.UInt8, scalar16: f.input.UInt16, scalar: f.input.UInt32, scalar64: f.input.UInt64, fields: f.fields, size: size, depth: depth}
 		delete(active, f.input)
 		stack = stack[:len(stack)-1]
 		if len(stack) > 0 {
