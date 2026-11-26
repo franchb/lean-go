@@ -46,7 +46,7 @@ POSIX timeout cleanup kills its process group, including child compilers.
 The **Compiler compatibility research** workflow runs on pull requests and
 pushes to `main`. It verifies the upstream SHA-256 for each Linux release
 archive, then compares stable with rc2. It also installs the checkout wheel
-and runs all six proof demos with each compiler. For Wire16, it also builds a
+and runs all seven proof demos with each compiler. For Wire16, it also builds a
 native Lean executable and compares its encoding, decoding and UInt32 widening with the generated
 Go across every 16-bit value. A manual dispatch can compare
 stable with itself by choosing `production`. A difference fails the workflow
@@ -71,7 +71,7 @@ occurs exactly once and records before/after digests and a unified patch.
 
 The producer must build before the corpus runs. If compilation fails, its
 status is `producer_build_failed` and every case stays `not_run`. The corpus
-contains ten accepted cases and nine required rejections.
+contains eleven accepted cases and nine required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -83,7 +83,8 @@ contains ten accepted cases and nine required rejections.
 | `uint16` | Every two-byte big-endian value checked against Go, plus OR and dynamic shifts at and beyond 16 bits |
 | `uint16_widen` | `UInt16.toUInt32` preserves every one of the 65,536 possible values |
 | `uint32_narrow16` | The inverse narrowing cast `UInt32.toUInt16` is rejected during source admission |
-| `uint16_xor` | `admission` / `source_audit` for the unsupported `UInt16.xor` |
+| `uint16_xor` | Ordinary `^^^` compared directly with native Lean and Go for 196,608 operand pairs |
+| `uint16_land` | `admission` / `source_audit` naming the unsupported `UInt16.land` |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |
@@ -100,6 +101,12 @@ in `Init.Data.UInt.BasicAux` with extern name `lean_uint16_to_uint32`. The Go
 emitter widens a `uint16` with `uint32(value)`. The `uint16_widen` case
 checks this conversion directly. Wire16 separately compares its generated
 result with native Lean across the entire input domain.
+
+For ordinary UInt16 XOR, the harness builds a native executable from the same
+Lean source used for extraction. Its output covers all 65,536 left operands,
+each paired with zero, all ones and a varying right operand. The generated Go
+consumer checks each result against the native output and Go's own XOR.
+A native build or execution failure fails the case.
 
 Accepted source must produce valid IR and a Go package, then pass a separate
 checked-in Go consumer with independently authored expected constants or an

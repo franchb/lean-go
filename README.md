@@ -175,7 +175,7 @@ Alpha.10 extracts `UInt16` literals, records and
 `UInt8.toUInt16`, `UInt16.toUInt8`, `|||`, `<<<` and `>>>` on the supported
 operand types. The Go scalar is `uint16`. Widening preserves the byte value,
 narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
-Without `UInt16.toUInt32`, an executable `UInt16` selects v14 IR for one root or v15 for multiple roots
+In alpha.10 and alpha.11, without `UInt16.toUInt32`, an executable `UInt16` selects v14 IR for one root or v15 for multiple roots
 with `pure-module/v12` or `pure-module/v13`. Alpha.10 ships generator v12. Pair the CLI and examples from the same tag when
 regenerating artifacts.
 
@@ -186,6 +186,12 @@ and generator v13. The [Wire16 demo](examples/proofs/wire16) uses it to
 classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
 The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
+
+In the development checkout, an executable `UInt16.xor` or ordinary `a ^^^ b`
+selects IR v18 for one root or v19 for multiple roots, with profiles
+`pure-module/v16` and `pure-module/v17`. Generator v14 emits Go's `^`
+operator on two `uint16` values. The [CRC-16/XMODEM demo](examples/proofs/crc16)
+uses this operation in a proved one-byte update that Go can apply to successive chunks.
 
 Earlier schemas keep their
 restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and

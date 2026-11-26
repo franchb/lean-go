@@ -55,9 +55,9 @@ uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all six demos, compares exact bytes, freshly checks all 52 source
+it regenerates all seven demos, compares exact bytes, freshly checks all 54 source
 claims and deploys each using only Go sources and `go.mod`. Root Go tests also
-exercise all six nested modules by copying them into isolated Go-only
+exercise all seven nested modules by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
 The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to review
@@ -66,7 +66,8 @@ fresh proof evidence and Go checks against `encoding/binary`. For changes to the
 UInt8 engine, use the focused admission and differential tests in the
 [UInt8 report](docs/research/extraction-uint8.md). Broad generic collections and
 direct UInt8/UInt64 casts remain deferred. The UInt16 subset covers byte casts,
-OR, masked shifts and exact widening from UInt16 to UInt32.
+OR, masked shifts, exact widening from UInt16 to UInt32 and, in the development
+checkout, XOR. The [CRC-16/XMODEM example](examples/proofs/crc16) exercises it.
 
 CI executes ordinary Go tests on Linux and Windows, and extraction gates on Linux.
 Tag workflows also fetch the exact published version into separate Go-only

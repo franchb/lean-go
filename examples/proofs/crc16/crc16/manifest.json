@@ -1,0 +1,568 @@
+{
+  "schema": "lean-go-manifest/v18",
+  "generator": "lean-go-modulegen/v14",
+  "generator_source_sha256": "e35196d27c4c5ecb5b1ea39e49b16ec34f74b96dc1ab95c21f1f4b579da8813d",
+  "validator_source_sha256": "e917320b08ebacd6cf697c8f381eb53cd71767e61d809c2048435cb91472d452",
+  "ir_sha256": "4958000753466ae50211ef8bfd5ca9c4d0c25017b5cc7225472aba25a71be642",
+  "program": {
+    "schema": "lean-go-ir/v18",
+    "profile": "pure-module/v16",
+    "stage": "pure-mono",
+    "lean_version": "4.36.0",
+    "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+    "module": "Crc16",
+    "root": "Crc16.updateByte",
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "d47a671a5ccb8d2354ac0c2d4733549cc21bc31f9076b06363fd10df0df1f462",
+      "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
+      "producer/LeanGo/Module/Export.lean": "b86a401650ed915f0eae7bc525aa09b4e00c8295572fdb81fb6e982904d0a473",
+      "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
+      "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
+      "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
+      "producer/LeanGo/Module/Primitives.lean": "3dbb9443255ba8d052ac5906ca890053c56bfe41df14169cf0fa3c2f5779b0fe",
+      "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
+      "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
+      "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+      "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
+      "scripts/export_module.py": "ad8d85fcb8b768d9d67a8409a0a99863acc5926218ee030f352032b76eaadeb0",
+      "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+      "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
+      "source/Crc16.lean": "b702040d67dd08165fa95c1b9c6c9ef6bc2a9cb4f0dd3a3c02d6bfeafb6321c3"
+    },
+    "types": [
+      {
+        "name": "Bool",
+        "constructors": [
+          {
+            "name": "Bool.false",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Bool.true",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "Crc16.step",
+        "dependencies": [
+          "HShiftLeft.hShiftLeft",
+          "HXor.hXor",
+          "LT.lt",
+          "OfNat.ofNat",
+          "UInt16",
+          "UInt16.instOfNat",
+          "UInt16.toUInt32",
+          "UInt32",
+          "UInt32.decLt",
+          "UInt32.instOfNat",
+          "instHShiftLeftOfShiftLeft",
+          "instHXorOfXorOp",
+          "instLTUInt32",
+          "instShiftLeftUInt16",
+          "instXorOpUInt16",
+          "ite"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Crc16.updateByte",
+        "dependencies": [
+          "Crc16.step",
+          "HShiftLeft.hShiftLeft",
+          "HXor.hXor",
+          "OfNat.ofNat",
+          "UInt16",
+          "UInt16.instOfNat",
+          "UInt8",
+          "UInt8.toUInt16",
+          "instHShiftLeftOfShiftLeft",
+          "instHXorOfXorOp",
+          "instShiftLeftUInt16",
+          "instXorOpUInt16"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftLeft.hShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HXor.hXor",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "LT.lt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "OfNat.ofNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt16.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt16.toUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.decLt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt8.toUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHShiftLeftOfShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHXorOfXorOp",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instLTUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftLeftUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instXorOpUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "ite",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Crc16.step",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt16"
+          }
+        ],
+        "result": "UInt16",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt16"
+          },
+          "value": {
+            "kind": "uint16",
+            "name": "1",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt16"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt16.shiftLeft",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt16.toUInt32",
+                "args": [
+                  1
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "uint32",
+                  "name": "32768",
+                  "args": []
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "Bool"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt32.decLt",
+                    "args": [
+                      4,
+                      5
+                    ]
+                  },
+                  "next": {
+                    "op": "cases",
+                    "var": 6,
+                    "type": "Bool",
+                    "result": "UInt16",
+                    "alts": [
+                      {
+                        "constructor": "Bool.false",
+                        "params": [],
+                        "body": {
+                          "op": "let",
+                          "bind": {
+                            "id": 7,
+                            "type": "UInt16"
+                          },
+                          "value": {
+                            "kind": "uint16",
+                            "name": "4129",
+                            "args": []
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 8,
+                              "type": "UInt16"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt16.xor",
+                              "args": [
+                                3,
+                                7
+                              ]
+                            },
+                            "next": {
+                              "op": "return",
+                              "var": 8
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "constructor": "Bool.true",
+                        "params": [],
+                        "body": {
+                          "op": "return",
+                          "var": 3
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Crc16.updateByte",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt16"
+          },
+          {
+            "id": 2,
+            "type": "UInt8"
+          }
+        ],
+        "result": "UInt16",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt16"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt8.toUInt16",
+            "args": [
+              2
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 4,
+              "type": "UInt16"
+            },
+            "value": {
+              "kind": "uint16",
+              "name": "8",
+              "args": []
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 5,
+                "type": "UInt16"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt16.shiftLeft",
+                "args": [
+                  3,
+                  4
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt16"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt16.xor",
+                  "args": [
+                    1,
+                    5
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "UInt16"
+                  },
+                  "value": {
+                    "kind": "call",
+                    "name": "Crc16.step",
+                    "args": [
+                      6
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 8,
+                      "type": "UInt16"
+                    },
+                    "value": {
+                      "kind": "call",
+                      "name": "Crc16.step",
+                      "args": [
+                        7
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 9,
+                        "type": "UInt16"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Crc16.step",
+                        "args": [
+                          8
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 10,
+                          "type": "UInt16"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "Crc16.step",
+                          "args": [
+                            9
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 11,
+                            "type": "UInt16"
+                          },
+                          "value": {
+                            "kind": "call",
+                            "name": "Crc16.step",
+                            "args": [
+                              10
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 12,
+                              "type": "UInt16"
+                            },
+                            "value": {
+                              "kind": "call",
+                              "name": "Crc16.step",
+                              "args": [
+                                11
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 13,
+                                "type": "UInt16"
+                              },
+                              "value": {
+                                "kind": "call",
+                                "name": "Crc16.step",
+                                "args": [
+                                  12
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 14,
+                                  "type": "UInt16"
+                                },
+                                "value": {
+                                  "kind": "call",
+                                  "name": "Crc16.step",
+                                  "args": [
+                                    13
+                                  ]
+                                },
+                                "next": {
+                                  "op": "return",
+                                  "var": 14
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "api": {
+      "records": {}
+    }
+  },
+  "function_ids": {
+    "Crc16.step": 0,
+    "Crc16.updateByte": 1
+  },
+  "constructor_ids": {
+    "Bool.false": [
+      1,
+      0
+    ],
+    "Bool.true": [
+      1,
+      1
+    ]
+  },
+  "generated_files": {
+    "api.go": "2892c26f735592c622eaf846930e7c8d893b71e0d45f6f5777520836566dd3ac",
+    "control.go": "e929a90d815fdc9ae10ad5edde447fc799fc1bc935ad8ecf1a813d22f92659d3",
+    "runtime.go": "e24c482440533544cf30b1b56e9a3d2974234172680ccfbfa1e0adcef9f28cff",
+    "schema.go": "f6fff0e9a1ef53832ef0eca36669ebe498fb0c0ca9ab24481d6b607c122a7b4b"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt16.shiftLeft",
+      "params": [
+        "UInt16",
+        "UInt16"
+      ],
+      "result": "UInt16",
+      "semantics": "(a * 2^(b modulo 16)) modulo 2^16"
+    },
+    {
+      "name": "UInt16.toUInt32",
+      "params": [
+        "UInt16"
+      ],
+      "result": "UInt32",
+      "semantics": "zero extension: a"
+    },
+    {
+      "name": "UInt16.xor",
+      "params": [
+        "UInt16",
+        "UInt16"
+      ],
+      "result": "UInt16",
+      "semantics": "bitwise XOR of 16-bit operands"
+    },
+    {
+      "name": "UInt32.decLt",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a \u003c b"
+    },
+    {
+      "name": "UInt8.toUInt16",
+      "params": [
+        "UInt8"
+      ],
+      "result": "UInt16",
+      "semantics": "zero extension: a"
+    }
+  ],
+  "go_api": {
+    "entrypoint": "RunTyped",
+    "types": {
+      "Bool": "bool",
+      "UInt16": "uint16",
+      "UInt32": "uint32",
+      "UInt64": "uint64",
+      "UInt8": "uint8"
+    },
+    "constructors": {},
+    "accessors": {},
+    "destructors": {}
+  }
+}

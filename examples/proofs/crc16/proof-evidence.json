@@ -1,0 +1,50 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Crc16Contract.chunks_spec",
+      "name": "Crc16Proofs.chunks_spec",
+      "statement": "∀ (state : UInt16) (chunks : List (List UInt8)),\n  (List.foldl (fun acc chunk => List.foldl Crc16.updateByte acc chunk) state chunks).toBitVec =\n    List.foldl Crc16Contract.referenceByte state.toBitVec chunks.flatten"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Crc16Contract.update_byte_spec",
+      "name": "Crc16Proofs.update_byte_spec",
+      "statement": "∀ (state : UInt16) (byte : UInt8),\n  (Crc16.updateByte state byte).toBitVec = Crc16Contract.referenceByte state.toBitVec byte"
+    }
+  ],
+  "contract_sha256": "4bf659f6417a8771414093530c0a413ff96f1e2c6f6178e8a8ad388cd1bf572e",
+  "generated_manifest_sha256": "6faf9863185eec09d33d032d33248d66bf50a051a8ad5f5048c5a27ad2ed1bd6",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "Crc16",
+  "project_inputs": {
+    "proof/Crc16Contract.lean": "ae37b43bd35af5287cc9eb2cd0a3e2c95190ab485d5ebcbf4d2fa8b57cf4aac9",
+    "proof/Crc16Proofs.lean": "84ba8ae237b8632cefd3d12a014c7b5bea06c6c9af49da9421039f523aa13d47",
+    "source/Crc16.lean": "b702040d67dd08165fa95c1b9c6c9ef6bc2a9cb4f0dd3a3c02d6bfeafb6321c3"
+  },
+  "roots": [
+    "Crc16.updateByte"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "scripts/check_proofs.py": "6a1995c54ecb85c652ad4f09d5eb173adf127359df5fc1a56846a4dcaf7fe5fc",
+    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
+    "scripts/export_module.py": "ad8d85fcb8b768d9d67a8409a0a99863acc5926218ee030f352032b76eaadeb0",
+    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+    "scripts/proof_contract.py": "d4bb3a2874fa29e4b51e58374fc4ff242bd4baedc90a2e546c6a93052a3c09cf",
+    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+  }
+}

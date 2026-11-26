@@ -140,8 +140,8 @@ Ordinary root `go test ./...` separately copies only `go.mod`, the consumer and
 its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The installed CLI smoke
-runs the complete clamp, flags, words, bytes, header and wire16 verifiers through both direct and
-sdist-rebuilt wheels on Linux and Windows in CI, checking 52 source claims per
+runs the complete clamp, flags, words, bytes, header, wire16 and crc16 verifiers through both direct and
+sdist-rebuilt wheels on Linux and Windows in CI, checking 54 source claims per
 wheel. Alpha.7 shipped the first three demos with generator v9. Alpha.8 shipped the
 byte codec with generator v10. Alpha.9 ships the header codec with generator v11.
 Pair examples with the CLI from the same checkout or tag. See the

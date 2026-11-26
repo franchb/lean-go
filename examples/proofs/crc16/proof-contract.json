@@ -1,0 +1,11 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Crc16",
+  "roots": ["Crc16.updateByte"],
+  "claims": [
+    {"theorem": "Crc16Proofs.chunks_spec", "expected": "Crc16Contract.chunks_spec"},
+    {"theorem": "Crc16Proofs.update_byte_spec", "expected": "Crc16Contract.update_byte_spec"}
+  ]
+}
