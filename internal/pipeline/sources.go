@@ -3,10 +3,12 @@ package pipeline
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -179,6 +181,39 @@ func isSymlink(path string) bool {
 	return err == nil && info.Mode()&fs.ModeSymlink != 0
 }
 
+// symlinkFree reports whether no existing component of an absolute path is a
+// symbolic link or, on Windows, another reparse point such as a junction.
+// Components after the first missing one cannot be links.
+//
+// Comparing a path with its filepath.EvalSymlinks form is not a substitute:
+// on Windows the two also differ for 8.3 short names (RUNNER~1) and for
+// letter case, where no link is involved.
+func symlinkFree(path string) bool {
+	separator := string(filepath.Separator)
+	prefix := filepath.VolumeName(path)
+	for _, part := range strings.Split(filepath.ToSlash(path[len(prefix):]), "/") {
+		if !strings.HasSuffix(prefix, separator) {
+			prefix += separator
+		}
+		if part == "" {
+			continue
+		}
+		prefix += part
+		info, err := os.Lstat(prefix)
+		if errors.Is(err, fs.ErrNotExist) {
+			return true
+		}
+		if err != nil {
+			return false
+		}
+		mode := info.Mode()
+		if mode&fs.ModeSymlink != 0 || (runtime.GOOS == "windows" && mode&fs.ModeIrregular != 0) {
+			return false
+		}
+	}
+	return true
+}
+
 func isFile(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && info.Mode().IsRegular()
@@ -200,8 +235,7 @@ func SourceSnapshot(sourceDir string) (Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	resolved, err := resolvePath(directory)
-	if err != nil || resolved != directory || !isDir(directory) {
+	if !symlinkFree(directory) || !isDir(directory) {
 		return nil, exportError("source directory must exist and must not contain symlinks")
 	}
 	var out Snapshot
