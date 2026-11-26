@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v19",
   "generator_source_sha256": "43eb0f9c29b7cd11ad2c493198e714931352e2dc44eced5dd451ade12407f539",
   "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
-  "ir_sha256": "d5011afecfa47c7ea0ff71ff003677591d230b9735ae727071a71ceea64729dd",
+  "ir_sha256": "75f6c842bdf86b31c84bddfb5968e22032380313015375cbfd9f6a92d2f96182",
   "program": {
     "schema": "lean-go-ir/v24",
     "profile": "pure-module/v22",
@@ -35,7 +35,7 @@
       "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
       "source/Adler32.lean": "9263491c9a5af3553ca52f3997f37bff7e10291cc929c509ef20fa1508bf9c69",
-      "tool/lean-go/pipeline": "9730548c01c421ea57d491d1d1411125745cd3c97dbdc3ce2c5bde56f2990c5a"
+      "tool/lean-go/pipeline": "f917dae7c550571748c30c622433ae938cc4b8df6437599c3092432905268d28"
     },
     "types": [
       {
