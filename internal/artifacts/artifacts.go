@@ -55,6 +55,11 @@ var Packages = []Package{
 		Roots:    []string{"Quota.create", "Quota.release", "Quota.remaining", "Quota.reserve"},
 		Contract: "libraries/quota/proof-contract.json", Evidence: "libraries/quota/proof-evidence.json", Mode: "metered"},
 	demo("clamp", "Clamp", "Clamp.clamp"),
+	// The native variant of clamp shares its source, contract and IR (the IR
+	// does not depend on the mode) and carries its own evidence.
+	{Package: "examples/proofs/clamp/clampnative", IR: "examples/proofs/clamp/clamp.ir.json", SourceDir: "examples/proofs/clamp/source",
+		Module: "Clamp", Roots: []string{"Clamp.clamp"}, Contract: "examples/proofs/clamp/proof-contract.json",
+		Evidence: "examples/proofs/clamp/native-proof-evidence.json", Mode: "native"},
 	demo("flags", "Flags", "Flags.clear", "Flags.contains", "Flags.set", "Flags.toggle"),
 	demo("words", "Words", "Words.high", "Words.low", "Words.narrow", "Words.pack", "Words.widen"),
 	demo("bytes", "ByteCodec", "ByteCodec.decodeBE", "ByteCodec.decodeLE", "ByteCodec.encodeBE", "ByteCodec.encodeLE"),
