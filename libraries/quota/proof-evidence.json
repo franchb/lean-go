@@ -88,7 +88,7 @@
     }
   ],
   "contract_sha256": "480824820e5d9ca89b8d28fdbc62c4e01aa70dd9e4fdce548ab7eacbf918caef",
-  "generated_manifest_sha256": "3e634234f09bb00b3f3d022c1265a67e4e771aa365e0d3d5a2a710c94308c50e",
+  "generated_manifest_sha256": "abd849fd3f3bae398ea7319a35fe29c722b1afe3c9e4590b2b2d02b3729c5b2a",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Quota",
@@ -110,7 +110,7 @@
     "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
     "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
     "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
+    "scripts/export.py": "29ddf8d85b5db2fee00fdbd82a5e7ce731db4ee3acf1fecb93c46166b0ee4cd4",
     "scripts/export_module.py": "97d39b82eebcdaee9bf47103571c4b69e247ee7f7e2f6c2d819fd8fee0396bea",
     "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
     "scripts/proof_contract.py": "cd43488489fa8f82799e411637ce5116fd50c7483c05083db3cac5d02932cc26",
