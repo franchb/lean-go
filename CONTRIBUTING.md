@@ -29,7 +29,12 @@ a fresh output path: differing existing artifacts are intentionally preserved an
 rejected. Review the resulting source, IR and manifest together. Source bytes are
 hashed; keep repository text in LF form.
 To regenerate every tracked module artifact and its proof evidence after a generator,
-validator or producer change, run `uv run --locked python scripts/regenerate_all.py`.
+validator or producer change, run `go run ./cmd/lean-go regenerate` (or the
+wrapper `uv run --locked python scripts/regenerate_all.py`). It also
+regenerates the wire-format examples and is idempotent: a second run reports
+`0 of N artifacts changed`. The Lean-gated parity tests compare fresh artifacts
+with the tracked ones:
+`LEAN_GO_PARITY=1 go test -count=1 -timeout 3h ./internal/artifacts/ ./internal/pipeline/`.
 
 For a library with source proofs, use a [proof contract](docs/proof-contracts.md)
 and independently authored expected propositions. Review the requirements,

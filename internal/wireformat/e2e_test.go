@@ -6,13 +6,15 @@ import (
 	"slices"
 	"testing"
 	"time"
+
+	"github.com/franchb/lean-go/internal/pipeline"
 )
 
 // TestEndToEnd regenerates every example from its spec with Lean: render the
 // sources, extract, check the proof contract, compare every resulting file
 // with the tracked example byte for byte, then build and test the fresh copy
 // together with the example's hand-written tests. It needs the pinned Lean
-// toolchain, uv and the repository's Python tooling.
+// toolchain on PATH.
 func TestEndToEnd(t *testing.T) {
 	if os.Getenv("LEAN_GO_FORMATS") != "1" {
 		t.Skip("set LEAN_GO_FORMATS=1 to run extraction and the proof checker")
@@ -41,7 +43,7 @@ func TestEndToEnd(t *testing.T) {
 			}
 			dir := filepath.Join(t.TempDir(), f.Name)
 			start := time.Now()
-			if err := Render("../..", f, dir); err != nil {
+			if err := Render(f, dir, pipeline.DefaultCache()); err != nil {
 				t.Fatal(err)
 			}
 			t.Logf("%s: rendered, extracted and proof-checked %d claims in %s", f.Name, f.ClaimCount(), time.Since(start).Round(time.Second))
