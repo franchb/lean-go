@@ -38,6 +38,9 @@ class PackageTests(unittest.TestCase):
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory / 'templates').glob('*.tmpl'))
         self.assertEqual(set(mapping), expected)
         self.assertEqual(mapping, {name: 'lean_go/_payload/' + name for name in expected})
+        # A wheel rebuilt from the sdist needs every payload file in the sdist too.
+        sdist = {name.removeprefix('/') for name in config['tool']['hatch']['build']['targets']['sdist']['include']}
+        self.assertEqual(expected - sdist, set())
         with cli.workspace() as workspace:
             found = {path.relative_to(workspace).as_posix() for path in workspace.rglob('*') if path.is_file()}
             self.assertEqual(found, expected)
