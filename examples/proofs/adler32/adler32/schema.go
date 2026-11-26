@@ -128,10 +128,12 @@ func rootSignature(root string) (int, int, []int, bool) {
 	switch root {
 	case "Adler32.checksum":
 		return 0, 0, []int{1}, true
+	case "Adler32.combine":
+		return 1, 0, []int{0, 0, 4}, true
 	case "Adler32.initial":
-		return 1, 1, []int{}, true
+		return 4, 1, []int{}, true
 	case "Adler32.update":
-		return 4, 1, []int{1, 3}, true
+		return 10, 1, []int{1, 3}, true
 	}
 	return 0, 0, nil, false
 }

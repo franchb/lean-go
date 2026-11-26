@@ -9,7 +9,8 @@ import standalone_demo as shared
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = Path('examples/proofs/adler32')
 OUTPUT = 'Adler-32("Wikipedia") = 0x11E60398\n'
-SPEC = shared.Demo('adler32', 'Adler32', ('Adler32.checksum', 'Adler32.initial', 'Adler32.update'), (
+SPEC = shared.Demo('adler32', 'Adler32', ('Adler32.checksum', 'Adler32.combine', 'Adler32.initial', 'Adler32.update'), (
+    ('Adler32CombineProofs.combine_spec', 'Adler32Contract.combine_spec'),
     ('Adler32Proofs.chunks_spec', 'Adler32Contract.chunks_spec'),
     ('Adler32Proofs.step_spec', 'Adler32Contract.step_spec'),
 ))

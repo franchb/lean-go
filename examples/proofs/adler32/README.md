@@ -14,7 +14,20 @@ CGO_ENABLED=0 go run .
 
 The source proof checks one step from any state with both sums below 65521 against a natural-number reference. From the standard seed, any list of chunks gives the same pair of sums as processing its concatenation with that reference. Go tests compare the packed checksum and streaming prefixes with `hash/adler32` and compare the raw and slice APIs at each of the seven resource limits. [Contract](proof/Adler32Contract.lean) · [Proofs](proof/Adler32Proofs.lean) · [Go tests](main_test.go)
 
-To regenerate the package and verify the two proof claims, use the development checkout with Python 3.15 via uv, Go 1.27.4 and the default Lean 4.36.0 pin. Run these commands from the repository root.
+## Independent chunks
+
+`RunCombine(left, right, rightLength, limits)` takes two packed `uint32` checksums, each computed from the standard seed, and the byte length of the right-hand chunk as a `uint64`. Either chunk may be empty. The result is the packed checksum of their concatenation. Keep the original chunk order when combining workers' results.
+
+```go
+left := adler32.Checksum([]byte("Wiki"))
+right := adler32.Checksum([]byte("pedia"))
+sum, err := extracted.RunCombine(left, right, uint64(len("pedia")), extracted.DefaultLimits())
+// On success, sum is 0x11e60398.
+```
+
+The extra high-sum contribution is the length of the right chunk multiplied by the left low sum minus the independent seed of one, all modulo 65521. The extracted function reduces both 32-bit halves of the length in a fixed number of operations. Lean proves the packed result equals a fresh checksum of the concatenation whenever the supplied length equals the right chunk's length. The Go tests compare actual splits with `hash/adler32` and use an independent zero-suffix formula through the maximum `uint64` length. [Combination proof](proof/Adler32CombineProofs.lean) · [zlib checksum API](https://zlib.net/manual.html#Checksum)
+
+To regenerate the package and verify the three proof claims, use the development checkout with Python 3.15 via uv, Go 1.27.4 and the default Lean 4.36.0 pin. Run these commands from the repository root.
 
 ```sh
 uv sync --locked --reinstall-package lean-go-tools

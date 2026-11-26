@@ -5,10 +5,15 @@
   "module": "Adler32",
   "roots": [
     "Adler32.checksum",
+    "Adler32.combine",
     "Adler32.initial",
     "Adler32.update"
   ],
   "claims": [
+    {
+      "theorem": "Adler32CombineProofs.combine_spec",
+      "expected": "Adler32Contract.combine_spec"
+    },
     {
       "theorem": "Adler32Proofs.chunks_spec",
       "expected": "Adler32Contract.chunks_spec"

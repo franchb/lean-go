@@ -31,15 +31,23 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 		initial = frame{function: 0, destination: -1, slots: make([]*node, 6)}
 		initial.slots[0] = args[0]
 	case 1:
+		if err := b.enter(7, 0); err != nil {
+			return nil, err
+		}
+		initial = frame{function: 1, destination: -1, slots: make([]*node, 7)}
+		initial.slots[0] = args[0]
+		initial.slots[1] = args[1]
+		initial.slots[2] = args[2]
+	case 4:
 		if err := b.enter(3, 0); err != nil {
 			return nil, err
 		}
-		initial = frame{function: 1, destination: -1, slots: make([]*node, 3)}
-	case 4:
+		initial = frame{function: 4, destination: -1, slots: make([]*node, 3)}
+	case 10:
 		if err := b.enter(6, 0); err != nil {
 			return nil, err
 		}
-		initial = frame{function: 4, destination: -1, slots: make([]*node, 6)}
+		initial = frame{function: 10, destination: -1, slots: make([]*node, 6)}
 		initial.slots[0] = args[0]
 		initial.slots[1] = args[1]
 	default:
@@ -104,6 +112,254 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 		case 1:
 			switch f.pc {
 			case 0:
+				if err := b.enter(6, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 9, 3, 6)
+				next.slots[0] = f.slots[0]
+				f.pc = 1
+				stack = append(stack, next)
+			case 1:
+				if err := b.enter(6, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 9, 4, 6)
+				next.slots[0] = f.slots[1]
+				f.pc = 2
+				stack = append(stack, next)
+			case 2:
+				if err := b.enter(19, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 2, 5, 19)
+				next.slots[0] = f.slots[3]
+				next.slots[1] = f.slots[4]
+				next.slots[2] = f.slots[2]
+				f.pc = 3
+				stack = append(stack, next)
+			case 3:
+				if err := b.enter(6, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 0, 6, 6)
+				next.slots[0] = f.slots[5]
+				f.pc = 4
+				stack = append(stack, next)
+			case 4:
+				value := f.slots[6]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 2:
+			switch f.pc {
+			case 0:
+				if f.slots[0] == nil {
+					return nil, ErrMalformed
+				}
+				switch f.slots[0].tag {
+				case 0:
+					f.slots[3] = f.slots[0].fields[0]
+					f.slots[4] = f.slots[0].fields[1]
+					f.pc = 1
+				default:
+					return nil, ErrMalformed
+				}
+			case 1:
+				if f.slots[1] == nil {
+					return nil, ErrMalformed
+				}
+				switch f.slots[1].tag {
+				case 0:
+					f.slots[5] = f.slots[1].fields[0]
+					f.slots[6] = f.slots[1].fields[1]
+					f.pc = 2
+				default:
+					return nil, ErrMalformed
+				}
+			case 2:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 65520
+				f.slots[7] = value
+				f.pc = 3
+			case 3:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[3].scalar + f.slots[7].scalar
+				f.slots[8] = value
+				f.pc = 4
+			case 4:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 9, 4)
+				next.slots[0] = f.slots[8]
+				f.pc = 5
+				stack = append(stack, next)
+			case 5:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[9].scalar + f.slots[5].scalar
+				f.slots[10] = value
+				f.pc = 6
+			case 6:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 11, 4)
+				next.slots[0] = f.slots[10]
+				f.pc = 7
+				stack = append(stack, next)
+			case 7:
+				if err := b.enter(11, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 5, 12, 11)
+				next.slots[0] = f.slots[2]
+				f.pc = 8
+				stack = append(stack, next)
+			case 8:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[9].scalar * f.slots[12].scalar
+				f.slots[13] = value
+				f.pc = 9
+			case 9:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 14, 4)
+				next.slots[0] = f.slots[13]
+				f.pc = 10
+				stack = append(stack, next)
+			case 10:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[4].scalar + f.slots[6].scalar
+				f.slots[15] = value
+				f.pc = 11
+			case 11:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[15].scalar + f.slots[14].scalar
+				f.slots[16] = value
+				f.pc = 12
+			case 12:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 17, 4)
+				next.slots[0] = f.slots[16]
+				f.pc = 13
+				stack = append(stack, next)
+			case 13:
+				value, err := b.make(1, 0, []*node{f.slots[11], f.slots[17]})
+				if err != nil {
+					return nil, err
+				}
+				f.slots[18] = value
+				f.pc = 14
+			case 14:
+				value := f.slots[18]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 3:
+			switch f.pc {
+			case 0:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 65535
+				f.slots[1] = value
+				f.pc = 1
+			case 1:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[0].scalar & f.slots[1].scalar
+				f.slots[2] = value
+				f.pc = 2
+			case 2:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 16
+				f.slots[3] = value
+				f.pc = 3
+			case 3:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[0].scalar >> (f.slots[3].scalar & 31)
+				f.slots[4] = value
+				f.pc = 4
+			case 4:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 15
+				f.slots[5] = value
+				f.pc = 5
+			case 5:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[4].scalar * f.slots[5].scalar
+				f.slots[6] = value
+				f.pc = 6
+			case 6:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[2].scalar + f.slots[6].scalar
+				f.slots[7] = value
+				f.pc = 7
+			case 7:
+				value := f.slots[7]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 4:
+			switch f.pc {
+			case 0:
 				value, err := b.make(0, 0, nil)
 				if err != nil {
 					return nil, err
@@ -137,7 +393,100 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 			default:
 				return nil, ErrMalformed
 			}
-		case 2:
+		case 5:
+			switch f.pc {
+			case 0:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = uint32(f.slots[0].scalar64)
+				f.slots[1] = value
+				f.pc = 1
+			case 1:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 2, 4)
+				next.slots[0] = f.slots[1]
+				f.pc = 2
+				stack = append(stack, next)
+			case 2:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 225
+				f.slots[3] = value
+				f.pc = 3
+			case 3:
+				value, err := b.make(4, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar64 = 32
+				f.slots[4] = value
+				f.pc = 4
+			case 4:
+				value, err := b.make(4, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar64 = f.slots[0].scalar64 >> (f.slots[4].scalar64 & 63)
+				f.slots[5] = value
+				f.pc = 5
+			case 5:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = uint32(f.slots[5].scalar64)
+				f.slots[6] = value
+				f.pc = 6
+			case 6:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 7, 4)
+				next.slots[0] = f.slots[6]
+				f.pc = 7
+				stack = append(stack, next)
+			case 7:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[3].scalar * f.slots[7].scalar
+				f.slots[8] = value
+				f.pc = 8
+			case 8:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[2].scalar + f.slots[8].scalar
+				f.slots[9] = value
+				f.pc = 9
+			case 9:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 7, 10, 4)
+				next.slots[0] = f.slots[9]
+				f.pc = 10
+				stack = append(stack, next)
+			case 10:
+				value := f.slots[10]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 6:
 			switch f.pc {
 			case 0:
 				value, err := b.make(0, 0, nil)
@@ -197,7 +546,44 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 			default:
 				return nil, ErrMalformed
 			}
-		case 3:
+		case 7:
+			switch f.pc {
+			case 0:
+				if err := b.enter(8, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 3, 1, 8)
+				next.slots[0] = f.slots[0]
+				f.pc = 1
+				stack = append(stack, next)
+			case 1:
+				if err := b.enter(8, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 3, 2, 8)
+				next.slots[0] = f.slots[1]
+				f.pc = 2
+				stack = append(stack, next)
+			case 2:
+				if err := b.enter(4, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 6, 3, 4)
+				next.slots[0] = f.slots[2]
+				f.pc = 3
+				stack = append(stack, next)
+			case 3:
+				value := f.slots[3]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 8:
 			switch f.pc {
 			case 0:
 				if f.slots[0] == nil {
@@ -231,7 +617,7 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 				if err := b.enter(4, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frameForCall(stack, 2, 6, 4)
+				next := frameForCall(stack, 6, 6, 4)
 				next.slots[0] = f.slots[5]
 				f.pc = 4
 				stack = append(stack, next)
@@ -247,7 +633,7 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 				if err := b.enter(4, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frameForCall(stack, 2, 8, 4)
+				next := frameForCall(stack, 6, 8, 4)
 				next.slots[0] = f.slots[7]
 				f.pc = 6
 				stack = append(stack, next)
@@ -269,7 +655,59 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 			default:
 				return nil, ErrMalformed
 			}
-		case 4:
+		case 9:
+			switch f.pc {
+			case 0:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 65535
+				f.slots[1] = value
+				f.pc = 1
+			case 1:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[0].scalar & f.slots[1].scalar
+				f.slots[2] = value
+				f.pc = 2
+			case 2:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = 16
+				f.slots[3] = value
+				f.pc = 3
+			case 3:
+				value, err := b.make(0, 0, nil)
+				if err != nil {
+					return nil, err
+				}
+				value.scalar = f.slots[0].scalar >> (f.slots[3].scalar & 31)
+				f.slots[4] = value
+				f.pc = 4
+			case 4:
+				value, err := b.make(1, 0, []*node{f.slots[2], f.slots[4]})
+				if err != nil {
+					return nil, err
+				}
+				f.slots[5] = value
+				f.pc = 5
+			case 5:
+				value := f.slots[5]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 10:
 			switch f.pc {
 			case 0:
 				if f.slots[1] == nil {
@@ -297,7 +735,7 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 				if err := b.enter(10, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frameForCall(stack, 3, 4, 10)
+				next := frameForCall(stack, 8, 4, 10)
 				next.slots[0] = f.slots[0]
 				next.slots[1] = f.slots[2]
 				f.pc = 3
@@ -306,7 +744,7 @@ func execute(b *budget, entry int, args []*node) (*node, error) {
 				if err := b.enter(6, len(stack)); err != nil {
 					return nil, err
 				}
-				next := frameForCall(stack, 4, 5, 6)
+				next := frameForCall(stack, 10, 5, 6)
 				next.slots[0] = f.slots[4]
 				next.slots[1] = f.slots[3]
 				f.pc = 4

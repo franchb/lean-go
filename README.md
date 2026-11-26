@@ -193,7 +193,7 @@ takes the generated record and a borrowed `[]byte`, then returns an updated
 record. These exports use IR v22 for one root or v23 for multiple roots and
 generator v18. The Adler-32 example proves chunk equivalence to two natural
 number sums modulo 65521 and checks the packed checksum against Go's
-`hash/adler32`. [Adler-32 example](examples/proofs/adler32)
+`hash/adler32`. The development checkout also combines independently computed checksums using the byte length of the right-hand message. [Adler-32 example](examples/proofs/adler32)
 
 In alpha.14, a root of the form
 `def update (state : UInt32) (xs : List UInt8) := xs.foldl step state`

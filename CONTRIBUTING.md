@@ -38,7 +38,7 @@ The [alpha.15 release](docs/releases/v0.1.0-alpha.15.md), Python package
 `0.1.0a15`, includes eight standalone demos with 56 source claims and a checksummed frame with two composition claims. Generator v18 emits native loops for eligible two-word record folds. The frame uses a v2 composition contract to bind both component manifests.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
-the checkout uses generator v18 and adds the [Adler-32 record fold](examples/proofs/adler32).
+the checkout adds [combination of independently computed Adler-32 checksums](examples/proofs/adler32#independent-chunks).
 After changing a demo or CLI handoff, run the relevant verifier unit tests and
 the complete installed-wheel smoke:
 
@@ -53,7 +53,7 @@ uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all eight demos, compares exact bytes, freshly checks all 56 source
+it regenerates all eight demos, compares exact bytes, freshly checks all 57 source
 claims and deploys each using only Go sources and `go.mod`. It also checks the two frame claims against both component manifests. Root Go tests also
 exercise all eight standalone demos by copying them into isolated Go-only
 environments. Tests inside a nested module

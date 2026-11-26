@@ -3,6 +3,7 @@ package modulegen
 import (
 	"bytes"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/franchb/lean-go/internal/moduleir"
@@ -61,7 +62,8 @@ func TestExportedRecordStepAndFold(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p.Roots = []string{"Adler32.checksum", "Adler32.initial", "Adler32.step", "Adler32.update"}
+	p.Roots = append(p.Roots, "Adler32.step")
+	slices.Sort(p.Roots)
 	files, err := Generate(p)
 	if err != nil {
 		t.Fatal(err)

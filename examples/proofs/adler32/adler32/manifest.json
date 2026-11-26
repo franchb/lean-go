@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v18",
   "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
   "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "7651d2b42f0320bce465e3f67703ff574192c0f2f2008d7a6e9fd988d0480f38",
+  "ir_sha256": "48218b33cebb440b15f6469f54dc94beb54587a7461d22ef9a32ba3961461772",
   "program": {
     "schema": "lean-go-ir/v23",
     "profile": "pure-module/v21",
@@ -13,6 +13,7 @@
     "module": "Adler32",
     "roots": [
       "Adler32.checksum",
+      "Adler32.combine",
       "Adler32.initial",
       "Adler32.update"
     ],
@@ -31,7 +32,7 @@
       "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
-      "source/Adler32.lean": "9263491c9a5af3553ca52f3997f37bff7e10291cc929c509ef20fa1508bf9c69"
+      "source/Adler32.lean": "f94a2d3d8eb502bcaa9b97ebfca8d87f8ca0e5b5a17a9f4ae64ab0ebceb5cce9"
     },
     "types": [
       {
@@ -122,12 +123,88 @@
         "rewrites": []
       },
       {
+        "name": "Adler32.combine",
+        "dependencies": [
+          "Adler32.checksum",
+          "Adler32.combineState",
+          "Adler32.unpack",
+          "UInt32",
+          "UInt64"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Adler32.combineState",
+        "dependencies": [
+          "Adler32.State",
+          "Adler32.State.high",
+          "Adler32.State.low",
+          "Adler32.State.mk",
+          "Adler32.lengthResidue",
+          "Adler32.residue",
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt64",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instMulUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Adler32.fold16",
+        "dependencies": [
+          "HAdd.hAdd",
+          "HAnd.hAnd",
+          "HMul.hMul",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAddUInt32",
+          "instAndOpUInt32",
+          "instHAdd",
+          "instHAndOfAndOp",
+          "instHMul",
+          "instHShiftRightOfShiftRight",
+          "instMulUInt32",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
         "name": "Adler32.initial",
         "dependencies": [
           "Adler32.State.mk",
           "OfNat.ofNat",
           "UInt32",
           "UInt32.instOfNat"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Adler32.lengthResidue",
+        "dependencies": [
+          "Adler32.residue",
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt64",
+          "UInt64.instOfNat",
+          "UInt64.toUInt32",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instHShiftRightOfShiftRight",
+          "instMulUInt32",
+          "instShiftRightUInt64"
         ],
         "rewrites": []
       },
@@ -144,6 +221,15 @@
           "instLTUInt32",
           "instSubUInt32",
           "ite"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Adler32.residue",
+        "dependencies": [
+          "Adler32.fold16",
+          "Adler32.reduce",
+          "UInt32"
         ],
         "rewrites": []
       },
@@ -165,6 +251,22 @@
         "rewrites": []
       },
       {
+        "name": "Adler32.unpack",
+        "dependencies": [
+          "Adler32.State.mk",
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
         "name": "Adler32.update",
         "dependencies": [
           "Adler32.State",
@@ -181,12 +283,27 @@
         "rewrites": []
       },
       {
+        "name": "HAnd.hAnd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HMul.hMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
         "name": "HOr.hOr",
         "dependencies": [],
         "rewrites": []
       },
       {
         "name": "HShiftLeft.hShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftRight.hShiftRight",
         "dependencies": [],
         "rewrites": []
       },
@@ -216,6 +333,16 @@
         "rewrites": []
       },
       {
+        "name": "UInt64.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt64.toUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
         "name": "UInt8.toUInt32",
         "dependencies": [],
         "rewrites": []
@@ -226,7 +353,22 @@
         "rewrites": []
       },
       {
+        "name": "instAndOpUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
         "name": "instHAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAndOfAndOp",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHMul",
         "dependencies": [],
         "rewrites": []
       },
@@ -241,6 +383,11 @@
         "rewrites": []
       },
       {
+        "name": "instHShiftRightOfShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
         "name": "instHSub",
         "dependencies": [],
         "rewrites": []
@@ -251,12 +398,27 @@
         "rewrites": []
       },
       {
+        "name": "instMulUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
         "name": "instOrOpUInt32",
         "dependencies": [],
         "rewrites": []
       },
       {
         "name": "instShiftLeftUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftRightUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftRightUInt64",
         "dependencies": [],
         "rewrites": []
       },
@@ -350,6 +512,432 @@
         }
       },
       {
+        "name": "Adler32.combine",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          },
+          {
+            "id": 2,
+            "type": "UInt32"
+          },
+          {
+            "id": 3,
+            "type": "UInt64"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 4,
+            "type": "Adler32.State"
+          },
+          "value": {
+            "kind": "call",
+            "name": "Adler32.unpack",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 5,
+              "type": "Adler32.State"
+            },
+            "value": {
+              "kind": "call",
+              "name": "Adler32.unpack",
+              "args": [
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 6,
+                "type": "Adler32.State"
+              },
+              "value": {
+                "kind": "call",
+                "name": "Adler32.combineState",
+                "args": [
+                  4,
+                  5,
+                  3
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 7,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "call",
+                  "name": "Adler32.checksum",
+                  "args": [
+                    6
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 7
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Adler32.combineState",
+        "params": [
+          {
+            "id": 1,
+            "type": "Adler32.State"
+          },
+          {
+            "id": 2,
+            "type": "Adler32.State"
+          },
+          {
+            "id": 3,
+            "type": "UInt64"
+          }
+        ],
+        "result": "Adler32.State",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Adler32.State",
+          "result": "Adler32.State",
+          "alts": [
+            {
+              "constructor": "Adler32.State.mk",
+              "params": [
+                {
+                  "id": 4,
+                  "type": "UInt32"
+                },
+                {
+                  "id": 5,
+                  "type": "UInt32"
+                }
+              ],
+              "body": {
+                "op": "cases",
+                "var": 2,
+                "type": "Adler32.State",
+                "result": "Adler32.State",
+                "alts": [
+                  {
+                    "constructor": "Adler32.State.mk",
+                    "params": [
+                      {
+                        "id": 6,
+                        "type": "UInt32"
+                      },
+                      {
+                        "id": 7,
+                        "type": "UInt32"
+                      }
+                    ],
+                    "body": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "uint32",
+                        "name": "65520",
+                        "args": []
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 9,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "primitive",
+                          "name": "UInt32.add",
+                          "args": [
+                            4,
+                            8
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 10,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "call",
+                            "name": "Adler32.residue",
+                            "args": [
+                              9
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 11,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.add",
+                              "args": [
+                                10,
+                                6
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 12,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "call",
+                                "name": "Adler32.residue",
+                                "args": [
+                                  11
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 13,
+                                  "type": "UInt32"
+                                },
+                                "value": {
+                                  "kind": "call",
+                                  "name": "Adler32.lengthResidue",
+                                  "args": [
+                                    3
+                                  ]
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 14,
+                                    "type": "UInt32"
+                                  },
+                                  "value": {
+                                    "kind": "primitive",
+                                    "name": "UInt32.mul",
+                                    "args": [
+                                      10,
+                                      13
+                                    ]
+                                  },
+                                  "next": {
+                                    "op": "let",
+                                    "bind": {
+                                      "id": 15,
+                                      "type": "UInt32"
+                                    },
+                                    "value": {
+                                      "kind": "call",
+                                      "name": "Adler32.residue",
+                                      "args": [
+                                        14
+                                      ]
+                                    },
+                                    "next": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 16,
+                                        "type": "UInt32"
+                                      },
+                                      "value": {
+                                        "kind": "primitive",
+                                        "name": "UInt32.add",
+                                        "args": [
+                                          5,
+                                          7
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 17,
+                                          "type": "UInt32"
+                                        },
+                                        "value": {
+                                          "kind": "primitive",
+                                          "name": "UInt32.add",
+                                          "args": [
+                                            16,
+                                            15
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "let",
+                                          "bind": {
+                                            "id": 18,
+                                            "type": "UInt32"
+                                          },
+                                          "value": {
+                                            "kind": "call",
+                                            "name": "Adler32.residue",
+                                            "args": [
+                                              17
+                                            ]
+                                          },
+                                          "next": {
+                                            "op": "let",
+                                            "bind": {
+                                              "id": 19,
+                                              "type": "Adler32.State"
+                                            },
+                                            "value": {
+                                              "kind": "constructor",
+                                              "name": "Adler32.State.mk",
+                                              "args": [
+                                                12,
+                                                18
+                                              ]
+                                            },
+                                            "next": {
+                                              "op": "return",
+                                              "var": 19
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Adler32.fold16",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "65535",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.land",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "16",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.shiftRight",
+                  "args": [
+                    1,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "uint32",
+                    "name": "15",
+                    "args": []
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 7,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.mul",
+                      "args": [
+                        5,
+                        6
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.add",
+                        "args": [
+                          3,
+                          7
+                        ]
+                      },
+                      "next": {
+                        "op": "return",
+                        "var": 8
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
         "name": "Adler32.initial",
         "params": [],
         "result": "Adler32.State",
@@ -392,6 +980,159 @@
               "next": {
                 "op": "return",
                 "var": 3
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Adler32.lengthResidue",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt64"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt64.toUInt32",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "call",
+              "name": "Adler32.residue",
+              "args": [
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "225",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt64"
+                },
+                "value": {
+                  "kind": "uint64",
+                  "name": "32",
+                  "args": []
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "UInt64"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt64.shiftRight",
+                    "args": [
+                      1,
+                      5
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 7,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt64.toUInt32",
+                      "args": [
+                        6
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "call",
+                        "name": "Adler32.residue",
+                        "args": [
+                          7
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 9,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "primitive",
+                          "name": "UInt32.mul",
+                          "args": [
+                            4,
+                            8
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 10,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.add",
+                            "args": [
+                              3,
+                              9
+                            ]
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 11,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "call",
+                              "name": "Adler32.residue",
+                              "args": [
+                                10
+                              ]
+                            },
+                            "next": {
+                              "op": "return",
+                              "var": 11
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -469,6 +1210,62 @@
                   }
                 }
               ]
+            }
+          }
+        }
+      },
+      {
+        "name": "Adler32.residue",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "call",
+            "name": "Adler32.fold16",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "call",
+              "name": "Adler32.fold16",
+              "args": [
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "call",
+                "name": "Adler32.reduce",
+                "args": [
+                  3
+                ]
+              },
+              "next": {
+                "op": "return",
+                "var": 4
+              }
             }
           }
         }
@@ -600,6 +1397,89 @@
         }
       },
       {
+        "name": "Adler32.unpack",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "Adler32.State",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "65535",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.land",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "16",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.shiftRight",
+                  "args": [
+                    1,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "Adler32.State"
+                  },
+                  "value": {
+                    "kind": "constructor",
+                    "name": "Adler32.State.mk",
+                    "args": [
+                      3,
+                      5
+                    ]
+                  },
+                  "next": {
+                    "op": "return",
+                    "var": 6
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
         "name": "Adler32.update",
         "params": [
           {
@@ -688,10 +1568,16 @@
   },
   "function_ids": {
     "Adler32.checksum": 0,
-    "Adler32.initial": 1,
-    "Adler32.reduce": 2,
-    "Adler32.step": 3,
-    "Adler32.update": 4
+    "Adler32.combine": 1,
+    "Adler32.combineState": 2,
+    "Adler32.fold16": 3,
+    "Adler32.initial": 4,
+    "Adler32.lengthResidue": 5,
+    "Adler32.reduce": 6,
+    "Adler32.residue": 7,
+    "Adler32.step": 8,
+    "Adler32.unpack": 9,
+    "Adler32.update": 10
   },
   "constructor_ids": {
     "Adler32.State.mk": [
@@ -716,10 +1602,10 @@
     ]
   },
   "generated_files": {
-    "api.go": "ffaee133138888672884a3949e4754edbbac48eea172dbf5ef775e3bd3544a92",
-    "control.go": "4b95792744dbeb54df5180c971164f655f5dc3c4c114c61d737168184a6a20be",
+    "api.go": "42566e5c759b4b7de90fcba09c1e632751260c276995085259aba4d1f9fa2ddc",
+    "control.go": "599c619cf4e2ff7005bc3740a2469fd70873fea01cd0fe5ecc0d641f09203a98",
     "runtime.go": "44bbc7953117b3e07297bf8600f3c226e161fd48aac8f8408ec0e5b405c86569",
-    "schema.go": "618e8f93190c2ec0c8907d538b3ed48fc7bdf9666bbdae0dcadbc775f57c6717"
+    "schema.go": "4585181cc52d368b3215c0c657a4c893626f095c10759cfdf6c924d037b2cd19"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
   "primitives": [
@@ -742,6 +1628,15 @@
       "semantics": "unsigned a \u003c b"
     },
     {
+      "name": "UInt32.land",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "bitwise AND of 32-bit operands"
+    },
+    {
       "name": "UInt32.lor",
       "params": [
         "UInt32",
@@ -749,6 +1644,15 @@
       ],
       "result": "UInt32",
       "semantics": "bitwise OR of 32-bit operands"
+    },
+    {
+      "name": "UInt32.mul",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a * b) modulo 2^32"
     },
     {
       "name": "UInt32.shiftLeft",
@@ -760,6 +1664,15 @@
       "semantics": "(a * 2^(b modulo 32)) modulo 2^32"
     },
     {
+      "name": "UInt32.shiftRight",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "floor(a / 2^(b modulo 32))"
+    },
+    {
       "name": "UInt32.sub",
       "params": [
         "UInt32",
@@ -767,6 +1680,23 @@
       ],
       "result": "UInt32",
       "semantics": "(a - b) modulo 2^32"
+    },
+    {
+      "name": "UInt64.shiftRight",
+      "params": [
+        "UInt64",
+        "UInt64"
+      ],
+      "result": "UInt64",
+      "semantics": "floor(a / 2^(b modulo 64))"
+    },
+    {
+      "name": "UInt64.toUInt32",
+      "params": [
+        "UInt64"
+      ],
+      "result": "UInt32",
+      "semantics": "a modulo 2^32"
     },
     {
       "name": "UInt8.toUInt32",
@@ -780,6 +1710,7 @@
   "go_api": {
     "entrypoints": {
       "Adler32.checksum": "RunChecksum",
+      "Adler32.combine": "RunCombine",
       "Adler32.initial": "RunInitial",
       "Adler32.update": "RunUpdate"
     },
