@@ -140,6 +140,16 @@ func (v List_UInt8) AsCons() (uint8, List_UInt8, bool) {
 	return a0, a1, true
 }
 
+// scalarWork charges the same IR steps and logical scalar allocations as execute.
+func (b *budget) scalarWork(steps, allocations uint64) bool {
+	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
+		return false
+	}
+	b.steps += steps
+	b.allocations += allocations
+	return true
+}
+
 // RunChecksum invokes its selected Lean root through RunRoot and its existing limits.
 func RunChecksum(a0 State, l Limits) (uint32, error) {
 	out, err := RunRoot("Adler32.checksum", []Value{{n: a0.v.n}}, l)
@@ -165,6 +175,59 @@ func RunInitial(l Limits) (State, error) {
 	value := State{v: Value{out.n}}
 	return value, nil
 }
+func scalarFunc2(b *budget, depth int, v1 uint32) (uint32, error) {
+	if err := b.enter(4, depth); err != nil {
+		return 0, err
+	}
+	if !b.scalarWork(3, 2) {
+		return 0, ErrResource
+	}
+	v2 := uint32(65521)
+	v3 := v1 < v2
+	if v3 {
+		if !b.scalarWork(1, 0) {
+			return 0, ErrResource
+		}
+		return v1, nil
+	}
+	if !b.scalarWork(2, 1) {
+		return 0, ErrResource
+	}
+	v4 := v1 - v2
+	return v4, nil
+}
+func scalarFunc3(b *budget, depth int, v1 [2]uint32, v2 uint8) ([2]uint32, error) {
+	if err := b.enter(10, depth); err != nil {
+		return [2]uint32{}, err
+	}
+	if !b.scalarWork(1, 0) {
+		return [2]uint32{}, ErrResource
+	}
+	v3 := v1[0]
+	v4 := v1[1]
+	if !b.scalarWork(3, 2) {
+		return [2]uint32{}, ErrResource
+	}
+	v5 := uint32(v2)
+	v6 := v3 + v5
+	v7, err := scalarFunc2(b, depth+1, v6)
+	if err != nil {
+		return [2]uint32{}, err
+	}
+	if !b.scalarWork(2, 1) {
+		return [2]uint32{}, ErrResource
+	}
+	v8 := v4 + v7
+	v9, err := scalarFunc2(b, depth+1, v8)
+	if err != nil {
+		return [2]uint32{}, err
+	}
+	if !b.scalarWork(2, 1) {
+		return [2]uint32{}, ErrResource
+	}
+	v10 := [2]uint32{v7, v9}
+	return v10, nil
+}
 
 // RunUpdate borrows data for this call. Limits follow the equivalent Lean list and call tree.
 func RunUpdate(state State, data []byte, l Limits) (State, error) {
@@ -180,17 +243,32 @@ func RunUpdate(state State, data []byte, l Limits) (State, error) {
 	if l.MaxNodes < 4 || uint64(len(data)) > (l.MaxNodes-4)/2 || uint64(len(data)) >= l.MaxDepth {
 		return State{}, ErrResource
 	}
-	tail := &node{typ: 3, size: 1, depth: 1}
-	for i := len(data) - 1; i >= 0; i-- {
-		tail = &node{typ: 3, tag: 1, size: tail.size + 2, depth: tail.depth + 1, fields: []*node{apiUInt8Node(data[i]), tail}}
-	}
-	out, err := RunRoot("Adler32.update", []Value{{n: state.v.n}, {n: tail}}, l)
-	if err != nil {
+	b := budget{limits: l}
+	if err := b.enter(6, 0); err != nil {
 		return State{}, err
 	}
-	if !apiNode(out.n, 1) {
-		return State{}, ErrMalformed
+	if l.MaxOutputNodes < 3 {
+		return State{}, ErrResource
 	}
-	value := State{v: Value{out.n}}
-	return value, nil
+	words := [2]uint32{state.v.n.fields[0].scalar, state.v.n.fields[1].scalar}
+	for i, value := range data {
+		if !b.scalarWork(4, 0) {
+			return State{}, ErrResource
+		}
+		next, err := scalarFunc3(&b, i+1, words, value)
+		if err != nil {
+			return State{}, err
+		}
+		words = next
+		if err = b.enter(6, i+1); err != nil {
+			return State{}, err
+		}
+	}
+	if !b.scalarWork(2, 0) {
+		return State{}, ErrResource
+	}
+	if len(data) == 0 {
+		return state, nil
+	}
+	return NewState(words[0], words[1], l)
 }

@@ -189,3 +189,13 @@ checked-in IR into fresh directories before copying output. The quota proof
 checker rechecked ten source theorems and rebound its evidence to the new
 manifest; the source-proof claims did not change. Full native Lean regeneration
 and differential checks remain separate release gates.
+
+## Two-word record folds
+
+The benchmark calls `RunUpdate` from the standard Adler-32 seed with 256 bytes of `0xff` and default limits, retaining the result. On a Core i5-14600K, Linux/amd64 and Go 1.27.4 with cgo disabled, the median time was 66.84 µs across three runs at commit `9070a57` and 2.39 µs across five runs with generator v18. Allocations fell from 3,722 (about 277 KiB) to 4 (256 bytes) per call. Four allocations materialize the returned immutable record. Timing depends on the host.
+
+Run from `examples/proofs/adler32`:
+
+```sh
+CGO_ENABLED=0 GOMAXPROCS=2 go test -run '^$' -bench BenchmarkRecordFold256 -benchmem -benchtime=200ms -count=5 .
+```

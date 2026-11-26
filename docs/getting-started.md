@@ -7,13 +7,13 @@ the [checkout CLI](cli.md#development-checkout) and use Lean 4.36.0. The
 
 ## Run a generated package
 
-To consume the alpha.14 root Go module, run
+To consume the alpha.15 root Go module, run
 
 ```sh
 mkdir lean-go-example
 cd lean-go-example
 go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.14
+go get github.com/franchb/lean-go@v0.1.0-alpha.15
 ```
 
 Save this as `main.go`:
@@ -104,7 +104,7 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
 
 The copyable module needs only Go. To regenerate its v11 artifacts or recheck
 proof evidence, install the [CLI](cli.md#development-checkout) from this same
-checkout and follow the example's verifier instructions. For alpha.14,
+checkout and follow the example's verifier instructions. For alpha.15,
 pair its example and CLI from that tag. For historical alpha.7 reproduction, use
 its tagged example and
 [guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).

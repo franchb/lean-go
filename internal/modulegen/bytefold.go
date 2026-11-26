@@ -10,6 +10,19 @@ import (
 
 const byteListType = "List UInt8"
 
+// foldRecords maps eligible source records to their constructor in validated IR.
+func foldRecords(p *moduleir.Program) map[string]string {
+	records := make(map[string]string)
+	if moduleir.HasRecordByteFolds(p.Schema) {
+		for _, typ := range p.Types {
+			if _, ok := p.API.Records[typ.Name]; ok && slices.Equal(typ.Constructors[0].Fields, []string{"UInt32", "UInt32"}) {
+				records[typ.Name] = typ.Constructors[0].Name
+			}
+		}
+	}
+	return records
+}
+
 // Recognize the complete recurrence in validated IR. Names of roots and steps
 // are user-defined. All operands, branches and the returned state must agree.
 func byteFoldSteps(p *moduleir.Program) map[string]string {
@@ -27,16 +40,9 @@ func byteFoldSteps(p *moduleir.Program) map[string]string {
 		roots := moduleir.RootNames(p)
 		steps := make(map[string]string)
 		scalars := apiScalars(p)
-		records := map[string]bool{}
-		if moduleir.HasRecordByteFolds(p.Schema) {
-			for _, t := range p.Types {
-				if _, ok := p.API.Records[t.Name]; ok && slices.Equal(t.Constructors[0].Fields, []string{"UInt32", "UInt32"}) {
-					records[t.Name] = true
-				}
-			}
-		}
+		records := foldRecords(p)
 		for _, f := range p.Functions {
-			if _, scalar := scalars[f.Result]; (scalar || records[f.Result]) && slices.Contains(roots, f.Name) {
+			if _, scalar := scalars[f.Result]; (scalar || records[f.Result] != "") && slices.Contains(roots, f.Name) {
 				if step := byteFoldStep(f); step != "" {
 					steps[f.Name] = step
 				}
@@ -91,8 +97,21 @@ func (e *apiEmitter) byteFoldEntry(w *bytes.Buffer, f, step *function, native bo
 		// Charge the case, two calls and deferred return for each cons, and
 		// the final nil case and return. Only the Go stack is flattened.
 		fmt.Fprintf(w, "b:=budget{limits:l};if err:=b.enter(%d,0);err!=nil{return %s,err}\n", len(f.slots), zero)
-		fmt.Fprintf(w, "for i, value:=range data { if !b.scalarWork(4,0){return %s,ErrResource}; next,err:=scalarFunc%d(&b,i+1,state,value);if err!=nil{return %s,err};state=next;if err=b.enter(%d,i+1);err!=nil{return %s,err} }\n", zero, step.id, zero, len(f.slots), zero)
-		fmt.Fprintf(w, "if !b.scalarWork(2,0){return %s,ErrResource};return state,nil\n}\n", zero)
+		acc := "state"
+		ctor := e.records[typ]
+		if ctor != "" {
+			// The result and every intermediate native record have size 3 and depth 2.
+			fmt.Fprintf(w, "if l.MaxOutputNodes<3{return %s,ErrResource}\n", zero)
+			w.WriteString("words:=[2]uint32{state.v.n.fields[0].scalar,state.v.n.fields[1].scalar}\n")
+			acc = "words"
+		}
+		fmt.Fprintf(w, "for i, value:=range data { if !b.scalarWork(4,0){return %s,ErrResource}; next,err:=scalarFunc%d(&b,i+1,%s,value);if err!=nil{return %s,err};%s=next;if err=b.enter(%d,i+1);err!=nil{return %s,err} }\n", zero, step.id, acc, zero, acc, len(f.slots), zero)
+		fmt.Fprintf(w, "if !b.scalarWork(2,0){return %s,ErrResource};", zero)
+		if ctor == "" {
+			w.WriteString("return state,nil\n}\n")
+		} else {
+			fmt.Fprintf(w, "if len(data)==0{return state,nil};return %s(words[0],words[1],l)\n}\n", e.names.Constructors[ctor])
+		}
 		return
 	}
 	// For a non-native step, materialize the bounded input and use the raw

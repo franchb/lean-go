@@ -34,11 +34,11 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.14 release](docs/releases/v0.1.0-alpha.14.md), Python package
-`0.1.0a14`, includes seven standalone demos with 54 source claims and a checksummed frame with two composition claims. Generator v16 extracts byte folds to Go slices. The frame uses a v2 composition contract to bind both component manifests.
+The [alpha.15 release](docs/releases/v0.1.0-alpha.15.md), Python package
+`0.1.0a15`, includes eight standalone demos with 56 source claims and a checksummed frame with two composition claims. Generator v18 emits native loops for eligible two-word record folds. The frame uses a v2 composition contract to bind both component manifests.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
-the checkout uses generator v17 and adds the [Adler-32 record fold](examples/proofs/adler32).
+the checkout uses generator v18 and adds the [Adler-32 record fold](examples/proofs/adler32).
 After changing a demo or CLI handoff, run the relevant verifier unit tests and
 the complete installed-wheel smoke:
 

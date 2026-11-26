@@ -28,7 +28,7 @@ for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uin
 There is no fixed model hash or application name allowlist. APIs and supported
 compiler forms may change before a stable release. Start with the
 [walkthrough](docs/getting-started.md) or read the
-[alpha.14 release notes](docs/releases/v0.1.0-alpha.14.md).
+[alpha.15 release notes](docs/releases/v0.1.0-alpha.15.md).
 [Structured extraction diagnostics](docs/diagnostics.md) are available since
 alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
 `source_audit` with the source owner and location; genuine build failures retain
@@ -48,10 +48,10 @@ demo remain available alongside multi-root extraction, quota and proof contracts
 extracts fresh Go and exercises an isolated consumer.
 
 For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
-To install alpha.14 and reproduce its tagged examples, run
+To install alpha.15 and reproduce its tagged examples, run
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.14"
+uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.15"
 ```
 
 To reproduce published alpha.7, use its
@@ -187,11 +187,11 @@ classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
 The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
 
-The development checkout also accepts a byte fold whose accumulator is a Lean
+Alpha.15 accepts a byte fold whose accumulator is a Lean
 structure with exactly two direct `UInt32` fields. Its typed Go entrypoint
 takes the generated record and a borrowed `[]byte`, then returns an updated
 record. These exports use IR v22 for one root or v23 for multiple roots and
-generator v17. The Adler-32 example proves chunk equivalence to two natural
+generator v18. The Adler-32 example proves chunk equivalence to two natural
 number sums modulo 65521 and checks the packed checksum against Go's
 `hash/adler32`. [Adler-32 example](examples/proofs/adler32)
 

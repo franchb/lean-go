@@ -24,7 +24,7 @@
   "components": {
     "crc16": {
       "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
-      "generated_manifest_sha256": "01f26aae82a7ff597611777837c05f9041ea61cbecf5095b4f96a6fa981d5978",
+      "generated_manifest_sha256": "fa27d490201a958376c4d50e85a7fd4d67ace27236e69e355d0040ce8e5d1ae8",
       "module": "Crc16",
       "roots": [
         "Crc16.update",
@@ -33,7 +33,7 @@
     },
     "wire16": {
       "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
-      "generated_manifest_sha256": "cd91d891c2dddfb021e45f3309088d11f41944d5f0258d7bc904775a6b9e78fe",
+      "generated_manifest_sha256": "e4d32e644df87c68f5cb00c9eae8b9b56fb32e62e1fdccd5b5f379d31b1fe0d9",
       "module": "Wire16",
       "roots": [
         "Wire16.classify",
