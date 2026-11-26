@@ -64,6 +64,7 @@ uv run --locked python scripts/check_bytes_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_header_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_wire16_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_crc16_demo.py --cli "$checkout_cli"
+uv run --locked python scripts/check_adler32_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_checked_frame.py --cli "$checkout_cli"
 ```
 
@@ -78,7 +79,7 @@ the installed producer keeps its exact version and commit checks.
 The [Words example](../examples/proofs/words), introduced in alpha.7, uses exact
 `UInt32.toUInt64` and `UInt64.toUInt32` conversions, five roots and seven source
 claims. This checkout's regenerated Words artifacts keep v11 IR/manifest and
-`pure-module/v9` but use `lean-go-modulegen/v16`, as do its regenerated clamp and
+`pure-module/v9` but use `lean-go-modulegen/v17`, as do its regenerated clamp and
 flags artifacts. Their manifests and proof evidence require this checkout's CLI.
 The [byte codec](../examples/proofs/bytes) additionally requires the
 alpha.8 UInt8 capability: v13 IR/manifest and `pure-module/v11` for its four roots.
@@ -176,9 +177,9 @@ The install smoke test audits a direct wheel and an sdist-rebuilt wheel, install
 each in a fresh environment, verifies the actual installed imports, and runs
 external generation, proof checking and a Go-only consumer. It also checks
 read-only installed resources and paths containing spaces. Both installed wheels
-regenerate and recheck the complete standalone clamp, flags, words, bytes, header, wire16 and crc16
-demos, compare their tracked artifacts, freshly check all 54 source claims per
-wheel, and test and run all seven copied modules with Go alone. Each wheel also checks the two frame composition claims against both component manifests. `--without-lean`
+regenerate and recheck the complete standalone clamp, flags, words, bytes, header, wire16, crc16 and adler32
+demos, compare their tracked artifacts, freshly check all 56 source claims per
+wheel, and test and run all eight copied modules with Go alone. Each wheel also checks the two frame composition claims against both component manifests. `--without-lean`
 explicitly restricts this smoke test to packaging,
 help/version and missing-tool errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.

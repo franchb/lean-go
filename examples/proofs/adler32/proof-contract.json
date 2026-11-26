@@ -1,0 +1,21 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Adler32",
+  "roots": [
+    "Adler32.checksum",
+    "Adler32.initial",
+    "Adler32.update"
+  ],
+  "claims": [
+    {
+      "theorem": "Adler32Proofs.chunks_spec",
+      "expected": "Adler32Contract.chunks_spec"
+    },
+    {
+      "theorem": "Adler32Proofs.step_spec",
+      "expected": "Adler32Contract.step_spec"
+    }
+  ]
+}

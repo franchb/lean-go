@@ -21,6 +21,37 @@ func crcProgram(t *testing.T) *moduleir.Program {
 	return p
 }
 
+func TestRecordFoldRequiresSchemaAndSourceMetadata(t *testing.T) {
+	fixture, err := os.ReadFile("../../examples/proofs/adler32/adler32.ir.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		schema, profile  string
+		keepRecord, want bool
+	}{
+		{moduleir.SchemaV23, moduleir.ProfileV21, true, true},
+		{moduleir.SchemaV23, moduleir.ProfileV21, false, false},
+		{moduleir.SchemaV21, moduleir.ProfileV19, true, false},
+	} {
+		p, err := moduleir.Decode(bytes.NewReader(fixture))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Schema, p.Profile = tc.schema, tc.profile
+		if !tc.keepRecord {
+			delete(p.API.Records, "Adler32.State")
+		}
+		if err := moduleir.Validate(p); err != nil {
+			t.Fatal(err)
+		}
+		_, got := byteFoldSteps(p)["Adler32.update"]
+		if got != tc.want {
+			t.Fatalf("schema %s with record metadata %t: got slice API %t", tc.schema, tc.keepRecord, got)
+		}
+	}
+}
+
 func TestByteFoldWithNonNativeStep(t *testing.T) {
 	p := crcProgram(t)
 	for i := range p.Functions {

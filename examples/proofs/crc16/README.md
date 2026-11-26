@@ -46,7 +46,7 @@ check bytes, empty input and chunk splits. [Specification](proof/Crc16Contract.l
 
 ## Reproduce the evidence
 
-Use the CLI built from this checkout. The byte and chunk roots use generator v16 and v21 multi-root IR. From the repository root, with Go 1.27.4 and
+Use the CLI built from this checkout. The byte and chunk roots use generator v17 and v21 multi-root IR. From the repository root, with Go 1.27.4 and
 Lean 4.36.0 available, run
 
 ```sh

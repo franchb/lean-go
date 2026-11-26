@@ -23,6 +23,28 @@ def run (s : UInt32) (bytes : List UInt8) := bytes.foldl tick s
                 self.assertEqual(next(t for t in ir['types'] if t['name'] == 'List UInt8')['constructors'][1]['fields'],
                                  ['UInt8', 'List UInt8'])
 
+    def test_record_fold(self):
+        source = """structure Pair where
+  count : UInt32
+  total : UInt32
+def see (s : Pair) (b : UInt8) : Pair := ⟨s.count + 1, s.total + b.toUInt32⟩
+def run (s : Pair) (bs : List UInt8) := bs.foldl see s
+"""
+        ir = self.export(source)
+        self.assertEqual(ir['schema'], 'lean-go-ir/v22')
+        self.assertEqual(ir['api']['records']['Numeric.Pair'], ['count', 'total'])
+
+    def test_reject_other_accumulators(self):
+        for declaration, result in (
+            ('structure S where\n  a : UInt32\n  b : UInt16', '⟨s.a + b.toUInt32, s.b⟩'),
+            ('structure S where\n  a : UInt32\n  b : UInt32\n  c : UInt32', '⟨s.a + b.toUInt32, s.b, s.c⟩'),
+            ('inductive S where | mk (a b : UInt32)', 'match s with | .mk a c => .mk (a + b.toUInt32) c'),
+        ):
+            source = (declaration + '\ndef step (s : S) (b : UInt8) : S := ' + result
+                      + '\ndef run (s : S) (bs : List UInt8) := bs.foldl step s\n')
+            with self.subTest(declaration=declaration), self.assertRaises(export_module.ExportError):
+                self.export(source)
+
     def test_reject_different_recurrences(self):
         for source in (
             'def run (s : UInt32) (bs : List UInt32) := bs.foldl UInt32.add s',

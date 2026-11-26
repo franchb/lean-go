@@ -1,0 +1,24 @@
+package compatconsumer
+
+import (
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+func TestRecordFold(t *testing.T) {
+	l := x.DefaultLimits()
+	s, err := x.NewTotals(3, 4, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := x.RunTyped(s, []byte{0, 255}, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	count, ok := got.Count()
+	sum, okSum := got.Sum()
+	if !ok || !okSum || count != 5 || sum != 259 {
+		t.Fatal(count, sum)
+	}
+}

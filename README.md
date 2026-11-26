@@ -187,6 +187,14 @@ classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
 The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
 
+The development checkout also accepts a byte fold whose accumulator is a Lean
+structure with exactly two direct `UInt32` fields. Its typed Go entrypoint
+takes the generated record and a borrowed `[]byte`, then returns an updated
+record. These exports use IR v22 for one root or v23 for multiple roots and
+generator v17. The Adler-32 example proves chunk equivalence to two natural
+number sums modulo 65521 and checks the packed checksum against Go's
+`hash/adler32`. [Adler-32 example](examples/proofs/adler32)
+
 In alpha.14, a root of the form
 `def update (state : UInt32) (xs : List UInt8) := xs.foldl step state`
 can accept a read-only Go `[]byte`. The named step takes an accumulator and
