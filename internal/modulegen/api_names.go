@@ -20,6 +20,7 @@ type goAPI struct {
 	Constructors map[string]string            `json:"constructors"`
 	Accessors    map[string]map[string]string `json:"accessors"`
 	Destructors  map[string]apiDestructor     `json:"destructors"`
+	ByteFolds    map[string]string            `json:"byte_folds,omitempty"`
 	ByteArrays   map[string]apiByteArray      `json:"byte_arrays,omitempty"`
 }
 
@@ -83,7 +84,7 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 	api := &goAPI{
 		Entrypoint: "RunTyped", Types: map[string]string{}, Constructors: map[string]string{},
 		Accessors: map[string]map[string]string{}, Destructors: map[string]apiDestructor{},
-		ByteArrays: map[string]apiByteArray{},
+		ByteArrays: map[string]apiByteArray{}, ByteFolds: byteFoldSteps(p),
 	}
 	packageNames := reservedAPINames(p.Schema)
 

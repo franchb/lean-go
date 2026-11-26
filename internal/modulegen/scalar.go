@@ -51,6 +51,9 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 	}
 	roots := make(map[string]bool)
 	for _, name := range moduleir.RootNames(e.g.program) {
+		if step := e.names.ByteFolds[name]; step != "" && visit(step) {
+			roots[step] = true
+		}
 		if visit(name) {
 			roots[name] = true
 		}
@@ -72,7 +75,13 @@ func (b *budget) scalarWork(steps, allocations uint64) bool {
 	}
 	emitted := make(map[string]bool)
 	for _, root := range moduleir.RootNames(e.g.program) {
-		if roots[root] {
+		if step := e.names.ByteFolds[root]; step != "" {
+			callee := e.g.functions[step]
+			if roots[step] {
+				e.emitScalarFunction(w, callee, emitted)
+			}
+			e.byteFoldEntry(w, e.g.functions[root], callee, roots[step])
+		} else if roots[root] {
 			e.emitScalarFunction(w, e.g.functions[root], emitted)
 			e.scalarEntry(w, root)
 		} else {

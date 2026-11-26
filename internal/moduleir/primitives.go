@@ -129,6 +129,10 @@ func validProfile(schema, profile string) bool {
 		return profile == ProfileV15
 	case SchemaV18:
 		return profile == ProfileV16
+	case SchemaV20:
+		return profile == ProfileV18
+	case SchemaV21:
+		return profile == ProfileV19
 	case SchemaV19:
 		return profile == ProfileV17
 	default:
