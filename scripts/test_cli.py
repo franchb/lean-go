@@ -31,7 +31,8 @@ class PackageTests(unittest.TestCase):
                         ['generate', 'export', 'export_module', 'check_proofs', 'proof_contract', 'composition_contract',
                          'diagnostics', 'source_locations', 'module_diagnostics'])
         for directory in ['cmd/lean-go', 'internal/ir', 'internal/gogen',
-                          'internal/leanversion', 'internal/moduleir', 'internal/modulegen']:
+                          'internal/leanversion', 'internal/moduleir', 'internal/modulegen',
+                          'internal/nativegen']:
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory).glob('*.go')
                             if not path.name.endswith('_test.go'))
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory / 'templates').glob('*.tmpl'))

@@ -48,6 +48,12 @@ sources = ["src"]
 "internal/modulegen/templates.go" = "lean_go/_payload/internal/modulegen/templates.go"
 "internal/modulegen/templates/api.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/api.go.tmpl"
 "internal/modulegen/templates/runtime.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/runtime.go.tmpl"
+"internal/nativegen/functions.go" = "lean_go/_payload/internal/nativegen/functions.go"
+"internal/nativegen/generate.go" = "lean_go/_payload/internal/nativegen/generate.go"
+"internal/nativegen/model.go" = "lean_go/_payload/internal/nativegen/model.go"
+"internal/nativegen/names.go" = "lean_go/_payload/internal/nativegen/names.go"
+"internal/nativegen/primitives.go" = "lean_go/_payload/internal/nativegen/primitives.go"
+"internal/nativegen/types.go" = "lean_go/_payload/internal/nativegen/types.go"
 "internal/leanversion/identity.go" = "lean_go/_payload/internal/leanversion/identity.go"
 "internal/moduleir/api.go" = "lean_go/_payload/internal/moduleir/api.go"
 "internal/moduleir/code.go" = "lean_go/_payload/internal/moduleir/code.go"
@@ -125,6 +131,12 @@ include = [
   "/internal/modulegen/templates.go",
   "/internal/modulegen/templates/api.go.tmpl",
   "/internal/modulegen/templates/runtime.go.tmpl",
+  "/internal/nativegen/functions.go",
+  "/internal/nativegen/generate.go",
+  "/internal/nativegen/model.go",
+  "/internal/nativegen/names.go",
+  "/internal/nativegen/primitives.go",
+  "/internal/nativegen/types.go",
   "/internal/leanversion/identity.go",
   "/internal/moduleir/api.go",
   "/internal/moduleir/code.go",

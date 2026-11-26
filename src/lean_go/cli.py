@@ -26,6 +26,8 @@ def parser():
     generate.add_argument('--out', type=Path, help='Go package output directory')
     generate.add_argument('--ir-output', type=Path, help='separate producer IR output file')
     generate.add_argument('--diagnostics', choices=('text', 'json'), default='text')
+    generate.add_argument('--mode', choices=('metered', 'native'), default='metered',
+                          help='Go emission mode: resource-metered (default) or plain native Go')
     proofs = commands.add_parser('check-proofs', help='freshly check and bind source proofs')
     proofs.add_argument('--contract', type=Path, required=True)
     packages = proofs.add_mutually_exclusive_group(required=True)
@@ -108,6 +110,8 @@ def pipeline_arguments(args):
         command.extend(['--root', entry])
     if args.diagnostics != 'text':
         command.extend(['--diagnostics', args.diagnostics])
+    if args.mode != 'metered':
+        command.extend(['--mode', args.mode])
     return 'generate.py', command
 
 
