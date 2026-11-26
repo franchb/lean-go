@@ -38,7 +38,7 @@ The [alpha.14 release](docs/releases/v0.1.0-alpha.14.md), Python package
 `0.1.0a14`, includes seven standalone demos with 54 source claims and a checksummed frame with two composition claims. Generator v16 extracts byte folds to Go slices. The frame uses a v2 composition contract to bind both component manifests.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
-published alpha.7's v9 generator does not reproduce them.
+the checkout uses generator v17 and adds the [Adler-32 record fold](examples/proofs/adler32).
 After changing a demo or CLI handoff, run the relevant verifier unit tests and
 the complete installed-wheel smoke:
 
@@ -53,9 +53,9 @@ uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all seven demos, compares exact bytes, freshly checks all 54 source
+it regenerates all eight demos, compares exact bytes, freshly checks all 56 source
 claims and deploys each using only Go sources and `go.mod`. It also checks the two frame claims against both component manifests. Root Go tests also
-exercise all seven nested modules by copying them into isolated Go-only
+exercise all eight standalone demos by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
 The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to review

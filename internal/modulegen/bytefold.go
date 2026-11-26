@@ -27,8 +27,16 @@ func byteFoldSteps(p *moduleir.Program) map[string]string {
 		roots := moduleir.RootNames(p)
 		steps := make(map[string]string)
 		scalars := apiScalars(p)
+		records := map[string]bool{}
+		if moduleir.HasRecordByteFolds(p.Schema) {
+			for _, t := range p.Types {
+				if _, ok := p.API.Records[t.Name]; ok && slices.Equal(t.Constructors[0].Fields, []string{"UInt32", "UInt32"}) {
+					records[t.Name] = true
+				}
+			}
+		}
 		for _, f := range p.Functions {
-			if _, ok := scalars[f.Result]; ok && slices.Contains(roots, f.Name) {
+			if _, scalar := scalars[f.Result]; (scalar || records[f.Result]) && slices.Contains(roots, f.Name) {
 				if step := byteFoldStep(f); step != "" {
 					steps[f.Name] = step
 				}
@@ -67,18 +75,24 @@ func (e *apiEmitter) byteFoldEntry(w *bytes.Buffer, f, step *function, native bo
 	if moduleir.HasMultipleRoots(e.g.program.Schema) {
 		entry = e.names.Entrypoints[f.decl.Name]
 	}
-	scalar := e.scalars[f.decl.Result]
+	typ := f.decl.Result
+	zero := e.zero(typ)
 	fmt.Fprintf(w, "// %s borrows data for this call. Limits follow the equivalent Lean list and call tree.\n", entry)
-	fmt.Fprintf(w, "func %s(state %s, data []byte, l Limits)(%s,error){\n", entry, scalar.GoType, scalar.GoType)
-	fmt.Fprintf(w, "if err:=checkLimits(l);err!=nil{return %s,err}\n", scalar.Zero)
-	// A nil node, one accumulator, and one cons and byte per iteration.
-	fmt.Fprintf(w, "if l.MaxNodes<2 || uint64(len(data))>(l.MaxNodes-2)/2 || uint64(len(data))>=l.MaxDepth{return %s,ErrResource}\n", scalar.Zero)
+	fmt.Fprintf(w, "func %s(state %s, data []byte, l Limits)(%s,error){\n", entry, e.names.Types[typ], e.names.Types[typ])
+	fmt.Fprintf(w, "if err:=checkLimits(l);err!=nil{return %s,err}\n", zero)
+	// Reserve the accumulator and list nil before charging two nodes per byte.
+	minNodes := 2
+	if _, scalar := e.scalars[typ]; !scalar {
+		fmt.Fprintf(w, "if !apiNode(state.v.n,%d){return %s,ErrMalformed};if state.v.n.depth>l.MaxDepth{return %s,ErrResource}\n", e.g.types[typ], zero, zero)
+		minNodes = 4 // record constructor, two UInt32 fields, list nil
+	}
+	fmt.Fprintf(w, "if l.MaxNodes<%d || uint64(len(data))>(l.MaxNodes-%d)/2 || uint64(len(data))>=l.MaxDepth{return %s,ErrResource}\n", minNodes, minNodes, zero)
 	if native {
 		// Charge the case, two calls and deferred return for each cons, and
 		// the final nil case and return. Only the Go stack is flattened.
-		fmt.Fprintf(w, "b:=budget{limits:l};if err:=b.enter(%d,0);err!=nil{return %s,err}\n", len(f.slots), scalar.Zero)
-		fmt.Fprintf(w, "for i, value:=range data { if !b.scalarWork(4,0){return %s,ErrResource}; next,err:=scalarFunc%d(&b,i+1,state,value);if err!=nil{return %s,err};state=next;if err=b.enter(%d,i+1);err!=nil{return %s,err} }\n", scalar.Zero, step.id, scalar.Zero, len(f.slots), scalar.Zero)
-		fmt.Fprintf(w, "if !b.scalarWork(2,0){return %s,ErrResource};return state,nil\n}\n", scalar.Zero)
+		fmt.Fprintf(w, "b:=budget{limits:l};if err:=b.enter(%d,0);err!=nil{return %s,err}\n", len(f.slots), zero)
+		fmt.Fprintf(w, "for i, value:=range data { if !b.scalarWork(4,0){return %s,ErrResource}; next,err:=scalarFunc%d(&b,i+1,state,value);if err!=nil{return %s,err};state=next;if err=b.enter(%d,i+1);err!=nil{return %s,err} }\n", zero, step.id, zero, len(f.slots), zero)
+		fmt.Fprintf(w, "if !b.scalarWork(2,0){return %s,ErrResource};return state,nil\n}\n", zero)
 		return
 	}
 	// For a non-native step, materialize the bounded input and use the raw
@@ -89,5 +103,7 @@ func (e *apiEmitter) byteFoldEntry(w *bytes.Buffer, f, step *function, native bo
 	if moduleir.HasMultipleRoots(e.g.program.Schema) {
 		call = fmt.Sprintf("RunRoot(%q,", f.decl.Name)
 	}
-	fmt.Fprintf(w, "out,err:=%s[]Value{{n:%s(state)},{n:tail}},l);if err!=nil{return %s,err};value,ok:=%s(out.n);if !ok{return %s,ErrMalformed};return value,nil\n}\n", call, scalar.Node, scalar.Zero, scalar.Read, scalar.Zero)
+	fmt.Fprintf(w, "out,err:=%s[]Value{{n:%s},{n:tail}},l);if err!=nil{return %s,err}\n", call, e.node(typ, "state"), zero)
+	e.read(w, typ, "out.n", "value", "return "+zero+",ErrMalformed")
+	w.WriteString("return value,nil\n}\n")
 }

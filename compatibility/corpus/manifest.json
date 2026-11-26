@@ -47,6 +47,11 @@
     ]
   },
   {
+    "name": "record_fold",
+    "module": "RecordFold",
+    "roots": ["RecordFold.run"]
+  },
+  {
     "name": "byte_fold",
     "module": "ByteFold",
     "roots": ["ByteFold.run"]

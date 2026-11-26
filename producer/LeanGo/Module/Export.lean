@@ -373,12 +373,12 @@ def compiledByteFold (owner step : Name) : CoreM Bool := do
 
 def byteListKey := "List UInt8"
 
-def exportByteFold (name scalar step : Name) : CoreM (Json × List Name × List String) := do
+def exportByteFold (name accumulator step : Name) : CoreM (Json × List Name × List String) := do
   unless ← compiledByteFold name step do
     reject "unsupported_lcnf_control" "Use a named first-order step and a direct List.foldl over UInt8."
       m!"Unsupported compiled byte fold: {name}"
   let shape ← resolveFunction step
-  let acc := scalar.toString
+  let acc := accumulator.toString
   unless shape.domains == [acc, "UInt8"] && shape.result == acc do
     throwError "Byte fold step signature mismatch: {step}"
   let param (id : Nat) (ty : String) := obj [("id", toJson id), ("type", str ty)]

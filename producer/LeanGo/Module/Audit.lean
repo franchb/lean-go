@@ -134,23 +134,30 @@ def customPasses (env : Environment) : Array Name := Id.run do
 -- intentionally includes source helpers that later optimization may inline or erase.
 -- Record the kernel term while its defining module still exposes its body.
 -- A captured step or a computed initial value is a different operation.
-def byteFoldSource? (info : ConstantInfo) : Option (Name × Name) := do
+private def isFoldRecord (env : Environment) (name : Name) : Bool := Id.run do
+  let some record := getStructureInfo? env name | return false
+  let ctor := getStructureCtor env name
+  let .forallE _ a (.forallE _ b result _) _ := ctor.type | return false
+  return record.fieldNames.size == 2 && ctor.numParams == 0 && ctor.levelParams.isEmpty &&
+    a == .const ``UInt32 [] && b == a && result == .const name []
+
+def byteFoldSource? (env : Environment) (info : ConstantInfo) : Option (Name × Name) := do
   let .defnInfo d := info | none
   guard (d.safety == .safe && d.levelParams.isEmpty)
   let .lam _ acc (.lam _ bytes body _) _ := d.value | none
-  let .const scalar [] := acc | none
-  guard (isUIntScalar scalar || scalar == ``Bool)
+  let .const name [] := acc | none
+  guard (isUIntScalar name || name == ``Bool || isFoldRecord env name)
   guard (bytes == mkApp (.const ``List [.zero]) (.const ``UInt8 []))
   let_expr List.foldl a b step init xs := body | none
   guard (a == acc && b == .const ``UInt8 [] && init == .bvar 1 && xs == .bvar 0)
   let .const stepName [] := step | none
-  return (scalar, stepName)
+  return (name, stepName)
 
 def capture (n : Name) : CoreM Provenance := do
   let env ← getEnv
   let prior := provenanceExt.getState env
   let info ← getConstInfo n
-  let fold? := byteFoldSource? info
+  let fold? := byteFoldSource? env info
   let mut dependencies := info.value?.map (·.getUsedConstants) |>.getD #[]
   let rawName := mkUnsafeRecName n
   let mut variantIssue := false

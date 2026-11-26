@@ -285,7 +285,12 @@ def complete_program(raw, module, entries, identities, compiler):
     except (KeyError, TypeError) as exc:
         raise ExportError('unexpected module producer executable fields') from exc
     if 'List UInt8' in types:
-        version, profile = 20, 18
+        record_fold = any(
+            f['result'] in program['api']['records']
+            and [p['type'] for p in f['params']] == [f['result'], 'List UInt8']
+            and f['body'].get('type') == 'List UInt8' and f['body']['op'] == 'cases'
+            for f in program['functions'])
+        version, profile = (22, 20) if record_fold else (20, 18)
     elif 'UInt16.xor' in primitives:
         version, profile = 18, 16
     elif 'UInt16.toUInt32' in primitives:
