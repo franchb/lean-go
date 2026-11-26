@@ -409,10 +409,12 @@ func validateEvidencePath(path string, c *Contract, manifest string) (string, er
 	if err != nil {
 		return "", exportError("invalid evidence path")
 	}
-	if resolved != output || (exists(output) && !isFile(output)) {
+	if !symlinkFree(output) || (exists(output) && !isFile(output)) {
 		return "", exportError("evidence path must be a regular file without symlinks")
 	}
-	if contractPath, err := resolvePath(c.Path); err == nil && output == contractPath {
+	// Compare resolved forms with each other: on Windows the resolved form
+	// also expands short names, so it can differ from a link-free path.
+	if contractPath, err := resolvePath(c.Path); err == nil && resolved == contractPath {
 		return "", exportError("evidence output must not overwrite proof or tool inputs")
 	}
 	manifestPath, err := absolutePath(manifest)
@@ -421,7 +423,7 @@ func validateEvidencePath(path string, c *Contract, manifest string) (string, er
 	}
 	for _, directory := range []string{c.SourceDir, c.ProofDir, filepath.Dir(manifestPath)} {
 		resolvedDir, err := resolvePath(directory)
-		if err == nil && isRelativeTo(output, resolvedDir) {
+		if err == nil && isRelativeTo(resolved, resolvedDir) {
 			return "", exportError("evidence must stay outside source, proof and generated directories")
 		}
 	}
