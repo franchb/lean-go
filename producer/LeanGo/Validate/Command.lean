@@ -462,6 +462,34 @@ def specFor (fn : IRFunction) (roots : Array Name) : CoreM (Except String SpecIn
         | none => ""
       return .ok { kind := kind, term := mkConst name, owner := name, note := note }
 
+/-- Non-recursive definitions from the owner's module that the owner's body
+uses, transitively (at most 32). -/
+def inlinableDeps (owner : Name) : CoreM (Array Name) := do
+  let env ← getEnv
+  let home := env.getModuleIdxFor? owner
+  let mut out := #[]
+  let mut pending := [owner]
+  let mut seen : NameSet := {}
+  for _ in [:256] do
+    match pending with
+    | [] => break
+    | n :: rest =>
+      pending := rest
+      if seen.contains n then continue
+      seen := seen.insert n
+      let some (.defnInfo info) := env.find? n | continue
+      let used := info.value.getUsedConstants
+      for c in used do
+        unless c == owner || seen.contains c || out.contains c do
+          let some (.defnInfo ci) := env.find? c | continue
+          unless env.getModuleIdxFor? c == home && !c.isInternal do continue
+          let cu := ci.value.getUsedConstants
+          if cu.contains c || cu.contains ``WellFounded.fix then continue
+          if out.size < 32 then
+            out := out.push c
+            pending := c :: pending
+  return out
+
 /-! ## Statements -/
 
 def mkOblType (specList : Expr) (fnConst : Name) (spec : Expr) : MetaM Expr := do
@@ -730,6 +758,21 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
     let tac ← `(tactic| validate_obl [$extra,*])
     progress s!"proving {fn.name}"
     let (r, ms, hb) ← liftCoreM (proveTheorem thm type tac budget)
+    -- The compiler inlines small source functions, so the IR may compute what
+    -- the source side leaves as a call. One retry unfolds the non-recursive
+    -- source definitions the owner uses (from its own module, transitively);
+    -- a stuck goal is the only failure retried, never an exhausted budget.
+    let retry := match r with
+      | .error e => e.startsWith "validate_obl: stuck"
+      | .ok _ => false
+    let (r, ms, hb) ← if !retry then pure (r, ms, hb) else do
+      let deps ← liftCoreM (inlinableDeps s.owner)
+      if deps.isEmpty then pure (r, ms, hb) else
+        progress s!"retrying {fn.name} unfolding {deps}"
+        let extra' := extra ++ deps.map fun n => (mkCIdent n : Term)
+        let tac' ← `(tactic| validate_obl [$extra',*])
+        let (r', ms', hb') ← liftCoreM (proveTheorem thm type tac' budget)
+        pure (r', ms + ms', hb + hb')
     progress s!"{fn.name}: {if r matches .ok _ then "proved" else "failed"} in {ms} ms"
     let (status, reason, axioms, thmName) := match r with
       | .ok a => ("proved", "", a, thm)

@@ -205,7 +205,7 @@ round:
 ```
 #lean_go_export_roots "ir.json" [R₁, …, Rₖ] "Module"      -- unchanged producer command
 #lean_go_validate "ir.json" [R₁, …, Rₖ] "Module" report "validation.json"
-  heartbeats 400000 timeout_ms 120000 [strict] [namespace N]
+  heartbeats 200000 timeout_ms 120000 [strict] [namespace N] [skip "F …"]
 ```
 
 in the same environment, after the export command. Steps:
@@ -232,7 +232,9 @@ in the same environment, after the export command. Steps:
    metavariables, no `sorry`, the kernel accepts it, and `collectAxioms` reports
    only `propext`, `Classical.choice`, `Quot.sound`. Messages from failed
    attempts are discarded; exceptions (including heartbeat exhaustion and the
-   interrupt) are caught and reported. Nothing here can fail the extraction.
+   interrupt) are caught and reported. A goal reported stuck is retried once
+   with the owner's non-recursive same-module source definitions also
+   unfolded (the compiler inlines them). Nothing here can fail the extraction.
 5. **Whole program per root** whose call closure (computed from the IR) is
    entirely proved: `N.prefixed_k : PreFixedOn N.prog (Spec.env N.spec) S`
    (by `validate_prefixed_on`), `N.sound_k : ∀ n, Callable.Rel Approx (N.prog.run n "R") R`
@@ -255,7 +257,7 @@ instance can interfere).
   "status": "completed",                       // or "export_failed" / "load_failed" with "reason"
   "ir_file_matches": true,                     // null when no file was named
   "ir_sha256": "…",                            // runner: hash of the completed IR it published
-  "budget": {"heartbeats": 400000, "timeout_ms": 120000}, "strict": false,
+  "budget": {"heartbeats": 200000, "timeout_ms": 120000}, "strict": false,
   "lean_version": "4.36.0", "lean_commit": "…", // runner
   "inputs": {"source/Local.lean": "…", "producer/LeanGo/Validate/Command.lean": "…", …},
   "program": "LeanGo.Validated.prog", "specification_list": "LeanGo.Validated.spec",
@@ -332,13 +334,46 @@ What is trusted, and how it is checked:
 ## 9. Coverage
 
 `uv run --locked python scripts/validation_coverage.py --out-dir <dir>` runs the
-command (default budget: 400000 thousand heartbeats and 120 s per obligation)
+command (default budget: 200000 thousand heartbeats, Lean's default `maxHeartbeats`, and 120 s per obligation)
 on every tracked program, sequentially, checking that the IR exported in the
 validation workspace is byte-identical to the tracked IR. Results of the run on
 the shared 4-core machine (validation time is the command's own time, without
 the workspace build):
 
-COVERAGE_TABLE
+| Program | IR | Functions proved / total | Roots with whole-program theorem | Validation time |
+|---|---|---|---|---|
+| choice | testdata/choice | 1 / 1 | 1 / 1 | 0.8 s |
+| counters | testdata/counters | 5 / 5 | 4 / 4 | 4.2 s |
+| joins | testdata/joins | 2 / 2 | 1 / 1 | 5.8 s |
+| local | testdata/local | 3 / 3 (incl. lifted `_lam_0` with capture) | 1 / 1 | 3.3 s |
+| numbers | testdata/numbers | 2 / 2 | 1 / 1 | 5.7 s |
+| records | testdata/records | 3 / 3 | 1 / 1 | 4.4 s |
+| reduced | testdata/reduced | 3 / 3 (incl. two `._redArg`) | 1 / 1 | 3.5 s |
+| trees | testdata/trees | 2 / 2 | 1 / 1 | 2.7 s |
+| wide | testdata/wide | 2 / 2 | 1 / 1 | 6.2 s |
+| quota | libraries/quota | 4 / 4 | 4 / 4 | 5.8 s |
+| clamp | examples/proofs/clamp | 2 / 2 | 1 / 1 | 0.9 s |
+| flags | examples/proofs/flags | 4 / 4 | 4 / 4 | 2.3 s |
+| words | examples/proofs/words | 5 / 5 | 5 / 5 | 3.2 s |
+| bytes | examples/proofs/bytes | 4 / 4 | 4 / 4 | 6.0 s |
+| header | examples/proofs/header | 2 / 2 | 2 / 2 | 5.0 s |
+| wire16 | examples/proofs/wire16 | 5 / 5 | 5 / 5 | 9.2 s |
+| crc16 | examples/proofs/crc16 | 3 / 3 (byte fold) | 2 / 2 | 2.6 s |
+| adler32 | examples/proofs/adler32 | 5 / 5 (byte fold) | 3 / 3 | 4.0 s |
+| dns | examples/formats/dns | 13 / 14 | 2 / 3 | 58.8 s |
+| header (format) | examples/formats/header | 7 / 7 | 4 / 4 | 7.8 s |
+| udp | examples/formats/udp | 7 / 7 | 4 / 4 | 8.2 s |
+| **total** | 21 programs | **84 / 85** | **52 / 53** | |
+
+In every run the IR exported in the validation workspace has the same
+`module`, `roots`, `types`, `functions` and `api` as the tracked IR, and the
+command's recomputed value matched the file the export wrote
+(`ir_file_matches`). The tracked files are no longer byte-identical to the
+Python runner's output only because the tracked artifacts are now produced by
+the Go pipeline, whose `inputs` inventory differs from `export_module.py`'s.
+No program needed more than 13.5 M heartbeats for one obligation (budget:
+200 M); the slowest single obligation is `DnsHeader.serialize` (≈40 s on the
+loaded machine).
 
 `checkedframe` has no IR of its own: it is the composition of `wire16` and
 `crc16`, both completely validated. The pilot `normalizer` fixture uses the
@@ -346,7 +381,53 @@ pilot IR, not the module IR, and is out of scope.
 
 ### Failure classes
 
-FAILURE_CLASSES
+Every failure observed during this work, with the fix or the open status. No
+failure has been a counterexample (a false obligation from a wrong lowering).
+
+1. **Join blowup** (`Joins.update`): evaluation cost, fixed by lazy join
+   continuations (§6). Before: out of memory after ~12 min; now ~6 s.
+2. **Compiler arithmetic rewrites** (header `HeaderCodec.parse`, dns/udp
+   `be16w`, numbers/wide `compute`): the IR has `x <<< 8` where the source has
+   `x * 256`, `UInt32.shiftLeft a b` where the source has `a <<< b`'s
+   instance, `1` where the source has `4294967297 : UInt32`. The goal was stuck
+   at an equality that is true but not syntactic, e.g.
+   `Value.u32 (b2.toUInt32 <<< 8 + b3.toUInt32) = Value.u32 (b2.toUInt32 * 256 + b3.toUInt32)`.
+   Fixed by the literal normal forms (§6); all five now prove.
+3. **Compiler inlining of source callees** (format `DemoHeader.classify`,
+   `serialize`, after the merged source change): the IR computes
+   `payloadLength x` inline while the source side keeps the call, stuck at
+   `ctor 1 [u32 x.toUInt32] = ctor 1 [u32 (DemoHeader.payloadLength x)]`.
+   Fixed by one retry that also unfolds the owner's non-recursive same-module
+   source definitions; only a stuck goal is retried, never an exhausted budget.
+4. **Reduced-helper call sites** (`Reduced.run._redArg`, first command run):
+   the helper's specification fixes removed arguments to an arbitrary
+   inhabitant, the source call sites pass `⟨0⟩`; stuck until the owner is
+   unfolded. Fixed: owners of reduced helpers are unfolded in every obligation.
+5. **Kernel memory exhaustion, open** (`DnsHeader.word1`, a 7-term straight-line
+   sum of shifted bytes): elaboration of the proof finishes quickly within the
+   heartbeat budget, but the kernel check of the proof term grows past 12 GB and
+   the process is killed (exit 137); `be16w`, the same pattern with one term,
+   checks instantly, so it is some interaction of the six literal-shift steps
+   with kernel defeq checking that has not been isolated. Heartbeats do not
+   bound kernel memory. The runner therefore runs validation in its own `lean`
+   process after the export (the IR is never affected), reads the progress file
+   to see which obligation was in progress, reruns with it skipped
+   (`skip "F"`), and reports it `failed` with
+   `validation process exited (137) while proving this obligation (memory limit)`.
+   `DnsHeader.serialize` calls `word1`, so its root has no whole-program
+   theorem; `parse` and `validate` do.
+6. **Kernel cost of a default-transparency `rfl` fallback**: the tactic's last
+   resort was `rfl`, which can prove an arithmetic goal by evaluation that the
+   kernel then re-does on symbolic operands. It is now `with_reducible rfl`
+   (no tracked obligation depended on the stronger form). Scalars are also no
+   longer destructed into `BitVec` fields.
+
+Machine note: on the shared machine the container's memory cgroup also killed
+`lean` processes of these runs for reasons unrelated to the proofs (several
+agents compiling at once). The coverage script retries a program once after
+exit 137 and records `killed_for_memory` distinctly; the final table above was
+produced sequentially, one program at a time, with no such kill except
+`DnsHeader.word1`, which reproduces when run alone.
 
 ## 10. What remains trusted
 
@@ -379,7 +460,7 @@ by their digests in addition to the module producer's. Embed them under a
 *separate* glob/accessor (e.g. `ValidationFiles()`), not in `ModuleFiles()`,
 so that exports without validation keep hashing exactly the current inputs and
 the tracked manifests stay unchanged. What is compiled per extraction is only
-the harness: derived encodings, the program term and all theorems live in the
+the validation harness: derived encodings, the program term and all theorems live in the
 harness environment and are not written to an olean.
 
 The invocation, mirroring `ExportModule` and `scripts/validate_module.py`:
@@ -387,23 +468,30 @@ The invocation, mirroring `ExportModule` and `scripts/validate_module.py`:
 1. Stage sources and `ModuleFiles()` as today, plus `ValidationFiles()`.
 2. `lake build LeanGo.Module.Export LeanGo.Validate LeanGo.Validate.Command <source modules…>`
    (the extra targets are cacheable).
-3. Harness (`LeanGo/Module/Harness.lean`):
+3. Run the export harness exactly as today. Then write a second harness
+   (`LeanGo/Module/Validate.lean`) and run it in its **own** `lake env lean`
+   process, so that validation (including the process being killed for
+   memory) can never affect the IR or the admission diagnostics:
    ```
    import LeanGo.Module.Export
    import LeanGo.Validate
    import LeanGo.Validate.Command
    import <Module>
-   <the unchanged #lean_go_export / #lean_go_export_roots line>
-   #lean_go_validate "ir.json" [<roots, sorted>] "<Module>" report "validation.json" heartbeats <H> timeout_ms <T>[ strict]
+   #lean_go_validate "ir.json" [<roots, sorted>] "<Module>" report "validation.json" heartbeats <H> timeout_ms <T>[ strict][ skip "F …"]
    ```
-   Run it with `lake env lean` as today (admission diagnostics unchanged: the
-   export line runs first). Allow for the extra time in the process timeout
-   (the dns example takes several minutes).
+   The command recomputes the export value in this environment and compares
+   it with the `ir.json` the first process wrote. It appends progress lines
+   (`<ms> ms proving F`, `<ms> ms F: proved in … ms`, phase names) to
+   `validation.json.progress`. If the process dies without a report, the last
+   `proving F` line names the obligation; rerun with `skip "F"` (accumulating,
+   at most a few times) and mark F `failed` with the exit status, as
+   `validate_module.py` does. Allow for the extra time in the process timeout
+   (dns takes about a minute of proving).
 4. Complete the IR exactly as today; its `inputs` remain the export inputs.
    Read `validation.json` (bounded size), check `module`/`roots`, add
    `schema`, `lean_version`, `lean_commit`, `ir_sha256` (of the completed IR)
    and `inputs` (sources plus export and validation files), and publish it next
-   to the IR. Fixed budget defaults: `heartbeats 400000`, `timeout_ms 120000`;
+   to the IR. Fixed budget defaults: `heartbeats 200000`, `timeout_ms 120000`;
    record them (they are in the report). Heartbeats make the verdict
    deterministic; the wall-clock limit is a safety net, and a verdict reached
    only because of it is visible as `wall-clock budget exhausted`.
