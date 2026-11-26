@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"example.com/lean-go-crc16-demo/checksum"
+	generated "example.com/lean-go-crc16-demo/crc16"
 )
 
 // Feed message bits individually, most significant first, into the polynomial register.
@@ -48,6 +49,46 @@ func TestEveryByteFromBoundaryStates(t *testing.T) {
 			if got, want := update(t, state, input), reference(state, input); got != want {
 				t.Fatalf("state %04x, byte %02x: got %04x, want %04x", state, b, got, want)
 			}
+		}
+	}
+}
+
+func TestGeneratedFoldLimits(t *testing.T) {
+	data := []byte{128, 0, 255}
+	l := generated.DefaultLimits()
+	acc, err := generated.Import(&generated.Input{Type: "UInt16", UInt16: 0xa123}, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := &generated.Input{Type: "List UInt8", Constructor: "List.nil"}
+	for i := len(data) - 1; i >= 0; i-- {
+		list = &generated.Input{Type: "List UInt8", Constructor: "List.cons", Fields: []*generated.Input{{Type: "UInt8", UInt8: data[i]}, list}}
+	}
+	input, err := generated.Import(list, l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, limit := range []*uint64{&l.MaxNodes, &l.MaxDepth, &l.MaxOutputNodes, &l.MaxFrames, &l.MaxSlots, &l.MaxSteps, &l.MaxAllocations} {
+		ceiling := *limit
+		for n := uint64(0); n <= min(ceiling, uint64(400)); n++ {
+			*limit = n
+			got, e := generated.RunUpdate(0xa123, data, l)
+			raw, w := generated.RunRoot("Crc16.update", []generated.Value{acc, input}, l)
+			if e != w {
+				t.Fatalf("limits %+v: slice %v, raw %v", l, e, w)
+			}
+			if e == nil {
+				want, ok := raw.UInt16()
+				if !ok || got != want || got != reference(0xa123, data) {
+					t.Fatal(got, want)
+				}
+			}
+		}
+		*limit = ceiling
+	}
+	for _, data := range [][]byte{nil, {}, bytes.Repeat([]byte{0xff}, 65539)} {
+		if got := update(t, 0xa123, data); got != reference(0xa123, data) {
+			t.Fatal(len(data), got)
 		}
 	}
 }

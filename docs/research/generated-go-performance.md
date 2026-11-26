@@ -28,6 +28,15 @@ CGO_ENABLED=0 GOTOOLCHAIN=local go test -run '^$' -bench BenchmarkCRC1KiB -bench
 
 The benchmark checks the generated checksum against an independent bit-at-a-time implementation before timing. [CRC benchmark](../../examples/proofs/crc16/benchmark_test.go)
 
+### Extracted chunk fold
+
+Using the same 1 KiB CRC input, Go 1.27.4 on Linux/amd64 (i5-14600K), cgo disabled
+and a single benchmark CPU, five baseline runs before changing the adapter gave
+a median of 72.87 µs. Five subsequent runs with a generated fold over blocks of
+256 bytes gave 36.47 µs. Both measured zero heap allocations per KiB. These
+batches ran sequentially under variable host load. The earlier alternating
+alpha.12 comparison above used a different session.
+
 ## Workloads
 
 The maintained [`benchmarks`](../../benchmarks) package compares independently

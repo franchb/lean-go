@@ -63,14 +63,18 @@ def read_regular(path, limit=MAX_DOCUMENT_BYTES):
     return data
 
 
-def project_directory(root, value):
+def project_path(root, value):
     if (not isinstance(value, str) or not value or value.startswith('/') or
             any(char in '\\:<>"|?*' or ord(char) < 32 or ord(char) == 127 or
                 0xD800 <= ord(char) <= 0xDFFF for char in value) or
             any(part in {'', '.', '..'} or part.endswith((' ', '.')) for part in value.split('/'))):
         raise ExportError('contract directories must be canonical portable relative paths')
     relative = PurePosixPath(value)
-    directory = root.joinpath(*relative.parts)
+    return root.joinpath(*relative.parts)
+
+
+def project_directory(root, value):
+    directory = project_path(root, value)
     if directory.resolve() != directory or not directory.is_dir():
         raise ExportError('contract directory is missing or contains a symlink')
     return directory
@@ -130,8 +134,8 @@ def verify_manifest(path, contract, project, compiler):
     raw = read_regular(path)
     manifest = parse_json(raw)
     multi = len(contract.roots) > 1
-    pairs = ({'v7': 'v5', 'v9': 'v7', 'v11': 'v9', 'v13': 'v11', 'v15': 'v13', 'v17': 'v15', 'v19': 'v17'}
-             if multi else {'v6': 'v4', 'v8': 'v6', 'v10': 'v8', 'v12': 'v10', 'v14': 'v12', 'v16': 'v14', 'v18': 'v16'})
+    pairs = ({'v7': 'v5', 'v9': 'v7', 'v11': 'v9', 'v13': 'v11', 'v15': 'v13', 'v17': 'v15', 'v19': 'v17', 'v21': 'v19'}
+             if multi else {'v6': 'v4', 'v8': 'v6', 'v10': 'v8', 'v12': 'v10', 'v14': 'v12', 'v16': 'v14', 'v18': 'v16', 'v20': 'v18'})
     if not isinstance(manifest, dict):
         raise ExportError('generated manifest schema does not match root count')
     versions = {'lean-go-manifest/' + version: (version, profile)

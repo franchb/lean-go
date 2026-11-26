@@ -101,6 +101,32 @@ expected declaration must be a `def` whose type is
 exactly `Prop`; the checker compares its value to the theorem's type. It never
 copies the theorem type to manufacture an expectation.
 
+## Bind one proof to multiple generated packages
+
+A v2 composition contract names two to 64 component contracts and a directory
+containing the composition proofs. Each component is a v1 contract under the
+same project root. Its runtime snapshot, selected roots and generated files are
+checked against the manifest supplied for that name. Component and composition
+Lean modules must have distinct names and share the selected compiler pin.
+The 256-file and 8 MiB bounds apply to the combined project.
+
+The checked-frame contract combines Wire16 and CRC-16. From the repository
+root, use the CLI installed from this checkout:
+
+```sh
+uv run --locked lean-go check-proofs \
+  --contract examples/proofs/checkedframe-contract.json \
+  --component-manifest wire16 examples/proofs/wire16/wire16/manifest.json \
+  --component-manifest crc16 examples/proofs/crc16/crc16/manifest.json \
+  --evidence examples/proofs/checkedframe/proof-evidence.json
+```
+
+Use `--output` to write fresh evidence. The checker proves the declared claims
+once and rechecks the inputs before publishing. The evidence records each
+component contract and manifest digest, all project source hashes, tool inputs
+and both theorems. A change to either manifest invalidates the evidence.
+[Example contract](../examples/proofs/checkedframe-contract.json) · [Combined evidence](../examples/proofs/checkedframe/proof-evidence.json)
+
 ## Generate and check an external project
 
 Run these commands from the lean-go checkout, using Go 1.27.4, pinned Lean 4.36.0

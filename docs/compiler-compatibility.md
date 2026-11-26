@@ -83,6 +83,7 @@ contains eleven accepted cases and nine required rejections.
 | `uint16` | Every two-byte big-endian value checked against Go, plus OR and dynamic shifts at and beyond 16 bits |
 | `uint16_widen` | `UInt16.toUInt32` preserves every one of the 65,536 possible values |
 | `uint32_narrow16` | The inverse narrowing cast `UInt32.toUInt16` is rejected during source admission |
+| `byte_fold` | A named UInt32 byte step folded over a Go slice, including empty input and wrapping sums |
 | `uint16_xor` | Ordinary `^^^` compared directly with native Lean and Go for 196,608 operand pairs |
 | `uint16_land` | `admission` / `source_audit` naming the unsupported `UInt16.land` |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |

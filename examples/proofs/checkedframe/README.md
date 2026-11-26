@@ -24,4 +24,4 @@ uv sync --locked --reinstall-package lean-go-tools
 uv run --locked python scripts/check_checked_frame.py --cli "$PWD/.venv/bin/lean-go"
 ```
 
-The checker takes Wire16 and CRC-16 sources from their original directories and rechecks both claims against each generated manifest. The two evidence files bind the same source theorems to both components. The compatibility workflow repeats the check with freshly generated packages on both supported Lean versions. Go tests exercise the I/O adapter and compare its bytes to a separate implementation. [Wire16 evidence](evidence/wire16.json) · [CRC-16 evidence](evidence/crc16.json)
+The composition contract binds both theorems to the Wire16 and CRC-16 packages in one evidence file. The compatibility workflow repeats the check with freshly generated packages on both supported Lean versions. Go tests exercise the stream adapter against a separate implementation. [Composition contract](../checkedframe-contract.json) · [Bound evidence](proof-evidence.json)

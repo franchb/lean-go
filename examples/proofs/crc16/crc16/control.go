@@ -21,13 +21,26 @@ func frameForCall(stack []frame, function, destination, count int) frame {
 	}
 	return frame{function: function, destination: destination, slots: slots}
 }
-func execute(b *budget, args []*node) (*node, error) {
-	if err := b.enter(14, 0); err != nil {
-		return nil, err
+func execute(b *budget, entry int, args []*node) (*node, error) {
+	var initial frame
+	switch entry {
+	case 1:
+		if err := b.enter(6, 0); err != nil {
+			return nil, err
+		}
+		initial = frame{function: 1, destination: -1, slots: make([]*node, 6)}
+		initial.slots[0] = args[0]
+		initial.slots[1] = args[1]
+	case 2:
+		if err := b.enter(14, 0); err != nil {
+			return nil, err
+		}
+		initial = frame{function: 2, destination: -1, slots: make([]*node, 14)}
+		initial.slots[0] = args[0]
+		initial.slots[1] = args[1]
+	default:
+		return nil, ErrMalformed
 	}
-	initial := frame{function: 1, destination: -1, slots: make([]*node, 14)}
-	initial.slots[0] = args[0]
-	initial.slots[1] = args[1]
 	stack := []frame{initial}
 	for {
 		if err := b.step(); err != nil {
@@ -38,7 +51,7 @@ func execute(b *budget, args []*node) (*node, error) {
 		case 0:
 			switch f.pc {
 			case 0:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -46,7 +59,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[1] = value
 				f.pc = 1
 			case 1:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -93,7 +106,7 @@ func execute(b *budget, args []*node) (*node, error) {
 					return nil, ErrMalformed
 				}
 			case 6:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -101,7 +114,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[6] = value
 				f.pc = 7
 			case 7:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -130,7 +143,60 @@ func execute(b *budget, args []*node) (*node, error) {
 		case 1:
 			switch f.pc {
 			case 0:
-				value, err := b.make(4, 0, nil)
+				if f.slots[1] == nil {
+					return nil, ErrMalformed
+				}
+				switch f.slots[1].tag {
+				case 0:
+					f.pc = 1
+				case 1:
+					f.slots[2] = f.slots[1].fields[0]
+					f.slots[3] = f.slots[1].fields[1]
+					f.pc = 2
+				default:
+					return nil, ErrMalformed
+				}
+			case 1:
+				value := f.slots[0]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			case 2:
+				if err := b.enter(14, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 2, 4, 14)
+				next.slots[0] = f.slots[0]
+				next.slots[1] = f.slots[2]
+				f.pc = 3
+				stack = append(stack, next)
+			case 3:
+				if err := b.enter(6, len(stack)); err != nil {
+					return nil, err
+				}
+				next := frameForCall(stack, 1, 5, 6)
+				next.slots[0] = f.slots[4]
+				next.slots[1] = f.slots[3]
+				f.pc = 4
+				stack = append(stack, next)
+			case 4:
+				value := f.slots[5]
+				destination := f.destination
+				stack = stack[:len(stack)-1]
+				if len(stack) == 0 {
+					return value, nil
+				}
+				stack[len(stack)-1].slots[destination] = value
+			default:
+				return nil, ErrMalformed
+			}
+		case 2:
+			switch f.pc {
+			case 0:
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -138,7 +204,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[2] = value
 				f.pc = 1
 			case 1:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -146,7 +212,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[3] = value
 				f.pc = 2
 			case 2:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}
@@ -154,7 +220,7 @@ func execute(b *budget, args []*node) (*node, error) {
 				f.slots[4] = value
 				f.pc = 3
 			case 3:
-				value, err := b.make(4, 0, nil)
+				value, err := b.make(5, 0, nil)
 				if err != nil {
 					return nil, err
 				}

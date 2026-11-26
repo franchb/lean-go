@@ -17,53 +17,28 @@ CLAIMS = ('accepts_reference_crc', 'roundtrip')
 OUTPUT = 'wire 010200093132333435363738395744\npayload 123456789\n'
 
 
-def proof_project(target, workspace):
-    # The target's runtime snapshot must exactly match its generated manifest.
-    # Include the other component as a proof dependency, using its original source.
-    project = workspace / ('frame-proof-' + target)
-    project.mkdir()
-    shutil.copytree(DEMOS / target / 'source', project / 'source')
-    proof = project / 'proof'
-    shutil.copytree(FRAME / 'proof', proof)
-    for name in COMPONENTS:
-        directories = [DEMOS / name / 'proof']
-        if name != target:
-            directories.append(DEMOS / name / 'source')
-        for directory in directories:
-            for source in directory.glob('*.lean'):
-                destination = proof / source.name
-                if destination.exists():
-                    raise ExportError(f'duplicate composition module: {source.stem}')
-                shutil.copyfile(source, destination)
-    contract = json.loads((DEMOS / target / 'proof-contract.json').read_bytes())
-    contract['claims'] = [{'theorem': 'CheckedFrameProofs.' + claim,
-                           'expected': 'CheckedFrameContract.' + claim} for claim in CLAIMS]
-    contract_path = project / 'proof-contract.json'
-    contract_path.write_text(json.dumps(contract, indent=2) + '\n', encoding='utf-8', newline='\n')
-    return project, contract_path
-
-
 def verify(cli, manifests, workspace, env, *, write_evidence=False):
-    results = {}
-    for target in COMPONENTS:
-        project, contract_path = proof_project(target, workspace)
-        manifest = manifests / target / target / 'manifest.json'
-        output = project / 'evidence.json'
-        run([str(cli), 'check-proofs', '--contract', str(contract_path), '--manifest', str(manifest),
-             '--output', str(output)], project, env)
-        results[target] = output.read_bytes()
-        data = json.loads(results[target])
-        if data['lean_version'] != env.get('LEAN_GO_TOOLCHAIN', '4.36.0'):
-            raise ExportError('unexpected Lean version in composition evidence')
-        tracked = FRAME / 'evidence' / (target + '.json')
-        if data['lean_version'] == '4.36.0':
-            if not write_evidence and tracked.read_bytes() != results[target]:
-                raise ExportError(f'{target}: composition evidence changed')
-        elif write_evidence or data['claims'] != json.loads(tracked.read_bytes())['claims']:
-            raise ExportError(f'{target}: composition claims differ from stable Lean')
-    if write_evidence:
-        for name, data in results.items():
-            (FRAME / 'evidence' / (name + '.json')).write_bytes(data)
+    contract = DEMOS / 'checkedframe-contract.json'
+    tracked = FRAME / 'proof-evidence.json'
+    output = workspace / 'checkedframe-evidence.json'
+    command = [str(cli), 'check-proofs', '--contract', str(contract)]
+    for name in COMPONENTS:
+        command.extend(['--component-manifest', name, str(manifests / name / name / 'manifest.json')])
+    run([*command, '--output', str(output)], workspace, env)
+    data = json.loads(output.read_bytes())
+    if data['lean_version'] != env.get('LEAN_GO_TOOLCHAIN', '4.36.0'):
+        raise ExportError('unexpected compiler in composition evidence')
+    expected = [('CheckedFrameProofs.' + claim, 'CheckedFrameContract.' + claim) for claim in CLAIMS]
+    if (set(data['components']) != set(COMPONENTS) or
+            [(c['name'], c['expected']) for c in data['claims']] != expected):
+        raise ExportError('unexpected frame claims or bound components')
+    if data['lean_version'] == '4.36.0':
+        if write_evidence:
+            tracked.write_bytes(output.read_bytes())
+        elif output.read_bytes() != tracked.read_bytes():
+            raise ExportError('checksummed frame composition evidence changed')
+    elif write_evidence or data['claims'] != json.loads(tracked.read_bytes())['claims']:
+        raise ExportError('composition claims differ from stable Lean')
     print('Checked frame: round trip with arbitrary suffix and independent CRC acceptance '
           'proved against both component manifests', flush=True)
 

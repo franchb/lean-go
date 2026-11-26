@@ -37,6 +37,7 @@ structure Provenance where
   issueOrigin : Option Name := none
   compiled : Bool := false
   sourceModule : Name
+  fold? : Option (Name × Name) := none
   safeDefinition : Bool
   deriving Inhabited
 
@@ -131,10 +132,25 @@ def customPasses (env : Environment) : Array Name := Id.run do
 
 -- Capture the compiler's actual environment before ToLCNF applies csimp. The closure
 -- intentionally includes source helpers that later optimization may inline or erase.
+-- Record the kernel term while its defining module still exposes its body.
+-- A captured step or a computed initial value is a different operation.
+def byteFoldSource? (info : ConstantInfo) : Option (Name × Name) := do
+  let .defnInfo d := info | none
+  guard (d.safety == .safe && d.levelParams.isEmpty)
+  let .lam _ acc (.lam _ bytes body _) _ := d.value | none
+  let .const scalar [] := acc | none
+  guard (isUIntScalar scalar || scalar == ``Bool)
+  guard (bytes == mkApp (.const ``List [.zero]) (.const ``UInt8 []))
+  let_expr List.foldl a b step init xs := body | none
+  guard (a == acc && b == .const ``UInt8 [] && init == .bvar 1 && xs == .bvar 0)
+  let .const stepName [] := step | none
+  return (scalar, stepName)
+
 def capture (n : Name) : CoreM Provenance := do
   let env ← getEnv
   let prior := provenanceExt.getState env
   let info ← getConstInfo n
+  let fold? := byteFoldSource? info
   let mut dependencies := info.value?.map (·.getUsedConstants) |>.getD #[]
   let rawName := mkUnsafeRecName n
   let mut variantIssue := false
@@ -178,7 +194,7 @@ def capture (n : Name) : CoreM Provenance := do
         issues := issues.push s!"implemented_by source dependency: {current}"
       if hasInitAttr env current then
         issues := issues.push s!"initialized source dependency: {current}"
-      unless isCompilerSupport current || isPrimitiveDefinition current || isNumericSourceBoundary current do
+      unless (fold?.isSome && current == ``List.foldl) || isCompilerSupport current || isPrimitiveDefinition current || isNumericSourceBoundary current do
         match env.find? current with
         | some (.defnInfo d) =>
           unless d.safety == .safe do issues := issues.push s!"unsafe source dependency: {current}"
@@ -222,7 +238,7 @@ def capture (n : Name) : CoreM Provenance := do
           else issues := issues.push s!"missing source dependency: {current}"
       if issueOrigin.isNone && issues.size > issueCount then issueOrigin := some current
   let safeDefinition := info matches .defnInfo { safety := .safe, .. }
-  return { name := n, dependencies, rewrites, issues, issueOrigin, sourceModule := env.mainModule, safeDefinition }
+  return { name := n, dependencies, rewrites, issues, issueOrigin, fold?, sourceModule := env.mainModule, safeDefinition }
 
 initialize
   let original ← compileDeclsRef.get

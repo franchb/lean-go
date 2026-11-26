@@ -47,6 +47,11 @@
     ]
   },
   {
+    "name": "byte_fold",
+    "module": "ByteFold",
+    "roots": ["ByteFold.run"]
+  },
+  {
     "name": "uint16",
     "module": "Halfword",
     "roots": [

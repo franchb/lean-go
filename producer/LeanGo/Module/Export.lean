@@ -349,7 +349,54 @@ partial def encode (code : Code .pure) (scope : Scope) (joins : JoinScope)
       m!"Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)"
       (some (controlForm code))
 
+-- Verify actual data flow on both sides of the compiler-generated specialization.
+-- The kernel witness fixes the step even if an unrelated helper has a similar name.
+def compiledByteFold (owner step : Name) : CoreM Bool := do
+  let some root ← getMonoDecl? owner | return false
+  let #[s, xs] := root.params | return false
+  let .code (.let call (.return ret)) := root.value | return false
+  let .const helper [] args _ := call.value | return false
+  unless root.safe && ret == call.fvarId && args == #[.fvar s.fvarId, .fvar xs.fvarId] do return false
+  let some loop ← getMonoDecl? helper | return false
+  let #[state, bytes] := loop.params | return false
+  let .code (.cases (.mk ind _ discr alts)) := loop.value | return false
+  unless loop.safe && discr == bytes.fvarId && ind == ``List && alts.size == 2 do return false
+  let some (.alt _ #[] (.return empty) _) := alts.find? (fun | .alt n _ _ _ => n == ``List.nil | _ => false)
+    | return false
+  let some (.alt _ #[head,tail] (.let update (.let recur (.return last))) _) :=
+    alts.find? (fun | .alt n _ _ _ => n == ``List.cons | _ => false) | return false
+  let .const f [] firstArgs _ := update.value | return false
+  let .const g [] nextArgs _ := recur.value | return false
+  return empty == state.fvarId && f == step && g == helper && last == recur.fvarId &&
+    firstArgs == #[.fvar state.fvarId, .fvar head.fvarId] &&
+    nextArgs == #[.fvar update.fvarId, .fvar tail.fvarId]
+
+def byteListKey := "List UInt8"
+
+def exportByteFold (name scalar step : Name) : CoreM (Json × List Name × List String) := do
+  unless ← compiledByteFold name step do
+    reject "unsupported_lcnf_control" "Use a named first-order step and a direct List.foldl over UInt8."
+      m!"Unsupported compiled byte fold: {name}"
+  let shape ← resolveFunction step
+  let acc := scalar.toString
+  unless shape.domains == [acc, "UInt8"] && shape.result == acc do
+    throwError "Byte fold step signature mismatch: {step}"
+  let param (id : Nat) (ty : String) := obj [("id", toJson id), ("type", str ty)]
+  let ret (id : Nat) := obj [("op", str "return"), ("var", toJson id)]
+  let call (id : Nat) (target : Name) (args : List Nat) (next : Json) := obj [
+    ("op", str "let"), ("bind", param id acc), ("value", obj [("kind", str "call"),
+       ("name", str target.toString), ("args", toJson args)]), ("next", next)]
+  let empty := obj [("constructor", str "List.nil"), ("params", .arr #[]), ("body", ret 1)]
+  let cons := obj [("constructor", str "List.cons"), ("params", .arr #[param 3 "UInt8", param 4 byteListKey]),
+      ("body", call 5 step [1,3] (call 6 name [5,4] (ret 6)))]
+  let body := obj [("op", str "cases"), ("var", toJson 2), ("type", str byteListKey),
+    ("result", str acc), ("alts", .arr #[empty,cons])]
+  return (obj [("name", str name.toString), ("params", .arr #[param 1 acc, param 2 byteListKey]),
+    ("result", str acc), ("body", body)], [step], [acc, "UInt8", byteListKey])
+
 def exportFunction (name : Name) : CoreM (Json × List Name × List String) := withDeclaration name do
+  if let some (acc, step) := ((provenanceExt.getState (← getEnv)).find? name).bind (·.fold?) then
+    return ← exportByteFold name acc step
   let shape ← resolveFunction name
   let domains := shape.domains
   let result := shape.result
@@ -461,7 +508,16 @@ def auditSource (roots : List Name) : CoreM (Json × Json) := do
             pending := rewrite.target :: pending
           provenance := provenance.push <| obj [("name", str n.toString),
             ("dependencies", toJson (sortedDependencies record.dependencies)), ("rewrites", .arr evidence)]
-          pending := record.dependencies.toList ++ pending
+          -- Only the witnessed application is lowered. Its pinned List.foldl is audited
+          -- at compilation, including any active compiler replacement.
+          if record.fold?.isSome then
+            let fold := ``List.foldl
+            if (getExternAttrData? env fold).isSome || (Lean.Compiler.getImplementedBy? env fold).isSome ||
+                (Lean.Compiler.CSimp.ext.getState env).map.contains fold || Lean.hasInitAttr env fold then
+              reject "source_audit" "Use the pinned List.foldl without compiler replacements."
+                m!"Unsupported byte fold replacement: {fold}"
+          let deps := record.dependencies.toList.filter fun dep => !(record.fold?.isSome && dep == ``List.foldl)
+          pending := deps ++ pending
         else if isPrimitiveDefinition n || isNumericSourceBoundary n then
           provenance := provenance.push <| obj [("name", str n.toString),
             ("dependencies", .arr #[]), ("rewrites", .arr #[])]
@@ -526,7 +582,13 @@ def exportProgramRoots (moduleName : String) (requested : Array Name) : CoreM Js
       pending := calls ++ pending
   rejectMutualRecursion graph
   let (provenance, rewrites) ← auditSource (graph.map Prod.fst)
-  let exportedTypes ← exportTypes types
+  let mut exportedTypes ← exportTypes (types.filter (· != byteListKey))
+  if types.contains byteListKey then
+    let nilCtor := obj [("name", str "List.nil"), ("tag", toJson 0), ("fields", .arr #[])]
+    let consCtor := obj [("name", str "List.cons"), ("tag", toJson 1), ("fields", toJson ["UInt8", byteListKey])]
+    let listType := obj [("name", str byteListKey), ("constructors", .arr #[nilCtor, consCtor])]
+    let .arr original := exportedTypes | throwError "Invalid type inventory"
+    exportedTypes := .arr (sortByName (original.push listType))
   let api ← exportAPI exportedTypes
   let selection := if roots.size == 1 then ("root", str roots[0]!.toString)
     else ("roots", toJson (roots.map Name.toString))

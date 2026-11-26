@@ -19,7 +19,7 @@ def update_byte_spec : Prop := ∀ (state : UInt16) (byte : UInt8),
   (Crc16.updateByte state byte).toBitVec = referenceByte state.toBitVec byte
 
 def chunks_spec : Prop := ∀ (state : UInt16) (chunks : List (List UInt8)),
-  (chunks.foldl (fun acc chunk => chunk.foldl Crc16.updateByte acc) state).toBitVec =
+  (chunks.foldl Crc16.update state).toBitVec =
     chunks.flatten.foldl referenceByte state.toBitVec
 
 end Crc16Contract

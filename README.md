@@ -187,6 +187,16 @@ classify a payload as complete or report its exact deficit. The generated
 decision serves both a Go byte-slice reader and an `io.Reader` adapter.
 The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
 
+In the development checkout, a root of the form
+`def update (state : UInt32) (xs : List UInt8) := xs.foldl step state`
+can accept a read-only Go `[]byte`. The named step takes an accumulator and
+a byte and returns the same scalar type. The producer checks the elaborated
+application and the compiler's empty and nonempty branches before lowering it.
+Single-root exports use IR v20 and multi-root exports use v21. The raw API
+represents the same input with `List.nil` and `List.cons`. The slice API charges
+the corresponding logical nodes, depth, steps, frames and slots. Long streams
+can carry their accumulator between bounded calls.
+
 In alpha.12, an executable `UInt16.xor` or ordinary `a ^^^ b`
 selects IR v18 for one root or v19 for multiple roots, with profiles
 `pure-module/v16` and `pure-module/v17`. Generator v14 emits Go's `^`

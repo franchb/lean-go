@@ -21,39 +21,54 @@
       "statement": "∀ (flags : UInt8) (payload suffix : List UInt8),\n  flags.toNat < 4 →\n    payload.length < 65536 →\n      ∃ bytes,\n        CheckedFrame.encode flags payload = some bytes ∧\n          CheckedFrame.decode (bytes ++ suffix) = some (flags, payload, suffix)"
     }
   ],
-  "contract_sha256": "4210544543e62fee0a01c1f5d5009f50af7af90d16f6bb77617760ba6b1c7fbc",
-  "generated_manifest_sha256": "1e798728685219a3be3b2c6f3d0fa86aa06f495dd48a26b4a96604f80101107d",
+  "components": {
+    "crc16": {
+      "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
+      "generated_manifest_sha256": "e6db133f09564e004beab7d57be9dd711a0aff3776aa302453d25a155172b84f",
+      "module": "Crc16",
+      "roots": [
+        "Crc16.update",
+        "Crc16.updateByte"
+      ]
+    },
+    "wire16": {
+      "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
+      "generated_manifest_sha256": "4bdb7b6c0def8106d5ede9213e7a1175c675d0b141b8e6e1c3239956d4384236",
+      "module": "Wire16",
+      "roots": [
+        "Wire16.classify",
+        "Wire16.decodeBE",
+        "Wire16.encode",
+        "Wire16.encodeBE",
+        "Wire16.parse"
+      ]
+    }
+  },
+  "contract_sha256": "a87882e57c57d6564578d9735f10bd5d41520faa7a054cf8466ff32e19e79a52",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
-  "module": "Wire16",
   "project_inputs": {
-    "proof/CheckedFrame.lean": "4eb18a3feb719dc328f7c35c8a7a2c670033fc75d94917ce4f873ebac14bcd0d",
+    "proof/CheckedFrame.lean": "2f100f94a3ba704a96322609cb5224fba94e32e17f158864956bc631d70cd18b",
     "proof/CheckedFrameContract.lean": "68bd27c004217e265cbf5a1f7f865335b2e020dcc96848788b1639fc3d80cf8d",
     "proof/CheckedFrameProofs.lean": "0886a890f95a4204c06914bcbcf153789438e03105fe226cd0d6f0d99241a189",
-    "proof/Crc16.lean": "b702040d67dd08165fa95c1b9c6c9ef6bc2a9cb4f0dd3a3c02d6bfeafb6321c3",
-    "proof/Crc16Contract.lean": "ae37b43bd35af5287cc9eb2cd0a3e2c95190ab485d5ebcbf4d2fa8b57cf4aac9",
-    "proof/Crc16Proofs.lean": "84ba8ae237b8632cefd3d12a014c7b5bea06c6c9af49da9421039f523aa13d47",
+    "proof/Crc16Contract.lean": "e5d99b56bec6c1fea70251ed50dcb262364a49c1ca719e6768122128b6666cb2",
+    "proof/Crc16Proofs.lean": "2002e6bfdb7688d86a6465acb4feeb7c35fcdc97e41369ceb6c799eb9912435d",
     "proof/Wire16Contract.lean": "4c5c6f0decc93b5a88fc5eda68e67eb86ba0900b4d7aee4901aa6a8c23b1846f",
     "proof/Wire16Proofs.lean": "b6e90e769f21884719fde8d5bd7d4ac0c7c50ca6968e20bb810118c8d74ec007",
+    "source/Crc16.lean": "4f64cc6b66252850e60ff5e283edcb48091238e16d3a28503f426ff0fe4a723e",
     "source/Wire16.lean": "8be7b9483b947fb9f7daf92986312659e5aa4bdbf37fac3a9454a817dec6eef4"
   },
-  "roots": [
-    "Wire16.classify",
-    "Wire16.decodeBE",
-    "Wire16.encode",
-    "Wire16.encodeBE",
-    "Wire16.parse"
-  ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v2",
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "scripts/check_proofs.py": "6a1995c54ecb85c652ad4f09d5eb173adf127359df5fc1a56846a4dcaf7fe5fc",
+    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
+    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
     "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
     "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "ad8d85fcb8b768d9d67a8409a0a99863acc5926218ee030f352032b76eaadeb0",
+    "scripts/export_module.py": "66a6624fceb43d08520937de7969ec742e16d7a39acb684e3649e07dc22f2bdc",
     "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "d4bb3a2874fa29e4b51e58374fc4ff242bd4baedc90a2e546c6a93052a3c09cf",
+    "scripts/proof_contract.py": "c05ce077f883ecf166e89fb5b88da0824348da766445420372dea85240e8c7d9",
     "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
   }
 }

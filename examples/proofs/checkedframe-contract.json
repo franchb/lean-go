@@ -1,0 +1,18 @@
+{
+  "schema": "lean-go-proof-contract/v2",
+  "components": {
+    "crc16": "crc16/proof-contract.json",
+    "wire16": "wire16/proof-contract.json"
+  },
+  "proof_dir": "checkedframe/proof",
+  "claims": [
+    {
+      "theorem": "CheckedFrameProofs.accepts_reference_crc",
+      "expected": "CheckedFrameContract.accepts_reference_crc"
+    },
+    {
+      "theorem": "CheckedFrameProofs.roundtrip",
+      "expected": "CheckedFrameContract.roundtrip"
+    }
+  ]
+}

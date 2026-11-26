@@ -36,25 +36,25 @@ func apiReadUInt32(n *node) (uint32, bool) {
 	return n.scalar, true
 }
 
-func apiUInt64Node(value uint64) *node { return &node{typ: 2, scalar64: value, size: 1, depth: 1} }
+func apiUInt64Node(value uint64) *node { return &node{typ: 3, scalar64: value, size: 1, depth: 1} }
 func apiReadUInt64(n *node) (uint64, bool) {
-	if !apiNode(n, 2) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
+	if !apiNode(n, 3) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar64, true
 }
 
-func apiUInt8Node(value uint8) *node { return &node{typ: 3, scalar8: value, size: 1, depth: 1} }
+func apiUInt8Node(value uint8) *node { return &node{typ: 4, scalar8: value, size: 1, depth: 1} }
 func apiReadUInt8(n *node) (uint8, bool) {
-	if !apiNode(n, 3) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
+	if !apiNode(n, 4) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar8, true
 }
 
-func apiUInt16Node(value uint16) *node { return &node{typ: 4, scalar16: value, size: 1, depth: 1} }
+func apiUInt16Node(value uint16) *node { return &node{typ: 5, scalar16: value, size: 1, depth: 1} }
 func apiReadUInt16(n *node) (uint16, bool) {
-	if !apiNode(n, 4) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
+	if !apiNode(n, 5) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
 		return 0, false
 	}
 	return n.scalar16, true
@@ -72,6 +72,41 @@ func apiReadBool(n *node) (bool, bool) {
 		return false, false
 	}
 	return n.tag == 1, true
+}
+
+// List_UInt8 is an immutable value; its zero value is invalid.
+type List_UInt8 struct{ v Value }
+
+func NewList_UInt8Nil(l Limits) (List_UInt8, error) {
+	v, err := apiMake(2, 0, []*node{}, l)
+	if err != nil {
+		return List_UInt8{}, err
+	}
+	return List_UInt8{v: v}, nil
+}
+func (v List_UInt8) IsNil() bool { return apiMatches(v.v, 2, 0, 0) }
+func (v List_UInt8) AsNil() bool { return apiMatches(v.v, 2, 0, 0) }
+func NewList_UInt8Cons(a0 uint8, a1 List_UInt8, l Limits) (List_UInt8, error) {
+	v, err := apiMake(2, 1, []*node{apiUInt8Node(a0), a1.v.n}, l)
+	if err != nil {
+		return List_UInt8{}, err
+	}
+	return List_UInt8{v: v}, nil
+}
+func (v List_UInt8) IsCons() bool { return apiMatches(v.v, 2, 1, 2) }
+func (v List_UInt8) AsCons() (uint8, List_UInt8, bool) {
+	if !apiMatches(v.v, 2, 1, 2) {
+		return 0, List_UInt8{}, false
+	}
+	a0, ok := apiReadUInt8(v.v.n.fields[0])
+	if !ok {
+		return 0, List_UInt8{}, false
+	}
+	if !apiNode(v.v.n.fields[1], 2) {
+		return 0, List_UInt8{}, false
+	}
+	a1 := List_UInt8{v: Value{v.v.n.fields[1]}}
+	return a0, a1, true
 }
 
 // scalarWork charges the same IR steps and logical scalar allocations as execute.
@@ -108,7 +143,7 @@ func scalarFunc0(b *budget, depth int, v1 uint16) (uint16, error) {
 	v8 := v3 ^ v7
 	return v8, nil
 }
-func scalarFunc1(b *budget, depth int, v1 uint16, v2 uint8) (uint16, error) {
+func scalarFunc2(b *budget, depth int, v1 uint16, v2 uint8) (uint16, error) {
 	if err := b.enter(14, depth); err != nil {
 		return 0, err
 	}
@@ -178,8 +213,39 @@ func scalarFunc1(b *budget, depth int, v1 uint16, v2 uint8) (uint16, error) {
 	return v14, nil
 }
 
-// RunTyped runs the scalar root with native Go values and the public resource limits.
-func RunTyped(a0 uint16, a1 uint8, l Limits) (uint16, error) {
+// RunUpdate borrows data for this call. Limits follow the equivalent Lean list and call tree.
+func RunUpdate(state uint16, data []byte, l Limits) (uint16, error) {
+	if err := checkLimits(l); err != nil {
+		return 0, err
+	}
+	if l.MaxNodes < 2 || uint64(len(data)) > (l.MaxNodes-2)/2 || uint64(len(data)) >= l.MaxDepth {
+		return 0, ErrResource
+	}
+	b := budget{limits: l}
+	if err := b.enter(6, 0); err != nil {
+		return 0, err
+	}
+	for i, value := range data {
+		if !b.scalarWork(4, 0) {
+			return 0, ErrResource
+		}
+		next, err := scalarFunc2(&b, i+1, state, value)
+		if err != nil {
+			return 0, err
+		}
+		state = next
+		if err = b.enter(6, i+1); err != nil {
+			return 0, err
+		}
+	}
+	if !b.scalarWork(2, 0) {
+		return 0, ErrResource
+	}
+	return state, nil
+}
+
+// RunUpdateByte runs the scalar root with native Go values and the public resource limits.
+func RunUpdateByte(a0 uint16, a1 uint8, l Limits) (uint16, error) {
 	if err := checkLimits(l); err != nil {
 		return 0, err
 	}
@@ -187,5 +253,5 @@ func RunTyped(a0 uint16, a1 uint8, l Limits) (uint16, error) {
 		return 0, ErrResource
 	}
 	b := budget{limits: l}
-	return scalarFunc1(&b, 0, a0, a1)
+	return scalarFunc2(&b, 0, a0, a1)
 }

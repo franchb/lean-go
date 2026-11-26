@@ -9,7 +9,7 @@ import standalone_demo as shared
 ROOT = Path(__file__).resolve().parents[1]
 DEMO = Path('examples/proofs/crc16')
 OUTPUT = 'CRC-16/XMODEM("123456789") = 0x31C3\n'
-SPEC = shared.Demo('crc16', 'Crc16', ('Crc16.updateByte',), (
+SPEC = shared.Demo('crc16', 'Crc16', ('Crc16.update', 'Crc16.updateByte'), (
     ('Crc16Proofs.update_byte_spec', 'Crc16Contract.update_byte_spec'),
     ('Crc16Proofs.chunks_spec', 'Crc16Contract.chunks_spec'),
 ), extra_go_files=('checksum/checksum.go',))

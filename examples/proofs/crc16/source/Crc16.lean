@@ -13,4 +13,7 @@ def updateByte (state : UInt16) (byte : UInt8) : UInt16 :=
   let c := step (step b)
   step (step c)
 
+/-- Continue a checksum over a chunk, in wire order. -/
+def update (state : UInt16) (bytes : List UInt8) : UInt16 := bytes.foldl updateByte state
+
 end Crc16
