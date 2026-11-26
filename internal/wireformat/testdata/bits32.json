@@ -1,0 +1,21 @@
+{
+  "name": "bits",
+  "module": "BitsHeader",
+  "description": "Worst case for the bit-field proofs: a 32-bit word of 32 one-bit fields, and a 16-bit word with a 9-bit field typed uint16.",
+  "fields": [
+    {"bitfield": "uint32", "bits": [
+      {"name": "f31", "width": 1}, {"name": "f30", "width": 1}, {"name": "f29", "width": 1}, {"name": "f28", "width": 1},
+      {"name": "f27", "width": 1}, {"name": "f26", "width": 1}, {"name": "f25", "width": 1}, {"name": "f24", "width": 1},
+      {"name": "f23", "width": 1}, {"name": "f22", "width": 1}, {"name": "f21", "width": 1}, {"name": "f20", "width": 1},
+      {"name": "f19", "width": 1}, {"name": "f18", "width": 1}, {"name": "f17", "width": 1}, {"name": "f16", "width": 1},
+      {"name": "f15", "width": 1}, {"name": "f14", "width": 1}, {"name": "f13", "width": 1}, {"name": "f12", "width": 1},
+      {"name": "f11", "width": 1}, {"name": "f10", "width": 1}, {"name": "f9", "width": 1}, {"name": "f8", "width": 1},
+      {"name": "f7", "width": 1}, {"name": "f6", "width": 1}, {"name": "f5", "width": 1}, {"name": "f4", "width": 1},
+      {"name": "f3", "width": 1}, {"name": "f2", "width": 1}, {"name": "f1", "width": 1}, {"name": "f0", "width": 1, "reserved": true}
+    ]},
+    {"bitfield": "uint16", "bits": [
+      {"name": "top", "width": 7, "reserved": true},
+      {"name": "nine", "width": 9}
+    ]}
+  ]
+}

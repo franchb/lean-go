@@ -1,0 +1,137 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.accepts_iff",
+      "name": "DemoHeaderProofs.accepts_iff",
+      "statement": "∀ (w : Wire), (∃ h, DemoHeader.parse w = ParseResult.ok h) ↔ w.b0.toNat = 1 ∧ w.b1.toNat / 4 % 64 = 0"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_ok_iff",
+      "name": "DemoHeaderProofs.parse_ok_iff",
+      "statement": "∀ (w : Wire) (h : Header),\n  DemoHeader.parse w = ParseResult.ok h ↔\n    (w.b0.toNat = 1 ∧ w.b1.toNat / 4 % 64 = 0) ∧\n      h.flags.toNat = w.b1.toNat % 4 ∧ h.length.toNat = w.b2.toNat * 256 + w.b3.toNat"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_reservedNonzero_iff",
+      "name": "DemoHeaderProofs.parse_reservedNonzero_iff",
+      "statement": "∀ (w : Wire), DemoHeader.parse w = ParseResult.reservedNonzero ↔ w.b0.toNat = 1 ∧ ¬w.b1.toNat / 4 % 64 = 0"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_serialize",
+      "name": "DemoHeaderProofs.parse_serialize",
+      "statement": "∀ (h : Header), h.flags.toNat < 4 → DemoHeader.parse (DemoHeader.serialize h) = ParseResult.ok h"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_validate",
+      "name": "DemoHeaderProofs.parse_validate",
+      "statement": "∀ (w : Wire) (h : Header), DemoHeader.parse w = ParseResult.ok h → DemoHeader.validate h = Validity.valid"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_versionMismatch_iff",
+      "name": "DemoHeaderProofs.parse_versionMismatch_iff",
+      "statement": "∀ (w : Wire), DemoHeader.parse w = ParseResult.versionMismatch ↔ ¬w.b0.toNat = 1"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.payload_complete_iff",
+      "name": "DemoHeaderProofs.payload_complete_iff",
+      "statement": "∀ (h : Header) (available consumed : UInt32),\n  DemoHeader.classify h available = Availability.complete consumed ↔\n    h.length.toNat ≤ available.toNat ∧ consumed.toNat = h.length.toNat"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.payload_need_more_iff",
+      "name": "DemoHeaderProofs.payload_need_more_iff",
+      "statement": "∀ (h : Header) (available missing : UInt32),\n  DemoHeader.classify h available = Availability.needMore missing ↔\n    available.toNat < h.length.toNat ∧ missing.toNat = h.length.toNat - available.toNat"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.serialize_parse",
+      "name": "DemoHeaderProofs.serialize_parse",
+      "statement": "∀ (w : Wire) (h : Header), DemoHeader.parse w = ParseResult.ok h → DemoHeader.serialize h = w"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.validate_flagsTooWide_iff",
+      "name": "DemoHeaderProofs.validate_flagsTooWide_iff",
+      "statement": "∀ (h : Header), DemoHeader.validate h = Validity.flagsTooWide ↔ ¬h.flags.toNat < 4"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.validate_valid_iff",
+      "name": "DemoHeaderProofs.validate_valid_iff",
+      "statement": "∀ (h : Header), DemoHeader.validate h = Validity.valid ↔ h.flags.toNat < 4"
+    }
+  ],
+  "contract_sha256": "9432581e947a54034710f578511fc226d38423fc3ff0b617ae942c4d5d4709be",
+  "generated_manifest_sha256": "c91445692a4c2d9cc562358fbfbffad3cf22accb173bbe54d4cd70a9f43bada0",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "DemoHeader",
+  "project_inputs": {
+    "proof/DemoHeaderContract.lean": "5b82f454c4e553c37394fa3d433a041b3ec9cb7eebc2cace402db732c21d9259",
+    "proof/DemoHeaderProofs.lean": "5e36709775e38a86e69cdbf45ab2c5cc3cffc49f11004e6f42f014cb5134d054",
+    "source/DemoHeader.lean": "6793d054ee53c49d61ac401c4b63fd5ab8a2f5292df14a821ee1ceb8d4e0191b"
+  },
+  "roots": [
+    "DemoHeader.classify",
+    "DemoHeader.parse",
+    "DemoHeader.serialize",
+    "DemoHeader.validate"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
+    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
+    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
+    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
+    "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
+    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
+    "scripts/proof_contract.py": "cfc5387c32127842ef19e63b132a097e0ae23104465e85d45c6f2dcf467f00a3",
+    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+  }
+}

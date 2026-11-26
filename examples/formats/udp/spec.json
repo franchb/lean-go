@@ -1,0 +1,11 @@
+{
+  "name": "udp",
+  "module": "UdpHeader",
+  "description": "User Datagram Protocol header, RFC 768.",
+  "fields": [
+    {"name": "srcPort", "type": "uint16"},
+    {"name": "dstPort", "type": "uint16"},
+    {"name": "length", "type": "uint16", "payload_length": {"includes_header": true}},
+    {"name": "checksum", "type": "uint16"}
+  ]
+}

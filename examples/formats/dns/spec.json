@@ -1,0 +1,22 @@
+{
+  "name": "dns",
+  "module": "DnsHeader",
+  "description": "DNS message header, RFC 1035 section 4.1.1.",
+  "fields": [
+    {"name": "id", "type": "uint16"},
+    {"bitfield": "uint16", "bits": [
+      {"name": "qr", "width": 1},
+      {"name": "opcode", "width": 4},
+      {"name": "aa", "width": 1},
+      {"name": "tc", "width": 1},
+      {"name": "rd", "width": 1},
+      {"name": "ra", "width": 1},
+      {"name": "z", "width": 3, "reserved": true},
+      {"name": "rcode", "width": 4}
+    ]},
+    {"name": "qdcount", "type": "uint16"},
+    {"name": "ancount", "type": "uint16"},
+    {"name": "nscount", "type": "uint16"},
+    {"name": "arcount", "type": "uint16"}
+  ]
+}
