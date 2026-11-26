@@ -11,7 +11,7 @@ spec.loader.exec_module(generate)
 
 class InputFreshnessTests(unittest.TestCase):
     def test_all_module_schemas_use_module_freshness(self):
-        for version in range(2, 18):
+        for version in range(2, 20):
             schema = f'lean-go-ir/v{version}'
             program = {'schema': schema}
             with self.subTest(schema=schema), mock.patch.object(generate, 'verify_module_inputs') as verify:

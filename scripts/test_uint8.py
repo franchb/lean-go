@@ -105,7 +105,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
   let pristine ← getEnv
   let leaves := numericPrimitives.filter fun p =>
     #[``UInt8, ``UInt16].contains p.operand || #[``UInt8, ``UInt16].contains p.result
-  unless leaves.size == 20 do throwError "UInt8/UInt16 catalog size"
+  unless leaves.size == 21 do throwError "UInt8/UInt16 catalog size"
   for primitive in leaves do
     validateNumericPrimitive primitive
     let some decl ← getMonoDecl? primitive.name | throwError "missing numeric leaf"
@@ -141,7 +141,7 @@ run_cmd Lean.Elab.Command.liftCoreM do
     ``instXorOpUInt8, ``instComplementUInt8, ``instShiftLeftUInt8,
     ``instShiftRightUInt8, ``instLinearOrderPackageUInt8, ``instDecidableEqUInt8,
     ``instLTUInt8, ``instLEUInt8, ``UInt16.ofNat, ``UInt16.instOfNat,
-    ``instOrOpUInt16, ``instShiftLeftUInt16, ``instShiftRightUInt16]
+    ``instOrOpUInt16, ``instXorOpUInt16, ``instShiftLeftUInt16, ``instShiftRightUInt16]
   for name in names do
     let some index := pristine.getModuleIdxFor? name | throwError "not imported"
     for dimension in [:3] do

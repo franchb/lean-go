@@ -59,7 +59,7 @@ func primitiveExpression(name, left, right string) string {
 		operator = "&"
 	case "UInt8.lor", "UInt16.lor", "UInt32.lor", "UInt64.lor":
 		operator = "|"
-	case "UInt8.xor", "UInt32.xor", "UInt64.xor":
+	case "UInt8.xor", "UInt16.xor", "UInt32.xor", "UInt64.xor":
 		operator = "^"
 	case "UInt8.complement", "UInt32.complement", "UInt64.complement":
 		return "^" + left

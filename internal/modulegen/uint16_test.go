@@ -105,7 +105,7 @@ func TestGeneratedUInt16(t *testing.T) {
 		names = append(names, leaf.Name)
 	}
 	want := []string{"UInt16.lor", "UInt16.shiftLeft", "UInt16.shiftRight", "UInt16.toUInt8", "UInt8.toUInt16"}
-	if manifest.Schema != "lean-go-manifest/v15" || manifest.Generator != "lean-go-modulegen/v13" || !slices.Equal(names, want) || manifest.GoAPI.Types["UInt16"] != "uint16" {
+	if manifest.Schema != "lean-go-manifest/v15" || manifest.Generator != "lean-go-modulegen/v14" || !slices.Equal(names, want) || manifest.GoAPI.Types["UInt16"] != "uint16" {
 		t.Fatalf("manifest: %s, %s, %v, %v", manifest.Schema, manifest.Generator, names, manifest.GoAPI.Types)
 	}
 	runGenerated(t, files, uint16Consumer)
@@ -135,7 +135,7 @@ func TestGeneratedUInt16ToUInt32(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v16" || manifest.Generator != "lean-go-modulegen/v13" || len(manifest.Primitives) != 1 {
+	if manifest.Schema != "lean-go-manifest/v16" || manifest.Generator != "lean-go-modulegen/v14" || len(manifest.Primitives) != 1 {
 		t.Fatal(manifest)
 	}
 	leaf := manifest.Primitives[0]
@@ -158,5 +158,61 @@ func TestWidening(t *testing.T) {
 	}
 	limits.MaxSteps--
 	if out, err := RunTyped(65535, limits); !errors.Is(err, ErrResource) || out != 0 { t.Fatal(out, err) }
+}`)
+}
+
+func TestGeneratedUInt16Xor(t *testing.T) {
+	p := typedProgram()
+	p.Schema, p.Profile = moduleir.SchemaV18, moduleir.ProfileV16
+	p.Types = []moduleir.TypeDecl{}
+	p.Provenance = p.Provenance[:1]
+	p.Functions = []moduleir.Function{{
+		Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt16"}, {ID: 2, Type: "UInt16"}}, Result: "UInt16",
+		Body: &moduleir.Code{
+			Op: "let", Bind: &moduleir.Param{ID: 3, Type: "UInt16"},
+			Value: &moduleir.Value{Kind: "primitive", Name: "UInt16.xor", Args: []int{1, 2}},
+			Next:  &moduleir.Code{Op: "return", Var: 3},
+		},
+	}}
+	files, err := Generate(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		Schema, Generator string
+		Primitives        []moduleir.Primitive
+	}
+	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Schema != "lean-go-manifest/v18" || manifest.Generator != "lean-go-modulegen/v14" || len(manifest.Primitives) != 1 {
+		t.Fatal(manifest)
+	}
+	leaf := manifest.Primitives[0]
+	if leaf.Name != "UInt16.xor" || !slices.Equal(leaf.Params, []string{"UInt16", "UInt16"}) || leaf.Result != "UInt16" || leaf.Semantics != "bitwise XOR of 16-bit operands" {
+		t.Fatal(leaf)
+	}
+	runGenerated(t, files, `package extracted
+import ("errors"; "testing")
+func TestXor(t *testing.T) {
+	limits := DefaultLimits()
+	limits.MaxAllocations, limits.MaxSteps, limits.MaxFrames, limits.MaxSlots = 1, 2, 1, 3
+	for _, tc := range [][3]uint16{
+		{0, 0, 0}, {0, 0xffff, 0xffff}, {0xffff, 0xffff, 0}, {0x8000, 1, 0x8001},
+		{0xaaaa, 0x5555, 0xffff}, {0xabcd, 0x1234, 0xb9f9},
+	} {
+		got, err := RunTyped(tc[0], tc[1], limits)
+		if err != nil || got != tc[2] { t.Fatal(tc, got, err) }
+		var args []Value
+		for _, n := range tc[:2] {
+			arg, err := Import(&Input{Type: "UInt16", UInt16: n}, limits)
+			if err != nil { t.Fatal(err) }
+			args = append(args, arg)
+		}
+		raw, err := Run(args, limits)
+		if word, ok := raw.UInt16(); err != nil || !ok || word != tc[2] { t.Fatal(tc, word, err) }
+	}
+	limits.MaxSteps--
+	if out, err := RunTyped(65535, 0, limits); !errors.Is(err, ErrResource) || out != 0 { t.Fatal(out, err) }
 }`)
 }

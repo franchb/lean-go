@@ -253,6 +253,22 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(result['status'], 'behavior_mismatch')
             self.assertEqual(result['behavior'], 'failed')
 
+    def test_native_oracle_failures_cannot_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            (directory / 'source').mkdir()
+            fixture = ROOT / 'compatibility/corpus/uint16_xor'
+            commands = runner.Commands(1)
+            success = subprocess.CompletedProcess([], 0, '', '')
+            failure = subprocess.CompletedProcess([], 1, '', 'failed')
+            for results, expected in [([failure], 'native_oracle_build_failed'),
+                                      ([success, failure], 'native_oracle_failed'),
+                                      ([success, success], 'native_oracle_failed')]:
+                with self.subTest(expected=expected), patch.object(commands, 'run', side_effect=results):
+                    result = runner.build_native_oracle(fixture, directory, directory,
+                                                        {'bin': '/tool/bin'}, {}, commands)
+                    self.assertEqual(result, expected)
+
     def assert_replay_arguments(self, source, *, timeout, case=None):
         with patch.object(sys, 'argv', ['replay.py', '/new/artifacts']), \
              patch.object(subprocess, 'call', return_value=7) as called, \

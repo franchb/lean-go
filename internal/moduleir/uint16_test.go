@@ -53,13 +53,13 @@ func TestUInt16PrimitiveBoundary(t *testing.T) {
 			}
 		})
 	}
-	for _, op := range []string{"add", "sub", "mul", "div", "mod", "land", "xor", "complement", "decEq", "decLt", "decLe", "toNat", "toUInt32._boxed", "toUInt64", "shiftLeft._boxed", "shift_right"} {
+	for _, op := range []string{"add", "sub", "mul", "div", "mod", "land", "xor._boxed", "complement", "decEq", "decLt", "decLe", "toNat", "toUInt32._boxed", "toUInt64", "shiftLeft._boxed", "shift_right"} {
 		name := "UInt16." + op
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatalf("unexpected primitive %s", name)
 		}
 	}
-	for _, name := range []string{"UInt32.toUInt16", "UInt64.toUInt16", "Nat.toUInt16", "UInt8.toUInt16._boxed", "Fake.UInt16.lor"} {
+	for _, name := range []string{"UInt32.toUInt16", "UInt64.toUInt16", "Nat.toUInt16", "UInt8.toUInt16._boxed", "Fake.UInt16.lor", "Fake.UInt16.xor", "instXorOpUInt16"} {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatalf("unexpected primitive %s", name)
 		}
@@ -123,6 +123,7 @@ func TestLegacySchemasRejectUInt16(t *testing.T) {
 			{Kind: "primitive", Name: "UInt16.toUInt32", Args: []int{1}},
 			{Kind: "primitive", Name: "UInt16.toUInt8", Args: []int{1}},
 			{Kind: "primitive", Name: "UInt16.lor", Args: []int{1, 2}},
+			{Kind: "primitive", Name: "UInt16.xor", Args: []int{1, 2}},
 			{Kind: "primitive", Name: "UInt16.shiftLeft", Args: []int{1, 2}},
 			{Kind: "primitive", Name: "UInt16.shiftRight", Args: []int{1, 2}},
 		} {
@@ -185,6 +186,51 @@ func TestUInt16ToUInt32Capability(t *testing.T) {
 		}
 		if err := Validate(p); err == nil || !strings.Contains(err.Error(), name+" requires") {
 			t.Fatal("older UInt16 profile", p.Schema, err)
+		}
+	}
+}
+
+func TestUInt16XorCapability(t *testing.T) {
+	const name = "UInt16.xor"
+	for _, pair := range [][2]string{
+		{SchemaV14, ProfileV12}, {SchemaV15, ProfileV13},
+		{SchemaV16, ProfileV14}, {SchemaV17, ProfileV15},
+		{SchemaV18, ProfileV16}, {SchemaV19, ProfileV17},
+	} {
+		value := &Value{Kind: "primitive", Name: name, Args: []int{1, 2}}
+		p := scalarProgram(value, "UInt16", [3]string{pair[0], pair[1], "UInt16"})
+		conversionRoots(p)
+		err := Validate(p)
+		if pair[0] != SchemaV18 && pair[0] != SchemaV19 {
+			if err == nil || !strings.Contains(err.Error(), name+" requires") {
+				t.Fatal("older UInt16 profile", pair, err)
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatal(pair, err)
+		}
+		for _, args := range [][]int{nil, {}, {1}, {1, 2, 1}, {1, 99}} {
+			value.Args = args
+			if err := Validate(p); err == nil {
+				t.Fatal("accepted arguments", args)
+			}
+		}
+		value.Args = []int{1, 2}
+		f := &p.Functions[0]
+		for _, other := range []string{"UInt8", "UInt32", "UInt64"} {
+			for i := range f.Params {
+				f.Params[i].Type = other
+				if err := Validate(p); err == nil {
+					t.Fatal("accepted operand", i, other)
+				}
+				f.Params[i].Type = "UInt16"
+			}
+			f.Body.Bind.Type = other
+			if err := Validate(p); err == nil {
+				t.Fatal("accepted result", other)
+			}
+			f.Body.Bind.Type = "UInt16"
 		}
 	}
 }

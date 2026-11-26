@@ -24,6 +24,7 @@ type validator struct {
 	bytes          bool
 	uint16         bool
 	uint16ToUInt32 bool
+	uint16Xor      bool
 	bitwise        bool
 	conversions    bool
 	joins          bool
@@ -120,6 +121,7 @@ func (v *validator) validateMetadata(p *Program) error {
 	v.bytes = HasUInt8(p.Schema)
 	v.uint16 = HasUInt16(p.Schema)
 	v.uint16ToUInt32 = hasUInt16ToUInt32(p.Schema)
+	v.uint16Xor = hasUInt16Xor(p.Schema)
 	v.joins = v.numeric && p.Schema != SchemaV3
 	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11 || v.bytes
 	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9 || v.conversions

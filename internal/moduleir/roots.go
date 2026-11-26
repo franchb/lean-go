@@ -13,7 +13,7 @@ func RootNames(p *Program) []string {
 
 // HasMultipleRoots identifies schemas with an explicit roots array.
 func HasMultipleRoots(schema string) bool {
-	return schema == SchemaV7 || schema == SchemaV9 || schema == SchemaV11 || schema == SchemaV13 || schema == SchemaV15 || schema == SchemaV17
+	return schema == SchemaV7 || schema == SchemaV9 || schema == SchemaV11 || schema == SchemaV13 || schema == SchemaV15 || schema == SchemaV17 || schema == SchemaV19
 }
 
 // HasUInt64 identifies schemas with scalar UInt64 semantics.
@@ -32,7 +32,11 @@ func HasUInt16(schema string) bool {
 }
 
 func hasUInt16ToUInt32(schema string) bool {
-	return schema == SchemaV16 || schema == SchemaV17
+	return schema == SchemaV16 || schema == SchemaV17 || hasUInt16Xor(schema)
+}
+
+func hasUInt16Xor(schema string) bool {
+	return schema == SchemaV18 || schema == SchemaV19
 }
 
 // HasTypedAPI identifies schemas carrying source record metadata.

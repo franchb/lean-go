@@ -66,6 +66,13 @@
     ]
   },
   {
+    "name": "uint16_xor",
+    "module": "Example",
+    "roots": [
+      "run"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [
@@ -172,13 +179,13 @@
     "reject_declaration": "withPtrEq"
   },
   {
-    "name": "uint16_xor",
+    "name": "uint16_land",
     "module": "Example",
     "roots": [
       "run"
     ],
     "reject": "source_audit",
-    "reject_declaration": "UInt16.xor"
+    "reject_declaration": "UInt16.land"
   },
   {
     "name": "uint32_narrow16",
