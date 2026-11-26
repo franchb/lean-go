@@ -78,8 +78,65 @@ end
 def evalBody (ρ : Callees) (fn : Function) (args : List Value) : Option Value :=
   (Env.bindParams [] fn.params args).bind fun E => fn.body.eval ρ E []
 
-attribute [ir_simp] Env.get Env.getAll Env.bindParams Joins.get LetVal.eval Lit.toValue
-  Code.eval Alts.eval evalBody
+/-! Evaluation equations for symbolic evaluation. They are proved by rewriting
+(not by `rfl`) on purpose: `simp` then records them as propositional steps,
+so the kernel instantiates lemmas instead of re-running the evaluator on large
+terms when it checks a proof. -/
+section
+variable (ρ : Callees) (E : Env) (J : Joins)
+@[ir_simp] theorem Env.get_nil (x : Nat) : Env.get [] x = none := by rw [Env.get]
+@[ir_simp] theorem Env.get_cons (y : Nat) (v : Value) (x : Nat) :
+    Env.get ((y, v) :: E) x = if y = x then some v else Env.get E x := by rw [Env.get]
+@[ir_simp] theorem Env.getAll_nil : E.getAll [] = some [] := by rw [Env.getAll]
+@[ir_simp] theorem Env.getAll_cons (x : Nat) (xs : List Nat) :
+    E.getAll (x :: xs) = (E.get x).bind fun v => (E.getAll xs).bind fun vs => some (v :: vs) := by
+  rw [Env.getAll]
+@[ir_simp] theorem Env.bindParams_nil_nil : Env.bindParams E [] [] = some E := by rw [Env.bindParams]
+@[ir_simp] theorem Env.bindParams_cons_cons (p : Param) (ps : List Param) (v : Value) (vs : List Value) :
+    Env.bindParams E (p :: ps) (v :: vs) = Env.bindParams ((p.id, v) :: E) ps vs := by
+  rw [Env.bindParams]
+@[ir_simp] theorem Joins.get_nil (j : Nat) : Joins.get [] j = none := by rw [Joins.get]
+@[ir_simp] theorem Joins.get_cons (k : Nat) (f : List Value → Option Value) (j : Nat) :
+    Joins.get ((k, f) :: J) j = if k = j then some f else Joins.get J j := by rw [Joins.get]
+@[ir_simp] theorem Lit.toValue_u8 (x : UInt8) : (Lit.u8 x).toValue = .u8 x := by rw [Lit.toValue]
+@[ir_simp] theorem Lit.toValue_u16 (x : UInt16) : (Lit.u16 x).toValue = .u16 x := by rw [Lit.toValue]
+@[ir_simp] theorem Lit.toValue_u32 (x : UInt32) : (Lit.u32 x).toValue = .u32 x := by rw [Lit.toValue]
+@[ir_simp] theorem Lit.toValue_u64 (x : UInt64) : (Lit.u64 x).toValue = .u64 x := by rw [Lit.toValue]
+@[ir_simp] theorem LetVal.eval_lit (l : Lit) : (LetVal.lit l).eval ρ E = some l.toValue := by
+  rw [LetVal.eval]
+@[ir_simp] theorem LetVal.eval_prim (p : Prim) (xs : List Nat) :
+    (LetVal.prim p xs).eval ρ E = (E.getAll xs).bind p.eval := by rw [LetVal.eval]
+@[ir_simp] theorem LetVal.eval_ctor (n : String) (tag : Nat) (xs : List Nat) :
+    (LetVal.ctor n tag xs).eval ρ E = (E.getAll xs).bind fun vs => some (.ctor tag vs) := by
+  rw [LetVal.eval]
+@[ir_simp] theorem LetVal.eval_call (f : String) (xs : List Nat) :
+    (LetVal.call f xs).eval ρ E = (E.getAll xs).bind (ρ f) := by rw [LetVal.eval]
+@[ir_simp] theorem Code.eval_ret (x : Nat) : (Code.ret x).eval ρ E J = E.get x := by rw [Code.eval]
+@[ir_simp] theorem Code.eval_bind (p : Param) (v : LetVal) (next : Code) :
+    (Code.bind p v next).eval ρ E J =
+      (v.eval ρ E).bind fun val => next.eval ρ ((p.id, val) :: E) J := by rw [Code.eval]
+@[ir_simp] theorem Code.eval_cases (x : Nat) (ty r : String) (alts : Alts) :
+    (Code.cases x ty r alts).eval ρ E J = (E.get x).bind fun v => alts.eval ρ v E J := by
+  rw [Code.eval]
+@[ir_simp] theorem Code.eval_join (j : Nat) (ps : List Param) (body next : Code) :
+    (Code.join j ps body next).eval ρ E J =
+      next.eval ρ E ((j, fun args => (E.bindParams ps args).bind fun E' => body.eval ρ E' J) :: J) := by
+  rw [Code.eval]
+@[ir_simp] theorem Code.eval_jump (j : Nat) (xs : List Nat) :
+    (Code.jump j xs).eval ρ E J = (J.get j).bind fun k => (E.getAll xs).bind k := by rw [Code.eval]
+@[ir_simp] theorem Alts.eval_nil (v : Value) : Alts.nil.eval ρ v E J = none := by rw [Alts.eval]
+@[ir_simp] theorem Alts.eval_cons (c : String) (tag : Nat) (ps : List Param) (body : Code)
+    (rest : Alts) (v : Value) :
+    (Alts.cons c tag ps body rest).eval ρ v E J =
+      match v.view with
+      | some (t, fs) =>
+        if tag = t then (E.bindParams ps fs).bind fun E' => body.eval ρ E' J
+        else rest.eval ρ v E J
+      | none => none := by rw [Alts.eval]
+@[ir_simp] theorem evalBody_eq (fn : Function) (args : List Value) :
+    evalBody ρ fn args = (Env.bindParams [] fn.params args).bind fun E => fn.body.eval ρ E [] := by
+  rw [evalBody]
+end
 
 /-- First function of the program with the given name. -/
 def Program.find? (P : Program) (f : String) : Option Function :=
