@@ -61,14 +61,14 @@ func compile(r io.Reader) (map[string][]byte, error) {
 			return nil, err
 		}
 		return gogen.Generate(program)
-	case moduleir.Schema, moduleir.SchemaV3, moduleir.SchemaV4, moduleir.SchemaV5, moduleir.SchemaV6, moduleir.SchemaV7, moduleir.SchemaV8, moduleir.SchemaV9, moduleir.SchemaV10, moduleir.SchemaV11, moduleir.SchemaV12, moduleir.SchemaV13, moduleir.SchemaV14, moduleir.SchemaV15, moduleir.SchemaV16, moduleir.SchemaV17, moduleir.SchemaV18, moduleir.SchemaV19, moduleir.SchemaV20, moduleir.SchemaV21, moduleir.SchemaV22, moduleir.SchemaV23:
+	case moduleir.Schema:
 		program, err := moduleir.Decode(bytes.NewReader(data))
 		if err != nil {
 			return nil, err
 		}
 		return modulegen.Generate(program)
 	default:
-		return nil, fmt.Errorf("unsupported IR schema %q", envelope.Schema)
+		return nil, fmt.Errorf("unsupported IR schema %q; regenerate the IR with the current lean-go tool (module schema %s)", envelope.Schema, moduleir.Schema)
 	}
 }
 func main() {

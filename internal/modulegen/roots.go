@@ -8,11 +8,11 @@ import (
 )
 
 func (g *generator) emitRootMetadata(w *bytes.Buffer) {
-	if moduleir.HasMultipleRoots(g.program.Schema) {
+	if moduleir.HasMultipleRoots(g.program) {
 		g.emitRootSignatures(w)
 		return
 	}
-	root := g.functions[g.program.Root].decl
+	root := g.functions[g.program.Roots[0]].decl
 	w.WriteString("func rootParameters()[]int{return []int{")
 	for _, param := range root.Params {
 		fmt.Fprintf(w, "%d,", g.types[param.Type])
@@ -37,8 +37,8 @@ func (g *generator) emitRootSignatures(w *bytes.Buffer) {
 }
 
 func (g *generator) emitInitialFrame(w *bytes.Buffer) {
-	if !moduleir.HasMultipleRoots(g.program.Schema) {
-		root := g.functions[g.program.Root]
+	if !moduleir.HasMultipleRoots(g.program) {
+		root := g.functions[g.program.Roots[0]]
 		fmt.Fprintf(w, "func execute(b *budget,args []*node)(*node,error){if err:=b.enter(%d,0);err!=nil{return nil,err};initial:=frame{function:%d,destination:-1,slots:make([]*node,%d)}\n", len(root.slots), root.id, len(root.slots))
 		g.emitRootArguments(w, root)
 		return

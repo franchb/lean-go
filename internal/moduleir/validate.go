@@ -18,20 +18,12 @@ type constructorInfo struct {
 	result      string
 }
 type validator struct {
-	nodes          int
-	numeric        bool
-	wide           bool
-	bytes          bool
-	uint16         bool
-	uint16ToUInt32 bool
-	uint16Xor      bool
-	bitwise        bool
-	conversions    bool
-	joins          bool
-	functions      map[string]Function
-	constructors   map[string]constructorInfo
-	types          map[string][]Constructor
-	edges          map[string]map[string]bool
+	nodes        int
+	features     map[string]bool
+	functions    map[string]Function
+	constructors map[string]constructorInfo
+	types        map[string][]Constructor
+	edges        map[string]map[string]bool
 }
 
 func validName(s string) bool {
@@ -56,10 +48,25 @@ func (v *validator) addNodes(n int) error {
 // Validate checks the complete typed runtime closure. Metadata is traceability,
 // not authentication: only the source producer checks Lean proof evidence.
 func Validate(p *Program) error {
-	if p == nil {
-		return fmt.Errorf("IR: nil program")
+	v, err := validate(p)
+	if err != nil {
+		return err
 	}
-	v := validator{functions: map[string]Function{}, constructors: map[string]constructorInfo{}, types: map[string][]Constructor{}, edges: map[string]map[string]bool{}}
+	return v.checkFeatures(p.Features)
+}
+
+func validate(p *Program) (*validator, error) {
+	if p == nil {
+		return nil, fmt.Errorf("IR: nil program")
+	}
+	v := &validator{features: map[string]bool{}, functions: map[string]Function{}, constructors: map[string]constructorInfo{}, types: map[string][]Constructor{}, edges: map[string]map[string]bool{}}
+	if err := v.check(p); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+func (v *validator) check(p *Program) error {
 	if err := v.validateMetadata(p); err != nil {
 		return err
 	}
@@ -81,6 +88,7 @@ func Validate(p *Program) error {
 			return fmt.Errorf("invalid or unordered function signature %s", f.Name)
 		}
 		prev = f.Name
+		v.useType(f.Result)
 		v.functions[f.Name] = f
 		v.edges[f.Name] = map[string]bool{}
 	}
@@ -98,6 +106,7 @@ func Validate(p *Program) error {
 	if err := v.validateClosure(RootNames(p)); err != nil {
 		return err
 	}
+	v.useFolds(p)
 	records := map[string]bool{}
 	for _, r := range p.Provenance {
 		records[r.Name] = true
@@ -110,22 +119,16 @@ func Validate(p *Program) error {
 	return v.validateTypeClosure()
 }
 func (v *validator) validateMetadata(p *Program) error {
-	if !validProfile(p.Schema, p.Profile) || p.Stage != Stage || !leanversion.Supported(p.LeanVersion, p.LeanCommit) || !validName(p.Module) {
+	if err := checkIdentity(p.Schema, p.Profile); err != nil {
+		return err
+	}
+	if p.Stage != Stage || !leanversion.Supported(p.LeanVersion, p.LeanCommit) || !validName(p.Module) {
 		return fmt.Errorf("unexpected IR profile metadata")
 	}
 	if err := validateRoots(p); err != nil {
 		return err
 	}
-	v.numeric = p.Schema != Schema
-	v.wide = HasUInt64(p.Schema)
-	v.bytes = HasUInt8(p.Schema)
-	v.uint16 = HasUInt16(p.Schema)
-	v.uint16ToUInt32 = hasUInt16ToUInt32(p.Schema)
-	v.uint16Xor = hasUInt16Xor(p.Schema)
-	v.joins = v.numeric && p.Schema != SchemaV3
-	v.conversions = p.Schema == SchemaV10 || p.Schema == SchemaV11 || v.bytes
-	v.bitwise = p.Schema == SchemaV8 || p.Schema == SchemaV9 || v.conversions
-	if p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
+	if p.Features == nil || p.Types == nil || p.Claims == nil || p.Rewrites == nil || p.Provenance == nil || p.Functions == nil {
 		return fmt.Errorf("required arrays must not be null")
 	}
 	if len(p.Claims) != 0 {
@@ -134,7 +137,7 @@ func (v *validator) validateMetadata(p *Program) error {
 	if len(p.Inputs) == 0 || len(p.Inputs) > MaxNodes {
 		return fmt.Errorf("invalid source identity set")
 	}
-	if err := v.addNodes(1 + len(p.Roots) + len(p.Inputs) + len(p.Types) + len(p.Functions) + len(p.Provenance) + 2*len(p.Rewrites)); err != nil {
+	if err := v.addNodes(1 + len(p.Roots) + len(p.Features) + len(p.Inputs) + len(p.Types) + len(p.Functions) + len(p.Provenance) + 2*len(p.Rewrites)); err != nil {
 		return err
 	}
 	for key, hash := range p.Inputs {
@@ -213,7 +216,7 @@ func (v *validator) validateTypes(types []TypeDecl) error {
 	}
 	previous := ""
 	for _, t := range types {
-		if !validName(t.Name) || t.Name == "UInt8" || (v.uint16 && t.Name == "UInt16") || t.Name == "UInt32" || (v.wide && t.Name == "UInt64") || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
+		if _, scalar := scalarFeatures[t.Name]; !validName(t.Name) || scalar || t.Name <= previous || len(t.Constructors) == 0 || len(t.Constructors) > MaxConstructors {
 			return fmt.Errorf("invalid or unordered type %s", t.Name)
 		}
 		previous = t.Name
@@ -229,6 +232,7 @@ func (v *validator) validateTypes(types []TypeDecl) error {
 				if !v.validType(field) {
 					return fmt.Errorf("unknown field type %s", field)
 				}
+				v.useType(field)
 			}
 			if err := v.addNodes(1 + len(c.Fields)); err != nil {
 				return err
@@ -282,16 +286,7 @@ func (v *validator) validateClosure(roots []string) error {
 	return nil
 }
 func (v *validator) validateTypeClosure() error {
-	used := map[string]bool{"UInt32": true}
-	if v.wide {
-		used["UInt64"] = true
-	}
-	if v.bytes {
-		used["UInt8"] = true
-	}
-	if v.uint16 {
-		used["UInt16"] = true
-	}
+	used := map[string]bool{"UInt8": true, "UInt16": true, "UInt32": true, "UInt64": true}
 	scalarCount := len(used)
 	pending := []string{}
 	for _, f := range v.functions {

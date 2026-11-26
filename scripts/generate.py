@@ -22,7 +22,7 @@ INPUT_FILES = (
 )
 
 
-MODULE_SCHEMAS = frozenset(f"lean-go-ir/v{n}" for n in range(2, 24))
+MODULE_SCHEMAS = frozenset({"lean-go-ir/v24"})
 
 
 def verify_inputs(root, program, source_dir=None):

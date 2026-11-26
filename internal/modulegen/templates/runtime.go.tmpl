@@ -4,9 +4,9 @@ package extracted
 import "errors"
 
 // Input is mutable caller-owned data. Type and constructor names are Lean names.
-[[if .Wide]]// Scalars use their type name, no constructor or fields, and only their active payload.
-// ADTs require UInt32=0 and UInt64=0[[if .Bytes]] and UInt8=0[[end]][[if .UInt16]] and UInt16=0[[end]].[[else]]// UInt32 uses Type="UInt32", no constructor or fields; ADTs require UInt32=0.[[end]]
-type Input struct { Type, Constructor string; [[if .Bytes]]UInt8 uint8; [[end]][[if .UInt16]]UInt16 uint16; [[end]]UInt32 uint32; [[if .Wide]]UInt64 uint64; [[end]]Fields []*Input }
+// Scalars use their type name, no constructor or fields, and only their active payload.
+// ADTs require UInt32=0 and UInt64=0 and UInt8=0 and UInt16=0.
+type Input struct { Type, Constructor string; UInt8 uint8; UInt16 uint16; UInt32 uint32; UInt64 uint64; Fields []*Input }
 type Limits struct { MaxNodes, MaxDepth, MaxOutputNodes, MaxAllocations, MaxSteps, MaxFrames, MaxSlots uint64 }
 // MaxSlots counts all frame slots allocated during this call, including freed frames.
 func DefaultLimits() Limits { return Limits{65536,4096,131072,65536,4194304,8192,1048576} }
@@ -15,19 +15,16 @@ var (
  ErrResource=errors.New("resource limit exceeded")
  ErrLimits=errors.New("invalid limits")
 )
-type node struct { typ, tag int; [[if .Bytes]]scalar8 uint8; [[end]][[if .UInt16]]scalar16 uint16; [[end]]scalar uint32; [[if .Wide]]scalar64 uint64; [[end]]fields []*node; size,depth uint64 }
+type node struct { typ, tag int; scalar8 uint8; scalar16 uint16; scalar uint32; scalar64 uint64; fields []*node; size,depth uint64 }
 // Value owns immutable data. Its zero value is invalid.
 type Value struct { n *node }
 func (v Value) Type() string { if v.n==nil{return ""};return typeName(v.n.typ) }
 func (v Value) Constructor() string { if v.n==nil||v.n.typ==0{return ""};return constructorName(v.n.typ,v.n.tag) }
-[[if .UInt16]]func (v Value) UInt8()(uint8,bool) { return apiReadUInt8(v.n) }
+func (v Value) UInt8()(uint8,bool) { return apiReadUInt8(v.n) }
 func (v Value) UInt16()(uint16,bool) { return apiReadUInt16(v.n) }
 func (v Value) UInt32()(uint32,bool) { return apiReadUInt32(v.n) }
 func (v Value) UInt64()(uint64,bool) { return apiReadUInt64(v.n) }
-[[else]]func (v Value) UInt32()(uint32,bool) { if v.n==nil||v.n.typ!=0{return 0,false};return v.n.scalar,true }
-[[if .Wide]]func (v Value) UInt64()(uint64,bool) { if v.n==nil||v.n.typ!=[[.UInt64Type]]{return 0,false};return v.n.scalar64,true }
-[[end]][[if .Bytes]]func (v Value) UInt8()(uint8,bool) { if v.n==nil||v.n.typ!=[[.UInt8Type]]{return 0,false};return v.n.scalar8,true }
-[[end]][[end]]// Fields returns a fresh slice; modifying it cannot change the owned value.
+// Fields returns a fresh slice; modifying it cannot change the owned value.
 func (v Value) Fields()[]Value { if v.n==nil{return nil};out:=make([]Value,len(v.n.fields));for i,n:=range v.n.fields{out[i]=Value{n}};return out }
 func checkLimits(l Limits)error {
  c:=DefaultLimits();values:=[]uint64{l.MaxNodes,l.MaxDepth,l.MaxOutputNodes,l.MaxAllocations,l.MaxSteps,l.MaxFrames,l.MaxSlots};caps:=[]uint64{c.MaxNodes,c.MaxDepth,c.MaxOutputNodes,c.MaxAllocations,c.MaxSteps,c.MaxFrames,c.MaxSlots}
@@ -49,7 +46,7 @@ func Import(input *Input,l Limits)(Value,error){
   }
   if f.next<len(f.input.Fields){child:=f.input.Fields[f.next];f.next++;stack=append(stack,frame{input:child,depth:f.depth+1});continue}
   size,depth,err:=measure(f.fields,l.MaxNodes,l.MaxDepth);if err!=nil{return Value{},err}
-  result=&node{typ:f.typ,tag:f.tag,[[if .Bytes]]scalar8:f.input.UInt8,[[end]][[if .UInt16]]scalar16:f.input.UInt16,[[end]]scalar:f.input.UInt32,[[if .Wide]]scalar64:f.input.UInt64,[[end]]fields:f.fields,size:size,depth:depth}
+  result=&node{typ:f.typ,tag:f.tag,scalar8:f.input.UInt8,scalar16:f.input.UInt16,scalar:f.input.UInt32,scalar64:f.input.UInt64,fields:f.fields,size:size,depth:depth}
   delete(active,f.input);stack=stack[:len(stack)-1]
   if len(stack)>0{p:=&stack[len(stack)-1];index:=p.next-1;if result.typ!=fieldType(p.typ,p.tag,index){return Value{},ErrMalformed};p.fields[index]=result}
  }

@@ -8,16 +8,14 @@ import (
 	"github.com/franchb/lean-go/internal/moduleir"
 )
 
-const byteListType = "List UInt8"
+const byteListType = moduleir.ByteListType
 
 // foldRecords maps eligible source records to their constructor in validated IR.
 func foldRecords(p *moduleir.Program) map[string]string {
 	records := make(map[string]string)
-	if moduleir.HasRecordByteFolds(p.Schema) {
-		for _, typ := range p.Types {
-			if _, ok := p.API.Records[typ.Name]; ok && slices.Equal(typ.Constructors[0].Fields, []string{"UInt32", "UInt32"}) {
-				records[typ.Name] = typ.Constructors[0].Name
-			}
+	for _, typ := range p.Types {
+		if _, ok := p.API.Records[typ.Name]; ok && slices.Equal(typ.Constructors[0].Fields, []string{"UInt32", "UInt32"}) {
+			records[typ.Name] = typ.Constructors[0].Name
 		}
 	}
 	return records
@@ -26,9 +24,6 @@ func foldRecords(p *moduleir.Program) map[string]string {
 // Recognize the complete recurrence in validated IR. Names of roots and steps
 // are user-defined. All operands, branches and the returned state must agree.
 func byteFoldSteps(p *moduleir.Program) map[string]string {
-	if !moduleir.HasByteFolds(p.Schema) {
-		return nil
-	}
 	for _, typ := range p.Types {
 		if typ.Name != byteListType || len(typ.Constructors) != 2 {
 			continue
@@ -78,7 +73,7 @@ func byteFoldStep(f moduleir.Function) string {
 
 func (e *apiEmitter) byteFoldEntry(w *bytes.Buffer, f, step *function, native bool) {
 	entry := e.names.Entrypoint
-	if moduleir.HasMultipleRoots(e.g.program.Schema) {
+	if moduleir.HasMultipleRoots(e.g.program) {
 		entry = e.names.Entrypoints[f.decl.Name]
 	}
 	typ := f.decl.Result
@@ -119,7 +114,7 @@ func (e *apiEmitter) byteFoldEntry(w *bytes.Buffer, f, step *function, native bo
 	listID := e.g.types[byteListType]
 	fmt.Fprintf(w, "tail:=&node{typ:%d,size:1,depth:1};for i:=len(data)-1;i>=0;i--{tail=&node{typ:%d,tag:1,size:tail.size+2,depth:tail.depth+1,fields:[]*node{apiUInt8Node(data[i]),tail}}}\n", listID, listID)
 	call := "Run("
-	if moduleir.HasMultipleRoots(e.g.program.Schema) {
+	if moduleir.HasMultipleRoots(e.g.program) {
 		call = fmt.Sprintf("RunRoot(%q,", f.decl.Name)
 	}
 	fmt.Fprintf(w, "out,err:=%s[]Value{{n:%s},{n:tail}},l);if err!=nil{return %s,err}\n", call, e.node(typ, "state"), zero)

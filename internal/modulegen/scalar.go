@@ -226,7 +226,7 @@ func (e *apiEmitter) scalarExpression(c *moduleir.Code) string {
 func (e *apiEmitter) scalarEntry(w *bytes.Buffer, name string) {
 	f := e.g.functions[name]
 	entry := e.names.Entrypoint
-	if moduleir.HasMultipleRoots(e.g.program.Schema) {
+	if moduleir.HasMultipleRoots(e.g.program) {
 		entry = e.names.Entrypoints[name]
 	}
 	fields := make([]string, len(f.decl.Params))

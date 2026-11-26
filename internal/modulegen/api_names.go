@@ -78,7 +78,8 @@ func exportedAPIName(lean string) string {
 const apiReservedNames = `Input Limits DefaultLimits ErrMalformed ErrResource ErrLimits
 node Value typeName constructorName inputShape fieldType rootParameters rootResult
 checkLimits Import measure budget Run frame frameForCall execute RunTyped
-apiMake apiNode apiMatches apiUInt32Node apiReadUInt32 apiBoolNode apiReadBool apiUInt64Node apiReadUInt64`
+apiMake apiNode apiMatches apiUInt32Node apiReadUInt32 apiBoolNode apiReadBool apiUInt64Node apiReadUInt64
+apiUInt8Node apiReadUInt8 apiUInt16Node apiReadUInt16 inputOtherShape`
 
 func newGoAPI(p *moduleir.Program) *goAPI {
 	api := &goAPI{
@@ -86,7 +87,7 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 		Accessors: map[string]map[string]string{}, Destructors: map[string]apiDestructor{},
 		ByteArrays: map[string]apiByteArray{}, ByteFolds: byteFoldSteps(p),
 	}
-	packageNames := reservedAPINames(p.Schema)
+	packageNames := reservedAPINames(moduleir.HasMultipleRoots(p))
 
 	scalars := apiScalars(p)
 	for name, scalar := range scalars {
@@ -114,7 +115,7 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 			for _, field := range fields {
 				api.Accessors[typ.Name][field] = methods.allocate(exportedAPIName(field))
 			}
-			if moduleir.HasUInt8(p.Schema) && slices.Equal(ctor.Fields, []string{"UInt8", "UInt8", "UInt8", "UInt8"}) {
+			if slices.Equal(ctor.Fields, []string{"UInt8", "UInt8", "UInt8", "UInt8"}) {
 				api.ByteArrays[typ.Name] = apiByteArray{Bytes: methods.allocate("Bytes")}
 			}
 			continue
@@ -141,21 +142,12 @@ func newGoAPI(p *moduleir.Program) *goAPI {
 	return api
 }
 
-func reservedAPINames(schema string) apiNameAllocator {
+func reservedAPINames(multiRoot bool) apiNameAllocator {
 	names := apiNameAllocator{}
 	for _, name := range strings.Fields(apiReservedNames) {
 		names[name] = true
 	}
-	if moduleir.HasUInt8(schema) {
-		names["apiUInt8Node"] = true
-		names["apiReadUInt8"] = true
-		names["inputOtherShape"] = true
-	}
-	if moduleir.HasUInt16(schema) {
-		names["apiUInt16Node"] = true
-		names["apiReadUInt16"] = true
-	}
-	if moduleir.HasMultipleRoots(schema) {
+	if multiRoot {
 		for _, name := range []string{"RunRoot", "rootSignature"} {
 			names[name] = true
 		}
@@ -164,7 +156,7 @@ func reservedAPINames(schema string) apiNameAllocator {
 }
 
 func (api *goAPI) allocateEntrypoints(p *moduleir.Program, names apiNameAllocator) {
-	if !moduleir.HasMultipleRoots(p.Schema) {
+	if !moduleir.HasMultipleRoots(p) {
 		return
 	}
 	api.Entrypoint = ""

@@ -218,15 +218,11 @@ def export_harness(module, entries):
     return f'import LeanGo.Module.Export\nimport {module}\n' + command
 
 
-BITWISE_PRIMITIVES = {f'UInt{width}.{operation}' for width in (32, 64)
-                      for operation in ('land', 'lor', 'xor', 'complement', 'shiftRight')}
-WIDTH_CONVERSIONS = {'UInt32.toUInt64', 'UInt64.toUInt32'}
-BYTE_PRIMITIVES = {f'UInt8.{operation}' for operation in (
-    'add', 'sub', 'mul', 'decEq', 'decLt', 'decLe',
-    'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight')} | {
-        'UInt8.toUInt32', 'UInt32.toUInt8'}
-UINT16_PRIMITIVES = {'UInt8.toUInt16', 'UInt16.toUInt8', 'UInt16.lor',
-                     'UInt16.shiftLeft', 'UInt16.shiftRight'}
+SCHEMA = 'lean-go-ir/v24'
+PROFILE = 'pure-module/v22'
+BYTE_LIST = 'List UInt8'
+SCALAR_FEATURES = {'UInt8': 'uint8', 'UInt16': 'uint16', 'UInt32': 'uint32', 'UInt64': 'uint64'}
+BITWISE_OPERATIONS = {'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight'}
 
 
 def executable_nodes(program):
@@ -270,45 +266,38 @@ def emitted_types(program):
     return types
 
 
+def program_features(program):
+    """Name the capability families used; the Go validator recomputes this list."""
+    primitives = emitted_primitives(program)
+    features = {SCALAR_FEATURES[typ] for typ in emitted_types(program) if typ in SCALAR_FEATURES}
+    operations = {name.partition('.')[2] for name in primitives}
+    if operations & BITWISE_OPERATIONS:
+        features.add('bitwise')
+    if any(operation.startswith('toUInt') for operation in operations):
+        features.add('width_conversion')
+    if any(node['op'] == 'join' for node in executable_nodes(program)):
+        features.add('join')
+    if any(typ['name'] == BYTE_LIST for typ in program['types']):
+        features.add('byte_fold')
+        if any(f['result'] in program['api']['records']
+               and [p['type'] for p in f['params']] == [f['result'], BYTE_LIST]
+               for f in program['functions']):
+            features.add('record_fold')
+    return sorted(features)
+
+
 def complete_program(raw, module, entries, identities, compiler):
     program = parse_json(raw)
-    multi = len(entries) > 1
-    selection = 'roots' if multi else 'root'
-    fields = {'module', selection, 'types', 'functions', 'claims', 'rewrites', 'provenance', 'api'}
+    fields = {'module', 'roots', 'types', 'functions', 'claims', 'rewrites', 'provenance', 'api'}
     if not isinstance(program, dict) or set(program) != fields:
         raise ExportError('unexpected module producer result fields')
-    if program['module'] != module or program[selection] != (entries if multi else entries[0]):
+    if program['module'] != module or program['roots'] != entries:
         raise ExportError('module producer returned a different module or roots')
     try:
-        primitives = emitted_primitives(program)
-        types = emitted_types(program)
-    except (KeyError, TypeError) as exc:
+        features = program_features(program)
+    except (KeyError, TypeError, AttributeError) as exc:
         raise ExportError('unexpected module producer executable fields') from exc
-    if 'List UInt8' in types:
-        record_fold = any(
-            f['result'] in program['api']['records']
-            and [p['type'] for p in f['params']] == [f['result'], 'List UInt8']
-            and f['body'].get('type') == 'List UInt8' and f['body']['op'] == 'cases'
-            for f in program['functions'])
-        version, profile = (22, 20) if record_fold else (20, 18)
-    elif 'UInt16.xor' in primitives:
-        version, profile = 18, 16
-    elif 'UInt16.toUInt32' in primitives:
-        version, profile = 16, 14
-    elif 'UInt16' in types or primitives & UINT16_PRIMITIVES:
-        version, profile = 14, 12
-    elif 'UInt8' in types or primitives & BYTE_PRIMITIVES:
-        version, profile = 12, 10
-    elif primitives & WIDTH_CONVERSIONS:
-        version, profile = 10, 8
-    elif primitives & BITWISE_PRIMITIVES:
-        version, profile = 8, 6
-    else:
-        version, profile = 6, 4
-    if multi:
-        version, profile = version + 1, profile + 1
-    program.update(schema=f'lean-go-ir/v{version}',
-                   profile=f'pure-module/v{profile}', stage='pure-mono',
+    program.update(schema=SCHEMA, profile=PROFILE, stage='pure-mono', features=features,
                    lean_version=compiler.version, lean_commit=compiler.commit, inputs=identities)
     return program
 
