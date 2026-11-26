@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+func variable(name string) expr { return expr{text: name, atomic: true} }
+
 func TestPrimitiveMatrixComplete(t *testing.T) {
 	names := AllPrimitives()
 	// Four widths times fourteen operations, plus twelve conversions.
@@ -17,7 +19,7 @@ func TestPrimitiveMatrixComplete(t *testing.T) {
 		if !ok || p.Name != name || p.Semantics == "" {
 			t.Fatalf("%s: %+v", name, p)
 		}
-		if _, err := primitiveStatements("v3", name, []string{"v1", "v2"}[:len(p.Params)]); err != nil {
+		if _, err := primitiveStatements("v3", name, []expr{variable("v1"), variable("v2")}[:len(p.Params)]); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -28,49 +30,87 @@ func TestPrimitiveMatrixComplete(t *testing.T) {
 	}
 }
 
+// Constant operands exercised for every primitive: zero divisors, shift
+// counts below, at and above every width, and both extremes.
+var constantOperands = []uint64{0, 1, 2, 7, 8, 9, 15, 16, 17, 31, 32, 33, 63, 64, 65, 255, 65535, 1<<32 - 1, 1<<64 - 1}
+
 // TestPrimitiveSemantics compiles every primitive through the emitter's own
-// statement templates and compares each with an arbitrary-precision model of
-// the Lean definition on boundary operands, including division and remainder
-// by zero and shift counts at and above the width, plus seeded random pairs.
+// expression and statement templates and compares each with an
+// arbitrary-precision model of the Lean definition: with two variable
+// operands, with a constant left or right operand, and folded at generation
+// time when both are constant. Operands include boundary values, division
+// and remainder by zero, shift counts at and above the width, and seeded
+// random values.
 func TestPrimitiveSemantics(t *testing.T) {
 	if testing.Short() {
 		t.Skip("builds a generated package")
 	}
-	var impl, dispatch strings.Builder
+	var impl, dispatch, folded strings.Builder
 	impl.WriteString("package prims\n\n")
-	dispatch.WriteString("func call(name string, a, b uint64) uint64 {\nswitch name {\n")
+	dispatch.WriteString("func call(name string, form, k int, a, b uint64) uint64 {\nswitch fmt.Sprint(name, \"/\", form, \"/\", k) {\n")
+	folded.WriteString("var folded = []struct {\nname string\na, b, z uint64\n}{\n")
 	for _, name := range AllPrimitives() {
 		p, _ := LookupPrimitive(name)
-		fn := strings.ReplaceAll(name, ".", "_")
-		goParams := []string{"v1 " + scalarGo(p.Params[0])}
-		callArgs := []string{scalarGo(p.Params[0]) + "(a)"}
-		if len(p.Params) == 2 {
-			goParams = append(goParams, "v2 "+scalarGo(p.Params[1]))
-			callArgs = append(callArgs, scalarGo(p.Params[1])+"(b)")
-		}
-		result := "bool"
-		convert := "boolWord"
+		width := scalarWidths[p.Params[0]]
+		goType := scalarGo(p.Params[0])
+		result, convert := "bool", "boolWord"
 		if p.Result != "Bool" {
 			result, convert = scalarGo(p.Result), "uint64"
 		}
-		body, err := primitiveStatements("v3", name, []string{"v1", "v2"}[:len(p.Params)])
-		if err != nil {
-			t.Fatal(err)
+		emit := func(form, k int, params string, args []expr, callArgs string) {
+			body, err := primitiveStatements("v3", name, args)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fn := fmt.Sprintf("%s_%d_%d", strings.ReplaceAll(name, ".", "_"), form, k)
+			fmt.Fprintf(&impl, "func %s(%s) %s {\n%sreturn v3\n}\n\n", fn, params, result, body)
+			fmt.Fprintf(&dispatch, "case %q:\nreturn %s(%s(%s))\n", fmt.Sprintf("%s/%d/%d", name, form, k), convert, fn, callArgs)
 		}
-		fmt.Fprintf(&impl, "func %s(%s) %s {\n%sreturn v3\n}\n\n", fn, strings.Join(goParams, ", "), result, body)
-		fmt.Fprintf(&dispatch, "case %q:\nreturn %s(%s(%s))\n", name, convert, fn, strings.Join(callArgs, ", "))
+		if len(p.Params) == 1 {
+			emit(0, 0, "v1 "+goType, []expr{variable("v1")}, goType+"(a)")
+		} else {
+			emit(0, 0, "v1, v2 "+goType, []expr{variable("v1"), variable("v2")}, goType+"(a), "+goType+"(b)")
+		}
+		for k, c := range constantOperands {
+			c &= mask(width)
+			constant := literal(p.Params[0], c)
+			if len(p.Params) == 1 {
+				x, _, err := primitiveExpr(name, []expr{constant})
+				if err != nil || !x.constant {
+					t.Fatalf("%s(%d) did not fold", name, c)
+				}
+				fmt.Fprintf(&folded, "{%q, %d, 0, %s(%s)},\n", name, c, convert, x.text)
+				continue
+			}
+			emit(1, k, "v1 "+goType, []expr{variable("v1"), constant}, goType+"(a)")
+			emit(2, k, "v2 "+goType, []expr{constant, variable("v2")}, goType+"(b)")
+			for _, d := range constantOperands {
+				d &= mask(width)
+				x, _, err := primitiveExpr(name, []expr{constant, literal(p.Params[0], d)})
+				if err != nil || !x.constant {
+					t.Fatalf("%s(%d, %d) did not fold", name, c, d)
+				}
+				fmt.Fprintf(&folded, "{%q, %d, %d, %s(%s)},\n", name, c, d, convert, x.text)
+			}
+		}
 	}
 	dispatch.WriteString("}\npanic(name)\n}\n")
+	folded.WriteString("}\n")
 	var names strings.Builder
 	for _, name := range AllPrimitives() {
 		fmt.Fprintf(&names, "%q,\n", name)
 	}
-	test := strings.NewReplacer("DISPATCH", dispatch.String(), "NAMES", names.String()).Replace(primitiveTestSource)
+	var constants strings.Builder
+	for _, c := range constantOperands {
+		fmt.Fprintf(&constants, "%d, ", c)
+	}
+	test := strings.NewReplacer("DISPATCH", dispatch.String()+folded.String(), "NAMES", names.String(), "CONSTANTS", constants.String()).Replace(primitiveTestSource)
 	dir := t.TempDir()
 	writePackage(t, dir, map[string][]byte{"go.mod": []byte("module prims\n\ngo 1.27\n"), "prims.go": []byte(impl.String()), "prims_test.go": []byte(test)})
 	goCommand(t, dir, "vet", ".")
 	t.Log(goCommand(t, dir, "test", "-count=1", "-v", "."))
 }
+
 
 // The reference model follows the Lean definitions over natural numbers:
 // arithmetic modulo 2^w, shift counts modulo w, x / 0 = 0, x % 0 = x, and
@@ -78,6 +118,7 @@ func TestPrimitiveSemantics(t *testing.T) {
 const primitiveTestSource = `package prims
 
 import (
+	"fmt"
 	"math/big"
 	"math/rand"
 	"strings"
@@ -180,7 +221,7 @@ func TestMatrix(t *testing.T) {
 		ops := operands(width(typ), r)
 		for _, a := range ops {
 			for _, b := range ops {
-				if got, want := call(name, a, b), model(name, a, b); got != want {
+				if got, want := call(name, 0, 0, a, b), model(name, a, b); got != want {
 					t.Fatalf("%s(%d, %d) = %d, want %d", name, a, b, got, want)
 				}
 				checked++
@@ -188,6 +229,42 @@ func TestMatrix(t *testing.T) {
 		}
 	}
 	t.Logf("checked %d primitive applications", checked)
+}
+
+var constants = []uint64{CONSTANTS}
+
+// TestConstantOperands checks the forms the emitter uses when one operand
+// is an IR literal, and the values it folds when both are.
+func TestConstantOperands(t *testing.T) {
+	r := rand.New(rand.NewSource(8))
+	checked := 0
+	for _, name := range names {
+		typ, _, _ := strings.Cut(name, ".")
+		w := width(typ)
+		ops := operands(w, r)
+		for k, c := range constants {
+			c &= uint64(1)<<w - 1
+			for _, v := range ops {
+				if strings.Contains(name, ".to") || strings.HasSuffix(name, "complement") {
+					continue
+				}
+				if got, want := call(name, 1, k, v, 0), model(name, v, c); got != want {
+					t.Fatalf("%s(%d, const %d) = %d, want %d", name, v, c, got, want)
+				}
+				if got, want := call(name, 2, k, 0, v), model(name, c, v); got != want {
+					t.Fatalf("%s(const %d, %d) = %d, want %d", name, c, v, got, want)
+				}
+				checked += 2
+			}
+		}
+	}
+	for _, f := range folded {
+		if want := model(f.name, f.a, f.b); f.z != want {
+			t.Fatalf("folded %s(%d, %d) = %d, want %d", f.name, f.a, f.b, f.z, want)
+		}
+		checked++
+	}
+	t.Logf("checked %d constant-operand applications", checked)
 }
 
 func TestByZeroAndWideShifts(t *testing.T) {
@@ -205,7 +282,7 @@ func TestByZeroAndWideShifts(t *testing.T) {
 		{"UInt64.toUInt8", 0x1ff, 0, 0xff}, {"UInt8.toUInt64", 0xff, 0, 0xff},
 	}
 	for _, c := range cases {
-		if got := call(c.name, c.a, c.b); got != c.z {
+		if got := call(c.name, 0, 0, c.a, c.b); got != c.z {
 			t.Errorf("%s(%d, %d) = %d, want %d", c.name, c.a, c.b, got, c.z)
 		}
 	}

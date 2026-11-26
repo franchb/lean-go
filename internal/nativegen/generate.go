@@ -156,10 +156,8 @@ type API struct {
 func (m *model) api() API {
 	api := API{Types: map[string]APIType{}, Functions: map[string]APIFunction{}}
 	for name, info := range m.types {
-		if info.kind == kindScalar || info.kind == kindBool {
-			if _, declared := scalarWidths[name]; declared || info.kind == kindBool {
-				api.Types[name] = APIType{Go: info.goName, Kind: kindNames[info.kind]}
-			}
+		if _, scalar := scalarWidths[name]; scalar || info.kind == kindBool {
+			api.Types[name] = APIType{Go: info.goName, Kind: kindNames[info.kind]}
 		}
 	}
 	for _, name := range m.order {
