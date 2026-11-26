@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v18",
   "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
   "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "888922c783a6276a5c027e1a2b9265e97f2a2a9783f76f075d7d925c5c0bee37",
+  "ir_sha256": "4a904fe99f1b6057eb3c3a6e142196512d546a449ce4a80d7d764f9aef7a77d4",
   "program": {
     "schema": "lean-go-ir/v15",
     "profile": "pure-module/v13",
@@ -31,7 +31,7 @@
       "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
-      "source/DnsHeader.lean": "2e4f9a70fc4422f42644ce78b681606f6901008e3759230edf086f362b49da2f"
+      "source/DnsHeader.lean": "f9acbd13c61431440aaf2c8fae2ae634f52872221d5ff5553a2670b8cbae3ee9"
     },
     "types": [
       {

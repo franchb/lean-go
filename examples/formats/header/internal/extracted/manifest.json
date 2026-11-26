@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v18",
   "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
   "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "270ec180f7597e5b894a30f668dbd53e78ad6f4457d29d18aa1d4a8f9a3977f2",
+  "ir_sha256": "e218c90aafbee92b902f489a88aecfb93ef27ae7a609aa1b07537f9cc26faad5",
   "program": {
     "schema": "lean-go-ir/v17",
     "profile": "pure-module/v15",
@@ -32,7 +32,7 @@
       "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
       "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
       "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
-      "source/DemoHeader.lean": "6793d054ee53c49d61ac401c4b63fd5ab8a2f5292df14a821ee1ceb8d4e0191b"
+      "source/DemoHeader.lean": "b6a9da0a0cb76f05a6880369a7fc04f9ac5aa9cda4cb883ac1eece54b55b4122"
     },
     "types": [
       {

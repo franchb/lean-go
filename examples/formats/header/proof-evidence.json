@@ -106,14 +106,14 @@
     }
   ],
   "contract_sha256": "9432581e947a54034710f578511fc226d38423fc3ff0b617ae942c4d5d4709be",
-  "generated_manifest_sha256": "c91445692a4c2d9cc562358fbfbffad3cf22accb173bbe54d4cd70a9f43bada0",
+  "generated_manifest_sha256": "1dc9796a02cdb7e460323185bda9f79edb979388447bca08cdaf881148203db8",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "DemoHeader",
   "project_inputs": {
-    "proof/DemoHeaderContract.lean": "5b82f454c4e553c37394fa3d433a041b3ec9cb7eebc2cace402db732c21d9259",
-    "proof/DemoHeaderProofs.lean": "5e36709775e38a86e69cdbf45ab2c5cc3cffc49f11004e6f42f014cb5134d054",
-    "source/DemoHeader.lean": "6793d054ee53c49d61ac401c4b63fd5ab8a2f5292df14a821ee1ceb8d4e0191b"
+    "proof/DemoHeaderContract.lean": "6c9de9762e981e18b7416555eed0b28c479b9eea4c6d84b378a6d378c364de12",
+    "proof/DemoHeaderProofs.lean": "00934f06f32717d207d635798988b79cb7b8e27ced2ab9eebff439e1dbc47d56",
+    "source/DemoHeader.lean": "b6a9da0a0cb76f05a6880369a7fc04f9ac5aa9cda4cb883ac1eece54b55b4122"
   },
   "roots": [
     "DemoHeader.classify",
