@@ -136,6 +136,9 @@ jobs:
             ${{ runner.temp }}/lean-go-compatibility/**/identity.json
             ${{ runner.temp }}/lean-go-compatibility/**/adaptations.json
             ${{ runner.temp }}/lean-go-compatibility/differences/**
+      - name: Build the translation-validation library, examples and axiom gate
+        working-directory: validation
+        run: lake build
       - name: Check quota source proofs and generated binding
         run: uv run --locked python scripts/check_quota.py
       - name: Verify release-candidate proof-to-Go walkthrough
