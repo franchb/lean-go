@@ -138,3 +138,45 @@ func TestGeneratedPackagesVet(t *testing.T) {
 		t.Fatalf("gofmt -l: %v\n%s", err, out)
 	}
 }
+
+func TestNameCollisions(t *testing.T) {
+	files, err := Generate(collidingTrees(t), Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var api API
+	manifestAPI(t, files, &api)
+	if got := api.Types["Other.MirrorRed"].Go; got != "MirrorRed" {
+		t.Fatalf("tree type %q", got)
+	}
+	if got := api.Types["Trees.Mirror"].Go; got != "Mirror" {
+		t.Fatalf("color type %q", got)
+	}
+	if got := api.Types["Trees.Mirror"].Constructors["Trees.Color.red"]; got != "MirrorRed2" {
+		t.Fatalf("constructor %q", got)
+	}
+	if got := api.Functions["Trees.mirror"].Go; got != "Mirror2" {
+		t.Fatalf("root %q", got)
+	}
+	functions := string(files["functions.go"])
+	if !strings.Contains(functions, "func fnv1(") || !strings.Contains(functions, "// fnv1 implements the Lean function Trees.v1.") {
+		t.Fatalf("internal name:\n%s", functions)
+	}
+}
+
+func TestExportedNames(t *testing.T) {
+	for lean, want := range map[string]string{
+		"Adler32.update": "Update", "List UInt8": "List_UInt8", "Foo.«weird name»": "X_weird_name_",
+		"A.αβ": "Αβ", "A.中文": "X中文", "A._x": "X_x", "A.": "X", "A.type": "Type",
+	} {
+		if got := exportedName(lean); got != want {
+			t.Errorf("exportedName(%q) = %q, want %q", lean, got, want)
+		}
+	}
+	a := newInternalAllocator()
+	for _, c := range []struct{ preferred, want string }{{"len", "len2"}, {"v1", "fnv1"}, {"step", "step"}, {"errors", "errors2"}, {"step", "step2"}} {
+		if got := a.allocateInternal(c.preferred); got != c.want {
+			t.Errorf("allocateInternal(%q) = %q, want %q", c.preferred, got, c.want)
+		}
+	}
+}

@@ -180,11 +180,22 @@ func (d *driver) emitType(typ moduleir.TypeDecl) {
 		d.printf("if r.Intn(16) == 0 {\nreturn %s{}\n}\nreturn %s{%s}\n}\n", nat, nat, strings.Join(fields, ", "))
 	} else {
 		zero := slices.IndexFunc(typ.Constructors, func(c moduleir.Constructor) bool { return c.Name == api.Zero })
-		d.printf("if r.Intn(8) == 0 {\nreturn %s{}\n}\nk := %d\nif depth > 0 {\nk = r.Intn(%d)\n}\nswitch k {\n", nat, zero, len(typ.Constructors))
+		// Deep requests on recursive types avoid the zero constructor, and
+		// only the first structured field inherits the depth: a long spine
+		// with small side values.
+		spine := ""
+		if api.Kind == "boxed" {
+			spine = fmt.Sprintf("\nif depth > 16 && k == %d {\nk = (k + 1) %% %d\n}", zero, len(typ.Constructors))
+		}
+		d.printf("if depth < 16 && r.Intn(8) == 0 {\nreturn %s{}\n}\nk := %d\nif depth > 0 {\nk = r.Intn(%d)%s\n}\nswitch k {\n", nat, zero, len(typ.Constructors), spine)
 		for k, c := range typ.Constructors {
 			var args []string
+			child := "depth-1"
 			for _, field := range c.Fields {
-				args = append(args, d.gen(field, "depth-1"))
+				args = append(args, d.gen(field, child))
+				if !d.scalar(field) {
+					child = "min(depth-1, r.Intn(4))"
+				}
 			}
 			d.printf("case %d:\nreturn nat.%s(%s)\n", k, api.Constructors[c.Name], strings.Join(args, ", "))
 		}
@@ -324,14 +335,16 @@ func (d *driver) emitRoot(k int, root string) {
 		allScalar = allScalar && d.scalar(p.Type)
 	}
 	metArgs = append(metArgs, "limits")
-	d.printf("\nfunc check%d(%s) {\nt.Helper()\n", k, strings.Join(append([]string{"t *testing.T"}, params...), ", "))
+	// check reports false, without comparing, only when the metered package
+	// exhausts its resource budgets; native mode has none to exhaust.
+	d.printf("\nfunc check%d(%s) bool {\nt.Helper()\n", k, strings.Join(append([]string{"t *testing.T"}, params...), ", "))
 	if native.Error {
 		d.printf("nv, nerr := nat.%s(%s)\n", native.Go, strings.Join(natArgs, ", "))
 	} else {
 		d.printf("nv := nat.%s(%s)\nvar nerr error\n", native.Go, strings.Join(natArgs, ", "))
 	}
 	d.printf("mv, merr := met.%s(%s)\n", d.meteredEntry(root), strings.Join(metArgs, ", "))
-	d.printf("if nerr != nil || merr != nil || !(%s) {\nt.Fatalf(\"%s%%v: native %%v, %%v; metered %%v, %%v\", []any{%s}, nv, nerr, mv, merr)\n}\n}\n",
+	d.printf("if nerr == nil && errors.Is(merr, met.ErrResource) {\nreturn false\n}\nif nerr != nil || merr != nil || !(%s) {\nt.Fatalf(\"%s%%v: native %%v, %%v; metered %%v, %%v\", []any{%s}, nv, nerr, mv, merr)\n}\nreturn true\n}\n",
 		d.eq(f.Result, "nv", "mv"), root, strings.Join(natArgs, ", "))
 	// Random arguments of varied depth.
 	d.printf("\nfunc TestRoot%dRandom(t *testing.T) {\nr := rand.New(rand.NewSource(%d))\nfor range %d {\ndepth := r.Intn(12)\n_ = depth\n", k, 1000+k, driverIterations)
@@ -339,13 +352,17 @@ func (d *driver) emitRoot(k int, root string) {
 	for _, p := range f.Params {
 		gens = append(gens, d.gen(p.Type, "depth"))
 	}
-	d.printf("check%d(%s)\n}\n}\n", k, strings.Join(append([]string{"t"}, gens...), ", "))
+	d.printf("if !check%d(%s) {\nt.Fatal(\"metered budget exhausted\")\n}\n}\n}\n", k, strings.Join(append([]string{"t"}, gens...), ", "))
+	// Values of varied large depth, within the metered default budgets.
+	if !allScalar {
+		d.printf("\nfunc TestRoot%dDeep(t *testing.T) {\nr := rand.New(rand.NewSource(%d))\ncompared := 0\nfor i := range 40 {\ndepth := 16 + i*i\n_ = depth\nif check%d(%s) {\ncompared++\n}\n}\nt.Logf(\"compared %%d of 40 deep values within metered budgets\", compared)\nif compared < 20 {\nt.Fatal(\"too few comparisons\")\n}\n}\n", k, 3000+k, k, strings.Join(append([]string{"t"}, gens...), ", "))
+	}
 	// Zero values of every argument type.
 	zeros := []string{"t"}
 	for _, p := range f.Params {
 		zeros = append(zeros, d.zero(p.Type))
 	}
-	d.printf("\nfunc TestRoot%dZero(t *testing.T) {\ncheck%d(%s)\n}\n", k, k, strings.Join(zeros, ", "))
+	d.printf("\nfunc TestRoot%dZero(t *testing.T) {\nif !check%d(%s) {\nt.Fatal(\"metered budget exhausted\")\n}\n}\n", k, k, strings.Join(zeros, ", "))
 	// Exhaustive boundary products for small scalar signatures.
 	if allScalar && len(f.Params) > 0 && len(f.Params) <= 3 {
 		d.printf("\nfunc TestRoot%dBoundaries(t *testing.T) {\n", k)
@@ -356,7 +373,7 @@ func (d *driver) emitRoot(k int, root string) {
 			}
 			d.printf("for _, a%d := range %s {\n", i, set)
 		}
-		d.printf("check%d(t, %s)\n", k, strings.Join(natArgs, ", "))
+		d.printf("if !check%d(t, %s) {\nt.Fatal(\"metered budget exhausted\")\n}\n", k, strings.Join(natArgs, ", "))
 		d.printf("%s}\n", strings.Repeat("}\n", len(f.Params)))
 	}
 }
@@ -448,6 +465,7 @@ func harnessModule(t testing.TB, dir string, opts Options) []string {
 			programs = append(programs, variant)
 		}
 	}
+	programs = append(programs, collidingTrees(t))
 	for _, p := range programs {
 		path := p.Module
 		metered, err := modulegen.Generate(clone(t, p))
@@ -504,4 +522,67 @@ func reversedConstructors(p *moduleir.Program) *moduleir.Program {
 	}
 	p.Module += "Reversed"
 	return p
+}
+
+// renamed returns p with every JSON string equal to a key replaced, and the
+// IR's sorted lists sorted again.
+func renamed(t testing.TB, p *moduleir.Program, names map[string]string) *moduleir.Program {
+	t.Helper()
+	data, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tree any
+	if err := json.Unmarshal(data, &tree); err != nil {
+		t.Fatal(err)
+	}
+	var walk func(any) any
+	walk = func(v any) any {
+		switch v := v.(type) {
+		case string:
+			if replacement, ok := names[v]; ok {
+				return replacement
+			}
+		case []any:
+			for i := range v {
+				v[i] = walk(v[i])
+			}
+		case map[string]any:
+			for k := range v {
+				v[k] = walk(v[k])
+			}
+		}
+		return v
+	}
+	data, err = json.Marshal(walk(tree))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out moduleir.Program
+	if err := json.Unmarshal(data, &out); err != nil {
+		t.Fatal(err)
+	}
+	slices.SortFunc(out.Types, func(a, b moduleir.TypeDecl) int { return strings.Compare(a.Name, b.Name) })
+	slices.SortFunc(out.Functions, func(a, b moduleir.Function) int { return strings.Compare(a.Name, b.Name) })
+	slices.SortFunc(out.Provenance, func(a, b moduleir.Provenance) int { return strings.Compare(a.Name, b.Name) })
+	for _, r := range out.Provenance {
+		slices.Sort(r.Dependencies)
+	}
+	slices.Sort(out.Roots)
+	if err := moduleir.Validate(clone(t, &out)); err != nil {
+		t.Fatal(err)
+	}
+	return &out
+}
+
+// collidingTrees renames the Trees program so that a type, a constructor
+// function, a root and an internal function all compete for Go names.
+func collidingTrees(t testing.TB) *moduleir.Program {
+	p := loadIR(t, repoRoot(t)+"/testdata/trees.ir.json")
+	return renamed(t, p, map[string]string{
+		"Trees":         "Collide",
+		"Trees.Color":   "Trees.Mirror",
+		"Trees.Tree":    "Other.MirrorRed",
+		"Trees.recolor": "Trees.v1",
+	})
 }
