@@ -8,4 +8,6 @@ import Examples.Trees
 import Examples.Counters
 import Examples.Records
 import Examples.Reduced
+import Examples.Joins
+import Examples.Command
 import Examples.AxiomCheck

@@ -1,49 +1,62 @@
 # Translation validation for the module IR
 
-Status: research library, not wired into the producer. Code: [`validation/`](../../validation).
+Status: library and producer-side command (`#lean_go_validate`) in
+[`producer/LeanGo/Validate/`](../../producer/LeanGo/Validate); evidence in
+[`validation/`](../../validation); runner `scripts/validate_module.py`, coverage
+`scripts/validation_coverage.py`. Not yet wired into the `lean-go` CLI (§11
+says how).
 
 Today extraction is *tested and trusted*: the producer pattern-matches the
 compiler's mono LCNF, audits it, and emits JSON IR that the Go printer turns
-into Go. This note describes a Lean library that gives the IR a semantics
-inside Lean and proves, per extraction, that the IR program agrees with the
-source Lean functions. A wrong lowering then fails to prove, and the compiler
-adapter (LCNF → IR) leaves the trusted base.
+into Go. This library gives the IR a semantics inside Lean and proves, per
+extraction, that the IR program agrees with the source Lean functions. A
+wrong lowering then fails to prove, and the compiler adapter (LCNF → IR) leaves
+the trusted base for every function that validates.
 
 ## 1. Layout
 
 ```
-validation/
-  lakefile.toml, lean-toolchain        Lean 4.36.0, no dependencies beyond core
-  LeanGo/Validate.lean                 object level (import this from user files)
-  LeanGo/Validate/Attr.lean            the `ir_simp` simp set (meta, attribute only)
-  LeanGo/Validate/Value.lean           values, IR type table, typing, Encode, IRType
-  LeanGo/Validate/Prim.lean            primitive matrix and its semantics
-  LeanGo/Validate/Syntax.lean          deep embedding of the IR
-  LeanGo/Validate/Semantics.lean       evaluator and program semantics
-  LeanGo/Validate/Soundness.lean       Park induction, partial correctness
-  LeanGo/Validate/Spec.lean            spec environments, obligations, glue lemmas
-  LeanGo/Validate/Meta.lean            meta level: imports the three below
-  LeanGo/Validate/Meta/Derive.lean     `derive_ir_encoding`
-  LeanGo/Validate/Meta/Load.lean       `validate_ir_program` (JSON bridge)
-  LeanGo/Validate/Meta/Tactic.lean     `validate_obl`, `validate_dom`, `validate_lookup`, `validate_prefixed`
-  LeanGo/Validate/Meta/Axioms.lean     `#assert_standard_axioms` (build gate)
-  Examples/                            evidence on tracked IR (default build target)
-  Open/                                stated but unproved obligations (non-default target)
-  Examples/IR/*.ir.json, Examples/Src/*.lean   copies of tracked IR and sources
-  check_ir_copies.py                   checks the copies against the tracked files
+producer/LeanGo/Validate.lean               object level (import from ordinary files)
+producer/LeanGo/Validate/Attr.lean          the `ir_simp` simp set (meta, attribute only)
+producer/LeanGo/Validate/Value.lean         values, IR type table, typing, Encode, IRType
+producer/LeanGo/Validate/Prim.lean          primitive matrix, semantics, arithmetic normal forms
+producer/LeanGo/Validate/Syntax.lean        deep embedding of the IR
+producer/LeanGo/Validate/Semantics.lean     evaluator, program semantics, `Code.calls`
+producer/LeanGo/Validate/Soundness.lean     Park induction (whole program and call-closed subsets)
+producer/LeanGo/Validate/Spec.lean          spec environments, obligations, `run_rel`, `run_rel_on`
+producer/LeanGo/Validate/Meta.lean          meta level: imports the three below
+producer/LeanGo/Validate/Meta/Derive.lean   `derive_ir_encoding`
+producer/LeanGo/Validate/Meta/Load.lean     JSON bridge (`elabProgramJson`, `validate_ir_program`)
+producer/LeanGo/Validate/Meta/Tactic.lean   `validate_obl`, `validate_dom`, `validate_lookup`, `validate_prefixed`
+producer/LeanGo/Validate/Meta/Axioms.lean   `#assert_standard_axioms` (build gate)
+producer/LeanGo/Validate/Command.lean       `#lean_go_validate` (uses LeanGo.Module.Export)
+validation/                                  Lake package requiring ../producer; evidence only
+  Examples/*.lean, Examples/IR, Examples/Src   hand-written examples on copies of tracked IR
+  Examples/Command.lean, Examples/Producer/    the command run inside the build (Local)
+  Examples/AxiomCheck.lean                     axiom gate over LeanGo.Validate.* and Examples.*
+scripts/validate_module.py                   export + validation in one fresh workspace
+scripts/validation_coverage.py               the command over every tracked program
 ```
 
-All library files use the module system (`module`, `@[expose] public section`
-for object-level definitions, `public meta section` for elaborators and
-tactics), so they can move unchanged to `producer/LeanGo/Validate/` under the
-namespace `LeanGo.Validate`. Object-level files import only object-level files
-and the attribute file; ordinary (non-module) user files import
-`LeanGo.Validate` and, for automation, `LeanGo.Validate.Meta`.
+There is one copy of the library. Object-level files are `module` files with
+`@[expose] public section` and import only object-level files and `Attr`
+(`public meta import`); meta-level files are `public meta section`. Ordinary
+(non-module) files, such as the export harness or user-facing proofs, import
+`LeanGo.Validate` and, for automation, `LeanGo.Validate.Meta` or
+`LeanGo.Validate.Command`.
 
-Build: `cd validation && lake build` (both default targets; the example
-target includes the axiom gate). A clean build of the library and the ten
-validated example programs takes about 46 s of wall time (40 s CPU) on the
-shared 4-core machine. `lake build Open` builds the one open statement.
+Build: `cd validation && lake build` (the `Examples` target includes the axiom
+gate and an in-build run of the command). Clean build of library, producer
+modules the command needs, examples and gate: about 3 minutes of wall time on
+the shared machine; incremental rebuilds of the examples take under a minute.
+
+The producer workspace is assembled from an explicit list of producer files
+(`export_module.PRODUCER_INPUTS`; in Go, the `producer/embed.go` glob
+`LeanGo/Module/*.lean` plus `LeanGo/Proofs/Check.lean`). The validation files
+are **not** in that list and not matched by that glob, so the inputs hashed
+into every existing manifest are unchanged; a run that requests validation
+copies them in additionally (`validate_module.VALIDATION_INPUTS`) and hashes
+them into the validation report, never into the IR's `inputs`.
 
 ## 2. Value domain and IR embedding
 
@@ -57,8 +70,6 @@ Scalars carry Lean's own fixed-width integers; a constructor value has a tag
 (the Lean constructor index, as in the IR type table) and its fields. The IR
 type table is `List TypeDecl`, `TypeDecl = {name, ctors : List {name, tag, fields : List String}}`.
 
-The embedding has exactly the IR's operations:
-
 | JSON `op` | Lean |
 |---|---|
 | `return` | `Code.ret x` |
@@ -69,27 +80,25 @@ The embedding has exactly the IR's operations:
 
 `Function = {name, params : List Param, result, body}` and
 `Program = {types, functions}`. Constructor tags are resolved from the type
-table by the loader and stored next to the names; the semantics uses tags only.
+table by the loader; the semantics uses tags only.
 
 ## 3. Semantics
 
 Primitives (`Prim.eval`) are the complete unsigned matrix, defined with Lean's
 `UInt8/16/32/64` operations: for each width `add sub mul div mod land lor xor
-complement shiftLeft shiftRight decEq decLt decLe`, plus all twelve conversions
-`UIntA.toUIntB` with `A ≠ B`. Names follow `Primitives.lean`
-(`Prim.ofName? "UInt32.add" = some (.bin .add .w32)`). Shift counts reduce
-modulo the width and `x / 0 = 0`, `x % 0 = x`, because that is what Lean does.
-Comparisons return the IR `Bool` (`encode (decide (a < b))`). Several of these
-(`div`, `mod`, `UInt8.toUInt64`, …) are not admitted by the extractor yet.
+complement shiftLeft shiftRight decEq decLt decLe`, plus all twelve
+conversions. Names follow `Primitives.lean` (`Prim.ofName? "UInt32.add" =
+some (.bin .add .w32)`). Shift counts reduce modulo the width and `x / 0 = 0`,
+`x % 0 = x`, as in Lean. The signed/integer primitives being added to
+`Primitives.lean` are not in the matrix yet: the loader rejects an unknown
+primitive name, which the command reports as `load_failed` (§11).
 
-`Code.eval ρ c E J` evaluates a body with a callee environment
+`Code.eval ρ c E J` evaluates a body under a callee environment
 `ρ : Callees := String → List Value → Option Value`, a variable environment
-`E : List (Nat × Value)` and a join environment `J` mapping join ids to closed
-continuations. It is total (structural recursion on the code); a join's body
-is evaluated in the scope of its declaration plus its parameters and cannot
-jump to itself, as in LCNF. Any failure — unbound variable, ill-typed
-primitive, no alternative for the tag, arity mismatch, failing callee — is
-`none`. `evalBody ρ fn args` binds the parameters and runs the body.
+and a join environment mapping join ids to closed continuations. It is total
+(structural recursion on code); a join body sees its declaration scope plus
+its parameters. Any failure is `none`. `evalBody ρ fn args` binds the
+parameters and runs the body.
 
 ```lean
 def Program.run (P : Program) : Nat → Callees
@@ -99,240 +108,326 @@ def Program.run (P : Program) : Nat → Callees
     | none => none
 ```
 
-`P.typed fn args` checks the argument list against the parameter types with
-the structural judgement `Value.hasType P.types` (scalars by width, table
-types by tag and recursively by fields). Ill-typed arguments at a function
-boundary are stuck. `let` binders and `cases` result types are not checked
-inside a body; they carry no meaning for the value computed.
+`P.typed fn args` checks arguments against parameter types
+(`Value.hasType P.types`). Ill-typed arguments at a function boundary are stuck.
 
 ## 4. The meta-theorem
 
-`x ⊑ y` on `Option α` is `x = none ∨ x = y` (`Approx`), lifted pointwise to
-callee environments (`EnvLE ρ₁ ρ₂ := ∀ f args, ρ₁ f args ⊑ ρ₂ f args`).
+`x ⊑ y` on `Option α` is `x = none ∨ x = y`, lifted pointwise to callee
+environments.
 
 ```lean
-theorem evalBody_mono {ρ₁ ρ₂ : Callees} (h : EnvLE ρ₁ ρ₂) (fn : Function) (args : List Value) :
-    evalBody ρ₁ fn args ⊑ evalBody ρ₂ fn args
-
 def PreFixed (P : Program) (ρ : Callees) : Prop :=
   ∀ fn ∈ P.functions, ∀ args, P.typed fn args = true → evalBody ρ fn args ⊑ ρ fn.name args
-
-theorem run_le {P : Program} {ρ : Callees} (h : PreFixed P ρ) : ∀ n, EnvLE (P.run n) ρ
-
-theorem run_sound {P : Program} {ρ : Callees} (h : PreFixed P ρ) {n : Nat} {f : String}
-    {args : List Value} {v : Value} (hr : P.run n f args = some v) : ρ f args = some v
+theorem run_le {P ρ} (h : PreFixed P ρ) : ∀ n, EnvLE (P.run n) ρ
+theorem run_sound … (hr : P.run n f args = some v) : ρ f args = some v
 ```
 
-`run_le` is Park induction: by induction on fuel, using monotonicity for the
-recursive calls and the pre-fixed-point property for one unfolding.
-`run_sound` is the corollary: **whenever the IR program returns a value, it is
-the value the specification environment gives** (partial correctness).
-
-For a specification environment built from source functions, `Spec.lean`
-packages this per entry point:
+New for per-root statements: a call-closed subset `S` of function names.
 
 ```lean
-theorem run_rel {P : Program} {ρ : Callees} (hpre : PreFixed P ρ) {name : String} {φ : Type}
-    [Callable φ] (f : φ) (hρ : ∀ args, ρ name args = Callable.call f args) (n : Nat) :
+def PreFixedOn (P : Program) (ρ : Callees) (S : List String) : Prop :=
+  ∀ fn ∈ P.functions, fn.name ∈ S → (∀ f ∈ fn.body.calls, f ∈ S) ∧ FnValid P ρ fn
+theorem run_le_on (h : PreFixedOn P ρ S) : ∀ n, ∀ f ∈ S, ∀ args, P.run n f args ⊑ ρ f args
+theorem run_rel_on (hpre : PreFixedOn P ρ S) (hname : name ∈ S) (f : φ)
+    (hρ : ∀ args, ρ name args = Callable.call f args) (n : Nat) :
     Callable.Rel Approx (P.run n name) f
 ```
 
-which unfolds to `∀ a₁ … aₖ, P.run n name [encode a₁, …, encode aₖ] ⊑ some (encode (f a₁ … aₖ))`.
+`Code.calls` lists every callee of a body; the call-closedness side condition
+is decided by the kernel on the concrete program. So a root gets its
+whole-program theorem as soon as the functions it can reach are validated,
+whatever happens to other functions of the same extraction.
 
-What this covers: for every fuel, every entry point and every encoded (or,
-via `Realizes`, every well-typed) argument list, a defined IR result equals the
-encoded source result. What it does **not** cover: termination or
-non-stuckness. A program that always returns `none` satisfies the theorem.
-Totality of the IR (that `run` returns `some` for enough fuel, given the
-resource limits) needs a separate proof, e.g. an evaluator-side
-progress/ranking argument or an equality-based obligation plus a termination
-measure from the source's well-founded recursion; this is not done.
+What it covers: for every fuel, every validated entry point and every encoded
+argument list, a defined IR result equals the encoded source result. What it
+does **not** cover: termination or non-stuckness (a program that always
+returns `none` satisfies it). That needs a separate progress argument.
 
 ## 5. Source encodings and the typed boundary
 
-```lean
-class Encode (α : Type) where
-  encode : α → Value
-  decode : Value → Option α
-  decode_encode : ∀ a, decode (encode a) = some a
-```
-
-Instances: `UInt8/16/32/64` (scalars), `Bool` (`false` ↦ `ctor 0 []`,
-`true` ↦ `ctor 1 []`), `List α` (`List.nil` = 0, `List.cons` = 1, as the IR's
-`List UInt8`).
-
-`derive_ir_encoding T₁ T₂ …` generates instances for monomorphic,
-non-parametric inductives (enums, structures, self-recursive sums), with tags
-equal to constructor indices, together with the law, `@[ir_simp]`
-encode/decode equations per constructor, and the IR declaration `T.irDecl`.
-
-The boundary checks IR types, obligations quantify over source values. The
-bridge is `Realizes tys T α := ∀ v, Value.hasType tys T v = true → ∃ a : α, encode a = v`.
-The class `IRType α` records the IR name, the declarations the type needs and
-a proof of `Realizes` whenever those declarations are in the table
-(`Subtable decls tys`, decided by `decide` per program). It is proved for the
-scalars, `Bool` and `List α`, and *generated with its proof* by
-`derive_ir_encoding` (strong induction on values, `Realizes.of_ctors`). So the
-typed boundary is proved, not assumed, for every type the examples use.
+`class Encode α` (`encode`, `decode`, `decode (encode a) = some a`) with
+instances for the scalars, `Bool` and `List α`. `derive_ir_encoding` generates
+instances for monomorphic, non-parametric inductives with tags equal to
+constructor indices, `@[ir_simp]` equations, the IR declaration `T.irDecl` and
+`IRType T`, whose `realizes` proves that every IR-typed value is an encoding
+whenever the declarations are in the program's table (`Subtable`, decided per
+program). The typed boundary is therefore proved, not assumed.
 
 ## 6. Obligations and automation
 
-`Callable φ` turns a curried source function into a partial function on
-argument lists (`call`: decode each argument, apply, encode) and gives the
-relational statement `Callable.Rel R g f`. The per-function obligation is
+The per-function obligation is
 
 ```lean
-Callable.Rel Eq (evalBody (Spec.env spec) prog.«F») f
--- unfolds to ∀ a₁ … aₖ, evalBody ρ_spec fn [encode a₁, …, encode aₖ] = some (encode (f a₁ … aₖ))
+Callable.Rel Eq (evalBody (Spec.env spec) prog.«F») specF
+-- ∀ a₁ … aₖ, evalBody ρ_spec fn [encode a₁, …, encode aₖ] = some (encode (specF a₁ … aₖ))
 ```
 
-with `spec : List SpecEntry` (name ↦ source function) and
-`Spec.env spec` the specification environment. Callees are interpreted by the
-specification, so each obligation is modular: recursive and helper calls are
-answered by `encode (g …)`, never unfolded. `fnValid_of_obl` turns an
-obligation plus the argument-domain fact `Callable.Dom` (from `Realizes`) into
-the pre-fixed-point condition for that function.
+Callees are answered by the specification, so obligations are modular.
+`fnValid_of_obl` turns an obligation plus `Callable.Dom` (from `IRType`) into
+`FnValid`.
 
-Automation (all of it produces ordinary kernel-checked proofs):
+`validate_obl [extra]` is symbolic evaluation by `simp only` with `ir_simp`,
+the IR function, the spec list and the source function unfolded once; stuck
+`cases` on `encode t` split `t` (variables are destructed, computed terms
+generalized, `decide p` turned into `p`/`¬p`); remaining source `if`/`match`
+are split. Every step is an ordinary kernel-checked proof. Changes in this
+round:
 
-* `validate_ir_program prog from "file.ir.json"` defines `prog.types`, one
-  `prog.«F» : Function` per IR function and `prog : Program`, and emits a
-  `decide` check that each embedded primitive has its IR name.
-* `validate_obl [extra]` symbolic evaluation: destruct structure-typed
-  arguments, then `simp only` with `ir_simp`,
-  the IR function, the spec list and the source function (unfolded once);
-  when evaluation is stuck on `cases` of `encode t`, it case-splits `t`
-  (destructs an argument variable, or generalizes a computed value such as
-  `decide (a ≤ b)` and turns the hypothesis into `a ≤ b` / `¬a ≤ b`); remaining
-  source-side `if`/`match` are split; repeat.
-* `validate_dom`, `validate_lookup`, `validate_prefixed [o₁, …]` discharge
-  the side conditions and assemble `PreFixed prog (Spec.env spec)`.
+* **Joins are evaluated lazily (the `Joins.update` fix).** `Code.eval_join` is
+  no longer in `ir_simp`. When evaluation reaches a closed join declaration,
+  the tactic applies `Code.eval_join_exists`:
+  `∃ k, (∀ args, k args = (E.bindParams ps args).bind (body.eval ρ · J)) ∧ (join j ps body next).eval ρ E J = next.eval ρ E ((j, k) :: J)`,
+  obtains a fresh closure variable `k` with its defining equation, and
+  continues. `simp` can no longer look inside the continuation, so the join
+  body is neither copied into every enclosing closure nor simplified under its
+  binder; it is evaluated only when a jump applies `k` to concrete argument
+  values, and then only along the path the case splits select. A join under a
+  binder (not observed in the tracked programs) falls back to the old
+  unfolding. `Joins.update` (four mutually jumping joins, three Boolean splits)
+  went from exhausting memory after about 12 minutes to 4–9 s, is proved by the
+  general tactic and has moved to `validation/Examples/Joins.lean`; `Open/` is
+  gone. All earlier examples still prove.
+* **Arithmetic normal forms.** The compiler rewrites `x * 256` into `x <<< 8`
+  (header, dns, udp, numbers, wide) and reduces out-of-range literals
+  (`4294967297 : UInt32` becomes `1`). Both sides of an obligation are brought
+  to one form: simprocs `shiftLitUIntN` rewrite a shift by a literal into a
+  multiplication by the power of two (justified by the proved lemmas
+  `UIntN.shiftLeft_lit : x <<< k = x * 2 ^ (k % w)`), `reduceUIntNLit`
+  reduces literals modulo the width (a definitional step), and `UIntN.shiftLeft
+  a b = a <<< b` etc. are `rfl` lemmas.
+* Scalars are no longer destructed into their `BitVec` field (they are
+  structures, too); this made kernel checking of large arithmetic bodies
+  expensive.
 
-A typical example file is about 30 lines (see `validation/Examples/Adler32.lean`).
+## 7. `#lean_go_validate`
 
-## 7. What remains trusted
+```
+#lean_go_export_roots "ir.json" [R₁, …, Rₖ] "Module"      -- unchanged producer command
+#lean_go_validate "ir.json" [R₁, …, Rₖ] "Module" report "validation.json"
+  heartbeats 400000 timeout_ms 120000 [strict] [namespace N]
+```
 
-1. The Lean kernel (and the three standard axioms `propext`,
-   `Classical.choice`, `Quot.sound`; the build fails on any other axiom).
-2. The semantics definition itself (`Value`, `Prim.eval`, `Code.eval`,
-   `Program.run`, `Value.hasType`): it must describe what the Go printer
-   implements. It is short and reviewable, but it is a specification.
-3. The JSON bridge (`validate_ir_program`): that the `Program` term is the
-   JSON file (it reads only `types` and `functions`, resolves tags from the
-   table, range-checks literals, and rejects unknown primitives).
-4. The IR-to-Go printer and the Go runtime (limits, import/export of values,
-   typed wrappers).
-5. The Go compiler and runtime.
+in the same environment, after the export command. Steps:
 
-The LCNF → IR lowering (`Export.lean`, `Records.lean`, `Reduced.lean`, …) and
-the compiler passes that produced the mono LCNF are no longer trusted for
-functional behaviour of validated functions: a wrong lowering makes the
-obligation false. They remain trusted for the *selection* of what is exported
-(which roots, the declared parameter types) insofar as the spec list is built
-from the same names.
+1. **Program term from the producer's value.** The command calls
+   `exportProgramRoots module roots` (the function the export command writes)
+   and records whether the file `ir.json` is byte-identical to
+   `json.pretty ++ "\n"` of that value (`ir_file_matches`). The `Program` term
+   is elaborated from the in-memory value by `elabProgramJson`, the same bridge
+   `validate_ir_program` uses for files. Empty paths skip the file check / the
+   report file.
+2. **Encodings** for every table type except `Bool` and `List UInt8`
+   (library instances), derived in field-dependency order; a type that cannot
+   be derived marks every function using it `not_attempted`.
+3. **Specifications** (§8) for every IR function, defined as
+   `N.spec_i` when generated; the list `N.spec` holds one entry per function
+   that has one.
+4. **Obligations** `N.obl_i : Callable.Rel Eq (evalBody (Spec.env N.spec) N.prog.«F») spec_F`,
+   each proved by `validate_obl [all generated specs, all reduced-helper owners]`
+   under the budget: `maxHeartbeats` (thousands, as the option) counted from
+   the start of the obligation, and a wall-clock limit enforced by a
+   cancellation token set by a timer thread. The proof is added with
+   `addDecl` (so the kernel checks it) only if no goals remain, it has no
+   metavariables, no `sorry`, the kernel accepts it, and `collectAxioms` reports
+   only `propext`, `Classical.choice`, `Quot.sound`. Messages from failed
+   attempts are discarded; exceptions (including heartbeat exhaustion and the
+   interrupt) are caught and reported. Nothing here can fail the extraction.
+5. **Whole program per root** whose call closure (computed from the IR) is
+   entirely proved: `N.prefixed_k : PreFixedOn N.prog (Spec.env N.spec) S`
+   (by `validate_prefixed_on`), `N.sound_k : ∀ n, Callable.Rel Approx (N.prog.run n "R") R`
+   (by `run_rel_on`) and the explicit form
+   `N.explicit_k : ∀ n a₁ … aₖ v, N.prog.run n "R" [encode a₁, …, encode aₖ] = some v → v = encode (R a₁ … aₖ)`.
+6. **Report** (below). With `strict`, any function not proved, any root
+   without its theorem, or an IR file mismatch is an error after the report is
+   written.
 
-## 8. Limits found
+`N` defaults to `LeanGo.Validated` (users cannot declare `LeanGo.*`; their
+sources cannot import the library either, so no user-supplied `Encode`
+instance can interfere).
 
-* Partial correctness only (§4).
-* Spec environment by name: the specification of each IR function is a source
-  function chosen by the integration. Compiler helpers without a source owner
-  (`._redArg`) need a specification derived from the owner and the
-  retained-argument map (`Examples/Reduced.lean` shows the shape).
-* `Encode` covers non-parametric inductives; nested and mutual inductives are
-  rejected by the deriving command (the extractor does not admit them either).
-* Typed boundary: `Value.hasType` looks types up by name in the program's
-  table; `Subtable` must hold between the derived declarations and the table
-  (checked by `decide`). A table that diverges from the source types makes the
-  side condition fail, which is the desired behaviour.
-* Symbolic evaluation is `simp`-based: cost grows with code size after join
-  inlining and with the number of case splits (each scrutinee doubles the
-  goals). `Joins.update` (four mutually referencing joins, five Boolean
-  splits) is the stress case; see the coverage table.
-* Unfolding source definitions relies on `simp` equation lemmas. Source
-  functions with `match` compile to equations that `simp` can use;
-  well-founded recursion would need `unfold`/`decreasing_by`-aware handling.
-* Defeq pitfalls: comparing obligations against goals by unification can make
-  Lean evaluate source functions; the tactics therefore match by constant names
-  and close spec lookups by `simp`, never by `rfl` on unknown terms.
+### Report (`validation.json`, schema `lean-go-validation/v1`)
+
+```jsonc
+{
+  "schema": "lean-go-validation/v1",          // added by the runner
+  "module": "Local", "roots": ["Local.run"],
+  "status": "completed",                       // or "export_failed" / "load_failed" with "reason"
+  "ir_file_matches": true,                     // null when no file was named
+  "ir_sha256": "…",                            // runner: hash of the completed IR it published
+  "budget": {"heartbeats": 400000, "timeout_ms": 120000}, "strict": false,
+  "lean_version": "4.36.0", "lean_commit": "…", // runner
+  "inputs": {"source/Local.lean": "…", "producer/LeanGo/Validate/Command.lean": "…", …},
+  "program": "LeanGo.Validated.prog", "specification_list": "LeanGo.Validated.spec",
+  "encodings": [{"type": "Local.Count", "status": "available", "reason": ""}],
+  "functions": [{
+    "name": "Local.run._lam_0", "params": ["Local.Config", "UInt32"], "result": "UInt32",
+    "kind": "local_helper",                    // source | byte_fold | reduced_helper | local_helper
+    "source_owner": "Local.run",
+    "specification": "LeanGo.Validated.spec_2: lambda bump of Local.run, captures [config]",
+    "status": "proved",                        // proved | failed | not_attempted
+    "reason": "",                              // stuck goal, "heartbeat budget exhausted", "wall-clock budget exhausted", …
+    "time_ms": 901, "heartbeats_used": 2105,   // thousands
+    "theorem": "LeanGo.Validated.obl_2",       // null unless proved
+    "statement": "LeanGo.Validate.Callable.Rel Eq (…) LeanGo.Validated.spec_2",
+    "axioms": ["propext", "Classical.choice", "Quot.sound"]}],
+  "programs": [{
+    "root": "Local.run", "closure": ["Local.run", "Local.run._lam_0", "Local.add"],
+    "status": "proved",                        // proved | not_established (+ "missing") | failed (+ "reason")
+    "prefixed_theorem": "…prefixed_0", "theorem": "…sound_0", "statement": "∀ (n : Nat), …",
+    "explicit_theorem": "…explicit_0", "explicit_statement": "∀ (n : Nat) (config : Local.Config) …",
+    "axioms": [...], "time_ms": 412}],
+  "summary": {"functions": 3, "proved": 3, "failed": 0, "not_attempted": 0,
+              "roots": 1, "roots_proved": 1, "time_ms": 4438}
+}
+```
+
+Statements are pretty-printed with full names; the theorem names identify the
+kernel-checked declarations in the harness environment.
+
+## 8. Pairing IR functions with specifications, and what is trusted in it
+
+The kind of each IR function is taken only from the producer's own validated
+evidence, the same calls `resolveFunction`/`exportFunction` make:
+
+| Kind | Evidence | Specification |
+|---|---|---|
+| `byte_fold` | provenance record `fold? = (acc, step)` | the constant `F` itself (`List.foldl step` over the bytes) |
+| `local_helper` | `localEvidence? F` (owner, capture list, source witness) | the source lambda of the owner's `let` (found through the witness, or the alias the producer accepted), captures in the producer's order as leading parameters, adapted to mono types |
+| `reduced_helper` | `reducedEvidence? F` (owner, retained positions) | `fun retained… => owner a₁ … aₙ` with removed arguments fixed to an arbitrary inhabitant |
+| `source` | none of the above | the constant `F`; its source signature must spell exactly the IR signature |
+
+Mono boundaries (a helper parameter of IR type `UInt32` whose source type is
+the single-field wrapper `Count`) are adapted through the producer's
+`representation` wrapper chain: the parameter is re-wrapped with the wrapper
+constructors, the result unwrapped with the projections. Sources and roots are
+never adapted.
+
+What is trusted, and how it is checked:
+
+* **Roots.** The whole-program theorem names the root's *own source constant*
+  (resolved from the command's identifiers, the same ones the export used) and
+  the IR function of the same name, `prog.run n "R"`. The spec entry for `"R"`
+  must be `.mk "R" R` (kernel-checked by `validate_lookup`); a root that the
+  evidence classifies as a compiler helper is refused. Nothing else about the
+  pairing enters the statement.
+* **Helpers are not trusted at all.** The pre-fixed-point argument holds for
+  any specification environment, so a helper paired with a wrong specification
+  can only make its obligation (and the roots that call it) fail to prove; it
+  cannot make a false root statement provable. The report's per-function
+  `proved` means exactly the printed statement: agreement with the printed
+  specification.
+* **No weaker statements.** Obligations, `PreFixedOn`, `sound` and `explicit`
+  statements are built by the command from fixed templates (Expr level, not
+  syntax a source could influence), and the proof is checked against that
+  type by `addDecl`.
+* **Encodings.** One instance per type, derived from the source declaration;
+  `Subtable` (decided per program) forces the IR table to agree with the
+  derived declaration, so the encoding in the statement is the IR's.
+* Remaining trusted pieces are those of §10: the semantics, the JSON bridge,
+  the Go printer/runtime, and that `exportProgramRoots` recomputed in the same
+  environment is the value the export command wrote (checked byte-for-byte
+  when the file is named).
 
 ## 9. Coverage
 
-Every function of every listed program, with IR copied from the tracked file
-and source copied verbatim (Clamp: two files merged). "Auto" means the
-obligation is proved by `validate_obl` alone (Reduced: with the specs of
-`._redArg` helpers given as extra unfolding lemmas), the program-level
-`PreFixed` by `validate_prefixed`, and the whole-program statement by
-`run_rel`.
+`uv run --locked python scripts/validation_coverage.py --out-dir <dir>` runs the
+command (default budget: 400000 thousand heartbeats and 120 s per obligation)
+on every tracked program, sequentially, checking that the IR exported in the
+validation workspace is byte-identical to the tracked IR. Results of the run on
+the shared 4-core machine (validation time is the command's own time, without
+the workspace build):
 
-| Program | IR | Functions | Obligations | Whole program |
-|---|---|---|---|---|
-| clamp | examples/proofs/clamp | `Clamp.Bounds.cap`, `Clamp.clamp` | auto | `clamp_sound` |
-| flags | examples/proofs/flags | `set`, `clear`, `toggle`, `contains` | auto | 4 × `_sound` |
-| words | examples/proofs/words | `widen`, `narrow`, `pack`, `high`, `low` | auto | 5 × `_sound` |
-| crc16 | examples/proofs/crc16 | `step`, `updateByte`, `update` (fold) | auto | 3 × `_sound` |
-| adler32 | examples/proofs/adler32 | `initial`, `reduce`, `step`, `update` (fold), `checksum` | auto | `initial/update/checksum_sound` |
-| quota | testdata/quota | `create`, `reserve`, `release`, `remaining` | auto | 4 × `_sound` |
-| trees | testdata/trees | `recolor`, `mirror` (recursive ADT) | auto | `mirror_sound` |
-| counters | testdata/counters | `step`, `initial`, `advance`, `read`, `total` | auto | `advance_sound` |
-| records | testdata/records | `addCount`, `flip`, `update` | auto | `update_sound` |
-| reduced | testdata/reduced | `add._redArg`, `run._redArg`, `run` | auto (helper specs supplied) | `run_sound` |
-| joins | testdata/joins | `add`, `update` (4 joins) | `add` auto; `update` **OPEN** | not derived (depends on the open obligation) |
+COVERAGE_TABLE
 
-**Open: `Joins.update`** (`validation/Open/Joins.lean`, non-default target
-`lake build Open`, the only file that uses `sorry`). The body declares four
-join points whose continuations jump to each other; the evaluator inlines a
-join body at every jump site and the three Boolean splits multiply the goals.
-With the default heartbeat limit `simp` times out after the first split; with
-no limit the Lean process ran out of memory after about 12 minutes. This is a
-cost failure of the tactic; no stuck (false) goal was observed. Fix
-candidates: evaluate each join body once, symbolically in its parameters, and
-reuse that equation at the jumps; or split the Boolean arguments before
-unfolding joins. `Records.update`, `Reduced.run._redArg` and
-`Counters.advance` (one join each, or none, but with record wrappers and
-calls) are proved.
+`checkedframe` has no IR of its own: it is the composition of `wire16` and
+`crc16`, both completely validated. The pilot `normalizer` fixture uses the
+pilot IR, not the module IR, and is out of scope.
 
-Other tracked programs (`bytes`, `header`, `wire16`, `checkedframe`,
-`numbers`, `wide`, `local`, `choice`, `normalizer`) were not attempted.
+### Failure classes
 
-The axiom gate (`Examples/AxiomCheck.lean`) checks every declaration of the
-library and of the examples (about 2100 declarations, including generated
-equation lemmas and instances) and reports only `propext`,
-`Classical.choice` and `Quot.sound`.
+FAILURE_CLASSES
 
-## 10. Guidance for the integration task
+## 10. What remains trusted
 
-Per extraction the producer should emit, next to the IR, one Lean file:
+1. The Lean kernel and the three standard axioms; the axiom gate
+   (`validation/Examples/AxiomCheck.lean`, `#assert_standard_axioms
+   LeanGo.Validate Examples`) fails the build on any other axiom, `sorry`,
+   `native_decide`/`bv_decide` (`Lean.ofReduceBool`, `Lean.trustCompiler`) or
+   a declared axiom. It covers the library, the command's meta code, the
+   examples and — through `Examples/Command.lean`, which runs the command with
+   `strict` inside the build — everything the command adds (2741
+   declarations). In an extraction, the command applies the same check to
+   every theorem it adds before reporting it as proved.
+2. The semantics (`Value`, `Prim.eval`, `Code.eval`, `Program.run`,
+   `Value.hasType`): it must describe what the Go printer implements.
+3. The JSON bridge `elabProgramJson`.
+4. The IR-to-Go printer and the Go runtime; the Go compiler.
 
-1. `import LeanGo.Validate` and `LeanGo.Validate.Meta`, plus the user source.
-2. `derive_ir_encoding` for the ADT closure in dependency order — exactly the
-   types it already enumerates in `exportTypes` (skipping `Bool`, scalars and
-   `List UInt8`, which have library instances).
-3. `validate_ir_program prog from "<ir>.json"` on the file it just wrote (or,
-   better, generate the `Program` term directly from the same in-memory JSON so
-   the bridge is a pretty-printer of one data structure).
-4. `def spec : List SpecEntry` with one entry per IR function:
-   * a source declaration: `.mk "<name>" <name>`;
-   * a reduced helper: `.mk "<owner>._redArg" (fun retained… => owner (default for removed)…)`
-     from the retained-argument map in `Reduced.lean`;
-   * a lifted local helper: the lifted lambda with the capture order from
-     `LocalSource.lean`;
-   * a byte fold: the root itself (its IR is the recursion over `List UInt8`).
-5. One theorem per function, `theorem <f>_obl : Callable.Rel Eq (evalBody (Spec.env spec) prog.«F») f := by validate_obl`,
-   then `theorem prefixed : PreFixed prog (Spec.env spec) := by validate_prefixed [...]`
-   and `run_rel` per root.
-6. Build with `lake env lean` under the pinned toolchain and run
-   `#assert_standard_axioms` on the generated module.
+The LCNF → IR lowering and the compiler passes are no longer trusted for the
+functional behaviour of validated roots. They remain trusted for the
+*selection* of what is exported (which roots).
 
-Manifest. Record per function: `validated: true|false`, the theorem name,
-the Lean/toolchain commit, the hash of the generated validation file and the
-axioms reported. When a proof fails, do not fail the extraction by default;
-record `validated: false` with the obligation statement, the first stuck goal
-printed by `validate_obl` (it reports `stuck at …`) or the elaboration error,
-and the reason class (`stuck_simp`, `timeout`, `missing_spec`,
-`realizes_failed`, `loader_rejected`). A root is validated only when every
-function in its call closure is. Profiles that require validation can then
-turn `validated: false` into an admission failure.
+## 11. Integration with the CLI (`internal/pipeline/export.go`)
 
-Determinism: the generated file depends only on the IR and the source names,
-so it can be hashed alongside the Go output; keep `maxHeartbeats` explicit in
-the generated file so that a slower machine does not change the verdict.
+What to embed. `producer/LeanGo/Validate.lean`, `producer/LeanGo/Validate/*.lean`
+and `producer/LeanGo/Validate/Meta/*.lean` (14 files, listed in
+`validate_module.VALIDATION_INPUTS`). They depend only on Lean core and
+`LeanGo.Module.*` (the command imports `LeanGo.Module.Export`), never on user
+sources, so they belong in the **cached producer build**; key that cache entry
+by their digests in addition to the module producer's. Embed them under a
+*separate* glob/accessor (e.g. `ValidationFiles()`), not in `ModuleFiles()`,
+so that exports without validation keep hashing exactly the current inputs and
+the tracked manifests stay unchanged. What is compiled per extraction is only
+the harness: derived encodings, the program term and all theorems live in the
+harness environment and are not written to an olean.
+
+The invocation, mirroring `ExportModule` and `scripts/validate_module.py`:
+
+1. Stage sources and `ModuleFiles()` as today, plus `ValidationFiles()`.
+2. `lake build LeanGo.Module.Export LeanGo.Validate LeanGo.Validate.Command <source modules…>`
+   (the extra targets are cacheable).
+3. Harness (`LeanGo/Module/Harness.lean`):
+   ```
+   import LeanGo.Module.Export
+   import LeanGo.Validate
+   import LeanGo.Validate.Command
+   import <Module>
+   <the unchanged #lean_go_export / #lean_go_export_roots line>
+   #lean_go_validate "ir.json" [<roots, sorted>] "<Module>" report "validation.json" heartbeats <H> timeout_ms <T>[ strict]
+   ```
+   Run it with `lake env lean` as today (admission diagnostics unchanged: the
+   export line runs first). Allow for the extra time in the process timeout
+   (the dns example takes several minutes).
+4. Complete the IR exactly as today; its `inputs` remain the export inputs.
+   Read `validation.json` (bounded size), check `module`/`roots`, add
+   `schema`, `lean_version`, `lean_commit`, `ir_sha256` (of the completed IR)
+   and `inputs` (sources plus export and validation files), and publish it next
+   to the IR. Fixed budget defaults: `heartbeats 400000`, `timeout_ms 120000`;
+   record them (they are in the report). Heartbeats make the verdict
+   deterministic; the wall-clock limit is a safety net, and a verdict reached
+   only because of it is visible as `wall-clock budget exhausted`.
+5. A failed or unattempted obligation is data. Only `strict` (for profiles that
+   require validation) turns it into an error; then the harness exits non-zero
+   *after* writing the report, so the report can still be shown.
+
+For the manifest, record per root the `programs[].status`, theorem names and
+`ir_sha256`/report digest; per function the status. Exit code 137 from `lean`
+is the container's memory limit, not a verdict (the coverage script retries once
+and reports `killed_for_memory`).
+
+## 12. Limits and open items
+
+* Partial correctness only (§4).
+* Primitives outside the unsigned matrix (signed integers being added to
+  `Primitives.lean`) are rejected by the loader until `Prim.lean` and the
+  semantics are extended; the command then reports `load_failed`.
+* `Encode` covers non-parametric inductives without nesting or mutual
+  recursion (the extractor does not admit them either).
+* Symbolic evaluation is `simp`-based; cost grows with the number of case
+  splits and with arithmetic expression size, and the kernel re-checks every
+  step (see the dns failure class). Source functions using well-founded
+  recursion would need `unfold`-aware handling; none of the tracked ones do.
+* Local helpers: the source lambda is identified through the producer's
+  witness and capture names; a capture whose name is ambiguous among the
+  lambda's free variables makes that helper `not_attempted` (not observed).

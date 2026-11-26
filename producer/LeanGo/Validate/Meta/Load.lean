@@ -170,15 +170,13 @@ partial def codeSyntax (types : Array TypeRow) (prims : IO.Ref (Array String)) (
 
 syntax (name := validateIRProgram) "validate_ir_program " ident " from " str : command
 
-@[command_elab validateIRProgram] def elabValidateIRProgram : CommandElab := fun stx => do
-  let progId : Ident := ⟨stx[1]⟩
-  let path : String := (stx[3].isStrLit?).getD ""
-  let base := (System.FilePath.mk (← getFileName)).parent.getD "."
-  let file := base / path
-  let contents ← IO.FS.readFile file
-  let json ← match Json.parse contents with
-    | .ok j => pure j
-    | .error e => jerr s!"{file}: {e}"
+/-- Define `prog.types`, one `prog.«F»` per IR function and `prog` from an
+in-memory module IR value (only `types` and `functions` are read). Returns the
+constant names of the functions, in IR order. This is the one bridge from the
+JSON IR to the `Program` term; `validate_ir_program` (from a file) and
+`#lean_go_validate` (from the value the producer writes) both use it. -/
+def elabProgramJson (progName : Name) (json : Json) : CommandElabM (Array (String × Name)) := do
+  let progId := mkIdent progName
   -- type table
   let mut types : Array TypeRow := #[]
   for t in ← getArr json "types" do
@@ -200,13 +198,16 @@ syntax (name := validateIRProgram) "validate_ir_program " ident " from " str : c
   -- functions
   let prims ← IO.mkRef #[]
   let mut fnIds : Array Ident := #[]
+  let mut fnNames : Array (String × Name) := #[]
   for f in ← getArr json "functions" do
     let name ← getStr f "name"
     let ps ← (← getArr f "params").mapM paramSyntax
     let result ← getStr f "result"
     let body ← codeSyntax types prims (← getObj f "body")
     let fnId := mkIdent (progName ++ Name.mkSimple name)
+    if fnNames.any (·.1 == name) then jerr s!"duplicate function {name}"
     fnIds := fnIds.push fnId
+    fnNames := fnNames.push (name, progName ++ Name.mkSimple name)
     elabCommand (← `(command|
       def $fnId : $(V' `Function) :=
         { name := $(Syntax.mkStrLit name), params := [$ps,*], result := $(Syntax.mkStrLit result),
@@ -220,5 +221,17 @@ syntax (name := validateIRProgram) "validate_ir_program " ident " from " str : c
       done := done.push p
       elabCommand (← `(command|
         example : $(V' `Prim.ofName?) $(Syntax.mkStrLit p) = some $(← primSyntax p) := by decide))
+  return fnNames
+
+@[command_elab validateIRProgram] def elabValidateIRProgram : CommandElab := fun stx => do
+  let progId : Ident := ⟨stx[1]⟩
+  let path : String := (stx[3].isStrLit?).getD ""
+  let base := (System.FilePath.mk (← getFileName)).parent.getD "."
+  let file := base / path
+  let contents ← IO.FS.readFile file
+  let json ← match Json.parse contents with
+    | .ok j => pure j
+    | .error e => jerr s!"{file}: {e}"
+  discard <| elabProgramJson progId.getId json
 
 end LeanGo.Validate.Meta

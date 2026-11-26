@@ -134,4 +134,13 @@ theorem run_rel {P : Program} {ρ : Callees} (hpre : PreFixed P ρ) {name : Stri
     Callable.Rel Approx (P.run n name) f :=
   Callable.rel_le _ _ f (fun args => (hρ args) ▸ run_le hpre n name args) (Callable.call_rel f)
 
+/-- `run_rel` for an entry point whose call closure `S` is validated
+(`PreFixedOn`); functions outside `S` are unconstrained. -/
+theorem run_rel_on {P : Program} {ρ : Callees} {S : List String} (hpre : PreFixedOn P ρ S)
+    {name : String} (hname : name ∈ S) {φ : Type} [Callable φ] (f : φ)
+    (hρ : ∀ args, ρ name args = Callable.call f args) (n : Nat) :
+    Callable.Rel Approx (P.run n name) f :=
+  Callable.rel_le _ _ f (fun args => (hρ args) ▸ run_le_on hpre n name hname args)
+    (Callable.call_rel f)
+
 end LeanGo.Validate

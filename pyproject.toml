@@ -78,6 +78,20 @@ sources = ["src"]
 "producer/LeanGo/Module/Reduced.lean" = "lean_go/_payload/producer/LeanGo/Module/Reduced.lean"
 "producer/LeanGo/Pilot/Export.lean" = "lean_go/_payload/producer/LeanGo/Pilot/Export.lean"
 "producer/LeanGo/Proofs/Check.lean" = "lean_go/_payload/producer/LeanGo/Proofs/Check.lean"
+"producer/LeanGo/Validate.lean" = "lean_go/_payload/producer/LeanGo/Validate.lean"
+"producer/LeanGo/Validate/Attr.lean" = "lean_go/_payload/producer/LeanGo/Validate/Attr.lean"
+"producer/LeanGo/Validate/Value.lean" = "lean_go/_payload/producer/LeanGo/Validate/Value.lean"
+"producer/LeanGo/Validate/Prim.lean" = "lean_go/_payload/producer/LeanGo/Validate/Prim.lean"
+"producer/LeanGo/Validate/Syntax.lean" = "lean_go/_payload/producer/LeanGo/Validate/Syntax.lean"
+"producer/LeanGo/Validate/Semantics.lean" = "lean_go/_payload/producer/LeanGo/Validate/Semantics.lean"
+"producer/LeanGo/Validate/Soundness.lean" = "lean_go/_payload/producer/LeanGo/Validate/Soundness.lean"
+"producer/LeanGo/Validate/Spec.lean" = "lean_go/_payload/producer/LeanGo/Validate/Spec.lean"
+"producer/LeanGo/Validate/Meta.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta.lean"
+"producer/LeanGo/Validate/Command.lean" = "lean_go/_payload/producer/LeanGo/Validate/Command.lean"
+"producer/LeanGo/Validate/Meta/Derive.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta/Derive.lean"
+"producer/LeanGo/Validate/Meta/Load.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta/Load.lean"
+"producer/LeanGo/Validate/Meta/Tactic.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta/Tactic.lean"
+"producer/LeanGo/Validate/Meta/Axioms.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta/Axioms.lean"
 "producer/Reference.lean" = "lean_go/_payload/producer/Reference.lean"
 "producer/lakefile.toml" = "lean_go/_payload/producer/lakefile.toml"
 "producer/lean-toolchain" = "lean_go/_payload/producer/lean-toolchain"
@@ -162,6 +176,20 @@ include = [
   "/producer/LeanGo/Module/Reduced.lean",
   "/producer/LeanGo/Pilot/Export.lean",
   "/producer/LeanGo/Proofs/Check.lean",
+  "/producer/LeanGo/Validate.lean",
+  "/producer/LeanGo/Validate/Attr.lean",
+  "/producer/LeanGo/Validate/Value.lean",
+  "/producer/LeanGo/Validate/Prim.lean",
+  "/producer/LeanGo/Validate/Syntax.lean",
+  "/producer/LeanGo/Validate/Semantics.lean",
+  "/producer/LeanGo/Validate/Soundness.lean",
+  "/producer/LeanGo/Validate/Spec.lean",
+  "/producer/LeanGo/Validate/Meta.lean",
+  "/producer/LeanGo/Validate/Command.lean",
+  "/producer/LeanGo/Validate/Meta/Derive.lean",
+  "/producer/LeanGo/Validate/Meta/Load.lean",
+  "/producer/LeanGo/Validate/Meta/Tactic.lean",
+  "/producer/LeanGo/Validate/Meta/Axioms.lean",
   "/producer/Reference.lean",
   "/producer/lakefile.toml",
   "/producer/lean-toolchain",
