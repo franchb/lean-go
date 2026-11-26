@@ -30,7 +30,7 @@ def rewrite_sources(prelude, call, erased):
             prelude + erased + 'attribute [csimp] replacement_eq\n']
 
 
-def check_primitive_history(case, primitives, schema):
+def check_primitive_history(case, primitives, feature):
     for name, operand, unary in primitives:
         arguments = 'a' if unary else 'a b'
         prelude = (f'@[noinline] def replacement ({arguments} : {operand}) := {name} {arguments}\n'
@@ -40,7 +40,7 @@ def check_primitive_history(case, primitives, schema):
         for source in rewrite_sources(prelude, call, erased):
             case.assert_rejected(source, 'rewrite|replacement|repeated compilation')
         clean = case.export(prelude + 'section\nattribute [local csimp] replacement_eq\nend\n' + call)
-        case.assertEqual(clean['schema'], schema)
+        case.assertIn(feature, clean['features'])
 
 
 @unittest.skipUnless(os.environ.get('LEAN_GO_MODULES') == '1',
@@ -98,8 +98,7 @@ def run (a b : UInt64) : Result :=
    18446744073709551615, 18446744073709551617,
    decide (a = b), decide (a < b), decide (a ≤ b)⟩
 ''', modern=True)
-        self.assertEqual(program['schema'], 'lean-go-ir/v6')
-        self.assertEqual(program['profile'], 'pure-module/v4')
+        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v24', 'pure-module/v22'))
         self.assertIn('records', program['api'])
         values = [node['value'] for function in program['functions']
                   for node in self.nodes(function['body']) if node['op'] == 'let']

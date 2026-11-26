@@ -85,7 +85,7 @@ func (v *validator) featureList() []string {
 
 func (v *validator) checkFeatures(declared []string) error {
 	used := v.featureList()
-	if !slices.Equal(declared, used) {
+	if declared == nil || !slices.Equal(declared, used) {
 		return fmt.Errorf("declared features %q differ from used features %q", declared, used)
 	}
 	return nil

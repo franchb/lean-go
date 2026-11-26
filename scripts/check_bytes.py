@@ -137,7 +137,7 @@ def check(work, repo=ROOT):
             if row != results['model'][i]:
                 raise BackendError(label, f'case {i} disagrees with arithmetic model')
     ir = json.loads((work / 'program.ir.json').read_bytes())
-    if (ir['schema'], ir['profile']) != ('lean-go-ir/v13', 'pure-module/v11'):
+    if (ir['schema'], ir['profile']) != ('lean-go-ir/v24', 'pure-module/v22'):
         raise BackendError('extract', 'wrong byte schema')
     report = {'status': 'passed', 'cases': len(inputs), 'roots': list(ROOTS), 'budgets': go_values['Budgets'],
               'assurance': 'Bounded differential testing; not a proof of compiler or universal Go correctness.'}

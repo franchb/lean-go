@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	local "github.com/franchb/lean-go/generated/local"
+	"github.com/franchb/lean-go/internal/moduleir"
 )
 
 // Wire rows are enabled bit, nested bias Count, x Count, y Count.
@@ -397,15 +398,16 @@ func generateLocal(t *testing.T, out string) []byte {
 func requireLocalIR(t *testing.T, data []byte) {
 	t.Helper()
 	var program struct {
-		Schema, Profile, Root string
-		Functions             []reducedFunction
-		Provenance            []reducedProvenance
+		Schema, Profile string
+		Roots           []string
+		Functions       []reducedFunction
+		Provenance      []reducedProvenance
 	}
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program.Schema != "lean-go-ir/v6" || program.Profile != "pure-module/v4" || program.Root != "Local.run" {
-		t.Fatalf("unexpected local schema/profile/root: %s/%s/%s", program.Schema, program.Profile, program.Root)
+	if program.Schema != moduleir.Schema || program.Profile != moduleir.Profile || !slices.Equal(program.Roots, []string{"Local.run"}) {
+		t.Fatalf("unexpected local schema/profile/roots: %s/%s/%v", program.Schema, program.Profile, program.Roots)
 	}
 	functions := make(map[string]reducedFunction)
 	for _, function := range program.Functions {

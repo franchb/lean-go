@@ -264,18 +264,18 @@ func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
 		constructors[n] = [2]int{c.typ, c.tag}
 	}
 	manifest := struct {
-		Schema          string                `json:"schema"`
-		Generator       string                `json:"generator"`
-		GeneratorSource string                `json:"generator_source_sha256"`
-		ValidatorSource string                `json:"validator_source_sha256"`
-		IR              string                `json:"ir_sha256"`
-		Program         *moduleir.Program     `json:"program"`
-		Functions       map[string]int        `json:"function_ids"`
-		Constructors    map[string][2]int     `json:"constructor_ids"`
-		Files           map[string]string     `json:"generated_files"`
-		Evidence        string                `json:"evidence"`
-		Primitives      []moduleir.Primitive  `json:"primitives"`
-		GoAPI           *goAPI                `json:"go_api"`
+		Schema          string               `json:"schema"`
+		Generator       string               `json:"generator"`
+		GeneratorSource string               `json:"generator_source_sha256"`
+		ValidatorSource string               `json:"validator_source_sha256"`
+		IR              string               `json:"ir_sha256"`
+		Program         *moduleir.Program    `json:"program"`
+		Functions       map[string]int       `json:"function_ids"`
+		Constructors    map[string][2]int    `json:"constructor_ids"`
+		Files           map[string]string    `json:"generated_files"`
+		Evidence        string               `json:"evidence"`
+		Primitives      []moduleir.Primitive `json:"primitives"`
+		GoAPI           *goAPI               `json:"go_api"`
 	}{Schema: moduleir.ManifestSchema, Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.", Primitives: g.primitiveCatalog(), GoAPI: g.api}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {

@@ -14,11 +14,10 @@ var uint16Consumer string
 
 func TestSingleRootUInt16Allocations(t *testing.T) {
 	p := typedProgram()
-	p.Schema, p.Profile = moduleir.SchemaV14, moduleir.ProfileV12
 	p.Types = []moduleir.TypeDecl{}
 	p.Provenance = p.Provenance[:1]
 	p.Functions = []moduleir.Function{{
-		Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt16"}}, Result: "UInt16",
+		Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "UInt16"}}, Result: "UInt16",
 		Body: &moduleir.Code{
 			Op: "let", Bind: &moduleir.Param{ID: 2, Type: "UInt16"},
 			Value: &moduleir.Value{Kind: "uint16", Name: "8", Args: []int{}},
@@ -29,7 +28,7 @@ func TestSingleRootUInt16Allocations(t *testing.T) {
 			},
 		},
 	}}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,8 +50,7 @@ func TestHighByte(t *testing.T) {
 
 func TestGeneratedUInt16(t *testing.T) {
 	p := typedRecordProgram()
-	p.Schema, p.Profile = moduleir.SchemaV15, moduleir.ProfileV13
-	p.Root, p.Roots, p.Functions, p.Provenance = "", nil, nil, nil
+	p.Roots, p.Functions, p.Provenance = nil, nil, nil
 	p.Types = append(p.Types[:1], moduleir.TypeDecl{Name: "Example.Sample", Constructors: []moduleir.Constructor{
 		{Name: "Example.Sample.mk", Fields: []string{"UInt16", "Bool"}},
 	}})
@@ -88,7 +86,7 @@ func TestGeneratedUInt16(t *testing.T) {
 		p.Functions = append(p.Functions, moduleir.Function{Name: name, Params: params, Result: tc.result, Body: code})
 		p.Provenance = append(p.Provenance, moduleir.Provenance{Name: name, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}})
 	}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +103,7 @@ func TestGeneratedUInt16(t *testing.T) {
 		names = append(names, leaf.Name)
 	}
 	want := []string{"UInt16.lor", "UInt16.shiftLeft", "UInt16.shiftRight", "UInt16.toUInt8", "UInt8.toUInt16"}
-	if manifest.Schema != "lean-go-manifest/v15" || manifest.Generator != "lean-go-modulegen/v18" || !slices.Equal(names, want) || manifest.GoAPI.Types["UInt16"] != "uint16" {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.Generator != Version || !slices.Equal(names, want) || manifest.GoAPI.Types["UInt16"] != "uint16" {
 		t.Fatalf("manifest: %s, %s, %v, %v", manifest.Schema, manifest.Generator, names, manifest.GoAPI.Types)
 	}
 	runGenerated(t, files, uint16Consumer)
@@ -113,18 +111,17 @@ func TestGeneratedUInt16(t *testing.T) {
 
 func TestGeneratedUInt16ToUInt32(t *testing.T) {
 	p := typedProgram()
-	p.Schema, p.Profile = moduleir.SchemaV16, moduleir.ProfileV14
 	p.Types = []moduleir.TypeDecl{}
 	p.Provenance = p.Provenance[:1]
 	p.Functions = []moduleir.Function{{
-		Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt16"}}, Result: "UInt32",
+		Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "UInt16"}}, Result: "UInt32",
 		Body: &moduleir.Code{
 			Op: "let", Bind: &moduleir.Param{ID: 2, Type: "UInt32"},
 			Value: &moduleir.Value{Kind: "primitive", Name: "UInt16.toUInt32", Args: []int{1}},
 			Next:  &moduleir.Code{Op: "return", Var: 2},
 		},
 	}}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +132,7 @@ func TestGeneratedUInt16ToUInt32(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v16" || manifest.Generator != "lean-go-modulegen/v18" || len(manifest.Primitives) != 1 {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.Generator != Version || len(manifest.Primitives) != 1 {
 		t.Fatal(manifest)
 	}
 	leaf := manifest.Primitives[0]
@@ -163,18 +160,17 @@ func TestWidening(t *testing.T) {
 
 func TestGeneratedUInt16Xor(t *testing.T) {
 	p := typedProgram()
-	p.Schema, p.Profile = moduleir.SchemaV18, moduleir.ProfileV16
 	p.Types = []moduleir.TypeDecl{}
 	p.Provenance = p.Provenance[:1]
 	p.Functions = []moduleir.Function{{
-		Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt16"}, {ID: 2, Type: "UInt16"}}, Result: "UInt16",
+		Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "UInt16"}, {ID: 2, Type: "UInt16"}}, Result: "UInt16",
 		Body: &moduleir.Code{
 			Op: "let", Bind: &moduleir.Param{ID: 3, Type: "UInt16"},
 			Value: &moduleir.Value{Kind: "primitive", Name: "UInt16.xor", Args: []int{1, 2}},
 			Next:  &moduleir.Code{Op: "return", Var: 3},
 		},
 	}}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +181,7 @@ func TestGeneratedUInt16Xor(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v18" || manifest.Generator != "lean-go-modulegen/v18" || len(manifest.Primitives) != 1 {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.Generator != Version || len(manifest.Primitives) != 1 {
 		t.Fatal(manifest)
 	}
 	leaf := manifest.Primitives[0]

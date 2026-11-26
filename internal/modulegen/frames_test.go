@@ -30,20 +30,20 @@ func frameReuseProgram() *moduleir.Program {
 	p.Functions = []moduleir.Function{
 		{Name: "Example.large", Params: parameter, Result: "Example.Tree", Body: literal(2, "10", leaf(3, 2, call(4, "Example.small", literal(5, "11", leaf(6, 5, branch(7, 3, 4, branch(8, 7, 6, ret(8))))))))},
 		{Name: "Example.medium", Params: parameter, Result: "Example.Tree", Body: literal(2, "20", leaf(3, 2, leaf(4, 1, branch(5, 3, 4, ret(5)))))},
-		{Name: p.Root, Params: parameter, Result: "Example.Tree", Body: call(2, "Example.large", call(3, "Example.small", call(4, "Example.medium", call(5, "Example.small", call(6, "Example.large", branch(7, 2, 3, branch(8, 4, 5, branch(9, 7, 8, branch(10, 9, 6, ret(10))))))))))},
+		{Name: p.Roots[0], Params: parameter, Result: "Example.Tree", Body: call(2, "Example.large", call(3, "Example.small", call(4, "Example.medium", call(5, "Example.small", call(6, "Example.large", branch(7, 2, 3, branch(8, 4, 5, branch(9, 7, 8, branch(10, 9, 6, ret(10))))))))))},
 		{Name: "Example.small", Params: parameter, Result: "Example.Tree", Body: leaf(2, 1, ret(2))},
 	}
 	p.Provenance = []moduleir.Provenance{
 		{Name: "Example.large", Dependencies: []string{"Example.Tree", "Example.small"}, Rewrites: []moduleir.Rewrite{}},
 		{Name: "Example.medium", Dependencies: []string{"Example.Tree"}, Rewrites: []moduleir.Rewrite{}},
-		{Name: p.Root, Dependencies: []string{"Example.Tree", "Example.large", "Example.medium", "Example.small"}, Rewrites: []moduleir.Rewrite{}},
+		{Name: p.Roots[0], Dependencies: []string{"Example.Tree", "Example.large", "Example.medium", "Example.small"}, Rewrites: []moduleir.Rewrite{}},
 		{Name: "Example.small", Dependencies: []string{"Example.Tree"}, Rewrites: []moduleir.Rewrite{}},
 	}
 	return p
 }
 
 func TestRetiredFrameSlots(t *testing.T) {
-	files, err := Generate(frameReuseProgram())
+	files, err := generate(frameReuseProgram())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,24 +11,22 @@ import (
 
 func TestAPIRecordSchema(t *testing.T) {
 	p := validProgram()
-	p.Schema, p.Profile = "lean-go-ir/v5", ProfileV3
 	p.Types[0].Constructors = p.Types[0].Constructors[:1]
-	raw, err := json.Marshal(p)
+	p.API.Records["Example.Tree"] = []string{"value"}
+	raw, err := json.Marshal(declare(p))
 	if err != nil {
 		t.Fatal(err)
 	}
-	raw = append(raw[:len(raw)-1], []byte(`,"api":{"records":{"Example.Tree":["value"]}}}`)...)
 	if _, err := Decode(bytes.NewReader(raw)); err != nil {
-		t.Fatal("valid v5 record metadata rejected:", err)
+		t.Fatal("valid record metadata rejected:", err)
 	}
 }
 
 func apiProgram() *Program {
 	p := validProgram()
-	p.Schema, p.Profile = SchemaV5, ProfileV3
 	p.Types[0].Constructors = []Constructor{{Name: "Example.Tree.mk", Fields: []string{"UInt32", "UInt32"}}}
 	p.API = &APIMetadata{Records: map[string][]string{"Example.Tree": {"left", "right"}}}
-	return p
+	return declare(p)
 }
 
 func TestAPIValidation(t *testing.T) {
@@ -45,7 +43,7 @@ func TestAPIValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := apiProgram()
 			change(p)
-			if err := Validate(p); err != nil {
+			if err := check(p); err != nil {
 				t.Fatal(err)
 			}
 			raw, err := json.Marshal(p)
@@ -84,7 +82,7 @@ func TestRejectInvalidAPI(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := apiProgram()
 			change(p)
-			if err := Validate(p); err == nil {
+			if err := check(p); err == nil {
 				t.Fatal("accepted invalid API metadata")
 			}
 		})
@@ -121,57 +119,6 @@ func TestStrictAPIDecode(t *testing.T) {
 	}
 	missing := bytes.Replace(raw, []byte(","+valid), nil, 1)
 	if _, err := Decode(bytes.NewReader(missing)); err == nil {
-		t.Fatal("accepted v5 without metadata")
-	}
-}
-
-func TestLegacyAPIRejection(t *testing.T) {
-	for _, pair := range [][2]string{{Schema, Profile}, {SchemaV3, ProfileV2}, {SchemaV4, ProfileV3}} {
-		p := apiProgram()
-		p.Schema, p.Profile = pair[0], pair[1]
-		if err := Validate(p); err == nil {
-			t.Fatal("legacy schema accepted constructed API metadata", pair)
-		}
-		p.API = nil
-		if err := Validate(p); err != nil {
-			t.Fatal("legacy semantics changed", err)
-		}
-		raw, err := json.Marshal(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, api := range []string{"null", "{}", `{"records":{}}`} {
-			bad := append(bytes.Clone(raw[:len(raw)-1]), []byte(`,"api":`+api+`}`)...)
-			if _, err := Decode(bytes.NewReader(bad)); err == nil {
-				t.Fatal("legacy schema accepted API JSON", pair, api)
-			}
-		}
-	}
-}
-
-func TestAPISchemaExecutionCapabilities(t *testing.T) {
-	for _, p := range []*Program{
-		validProgram(), joinProgram(),
-		numericProgram(&Value{Kind: "uint32", Name: "4294967295", Args: []int{}}, "UInt32"),
-		numericProgram(&Value{Kind: "primitive", Name: "UInt32.decEq", Args: []int{1, 2}}, "Bool"),
-	} {
-		p.Schema, p.Profile = SchemaV5, ProfileV3
-		p.API = &APIMetadata{Records: map[string][]string{}}
-		if err := Validate(p); err != nil {
-			t.Fatal("v5 changed execution admission:", err)
-		}
-		raw, err := json.Marshal(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := Decode(bytes.NewReader(raw)); err != nil {
-			t.Fatal(err)
-		}
-		for _, profile := range []string{Profile, ProfileV2} {
-			p.Profile = profile
-			if err := Validate(p); err == nil {
-				t.Fatal("v5 accepted mismatched profile", profile)
-			}
-		}
+		t.Fatal("accepted program without api metadata")
 	}
 }

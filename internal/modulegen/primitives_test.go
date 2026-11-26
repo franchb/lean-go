@@ -13,7 +13,6 @@ var numericOperations = []string{"UInt32.add", "UInt32.sub", "UInt32.mul", "UInt
 
 func numericProgram() *moduleir.Program {
 	p := testProgram()
-	p.Schema, p.Profile = "lean-go-ir/v3", "pure-module/v2"
 	p.Types = []moduleir.TypeDecl{
 		{Name: "Bool", Constructors: []moduleir.Constructor{{Name: "Bool.false", Fields: []string{}}, {Name: "Bool.true", Tag: 1, Fields: []string{}}}},
 		{Name: "Example.Numbers", Constructors: []moduleir.Constructor{{Name: "Example.Numbers.mk", Fields: []string{"UInt32", "UInt32", "UInt32", "UInt32", "Bool", "Bool", "Bool", "UInt32", "UInt32"}}}},
@@ -29,13 +28,13 @@ func numericProgram() *moduleir.Program {
 		}
 		body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: i + 3, Type: result}, Value: &moduleir.Value{Kind: "primitive", Name: numericOperations[i], Args: []int{1, 2}}, Next: body}
 	}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt32"}, {ID: 2, Type: "UInt32"}}, Result: "Example.Numbers", Body: body}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "UInt32"}, {ID: 2, Type: "UInt32"}}, Result: "Example.Numbers", Body: body}}
 	p.Provenance = p.Provenance[:1]
 	return p
 }
 
 func TestNumericGeneratedExecution(t *testing.T) {
-	files, err := Generate(numericProgram())
+	files, err := generate(numericProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +43,11 @@ func TestNumericGeneratedExecution(t *testing.T) {
 
 func TestNumericManifest(t *testing.T) {
 	p := numericProgram()
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := Generate(p)
+	again, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +67,7 @@ func TestNumericManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{"UInt32.add", "UInt32.decEq", "UInt32.decLe", "UInt32.decLt", "UInt32.mul", "UInt32.shiftLeft", "UInt32.sub"}
-	if manifest.Schema != "lean-go-manifest/v3" || len(manifest.Primitives) != len(want) {
+	if manifest.Schema != moduleir.ManifestSchema || len(manifest.Primitives) != len(want) {
 		t.Fatal("wrong numeric manifest schema/catalog", manifest)
 	}
 	for i, primitive := range manifest.Primitives {
@@ -80,12 +79,12 @@ func TestNumericManifest(t *testing.T) {
 			t.Fatal("wrong primitive evidence", primitive)
 		}
 	}
-	legacy, err := Generate(testProgram())
+	plain, err := generate(testProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(legacy["manifest.json"], []byte(`"primitives"`)) {
-		t.Fatal("old profile manifest gained primitives")
+	if !bytes.Contains(plain["manifest.json"], []byte(`"primitives": []`)) {
+		t.Fatal("manifest without primitives must list an empty catalog")
 	}
 	// Repeated uses do not duplicate evidence, and unused registry members are absent.
 	p = numericProgram()
@@ -94,7 +93,7 @@ func TestNumericManifest(t *testing.T) {
 			code.Value.Name = "UInt32.add"
 		}
 	}
-	files, err = Generate(p)
+	files, err = generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +110,7 @@ func TestNumericBoolCasesAndScalarRoots(t *testing.T) {
 		{Constructor: "Bool.false", Params: []moduleir.Param{}, Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 4, Type: "UInt32"}, Value: &moduleir.Value{Kind: "uint32", Name: "4294967295", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 4}}},
 		{Constructor: "Bool.true", Params: []moduleir.Param{}, Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 5, Type: "UInt32"}, Value: &moduleir.Value{Kind: "uint32", Name: "0", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 5}}},
 	}}}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +121,7 @@ func TestBoolCase(t *testing.T){for _,a:=range []uint32{0,2,^uint32(0)}{x,_:=Imp
 	p.Types = []moduleir.TypeDecl{}
 	p.Functions[0].Params = []moduleir.Param{}
 	p.Functions[0].Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "UInt32"}, Value: &moduleir.Value{Kind: "uint32", Name: "4294967295", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}
-	files, err = Generate(p)
+	files, err = generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,12 +135,12 @@ func TestLiteralRoot(t *testing.T){l:=DefaultLimits();l.MaxAllocations=1;l.MaxOu
 
 func TestNumericPrimitiveMutation(t *testing.T) {
 	p := numericProgram()
-	original, err := Generate(p)
+	original, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
 	p.Functions[0].Body.Value.Name = "UInt32.sub"
-	mutated, err := Generate(p)
+	mutated, err := generate(p)
 	if err != nil {
 		t.Fatal("well-typed mutation failed generation", err)
 	}

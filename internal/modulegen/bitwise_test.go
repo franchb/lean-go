@@ -12,7 +12,7 @@ import (
 
 func bitwiseProgram() *moduleir.Program {
 	p := typedProgram()
-	p.Schema, p.Profile, p.Root = moduleir.SchemaV9, moduleir.ProfileV7, ""
+	p.Roots = nil
 	p.Types = []moduleir.TypeDecl{}
 	p.API.Records = map[string][]string{}
 	p.Functions = nil
@@ -37,7 +37,7 @@ func bitwiseProgram() *moduleir.Program {
 }
 
 func TestBitwiseRawAndTypedExecution(t *testing.T) {
-	files, err := Generate(bitwiseProgram())
+	files, err := generate(bitwiseProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,13 +74,11 @@ func TestBitwiseManifestAndSingleRoot(t *testing.T) {
 	p := bitwiseProgram()
 	for _, multi := range []bool{true, false} {
 		if !multi {
-			p.Root = p.Roots[0]
-			p.Roots = nil
+			p.Roots = p.Roots[:1]
 			p.Functions = p.Functions[:1]
 			p.Provenance = p.Provenance[:1]
-			p.Schema, p.Profile = moduleir.SchemaV8, moduleir.ProfileV6
 		}
-		files, err := Generate(p)
+		files, err := generate(p)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -92,11 +90,11 @@ func TestBitwiseManifestAndSingleRoot(t *testing.T) {
 		if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 			t.Fatal(err)
 		}
-		expected, count := "lean-go-manifest/v8", 1
+		count := 1
 		if multi {
-			expected, count = "lean-go-manifest/v9", 10
+			count = 10
 		}
-		if manifest.Schema != expected || len(manifest.Primitives) != count {
+		if manifest.Schema != moduleir.ManifestSchema || len(manifest.Primitives) != count {
 			t.Fatal(manifest)
 		}
 		for _, primitive := range manifest.Primitives {
@@ -108,7 +106,7 @@ func TestBitwiseManifestAndSingleRoot(t *testing.T) {
 				t.Fatal(primitive)
 			}
 		}
-		again, err := Generate(p)
+		again, err := generate(p)
 		if err != nil {
 			t.Fatal(err)
 		}

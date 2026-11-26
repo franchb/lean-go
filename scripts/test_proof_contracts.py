@@ -77,13 +77,11 @@ class ContractFixture(unittest.TestCase):
 
     def write_manifest(self):
         contract, project = self.project()
-        multiple = len(contract.roots) > 1
-        program = dict(schema='lean-go-ir/v7' if multiple else 'lean-go-ir/v6',
-                       profile='pure-module/v5' if multiple else 'pure-module/v4',
-                       stage='pure-mono', module=contract.module, lean_version=self.compiler.version, lean_commit=self.compiler.commit,
+        program = dict(schema='lean-go-ir/v24', profile='pure-module/v22', stage='pure-mono',
+                       module=contract.module, roots=list(contract.roots), features=[],
+                       lean_version=self.compiler.version, lean_commit=self.compiler.commit,
                        inputs={'source/' + relative: sha(data) for relative, data in project.runtime.values()})
-        program['roots' if multiple else 'root'] = list(contract.roots) if multiple else contract.roots[0]
-        self.manifest = dict(schema='lean-go-manifest/v7' if multiple else 'lean-go-manifest/v6', program=program,
+        self.manifest = dict(schema='lean-go-manifest/v24', program=program,
                              generated_files={name: sha((self.manifest_path.parent / name).read_bytes()) for name in GENERATED})
         self.save_manifest()
 
@@ -224,28 +222,42 @@ class ContractValidationTests(ContractFixture):
             self.project()
 
 
-class ByteManifestBindingTests(ContractFixture):
-    def test_byte_manifest_exact_single_and_multi_root_pairs(self):
+class ManifestIdentityTests(ContractFixture):
+    def test_only_current_manifest_ir_and_profile_are_accepted(self):
         for multi in (False, True):
             if multi:
                 self.document['roots'].append('Example.another')
                 self.write_contract()
                 self.write_manifest()
-            version, profile = (13, 11) if multi else (12, 10)
-            self.manifest['schema'] = f'lean-go-manifest/v{version}'
-            self.manifest['program'].update(schema=f'lean-go-ir/v{version}', profile=f'pure-module/v{profile}')
-            self.save_manifest()
             self.assertEqual(self.verify_manifest(), self.manifest_path.read_bytes())
-            for schema, bad_profile in ((f'lean-go-ir/v{version}', 'pure-module/v9'),
-                                        (f'lean-go-ir/v{13 if version == 12 else 12}', f'pure-module/v{profile}')):
+            for version in range(1, 26):
+                if version == 24:
+                    continue
                 original = copy.deepcopy(self.manifest)
-                self.manifest['program'].update(schema=schema, profile=bad_profile)
+                stale = f'lean-go-manifest/v{version}'
+                self.manifest['schema'] = stale
+                self.save_manifest()
+                with self.subTest(schema=stale), self.assertRaisesRegex(ExportError, stale + ".*regenerate"):
+                    self.verify_manifest()
+                self.manifest = copy.deepcopy(original)
+                self.manifest['program']['schema'] = f'lean-go-ir/v{version}'
+                self.save_manifest()
+                with self.subTest(ir=version), self.assertRaises(ExportError):
+                    self.verify_manifest()
+                self.manifest = copy.deepcopy(original)
+                self.manifest['program']['profile'] = f'pure-module/v{version}'
+                self.save_manifest()
+                if version != 22:
+                    with self.subTest(profile=version), self.assertRaises(ExportError):
+                        self.verify_manifest()
+                self.manifest = original
+                self.save_manifest()
+            for schema in (None, [], {}, 8, True):
+                self.manifest['schema'] = schema
                 self.save_manifest()
                 with self.assertRaises(ExportError):
                     self.verify_manifest()
-                self.manifest = original
-            self.save_manifest()
-
+            self.write_manifest()
 
 
 class ManifestBindingTests(ContractFixture):
@@ -254,11 +266,11 @@ class ManifestBindingTests(ContractFixture):
         self.document['roots'].append('Example.another')
         self.write_contract()
         self.write_manifest()
-        self.assertEqual(self.manifest['schema'], 'lean-go-manifest/v7')
+        self.assertEqual(self.manifest['schema'], 'lean-go-manifest/v24')
         self.assertEqual(self.verify_manifest(), self.manifest_path.read_bytes())
         for key, value in [('roots', ['Example.identity']), ('root', 'Example.identity'),
                            ('lean_commit', 'other'), ('lean_version', '4.0.0'),
-                           ('profile', 'pure-module/v4'), ('schema', 'lean-go-ir/v6'), ('module', 'Other')]:
+                           ('profile', 'pure-module/v23'), ('schema', 'lean-go-ir/v25'), ('module', 'Other')]:
             original = copy.deepcopy(self.manifest)
             self.manifest['program'][key] = value
             self.save_manifest()
@@ -267,8 +279,9 @@ class ManifestBindingTests(ContractFixture):
             self.manifest = original
         self.save_manifest()
 
-    def test_single_root_cannot_use_plural_or_wrong_root(self):
-        for key, value in [('root', 'Example.other'), ('roots', ['Example.identity'])]:
+    def test_single_root_uses_exact_roots_array(self):
+        for key, value in [('root', 'Example.identity'), ('roots', 'Example.identity'),
+                           ('roots', ['Example.other']), ('roots', [])]:
             original = copy.deepcopy(self.manifest)
             self.manifest['program'][key] = value
             self.save_manifest()

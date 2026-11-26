@@ -66,7 +66,8 @@ and return `(uint32, error)`. `RunContains` has the same inputs and returns
 `(bool, error)`. The generated package exports exactly these selected typed
 roots; its shared raw entrypoint is `RunRoot`. The manifest sorts roots as
 `Flags.clear`, `Flags.contains`, `Flags.set`, `Flags.toggle` and uses
-`lean-go-manifest/v9` with the bitwise multi-root profile `pure-module/v7`.
+`lean-go-manifest/v24` with profile `pure-module/v22` and declared features
+`bitwise`, `uint32`.
 
 Every call starts fresh logical resource budgets. Invalid budgets return
 `ErrLimits`, exhausted budgets return `ErrResource`, and failed typed calls

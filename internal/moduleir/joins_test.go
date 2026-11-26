@@ -10,7 +10,7 @@ import (
 func joinDocument(t *testing.T, body string) []byte {
 	t.Helper()
 	p := numericProgram(&Value{Kind: "uint32", Name: "1", Args: []int{}}, "UInt32")
-	p.Schema, p.Profile = "lean-go-ir/v4", "pure-module/v3"
+	p.Features = []string{FeatureJoin, FeatureUInt32}
 	raw, err := json.Marshal(p)
 	if err != nil {
 		t.Fatal(err)
@@ -29,11 +29,10 @@ func joinDocument(t *testing.T, body string) []byte {
 
 func joinProgram() *Program {
 	p := numericProgram(&Value{Kind: "uint32", Name: "1", Args: []int{}}, "UInt32")
-	p.Schema, p.Profile = SchemaV4, ProfileV3
 	p.Functions[0].Body = &Code{Op: "join", Join: &Join{ID: 3, Params: []Param{{ID: 4, Type: "UInt32"}},
 		Body: &Code{Op: "let", Bind: &Param{ID: 5, Type: "UInt32"}, Value: &Value{Kind: "primitive", Name: "UInt32.add", Args: []int{4, 1}}, Next: &Code{Op: "return", Var: 5}}},
 		Next: &Code{Op: "jump", Target: 3, Args: []int{2}}}
-	return p
+	return declare(p)
 }
 
 func TestLexicalJoins(t *testing.T) {
@@ -50,7 +49,7 @@ func TestLexicalJoins(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := joinProgram()
 			change(p)
-			if err := Validate(p); err != nil {
+			if err := check(p); err != nil {
 				t.Fatal(err)
 			}
 		})
@@ -118,7 +117,7 @@ func TestRejectMalformedJoins(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			p := joinProgram()
 			mutate(p.Functions[0].Body)
-			if err := Validate(p); err == nil {
+			if err := check(p); err == nil {
 				t.Fatal("accepted malformed join")
 			}
 		})
@@ -132,12 +131,12 @@ func TestJoinScopeAcrossCasesAndFunctions(t *testing.T) {
 	c := p.Functions[0].Body
 	c.Join.Body = &Code{Op: "return", Var: 4}
 	c.Next.Args[0] = 1
-	if err := Validate(p); err == nil {
+	if err := check(p); err == nil {
 		t.Fatal("accepted mistyped jump argument")
 	}
 	c.Next.Args[0] = 2
 	c.Join.Body = &Code{Op: "return", Var: 1}
-	if err := Validate(p); err == nil {
+	if err := check(p); err == nil {
 		t.Fatal("accepted wrong join result")
 	}
 	c.Join.Body = &Code{Op: "return", Var: 4}
@@ -145,22 +144,22 @@ func TestJoinScopeAcrossCasesAndFunctions(t *testing.T) {
 		{Constructor: "Flag.no", Params: []Param{}, Body: c},
 		{Constructor: "Flag.yes", Params: []Param{}, Body: &Code{Op: "jump", Target: 3, Args: []int{2}}},
 	}}
-	if err := Validate(p); err == nil {
+	if err := check(p); err == nil {
 		t.Fatal("accepted sibling branch target")
 	}
 	p.Functions[0].Body.Alts[1].Body = &Code{Op: "return", Var: 2}
-	if err := Validate(p); err != nil {
+	if err := check(p); err != nil {
 		t.Fatal("valid branch-local join", err)
 	}
 	p.Functions[0].Body.Target = 3
-	if err := Validate(p); err == nil {
+	if err := check(p); err == nil {
 		t.Fatal("accepted irrelevant cases target")
 	}
 	p = joinProgram()
 	p.Functions = append(p.Functions, Function{Name: "Example.second", Params: []Param{{ID: 1, Type: "UInt32"}}, Result: "UInt32", Body: &Code{Op: "jump", Target: 3, Args: []int{1}}})
 	p.Provenance = append(p.Provenance, Provenance{Name: "Example.second", Dependencies: []string{}, Rewrites: []Rewrite{}})
 	p.Functions[0].Body.Join.Body.Value = &Value{Kind: "call", Name: "Example.second", Args: []int{4}}
-	if err := Validate(p); err == nil || !strings.Contains(err.Error(), "jump") {
+	if err := check(p); err == nil || !strings.Contains(err.Error(), "jump") {
 		t.Fatal("accepted cross-function jump", err)
 	}
 }
@@ -174,29 +173,24 @@ func TestJoinClosureAndProfiles(t *testing.T) {
 	p.Functions[0].Body.Next = &Code{Op: "return", Var: 1}
 	p.Functions = append(p.Functions, Function{Name: "Example.second", Params: []Param{{ID: 1, Type: "UInt32"}}, Result: "UInt32", Body: &Code{Op: "return", Var: 1}})
 	p.Provenance = append(p.Provenance, Provenance{Name: "Example.second", Dependencies: []string{}, Rewrites: []Rewrite{}})
-	if err := Validate(p); err != nil {
+	if err := check(p); err != nil {
 		t.Fatal("unused join type/call closure omitted", err)
 	}
-	for _, pair := range [][2]string{{Schema, Profile}, {SchemaV3, ProfileV2}, {SchemaV4, ProfileV2}, {SchemaV3, ProfileV3}} {
-		p := joinProgram()
-		p.Schema, p.Profile = pair[0], pair[1]
-		if err := Validate(p); err == nil {
-			t.Fatal("accepted incompatible join profile", pair)
-		}
-	}
 	p = numericProgram(&Value{Kind: "primitive", Name: "UInt32.decLt", Args: []int{1, 2}}, "Bool")
-	p.Schema, p.Profile = SchemaV4, ProfileV3
-	if err := Validate(p); err != nil {
-		t.Fatal("v4 lost numeric support", err)
+	if err := check(p); err != nil {
+		t.Fatal("numeric support", err)
 	}
 	p.Types[0].Constructors[0].Name = "Bool.fake"
-	if err := Validate(p); err == nil {
-		t.Fatal("v4 lost canonical Bool requirement")
+	if err := check(p); err == nil {
+		t.Fatal("lost canonical Bool requirement")
 	}
 }
 
 func TestStrictJoinDecode(t *testing.T) {
 	valid := joinDocument(t, `{"op":"join","join":{"id":3,"params":[],"body":{"op":"return","var":1}},"next":{"op":"jump","target":3,"args":[]}}`)
+	if _, err := Decode(bytes.NewReader(valid)); err != nil {
+		t.Fatal("valid join JSON", err)
+	}
 	for _, pair := range [][2]string{
 		{`"id":3`, `"id":3,"id":3`}, {`"id":3`, `"id":"3"`}, {`"id":3`, `"id":3.5`},
 		{`"params":[],`, ``}, {`"params":[]`, `"params":null`}, {`"params":[]`, `"params":{}`},
@@ -204,7 +198,7 @@ func TestStrictJoinDecode(t *testing.T) {
 		{`"args":[]`, `"args":{}`}, {`"args":[]`, `"args":["1"]`}, {`"args":[]`, `"args":[1.5]`},
 		{`"target":3`, `"target":3,"target":3`}, {`"target":3`, `"target":null`}, {`"target":3`, `"target":"3"`},
 		{`"body":{"op":"return","var":1}`, `"body":null`}, {`"join":{"id":3`, `"join":{"extra":0,"id":3`},
-		{`"lean-go-ir/v4"`, `"lean-go-ir/v3"`},
+		{`"lean-go-ir/v24"`, `"lean-go-ir/v25"`}, {`"features":["join","uint32"]`, `"features":["uint32"]`},
 	} {
 		bad := bytes.Replace(valid, []byte(pair[0]), []byte(pair[1]), 1)
 		if bytes.Equal(valid, bad) {
@@ -225,12 +219,12 @@ func TestJoinArityAndDepthLimits(t *testing.T) {
 		c.Join.Params = append(c.Join.Params, Param{ID: 10 + i, Type: "UInt32"})
 		c.Next.Args = append(c.Next.Args, 1)
 	}
-	if err := Validate(p); err != nil {
+	if err := check(p); err != nil {
 		t.Fatal("exact join arity", err)
 	}
 	c.Join.Params = append(c.Join.Params, Param{ID: 100, Type: "UInt32"})
 	c.Next.Args = append(c.Next.Args, 1)
-	if err := Validate(p); err == nil {
+	if err := check(p); err == nil {
 		t.Fatal("accepted oversized join signature")
 	}
 	for _, branch := range []string{"body", "next"} {
@@ -246,11 +240,11 @@ func TestJoinArityAndDepthLimits(t *testing.T) {
 			body = c
 		}
 		p.Functions[0].Body = body
-		if err := Validate(p); err != nil {
+		if err := check(p); err != nil {
 			t.Fatal("exact depth", branch, err)
 		}
 		p.Functions[0].Body = &Code{Op: "join", Join: &Join{ID: 999, Params: []Param{}, Body: body}, Next: &Code{Op: "return", Var: 1}}
-		if err := Validate(p); err == nil || !strings.Contains(err.Error(), "depth") {
+		if err := check(p); err == nil || !strings.Contains(err.Error(), "depth") {
 			t.Fatal("excessive depth", branch, err)
 		}
 	}
@@ -260,7 +254,7 @@ func TestJoinStructuralBudget(t *testing.T) {
 	c := &Code{Op: "join", Join: &Join{ID: 2, Params: []Param{{ID: 3, Type: "UInt32"}}, Body: &Code{Op: "return", Var: 3}}, Next: &Code{Op: "jump", Target: 2, Args: []int{1}}}
 	// Three Code objects, one Join object, and one parameter binder.
 	for _, remaining := range []int{5, 4} {
-		v := validator{nodes: MaxNodes - remaining, joins: true}
+		v := validator{nodes: MaxNodes - remaining, features: map[string]bool{}}
 		err := v.code(c, Function{Result: "UInt32"}, map[int]string{1: "UInt32"}, map[int]*Join{}, map[int]bool{1: true}, map[*Code]bool{}, 1)
 		if remaining == 5 {
 			if err != nil || v.nodes != MaxNodes {
@@ -268,19 +262,6 @@ func TestJoinStructuralBudget(t *testing.T) {
 			}
 		} else if err == nil || !strings.Contains(err.Error(), "node limit") {
 			t.Fatal("join structural budget exceeded", err)
-		}
-	}
-}
-
-func TestJoinLegacyDecodeCompatibility(t *testing.T) {
-	for _, p := range []*Program{validProgram(), numericProgram(&Value{Kind: "uint32", Name: "7", Args: []int{}}, "UInt32")} {
-		raw, err := json.Marshal(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		decoded, err := Decode(bytes.NewReader(raw))
-		if err != nil || decoded.Schema != p.Schema || decoded.Profile != p.Profile {
-			t.Fatal("legacy profile decode changed", p.Schema, err)
 		}
 	}
 }

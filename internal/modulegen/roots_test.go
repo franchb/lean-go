@@ -11,7 +11,6 @@ import (
 
 func multiRootProgram() *moduleir.Program {
 	p := typedProgram()
-	p.Schema, p.Profile, p.Root = moduleir.SchemaV7, moduleir.ProfileV5, ""
 	p.Roots = []string{"Example.bump", "Example.create", "Example.read", "Example.small", "Example.zero"}
 	p.Types = []moduleir.TypeDecl{{Name: "Example.Counter", Constructors: []moduleir.Constructor{{Name: "Example.Counter.mk", Fields: []string{"UInt64"}}}}}
 	p.API.Records = map[string][]string{"Example.Counter": {"value"}}
@@ -37,7 +36,7 @@ func multiRootProgram() *moduleir.Program {
 }
 
 func TestMultiRootSharedValuesAndDispatch(t *testing.T) {
-	files, err := Generate(multiRootProgram())
+	files, err := generate(multiRootProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +70,7 @@ func TestBudgetsPerRootCall(t *testing.T){
 
 func TestMultiRootManifestAndDeterminism(t *testing.T) {
 	p := multiRootProgram()
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,13 +84,13 @@ func TestMultiRootManifestAndDeterminism(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{"Example.bump": "RunBump", "Example.create": "RunCreate", "Example.read": "RunRead", "Example.small": "RunSmall", "Example.zero": "RunZero"}
-	if manifest.Schema != "lean-go-manifest/v7" || manifest.API.Entrypoint != "" || !reflect.DeepEqual(manifest.API.Entrypoints, want) || len(manifest.Functions) != 6 || len(manifest.Primitives) != 1 {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.API.Entrypoint != "" || !reflect.DeepEqual(manifest.API.Entrypoints, want) || len(manifest.Functions) != 6 || len(manifest.Primitives) != 1 {
 		t.Fatalf("incomplete manifest: %+v", manifest)
 	}
 	if bytes.Contains(files["manifest.json"], []byte(`"entrypoint":`)) || bytes.Contains(files["manifest.json"], []byte(`"root":`)) {
 		t.Fatal("multi-root manifest has a scalar root selection")
 	}
-	again, err := Generate(p)
+	again, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +112,7 @@ func TestMultiRootNameCollisions(t *testing.T) {
 		p.Functions = append(p.Functions, moduleir.Function{Name: name, Params: []moduleir.Param{{ID: 3, Type: "Example.RunSame"}}, Result: "Example.RunSame", Body: &moduleir.Code{Op: "return", Var: 3}})
 		p.Provenance = append(p.Provenance, moduleir.Provenance{Name: name, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}})
 	}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,9 +127,8 @@ func TestNames(t *testing.T){l:=DefaultLimits();v,e:=NewRunSame(7,l);if e!=nil{t
 
 func TestMultiRootRecursiveSharedClosure(t *testing.T) {
 	p := typedProgram()
-	p.Schema, p.Profile, p.Root = moduleir.SchemaV7, moduleir.ProfileV5, ""
 	p.Roots = []string{"Example.run", "Example.swap"}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,12 +139,11 @@ func TestRecursion(t *testing.T){l:=DefaultLimits();a,_:=NewTreeLeaf(1,l);b,_:=N
 
 func TestSingleRootKeepsPreviouslyAvailableNames(t *testing.T) {
 	p := typedProgram()
-	p.Schema, p.Profile = moduleir.SchemaV6, moduleir.ProfileV4
 	p.Types = []moduleir.TypeDecl{{Name: "Example.RunRoot", Constructors: []moduleir.Constructor{{Name: "Example.RunRoot.mk", Fields: []string{"UInt64"}}}}}
 	p.API.Records = map[string][]string{"Example.RunRoot": {"value"}}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "Example.RunRoot"}}, Result: "Example.RunRoot", Body: &moduleir.Code{Op: "return", Var: 1}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "Example.RunRoot"}}, Result: "Example.RunRoot", Body: &moduleir.Code{Op: "return", Var: 1}}}
 	p.Provenance = p.Provenance[:1]
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}

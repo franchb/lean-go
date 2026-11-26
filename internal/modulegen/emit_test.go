@@ -11,8 +11,19 @@ import (
 	"testing"
 )
 
+// declare sets the exact feature list a valid program uses, as the producer does.
+func declare(p *moduleir.Program) *moduleir.Program {
+	if features, err := moduleir.UsedFeatures(p); err == nil {
+		p.Features = features
+	}
+	return p
+}
+
+// generate emits a test program with its used features declared.
+func generate(p *moduleir.Program) (map[string][]byte, error) { return Generate(declare(p)) }
+
 func testProgram() *moduleir.Program {
-	p := &moduleir.Program{Schema: moduleir.Schema, Profile: moduleir.Profile, Stage: moduleir.Stage, LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit, Module: "Example", Root: "Example.run", Inputs: map[string]string{"Example.lean": strings.Repeat("0", 64)}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{}}
+	p := &moduleir.Program{Schema: moduleir.Schema, Profile: moduleir.Profile, Stage: moduleir.Stage, LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit, Module: "Example", Roots: []string{"Example.run"}, Inputs: map[string]string{"Example.lean": strings.Repeat("0", 64)}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{}, API: &moduleir.APIMetadata{Records: map[string][]string{}}}
 	p.Types = []moduleir.TypeDecl{{Name: "Example.Tree", Constructors: []moduleir.Constructor{{Name: "Example.Tree.leaf", Fields: []string{"UInt32"}}, {Name: "Example.Tree.branch", Tag: 1, Fields: []string{"Example.Tree", "Example.Tree"}}}}}
 	ret := func(id int) *moduleir.Code { return &moduleir.Code{Op: "return", Var: id} }
 	let := func(id int, kind, name string, args []int, next *moduleir.Code) *moduleir.Code {
@@ -30,11 +41,11 @@ func testProgram() *moduleir.Program {
 }
 func TestGenerate(t *testing.T) {
 	p := testProgram()
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := Generate(p)
+	again, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +75,7 @@ func TestGenerate(t *testing.T) {
 	runGenerated(t, files, boundaryTest)
 	// A well-typed change in the IR must alter actual generated execution.
 	p.Functions[1].Body.Alts[1].Body.Value.Args = []int{4}
-	changed, err := Generate(p)
+	changed, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,9 +91,9 @@ func leaf(n uint32)*Input{return &Input{Type:"Example.Tree",Constructor:"Example
 func TestScalarRoot(t *testing.T) {
 	p := testProgram()
 	p.Types = []moduleir.TypeDecl{}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 17, Type: "UInt32"}}, Result: "UInt32", Body: &moduleir.Code{Op: "return", Var: 17}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{{ID: 17, Type: "UInt32"}}, Result: "UInt32", Body: &moduleir.Code{Op: "return", Var: 17}}}
 	p.Provenance = p.Provenance[:1]
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,9 +147,9 @@ func TestSharingAndLimits(t *testing.T){l:=DefaultLimits();child:=leaf(7);in:=br
 func TestNullaryRootAndEnums(t *testing.T) {
 	p := testProgram()
 	p.Types = []moduleir.TypeDecl{{Name: "Colour", Constructors: []moduleir.Constructor{{Name: "Colour.red", Tag: 0, Fields: []string{}}, {Name: "Colour.blue", Tag: 1, Fields: []string{}}}}}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{}, Result: "Colour", Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "Colour"}, Value: &moduleir.Value{Kind: "constructor", Name: "Colour.blue", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{}, Result: "Colour", Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "Colour"}, Value: &moduleir.Value{Kind: "constructor", Name: "Colour.blue", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}}}
 	p.Provenance = p.Provenance[:1]
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,9 +159,9 @@ func TestNullary(t *testing.T){v,e:=Run(nil,DefaultLimits());if e!=nil||v.Type()
 }
 func TestMultipleParametersAndReusedOutput(t *testing.T) {
 	p := testProgram()
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 7, Type: "Example.Tree"}, {ID: 999, Type: "Example.Tree"}}, Result: "Example.Tree", Body: &moduleir.Code{Op: "return", Var: 999}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{{ID: 7, Type: "Example.Tree"}, {ID: 999, Type: "Example.Tree"}}, Result: "Example.Tree", Body: &moduleir.Code{Op: "return", Var: 999}}}
 	p.Provenance = p.Provenance[:1]
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}

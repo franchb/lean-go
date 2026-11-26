@@ -1,21 +1,12 @@
 # Reusable source-proof contracts
 
 A proof contract lets a Lean library use the same checked-evidence workflow as
-the [quota library](quota.md). It works with single-root v6 and multi-root v7
-generated packages, plus the bitwise v8/v9 packages introduced in alpha.6.
-Alpha.7 also accepts exact v10/`pure-module/v8` single-root and
-v11/`pure-module/v9` multiple-root
-[width-conversion packages](research/extraction-width-conversions.md).
-The alpha.8 release adds v12/`pure-module/v10` single-root and
-v13/`pure-module/v11` multi-root [UInt8 packages](research/extraction-uint8.md).
-Alpha.10 added support for `UInt16` packages with v14 IR/manifest and
-`pure-module/v12` for a single root, or v15 and `pure-module/v13` for multiple roots.
-In alpha.11, an executable `UInt16.toUInt32` selects v16 with `pure-module/v14` for a
-single root, or v17 with `pure-module/v15` for multiple roots. Use the CLI and
-examples from the same tag to reproduce their proof evidence.
-An executable UInt16 XOR selects v18/`pure-module/v16` for one root or
-v19/`pure-module/v17` for multiple roots in the development checker.
-The checker is included starting with the `v0.1.0-alpha.3` source release.
+the [quota library](quota.md). The development checker accepts packages whose
+manifest is `lean-go-manifest/v24` and whose program uses IR `lean-go-ir/v24`
+and profile `pure-module/v22`, with one or more roots in its `roots` array.
+Manifests from earlier releases are rejected; regenerate them with the current
+tool. Use the CLI and examples from the same tag to reproduce a release's proof
+evidence. The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
 propositions. The checker rebuilds them with pinned Lean, verifies the exact
@@ -182,20 +173,17 @@ verifier. Pair its tagged example and CLI for release reproduction, or install
 the CLI from the same checkout for development artifacts.
 
 The alpha.7 [Words example](../examples/proofs/words) selects five scalar
-roots with v11 IR/manifest and `pure-module/v9`. Seven
+roots. Seven
 independent expected propositions cover widening, modulo narrowing, both
 conversion round trips, low/high packing identities and full unpack/repack.
 The fresh checker records no axioms for the two `toNat` claims, `propext` for
 the conversion round trips, and `propext` plus `Quot.sound` for the three packing
 laws. Proof-only remainder and bit-vector helpers do not enter the runtime IR.
-Published alpha.7 has these three demos and generator v9. The alpha.8 release,
-package `0.1.0a8`, regenerates them with `lean-go-modulegen/v10`, retaining their
-earlier IR schemas. Pair examples and CLI from the same tag or the same checkout.
+Pair examples and CLI from the same tag or the same checkout.
 See the [verification walkthrough](release-candidate.md).
 
-The [byte codec](../examples/proofs/bytes) adds four roots with
-v13 IR/manifest and `pure-module/v11`. Alpha.9 generator v11 adds the
-checked Go `[4]byte` conversions. Its contract maps
+The [byte codec](../examples/proofs/bytes) adds four roots. Since alpha.9 the
+generator adds checked Go `[4]byte` conversions. Its contract maps
 twelve theorems to independent expected propositions: both inverse directions
 for each byte order and all eight encoder-byte positions. The positions use
 natural-number division by 1, 256, 65536 or 16777216 followed by remainder modulo

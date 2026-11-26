@@ -20,13 +20,12 @@ func uint64Program(t *testing.T) *moduleir.Program {
 	if err = json.Unmarshal(raw, &p); err != nil {
 		t.Fatal(err)
 	}
-	p.Schema, p.Profile = "lean-go-ir/v6", "pure-module/v4"
 	p.API = &moduleir.APIMetadata{Records: map[string][]string{"Example.Numbers": {"add", "sub", "mul", "shift", "eq", "lt", "le", "zero", "max"}}}
 	return &p
 }
 
 func TestUInt64GeneratedOperations(t *testing.T) {
-	files, err := Generate(uint64Program(t))
+	files, err := generate(uint64Program(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,11 +34,11 @@ func TestUInt64GeneratedOperations(t *testing.T) {
 
 func TestUInt64Manifest(t *testing.T) {
 	p := uint64Program(t)
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := Generate(p)
+	again, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +55,7 @@ func TestUInt64Manifest(t *testing.T) {
 	if err = json.Unmarshal(files["manifest.json"], &m); err != nil {
 		t.Fatal(err)
 	}
-	if m.Schema != "lean-go-manifest/v6" || m.Generator != Version || len(m.Primitives) != 7 || m.GoAPI == nil || m.GoAPI.Types["UInt64"] != "uint64" || m.GoAPI.Types["UInt32"] != "uint32" {
+	if m.Schema != moduleir.ManifestSchema || m.Generator != Version || len(m.Primitives) != 7 || m.GoAPI == nil || m.GoAPI.Types["UInt64"] != "uint64" || m.GoAPI.Types["UInt32"] != "uint32" {
 		t.Fatal("wide manifest", m)
 	}
 	for _, primitive := range m.Primitives {
@@ -81,11 +80,10 @@ func TestWideBudgets(t *testing.T){args:=[]Value{scalar(t,1),scalar(t,2)};l:=Def
 
 func TestUInt64MixedRecordFacade(t *testing.T) {
 	p := typedRecordProgram()
-	p.Schema, p.Profile = moduleir.SchemaV6, moduleir.ProfileV4
 	p.Types[1].Constructors[0].Fields = []string{"Example.Count", "Bool", "UInt32", "UInt64"}
 	p.Types[2].Constructors[0].Fields = []string{"UInt64"}
 	p.API.Records["Example.Config"] = []string{"count", "enabled", "small", "wide"}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -98,10 +96,9 @@ func TestMalformedWideReaders(t *testing.T){wide:=apiUInt64Node(1);if wide.typ<1
 
 func TestUInt64ScalarRoots(t *testing.T) {
 	p := joinTestProgram()
-	p.Schema, p.Profile = moduleir.SchemaV6, moduleir.ProfileV4
 	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
 	p.Functions[0].Params[0].Type, p.Functions[0].Result = "UInt64", "UInt64"
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +108,7 @@ func TestWideJoin(t *testing.T){l:=DefaultLimits();l.MaxNodes=1;l.MaxOutputNodes
 `)
 	p.Functions[0].Params = []moduleir.Param{}
 	p.Functions[0].Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "UInt64"}, Value: &moduleir.Value{Kind: "uint64", Name: "18446744073709551615", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}
-	files, err = Generate(p)
+	files, err = generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,7 +120,7 @@ func TestWideLiteralRoot(t *testing.T){l:=DefaultLimits();l.MaxNodes=1;l.MaxOutp
 	p.Functions[0].Params = []moduleir.Param{{ID: 1, Type: "UInt64"}, {ID: 2, Type: "UInt64"}}
 	p.Functions[0].Result = "Bool"
 	p.Functions[0].Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 3, Type: "Bool"}, Value: &moduleir.Value{Kind: "primitive", Name: "UInt64.decLt", Args: []int{1, 2}}, Next: &moduleir.Code{Op: "return", Var: 3}}
-	files, err = Generate(p)
+	files, err = generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +130,7 @@ func TestWideBoolRoot(t *testing.T){for _,pair:=range [][2]uint64{{0,^uint64(0)}
 `)
 	p.Functions[0].Params = []moduleir.Param{}
 	p.Functions[0].Body = &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "Bool"}, Value: &moduleir.Value{Kind: "constructor", Name: "Bool.true", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}
-	files, err = Generate(p)
+	files, err = generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,36 +138,4 @@ func TestWideBoolRoot(t *testing.T){for _,pair:=range [][2]uint64{{0,^uint64(0)}
 import "testing"
 func TestNullaryBool(t *testing.T){out,e:=RunTyped(DefaultLimits());if e!=nil||!out{t.Fatal(out,e)}}
 `)
-}
-
-func TestUInt64LegacyADTAndUInt32Compatibility(t *testing.T) {
-	for _, pair := range [][2]string{{moduleir.Schema, moduleir.Profile}, {moduleir.SchemaV3, moduleir.ProfileV2}, {moduleir.SchemaV4, moduleir.ProfileV3}, {moduleir.SchemaV5, moduleir.ProfileV3}} {
-		p := testProgram()
-		p.Schema, p.Profile = pair[0], pair[1]
-		if p.Schema == moduleir.SchemaV5 {
-			p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
-		}
-		p.Types = []moduleir.TypeDecl{{Name: "UInt64", Constructors: []moduleir.Constructor{{Name: "UInt64.mk", Fields: []string{"UInt32"}}}}}
-		p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt64"}}, Result: "UInt64", Body: &moduleir.Code{Op: "return", Var: 1}}}
-		p.Provenance = p.Provenance[:1]
-		files, err := Generate(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if bytes.Contains(files["runtime.go"], []byte("scalar64")) || bytes.Contains(files["runtime.go"], []byte("UInt64()")) {
-			t.Fatal("legacy runtime gained wide scalar", pair)
-		}
-		runGenerated(t, files, `package extracted
-import "testing"
-func TestOrdinaryUInt64(t *testing.T){v,e:=Import(&Input{Type:"UInt64",Constructor:"UInt64.mk",Fields:[]*Input{{Type:"UInt32",UInt32:9}}},DefaultLimits());if e!=nil{t.Fatal(e)};v,e=Run([]Value{v},DefaultLimits());n,ok:=v.Fields()[0].UInt32();if e!=nil||!ok||n!=9||v.Constructor()!="UInt64.mk"{t.Fatal(v,e)}}
-`)
-	}
-	p := numericProgram()
-	p.Schema, p.Profile = moduleir.SchemaV6, moduleir.ProfileV4
-	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
-	files, err := Generate(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	runGenerated(t, files, numericConsumerTests)
 }

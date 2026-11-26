@@ -34,7 +34,7 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
         for modern in (False, True):
             with self.subTest(modern=modern):
                 program = self.export(source, modern=modern)
-                self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v14', 'pure-module/v12'))
+                self.assertLessEqual({'bitwise', 'join', 'uint16', 'uint8', 'width_conversion'}, set(program['features']))
                 self.assertEqual(producer.emitted_primitives(program), LEAVES)
                 fields = {t['name']: t['constructors'][0]['fields'] for t in program['types']}
                 self.assertNotIn('UInt16', fields)
@@ -48,31 +48,31 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
 
     def test_scalar_identity_and_dead_provenance(self):
         identity = self.export('def run (w : UInt16) := w\n')
-        self.assertEqual((identity['schema'], identity['profile']), ('lean-go-ir/v14', 'pure-module/v12'))
+        self.assertEqual(identity['features'], ['uint16'])
         self.assertEqual(identity['functions'][0]['body']['op'], 'return')
-        for typ, unused, version in [('UInt8', 'a.toUInt16', 12), ('UInt32', 'a.toUInt8.toUInt16', 6)]:
+        for typ, unused in [('UInt8', 'a.toUInt16'), ('UInt32', 'a.toUInt8.toUInt16')]:
             program = self.export(f'def run (a : {typ}) :=\n  let _unused := {unused}\n  a\n')
             self.assertFalse(producer.emitted_primitives(program))
             self.assertIn('UInt8.toUInt16', {p['name'] for p in program['provenance']})
-            self.assertEqual(program['schema'], f'lean-go-ir/v{version}')
+            self.assertEqual(program['features'], [typ.lower()])
         (self.source / 'Numeric.lean').write_text(
             'namespace Numeric\ndef run (a b : UInt8) := (a + b).toUInt16\ndef second (w : UInt16) := w\nend Numeric\n')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.run', 'Numeric.second'], self.output)
         multi = json.loads(self.output.read_bytes())
-        self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v15', 'pure-module/v13'))
+        self.assertEqual(multi['features'], ['uint16', 'uint8', 'width_conversion'])
         self.assertEqual(producer.emitted_primitives(multi), {'UInt8.add', 'UInt8.toUInt16'})
 
-    def test_widening_and_erased_profile_selection(self):
+    def test_widening_and_erased_features(self):
         source = 'def run (word : UInt16) : UInt32 := word.toUInt32'
         program = self.export(source)
-        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v16', 'pure-module/v14'))
+        self.assertEqual(program['features'], ['uint16', 'uint32', 'width_conversion'])
         function, = program['functions']
         self.assertEqual([p['type'] for p in function['params']], ['UInt16'])
         self.assertEqual(function['result'], 'UInt32')
         self.assertEqual(function['body']['value'], {
             'kind': 'primitive', 'name': 'UInt16.toUInt32', 'args': [function['params'][0]['id']]})
         erased = self.export('def run (word : UInt16) :=\n  let _unused := word.toUInt32\n  word')
-        self.assertEqual((erased['schema'], erased['profile']), ('lean-go-ir/v14', 'pure-module/v12'))
+        self.assertEqual(erased['features'], ['uint16'])
         self.assertFalse(producer.emitted_primitives(erased))
         self.assertIn('UInt16.toUInt32', {p['name'] for p in erased['provenance']})
         (self.source / 'Numeric.lean').write_text(
@@ -80,16 +80,16 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
             '\ndef second (word : UInt16) := word.toUInt8\nend Numeric\n')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.run', 'Numeric.second'], self.output)
         multi = json.loads(self.output.read_bytes())
-        self.assertEqual((multi['schema'], multi['profile']), ('lean-go-ir/v17', 'pure-module/v15'))
+        self.assertEqual(multi['features'], ['uint16', 'uint32', 'uint8', 'width_conversion'])
         self.assertEqual(producer.emitted_primitives(multi), {'UInt16.toUInt32', 'UInt16.toUInt8'})
 
-    def test_xor_exact_notation_and_erased_profile(self):
+    def test_xor_exact_notation_and_erased_features(self):
         for modern, expression, source_name in (
                 (False, 'UInt16.xor a b', 'UInt16.xor'),
                 (True, 'a ^^^ b', 'instXorOpUInt16')):
             with self.subTest(expression=expression):
                 program = self.export(f'def run (a b : UInt16) := {expression}', modern=modern)
-                self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v18', 'pure-module/v16'))
+                self.assertEqual(program['features'], ['bitwise', 'uint16'])
                 function, = program['functions']
                 self.assertEqual([p['type'] for p in function['params']], ['UInt16', 'UInt16'])
                 self.assertEqual(function['result'], 'UInt16')
@@ -98,22 +98,22 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
                 self.assertEqual(program['rewrites'], [])
                 self.assertIn(source_name, {p['name'] for p in program['provenance']})
                 erased = self.export(f'def run (a b : UInt16) :=\n  let _unused := {expression}\n  a', modern=modern)
-                self.assertEqual((erased['schema'], erased['profile']), ('lean-go-ir/v14', 'pure-module/v12'))
+                self.assertEqual(erased['features'], ['uint16'])
                 self.assertFalse(producer.emitted_primitives(erased))
                 self.assertIn(source_name, {p['name'] for p in erased['provenance']})
 
-    def test_xor_multi_root_outranks_widening(self):
+    def test_xor_multi_root_declares_both_families(self):
         (self.source / 'Numeric.lean').write_text(
             'namespace Numeric\ndef run (a b : UInt16) := a ^^^ b\n'
             'def second (a : UInt16) := a.toUInt32\nend Numeric\n')
         producer.export_module(self.root, self.source, 'Numeric', ['Numeric.run', 'Numeric.second'], self.output)
         program = json.loads(self.output.read_bytes())
-        self.assertEqual((program['schema'], program['profile']), ('lean-go-ir/v19', 'pure-module/v17'))
+        self.assertEqual(program['features'], ['bitwise', 'uint16', 'uint32', 'width_conversion'])
         self.assertEqual(program['roots'], ['Numeric.run', 'Numeric.second'])
         self.assertEqual(producer.emitted_primitives(program), {'UInt16.xor', 'UInt16.toUInt32'})
 
     def test_xor_primitive_and_notation_rewrite_history(self):
-        wide.check_primitive_history(self, [('UInt16.xor', 'UInt16', False)], 'lean-go-ir/v18')
+        wide.check_primitive_history(self, [('UInt16.xor', 'UInt16', False)], 'bitwise')
         prelude = ('def replacement : XorOp UInt16 := instXorOpUInt16\n'
                    'theorem replacement_eq : instXorOpUInt16 = replacement := rfl\n')
         call = 'def run (a b : UInt16) := a ^^^ b\n'
@@ -128,7 +128,7 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
                              'Numeric source extern changed', probe=probe)
 
     def test_widening_rewrite_history(self):
-        wide.check_primitive_history(self, [('UInt16.toUInt32', 'UInt16', True)], 'lean-go-ir/v16')
+        wide.check_primitive_history(self, [('UInt16.toUInt32', 'UInt16', True)], 'width_conversion')
 
     def test_reject_unadmitted_widths_operators_and_alias(self):
         sources = [

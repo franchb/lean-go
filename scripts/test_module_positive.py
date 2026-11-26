@@ -55,7 +55,7 @@ end Modern
         self.modern_sources()
         program = self.export('Modern.Transform', 'Modern.choose')
         self.assertEqual(program['module'], 'Modern.Transform')
-        self.assertEqual(program['root'], 'Modern.choose')
+        self.assertEqual(program['roots'], ['Modern.choose'])
         self.assertTrue({'Bool', 'Modern.Signal'} <= {item['name'] for item in program['types']})
         self.assertIn('source/Modern/Model.lean', program['inputs'])
         rewrite = dict(source='Bool.not', target='Bool.Internal.not',
@@ -83,7 +83,7 @@ end Modern
 ''')
         program = self.export('Boolean', 'Boolean.flip')
         self.assertEqual([item['name'] for item in program['types']], ['Bool'])
-        self.assertEqual(program['root'], 'Boolean.flip')
+        self.assertEqual(program['roots'], ['Boolean.flip'])
 
     def test_safe_user_rewrite_rejected_after_local_scope_has_ended(self):
         # This witness is proved by rfl and has no sorry or user axiom. The strict
