@@ -1,5 +1,8 @@
-// Command lean-go compiles validated extraction IR into a standalone Go package.
-// It validates IR metadata, not the current producer source snapshots.
+// Command lean-go generates pure Go from a supported subset of ordinary Lean 4.
+// Its subcommands are implemented by internal/cli on top of internal/pipeline;
+// see docs/cli.md. The legacy flag form compiles validated extraction IR into
+// a standalone Go package; it validates IR metadata, not the current producer
+// source snapshots.
 package main
 
 import (
@@ -10,6 +13,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/franchb/lean-go/internal/cli"
 	"github.com/franchb/lean-go/internal/gogen"
 	"github.com/franchb/lean-go/internal/ir"
 	"github.com/franchb/lean-go/internal/modulegen"
@@ -90,6 +94,12 @@ func compileMode(r io.Reader, mode string, maxDepth int) (map[string][]byte, err
 	}
 }
 func main() {
+	// Subcommands (generate, emit, check-proofs, format, regenerate, doctor,
+	// version) run in-process; the original flag form "-in FILE -out DIR"
+	// remains for existing callers.
+	if len(os.Args) > 1 && cli.IsCommand(os.Args[1]) || len(os.Args) == 1 {
+		os.Exit(cli.Main(os.Args[1:], os.Stdout, os.Stderr))
+	}
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "lean-go:", err)
 		os.Exit(1)

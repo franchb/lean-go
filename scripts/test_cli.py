@@ -30,9 +30,12 @@ class PackageTests(unittest.TestCase):
         expected.update('scripts/' + name + '.py' for name in
                         ['generate', 'export', 'export_module', 'check_proofs', 'proof_contract', 'composition_contract',
                          'diagnostics', 'source_locations', 'module_diagnostics'])
+        # The script entry points build cmd/lean-go, whose subcommands run the
+        # Go pipeline: its packages and the embedded producer package ship too.
         for directory in ['cmd/lean-go', 'internal/ir', 'internal/gogen',
                           'internal/leanversion', 'internal/moduleir', 'internal/modulegen',
-                          'internal/nativegen']:
+                          'internal/nativegen', 'internal/cli', 'internal/pipeline',
+                          'internal/artifacts', 'internal/wireformat', 'producer']:
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory).glob('*.go')
                             if not path.name.endswith('_test.go'))
             expected.update(path.relative_to(ROOT).as_posix() for path in (ROOT / directory / 'templates').glob('*.tmpl'))
