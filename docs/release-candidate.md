@@ -1,8 +1,8 @@
 # Check source proofs, generated Go and deployment
 
-Use the CLI and examples from the same checkout or release tag. Alpha.11
-uses generator v13 and defaults to stable Lean 4.36.0. Its other supported
-compiler is 4.36.0-rc2. [Release notes](releases/v0.1.0-alpha.11.md)
+Use the CLI and examples from the same checkout or release tag. Alpha.12
+uses generator v14 and defaults to stable Lean 4.36.0. Its other supported
+compiler is 4.36.0-rc2. [Release notes](releases/v0.1.0-alpha.12.md)
 
 This walkthrough checks fresh source theorems, generated artifacts and isolated
 Go consumers. APIs remain experimental. The [byte article](articles/proved-byte-codec.md)
@@ -60,15 +60,15 @@ proof evidence use module generator v14; the earlier demos retain their existing
 IR schemas. The [clamp article](articles/lean-proofs-to-go.md) is a historical
 walkthrough and retains its original release context.
 
-## Reproduce the alpha.11 tag
+## Reproduce the alpha.12 tag
 
 Install stable Lean 4.36.0 and run the tagged CLI against the same source tree.
 
 ```sh
-git clone --branch v0.1.0-alpha.11 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha11
-cd lean-go-alpha11
+git clone --branch v0.1.0-alpha.12 --depth 1 https://github.com/franchb/lean-go.git lean-go-alpha12
+cd lean-go-alpha12
 git rev-parse HEAD
-uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.11"
+uv tool install --force --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.12"
 lean-go doctor
 release_cli=$(command -v lean-go)
 uv run --locked python scripts/check_clamp_demo.py --cli "$release_cli"
@@ -77,9 +77,10 @@ uv run --locked python scripts/check_words_demo.py --cli "$release_cli"
 uv run --locked python scripts/check_bytes_demo.py --cli "$release_cli"
 uv run --locked python scripts/check_header_demo.py --cli "$release_cli"
 uv run --locked python scripts/check_wire16_demo.py --cli "$release_cli"
+uv run --locked python scripts/check_crc16_demo.py --cli "$release_cli"
 ```
 
-This checks all six demos and 52 source claims. Local candidate results do not
+This checks all seven demos and 54 source claims. Local candidate results do not
 establish the public tag's availability, module checksum or future workflow state.
 
 ## Run the complete source-to-Go check
@@ -96,7 +97,7 @@ tool path, uses `CGO_ENABLED=0`, and disables module network access. It compares
 values above 2^53 and `math.MaxUint64`.
 
 Success prints a JSON receipt with `"status": "passed"`,
-`"candidate": "0.1.0a11"`, tool identities, checked claims, source/proof/tool
+`"candidate": "0.1.0a12"`, tool identities, checked claims, source/proof/tool
 hashes, the generated manifest and IR hashes, and the consumer case count. It
 contains no machine-specific absolute paths. The candidate label describes this
 checkout, including generator v14; it does not establish publication. Interpret
@@ -117,7 +118,7 @@ separate test checks the public Go module:
 
 ```sh
 CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
-  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.11 \
+  LEAN_GO_RELEASE_VERSION=v0.1.0-alpha.12 \
   go test -count=1 -run '^TestTaggedReleaseConsumer$' -v ./integration
 ```
 
@@ -141,7 +142,7 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off \
 The candidate test exercises Go packages through a temporary module proxy,
 including quota and multi-root composition, without substituting a local
 `replace`. The candidate checkout serves a synthetic archive as
-`v0.1.0-alpha.11` from that local proxy. This checks the local archive's Go
+`v0.1.0-alpha.12` from that local proxy. This checks the local archive's Go
 behavior; it does not establish public tag availability or the checksum of a
 future published module.
 

@@ -34,9 +34,9 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.11 release](docs/releases/v0.1.0-alpha.11.md), Python package
-`0.1.0a11`, includes six standalone demos and 52 source claims. Generator
-v13 selects v16/v17 IR for executable `UInt16.toUInt32` widening. Programs
+The [alpha.12 release](docs/releases/v0.1.0-alpha.12.md), Python package
+`0.1.0a12`, includes seven standalone demos and 54 source claims. Generator
+v14 selects v18/v19 IR for executable UInt16 XOR. Programs
 using only earlier capabilities retain their IR schemas.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
