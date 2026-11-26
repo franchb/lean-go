@@ -15,6 +15,7 @@ import tempfile
 import tomllib
 import zipfile
 
+import check_checked_frame
 from check_clamp_demo import verify_demo
 from check_bytes_demo import verify_demo as verify_bytes_demo
 from check_flags_demo import verify_demo as verify_flags_demo
@@ -222,6 +223,7 @@ def smoke(workspace, without_lean):
                     demo = directory / ('standalone ' + name + ' demo')
                     demo.mkdir()
                     verify(cli, demo, env)
+                check_checked_frame.verify(cli, check_checked_frame.DEMOS, directory, env)
             assert snapshot(payload) == expected, 'installed payload was changed'
         finally:
             for path, mode in permissions:

@@ -34,10 +34,8 @@ and independently authored expected propositions. Review the requirements,
 proofs, generated package and bound evidence together. The checker verifies the
 selected Lean statements; compilation and extraction remain tested and trusted.
 
-The [alpha.12 release](docs/releases/v0.1.0-alpha.12.md), Python package
-`0.1.0a12`, includes seven standalone demos and 54 source claims. Generator
-v14 selects v18/v19 IR for executable UInt16 XOR. Programs
-using only earlier capabilities retain their IR schemas.
+The [alpha.13 release](docs/releases/v0.1.0-alpha.13.md), Python package
+`0.1.0a13`, includes seven standalone demos with 54 source claims and a checksummed frame with two composition claims. Generator v15 uses native Go scalars for eligible typed roots and retains the existing IR schemas.
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 published alpha.7's v9 generator does not reproduce them.
@@ -56,7 +54,7 @@ uv run --locked python scripts/check_cli_install.py
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
 it regenerates all seven demos, compares exact bytes, freshly checks all 54 source
-claims and deploys each using only Go sources and `go.mod`. Root Go tests also
+claims and deploys each using only Go sources and `go.mod`. It also checks the two frame claims against both component manifests. Root Go tests also
 exercise all seven nested modules by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
