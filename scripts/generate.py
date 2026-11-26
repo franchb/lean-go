@@ -88,6 +88,8 @@ def main(argv=None):
     parser.add_argument('--root', action='append',
                         help='fully qualified root; repeat for a shared multi-root package')
     parser.add_argument("--diagnostics", choices=("text", "json"), default="text")
+    parser.add_argument('--mode', choices=('metered', 'native'), default='metered',
+                        help='Go emission mode: resource-metered (default) or plain native Go')
     args = parser.parse_args(argv)
     with stage("toolchain", "toolchain_mismatch"):
         check_python()
@@ -143,7 +145,7 @@ def main(argv=None):
         with stage("emission", "emission_failed"):
             output.parent.mkdir(parents=True, exist_ok=True)
         run_process([go, 'run', './cmd/lean-go', '-in', str(ir_path),
-                        '-out', str(output)], root, environment, 'emission')
+                        '-out', str(output), '-mode', args.mode], root, environment, 'emission')
         with stage('emission', 'emission_failed'):
             publish_ir(ir_output, content)
     print(f'Generated {output}; recorded producer IR in {ir_output}')
