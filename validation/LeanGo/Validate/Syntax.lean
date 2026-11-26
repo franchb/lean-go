@@ -14,8 +14,7 @@ The constructors mirror the JSON IR exactly (`internal/moduleir/types.go`):
 
 and a let value is a literal, a primitive, a constructor or a call. Names of
 constructors are kept for documentation; their tags (resolved by the loader
-from the program's type table and checked by `Program.tagsConsistent`) are
-what the semantics uses. Variables and join points are natural numbers.
+from the program's type table) are what the semantics uses. Variables and join points are natural numbers.
 -/
 
 @[expose] public section
