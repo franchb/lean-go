@@ -224,10 +224,11 @@ func checkBinary(o InstallOptions, binary, label string, index int, goPath strin
 				return err
 			}
 		}
-		summary = fmt.Sprintf("%d standalone demos passed", checked)
+		summary = fmt.Sprintf("%d standalone demos", checked)
 		if frame {
-			summary += " and the checked frame passed"
+			summary += " and the checked frame"
 		}
+		summary += " passed"
 		if len(o.Demos) == 0 {
 			summary = fmt.Sprintf("%d Go-only consumer cases, %s", count, summary)
 		}
