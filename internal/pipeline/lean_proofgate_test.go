@@ -196,13 +196,117 @@ func TestProofGateRejectsUnapprovedAxioms(t *testing.T) {
 		"theorem GateProofs.viaAxiom : ∀ value limit : UInt64, Clamp.clamp value limit ≤ limit := GateProofs.ax\n" +
 		"theorem GateProofs.viaSorry : ∀ value limit : UInt64, Clamp.clamp value limit ≤ limit := sorry\n" +
 		"def GateProofs.small : Prop := (3 : UInt64) ≤ 5\ntheorem GateProofs.viaNative : GateProofs.small := by unfold GateProofs.small; native_decide\n"
+	// An axiom reached only through the value of an opaque constant, which the
+	// kernel never unfolds, is still a dependency of the claim.
+	module += "axiom GateProofs.absurd : False\nopaque GateProofs.hidden : False := GateProofs.absurd\n" +
+		"theorem GateProofs.viaOpaque : ∀ value limit : UInt64, Clamp.clamp value limit ≤ limit := GateProofs.hidden.elim\n"
 	for claim, pattern := range map[[2]string]string{
-		{"GateProofs.viaAxiom", "ClampContract.bounded"}: `Unapproved theorem axiom: GateProofs.viaAxiom: GateProofs.ax\n`,
-		{"GateProofs.viaSorry", "ClampContract.bounded"}: `Unapproved theorem axiom: GateProofs.viaSorry: sorryAx\n`,
-		{"GateProofs.viaNative", "GateProofs.small"}:     `Unapproved theorem axiom: GateProofs.viaNative: GateProofs.viaNative._native.native_decide.ax`,
+		{"GateProofs.viaAxiom", "ClampContract.bounded"}:  `Unapproved theorem axiom: GateProofs.viaAxiom: GateProofs.ax\n`,
+		{"GateProofs.viaSorry", "ClampContract.bounded"}:  `Unapproved theorem axiom: GateProofs.viaSorry: sorryAx\n`,
+		{"GateProofs.viaNative", "GateProofs.small"}:      `Unapproved theorem axiom: GateProofs.viaNative: GateProofs.viaNative._native.native_decide.ax`,
+		{"GateProofs.viaOpaque", "ClampContract.bounded"}: `Unapproved theorem axiom: GateProofs.viaOpaque: GateProofs.absurd\n`,
 	} {
 		_, err := gateProof(t, [][2]string{claim}, map[string]string{"GateProofs": module})
 		expectError(t, err, pattern)
+	}
+}
+
+// A proof module's .olean can declare a runtime name again: an insertion that
+// skips the kernel check also skips the check that the name is new. Lean's
+// kernel looks up imported constants first, so the build itself never uses
+// the replacement; a checker that let a later module overwrite an earlier
+// declaration would, and would then accept the theorem below, which is true
+// of the replacement and false of the extracted function (clamp 1 1 = 1).
+// The kernel refuses the second declaration when the module is replayed.
+func TestProofGateRejectsRedeclaredRuntimeDefinitions(t *testing.T) {
+	contract := "import Clamp\nnamespace GateContract\ndef zero : Prop := ∀ value limit : UInt64, Clamp.clamp value limit = 0\nend GateContract\n"
+	proofs := "import Clamp\nimport Lean\nopen Lean Elab Command Term Meta\nset_option debug.skipKernelTC true\n" +
+		"run_cmd liftTermElabM do\n" +
+		"  let value ← elabTerm (← `(fun (_ _ : UInt64) => (0 : UInt64))) none\n" +
+		"  let value ← instantiateMVars value\n" +
+		"  let decl := Declaration.defnDecl { name := ``Clamp.clamp, levelParams := [], type := (← inferType value), value, hints := .abbrev, safety := .safe }\n" +
+		"  match (← getEnv).addDeclCore 0 0 decl none (doCheck := false) with\n    | .ok env => setEnv env\n    | .error _ => throwError \"failed\"\n" +
+		"  let ty ← elabTerm (← `(∀ value limit : UInt64, Clamp.clamp value limit = 0)) (some (mkSort 0))\n" +
+		"  let proof ← elabTerm (← `(fun (_ _ : UInt64) => (rfl : (0 : UInt64) = 0))) none\n" +
+		"  addDecl (.thmDecl { name := `GateProofs.zero, levelParams := [], type := (← instantiateMVars ty), value := (← instantiateMVars proof) })\n"
+	_, err := gateProof(t, [][2]string{{"GateProofs.zero", "GateContract.zero"}}, map[string]string{"GateContract": contract, "GateProofs": proofs})
+	expectError(t, err, `Kernel rejected a declaration of workspace module GateProofs: while replaying declaration 'Clamp.clamp':\n\(kernel\) constant has already been declared 'Clamp.clamp'`)
+}
+
+// The recorded statement is spelled by the checker so that a name cannot pass
+// for other syntax or for another name. A contract may declare names that
+// Lean's own printer leaves unescaped, a look-alike of an ASCII name (Greek
+// letters are identifier characters in Lean), a constant whose name is a
+// whole expression, and hygienic names.
+func TestProofGateStatementSpellsNamesUnambiguously(t *testing.T) {
+	lookalike := "Clam\u03c1" // Greek rho for p
+	contract := "import Clamp\nimport Lean\n" +
+		"namespace " + lookalike + "\ndef clamp (_ _ : UInt64) : UInt64 := 0\nend " + lookalike + "\n" +
+		"namespace GateContract\n" +
+		"def «?holds» : Prop := True\n" +
+		"def «Clamp.clamp value limit ≤ limit✝» : Prop := True\n" +
+		"def odd : Prop := ∀ (value₁ limit : UInt64) (α : Type) (_ : α),\n" +
+		"  " + lookalike + ".clamp value₁ limit ≤ limit → «?holds» ∧ «Clamp.clamp value limit ≤ limit✝»\n" +
+		"end GateContract\n" +
+		// A constant with macro scopes in its name, as hygienic macros declare them.
+		"open Lean Elab Command in\nrun_cmd liftTermElabM do\n" +
+		"  let hidden := addMacroScope `GateContract `GateContract.hidden 1\n" +
+		"  addDecl (.defnDecl { name := hidden, levelParams := [], type := mkSort 0, value := mkConst ``True, hints := .abbrev, safety := .safe })\n" +
+		"  addDecl (.defnDecl { name := `GateContract.hygienic, levelParams := [], type := mkSort 0, value := mkConst hidden, hints := .abbrev, safety := .safe })\n"
+	proofs := "import GateContract\n" +
+		"theorem GateProofs.odd : GateContract.odd := fun _ _ _ _ _ => ⟨trivial, trivial⟩\n" +
+		"theorem GateProofs.hygienic : GateContract.hygienic := trivial\n"
+	claims, err := gateProof(t, [][2]string{{"GateProofs.odd", "GateContract.odd"}, {"GateProofs.hygienic", "GateContract.hygienic"}},
+		map[string]string{"GateContract": contract, "GateProofs": proofs})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, want := range []string{
+		`∀ (value1 : UInt64) (limit : UInt64) (x : Sort (1)), x → LE.le UInt64 instLEUInt64 («Clam\u{3c1}».clamp value1 limit) limit → ` +
+			`And GateContract.«?holds» GateContract.«Clamp.clamp value limit \u{2264} limit\u{271d}»`,
+		`GateContract.hidden.«_@».GateContract._hyg.1`,
+	} {
+		if statement := claims[i].(*Object).Values["statement"]; statement != want {
+			t.Errorf("statement %d:\n got %v\nwant %s", i, statement, want)
+		}
+	}
+}
+
+// Lean generates the equation lemmas of an imported function in every module
+// that needs them, under the same names, and keeps match splitters private to
+// each module. Two proof modules that both unfold a runtime function, and a
+// third that uses a lemma generated by the one it imports, are accepted.
+func TestProofGateAcceptsLemmasGeneratedInSeveralModules(t *testing.T) {
+	_, _, tools := clampFixture(t)
+	source := func(name, text string) Source {
+		return Source{Module: name, Relative: strings.ReplaceAll(name, ".", "/") + ".lean", Data: []byte(text)}
+	}
+	project := &ProjectSnapshot{
+		Runtime: map[string]Source{"Pick": source("Pick", "namespace Pick\ninductive Shape where\n  | small (n : UInt64)\n  | pair (a b : UInt64)\n\n"+
+			"def weight (s : Shape) (limit : UInt64) : UInt64 :=\n  match s with\n  | .small n => if n ≤ limit then n else limit\n  | .pair a b => if a ≤ b then a else b\nend Pick\n")},
+		Proofs: map[string]Source{
+			"PickContract": source("PickContract", "import Pick\nnamespace PickContract\n"+
+				"def small : Prop := ∀ n limit : UInt64, Pick.weight (.small n) limit ≤ limit\n"+
+				"def same : Prop := ∀ n : UInt64, Pick.weight (.small n) n = n\nend PickContract\n"),
+			"PickA": source("PickA", "import Pick\nnamespace PickA\n"+
+				"theorem small (n limit : UInt64) : Pick.weight (.small n) limit ≤ limit := by\n  unfold Pick.weight\n  split\n"+
+				"  · next n' => split <;> simp_all\n  · next a b => split <;> simp_all\n"+
+				"theorem same (n : UInt64) : Pick.weight (.small n) n = n := by simp [Pick.weight]\nend PickA\n"),
+			"PickB": source("PickB", "import Pick\nnamespace PickB\n"+
+				"theorem small (n limit : UInt64) : Pick.weight (.small n) limit ≤ limit := by\n  unfold Pick.weight\n  split\n"+
+				"  · next n' => split <;> simp_all\n  · next a b => split <;> simp_all\n"+
+				"theorem same (n : UInt64) : Pick.weight (.small n) n = n := by simp [Pick.weight]\nend PickB\n"),
+			// Imports PickA alone and uses the lemma PickA and PickB both generated.
+			"PickC": source("PickC", "import PickA\nnamespace PickC\n"+
+				"theorem same (n : UInt64) : Pick.weight (.small n) n = n := by\n  rw [Pick.weight.eq_1]; simp\nend PickC\n"),
+		},
+	}
+	compiler, _ := SelectedCompiler()
+	wanted := [][2]string{{"PickA.small", "PickContract.small"}, {"PickB.small", "PickContract.small"},
+		{"PickA.same", "PickContract.same"}, {"PickB.same", "PickContract.same"}, {"PickC.same", "PickContract.same"}}
+	claims, err := prove(wanted, project, tools, compiler)
+	if err != nil || len(claims) != len(wanted) {
+		t.Fatalf("claims %v error %v", claims, err)
 	}
 }
 

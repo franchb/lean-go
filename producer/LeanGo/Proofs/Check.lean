@@ -38,27 +38,75 @@ The recorded statement is rendered by this function alone, from the kernel
 term of the expected proposition. It does not use Lean's pretty printer, so no
 notation, unexpander, delaborator or option declared by any module affects it.
 Every argument is shown, implicit and instance arguments included; universe
-levels of constants are omitted. Binder names are renamed when they would
-shadow another binder or read as a constant. -/
+levels of constants are omitted.
 
-private def constantSpellings (e : Expr) : NameSet :=
-  e.getUsedConstants.foldl (init := {}) fun s n =>
-    (n.components.foldl (init := (s.insert n, Name.anonymous)) fun (s, p) c =>
-      let p := p ++ c
-      (s.insert p, p)).1
+Names are spelled here and not by `Name.toString`, which leaves some names
+unescaped (inaccessible names, names with macro scopes, and names that begin
+with `#` or `?`). A component of a constant's name is written as is only when
+it is a plain ASCII identifier other than the renderer's own words; any other
+component is wrapped in `«»`, with every character outside printable ASCII
+written as `\u{…}`. A constant therefore cannot be named so that it reads as
+other syntax, as another constant, or as a look-alike of an ASCII name. Binder
+names carry no meaning, so an unusual one is replaced by a plain one instead,
+and a binder is renamed when it would shadow another binder or read as a
+constant. String literals are escaped the same way. -/
 
-private def displayName (taken : NameSet) (scope : Array String) (n : Name) : String := Id.run do
-  let base := match n.eraseMacroScopes with
-    | .str .anonymous s => if n.hasMacroScopes || s.isEmpty || s == "_" then "x" else s
-    | _ => "x"
-  let spelled (s : String) : Bool :=
-    scope.contains s || taken.contains (.str .anonymous s) || s == "fun" || s == "let"
-  let first := (Name.str .anonymous base).toString
-  if !spelled first then return first
+/-- Words the renderer writes itself; a name component equal to one is escaped. -/
+private def rendererWords : List String := ["Prop", "Sort", "fun", "let"]
+
+private def isPlainChar (c : Char) : Bool :=
+  c.isAlphanum || c == '_' || c == '\'' || c == '!' || c == '?'
+
+/-- A plain ASCII identifier: the only kind of name component written as is. -/
+private def isPlainComponent (s : String) : Bool :=
+  !s.isEmpty && (s.front.isAlpha || s.front == '_') && s.all isPlainChar &&
+    !rendererWords.contains s
+
+/-- Printable ASCII is kept (`\` and `"` with a backslash); anything else is `\u{hex}`. -/
+private def escaped (s : String) : String :=
+  s.foldl (init := "") fun out c =>
+    if c == '\\' || c == '"' then (out.push '\\').push c
+    else if 32 ≤ c.toNat && c.toNat < 127 then out.push c
+    else out ++ "\\u{" ++ String.ofList (Nat.toDigits 16 c.toNat) ++ "}"
+
+private def spellComponent (s : String) : String :=
+  if isPlainComponent s then s else "«" ++ escaped s ++ "»"
+
+/-- Spell a constant's name. Numeric components are decimal, which no string
+component can be, and the anonymous name is `[anonymous]`. -/
+private def spellName : Name → String
+  | .anonymous => "[anonymous]"
+  | .str .anonymous s => spellComponent s
+  | .str p s => spellName p ++ "." ++ spellComponent s
+  | .num p i => spellName p ++ "." ++ toString i
+
+/-- The plain name a binder is shown with: its ASCII identifier characters,
+with subscript digits as digits, or `x` when that is not a plain identifier. -/
+private def binderBase : Name → String
+  | .str .anonymous s =>
+    let ascii := s.foldl (init := "") fun out c =>
+      if isPlainChar c then out.push c
+      else if 0x2080 ≤ c.toNat && c.toNat ≤ 0x2089 then out.push (Char.ofNat (c.toNat - 0x2080 + 48))
+      else out
+    if isPlainComponent ascii && ascii != "_" then ascii else "x"
+  | _ => "x"
+
+/-- The first component of every constant used. A binder is never shown with
+one of these, so a bound variable cannot read as a constant or its prefix. -/
+private def constantRoots (e : Expr) : Std.HashSet String :=
+  e.getUsedConstants.foldl (init := {}) fun roots n =>
+    match n.getRoot with
+    | .str _ root => roots.insert root
+    | _ => roots
+
+private def displayName (taken : Std.HashSet String) (scope : Array String) (n : Name) : String := Id.run do
+  let base := binderBase n
+  let used (s : String) : Bool := scope.contains s || taken.contains s
+  if !used base then return base
   let mut i := 1
-  while spelled ((Name.str .anonymous s!"{base}_{i}").toString) do
+  while used s!"{base}_{i}" do
     i := i + 1
-  return (Name.str .anonymous s!"{base}_{i}").toString
+  return s!"{base}_{i}"
 
 private def isAtom : Expr → Bool
   | .bvar .. | .const .. | .sort .zero | .lit .. => true
@@ -69,7 +117,7 @@ private def isAtom : Expr → Bool
 private def checkSize (s : String) : Except String String :=
   if s.utf8ByteSize > maxStatementBytes then .error "Expected statement is too large to record" else .ok s
 
-private partial def render (taken : NameSet) (scope : Array String) (e : Expr) : Except String String := do
+private partial def render (taken : Std.HashSet String) (scope : Array String) (e : Expr) : Except String String := do
   let atom (e : Expr) : Except String String := do
     let s ← render taken scope e
     return if isAtom e then s else "(" ++ s ++ ")"
@@ -79,9 +127,9 @@ private partial def render (taken : NameSet) (scope : Array String) (e : Expr) :
   | .fvar .. | .mvar .. => .error "Expected statement is not closed"
   | .sort .zero => pure "Prop"
   | .sort u => pure s!"Sort ({u})"
-  | .const n _ => pure n.toString
+  | .const n _ => pure (spellName n)
   | .lit (.natVal n) => pure (toString n)
-  | .lit (.strVal s) => pure s.quote
+  | .lit (.strVal s) => pure ("\"" ++ escaped s ++ "\"")
   | .mdata _ b => render taken scope b
   | .proj _ i b => do return (← atom b) ++ "." ++ toString (i + 1)
   | .app .. => do
@@ -120,7 +168,7 @@ private partial def render (taken : NameSet) (scope : Array String) (e : Expr) :
 
 /-- Render a closed proposition with the trusted renderer above. -/
 def renderStatement (e : Expr) : Except String String :=
-  render (constantSpellings e) #[] e
+  render (constantRoots e) #[] e
 
 /-! ## Loading workspace modules as data -/
 
@@ -167,20 +215,6 @@ def importOrder (mods : Array WorkspaceModule) (isToolchain : Name → IO Bool) 
   return state.2
 
 /-! ## Replay and claims -/
-
-/-- Toolchain modules transitively imported by `roots`, from the base environment header. -/
-private partial def toolchainClosure (imports : Std.HashMap Name (Array Name)) (roots : Array Name) : NameSet := Id.run do
-  let mut seen : NameSet := {}
-  let mut todo := roots.toList
-  while true do
-    match todo with
-    | [] => break
-    | m :: rest =>
-      todo := rest
-      unless seen.contains m do
-        seen := seen.insert m
-        todo := (imports.getD m #[]).toList ++ todo
-  return seen
 
 /-- Collect the axioms a constant transitively depends on in the replayed environment. -/
 partial def collectAxioms (env : Kernel.Environment) (roots : List Name) : IO NameSet := do
@@ -258,52 +292,23 @@ def check (lib : System.FilePath) (moduleNames : Array Name) (claims : Array (Na
         baseImports := baseImports.push { module := i.module }
   -- `loadExts := false`: no extension state is loaded and no initializer runs.
   let base ← importModules baseImports {} (loadExts := false)
-  let header := base.header
-  let mut toolchainImports : Std.HashMap Name (Array Name) := {}
-  for h : i in [:header.moduleNames.size] do
-    let imports := (header.moduleData[i]?.map (·.imports.map (·.module))).getD #[]
-    toolchainImports := toolchainImports.insert header.moduleNames[i] imports
   let mut env := base.toKernelEnv
-  -- Where each replayed workspace constant came from, and each module's workspace closure.
-  let mut owner : Std.HashMap Name Name := {}
-  let mut closure : Std.HashMap Name NameSet := {}
+  -- Every module is replayed on top of all earlier ones. The kernel refuses a
+  -- name that is already declared, so a later module cannot replace an
+  -- earlier declaration; `replay` leaves out a theorem whose name and type
+  -- equal those of one already checked (Lean generates the same equation
+  -- lemmas for an imported function in every module that needs them), and the
+  -- checked one is kept.
   for w in order do
-    let mut visible : NameSet := ({} : NameSet).insert w.name
-    let mut toolchainRoots : Array Name := #[]
-    for i in w.data.imports do
-      if let some c := closure[i.module]? then
-        visible := c.foldl (init := visible) NameSet.insert
-      else
-        toolchainRoots := toolchainRoots.push i.module
-    for m in visible.toList do
-      if let some wm := order.find? (·.name == m) then
-        for i in wm.data.imports do
-          unless workspace.contains i.module do
-            toolchainRoots := toolchainRoots.push i.module
-    let toolchainVisible := toolchainClosure toolchainImports toolchainRoots
-    closure := closure.insert w.name visible
     let mut newConstants : Std.HashMap Name ConstantInfo := {}
     for n in w.data.constNames, ci in w.data.constants do
       if newConstants.contains n || ci.name != n then
         fail s!"Workspace module data is malformed at {n}: {w.name}"
       newConstants := newConstants.insert n ci
-    -- A module may only refer to its own constants and those of modules it imports.
-    for (n, ci) in newConstants.toList do
-      for used in ci.getUsedConstantsAsSet.toList do
-        let ok := newConstants.contains used ||
-          (match owner[used]? with
-            | some m => visible.contains m
-            | none => match base.getModuleIdxFor? used with
-              | some idx => (header.moduleNames[idx.toNat]?.map toolchainVisible.contains).getD false
-              | none => false)
-        unless ok do
-          fail s!"Declaration {n} of {w.name} refers to {used}, which {w.name} does not import"
     try
       env ← env.replay newConstants
     catch e =>
       fail s!"Kernel rejected a declaration of workspace module {w.name}: {e}"
-    for n in newConstants.keys do
-      owner := owner.insert n w.name
   let mut results := #[]
   for h : i in [:claims.size] do
     let (name, expected) := claims[i]

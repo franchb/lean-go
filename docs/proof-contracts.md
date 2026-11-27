@@ -272,11 +272,15 @@ result to arbitrary chunk boundaries in the proof module.
    loading environment extensions. It then replays every declaration of every
    workspace module (runtime, contract and proof modules alike) through the
    kernel with `Lean.Kernel.Environment.replay`, one module at a time in
-   import order; each module may refer only to its own declarations and to
-   those of modules it imports. Any kernel rejection fails the check and
-   names the declaration. `replay` does not send `unsafe` or `partial`
-   constants to the kernel; they are left out of the checked environment, so
-   a claim that depends on one fails.
+   import order. Any kernel rejection fails the check and names the
+   declaration. The kernel refuses a name that is already declared, so no
+   module can replace a declaration of the toolchain or of an earlier
+   module. The one exception is `replay`'s own: a theorem with the name and
+   type of one already checked is left out and the checked one is kept,
+   because Lean generates the same equation lemmas for an imported function
+   in every module that needs them. `replay` does not send `unsafe` or
+   `partial` constants to the kernel; they are left out of the checked
+   environment, so a claim that depends on one fails.
 3. **Claims.** For each claim, the theorem must be a theorem without universe
    parameters and the expected statement a closed `def` of type `Prop`
    without universe parameters. The kernel then decides the claim: the
@@ -316,10 +320,21 @@ pretty printer, so no notation or delaborator from any module affects it.
 It shows every argument, including implicit and instance arguments, uses no
 notation and omits universe levels, for example
 `∀ (value : UInt64) (limit : UInt64), LE.le UInt64 instLEUInt64 (Clamp.clamp value limit) limit`.
-This is harder to read than the earlier pretty-printed text (schema `v1`/`v2`);
-read the contract file for the statement as written, and the evidence for the
-statement that was actually checked. They differ only if the contract module
-computes its definitions with meta code or the build was tampered with.
+Every constant is named in full. A name component that is not a plain ASCII
+identifier is wrapped in `«»` with each non-ASCII character written as
+`\u{…}`, so a constant cannot be named to read as other syntax or as a
+look-alike of another name (Greek letters are identifier characters in Lean);
+string literals are escaped the same way. Bound variables are shown with
+plain ASCII names (`x₁` as `x1`, `α` as `x`), since their names carry no
+meaning. Universe levels and the structure a projection belongs to are not
+shown.
+
+This is harder to read than the earlier pretty-printed text (schema
+`v1`/`v2`). Read the contract file for the statement as written and the
+evidence for the term that was checked. The two say different things when the
+contract module shadows a name, declares its own instance or notation, or
+computes its definitions with meta code; the full names in the evidence show
+that.
 
 ### What it guarantees, against whom
 

@@ -44,8 +44,9 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   refused with a hint to regenerate.
 - Proof evidence moves to `lean-go-proof-evidence/v3` (`v4` for
   compositions): the recorded statement is now rendered by the checker from
-  the kernel term, with every argument shown and no notation, instead of
-  Lean's pretty printer. Earlier evidence must be regenerated.
+  the kernel term, with every argument shown, no notation, every constant
+  named in full and every name that is not a plain ASCII identifier escaped,
+  instead of Lean's pretty printer. Earlier evidence must be regenerated.
 
 **What it supports**
 
