@@ -284,26 +284,27 @@ The metered column above is `lean-go-modulegen/v19`. Since v20 a metered
 root without recursion or recursive types runs native code when the limits
 cover its static worst case
 ([metered fast path](research/extraction-modules.md#metered-fast-path)), as
-Numbers and Quota do with the default limits. The same harness, run back to
-back for the previous generator (v19, commit `da2b025`) and for v20 in one session
-(medians of five; raw samples:
+Numbers and Quota do with the default limits. The harness builds the metered
+package twice from the same IR, as `--mode metered` emits it and without the
+fast path (`modulegen.GenerateStateMachine`, which is what v19 emitted), and
+benchmarks both in one binary. Medians of five on an idle machine (raw
+samples:
 [metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
 
-| Workload | Metered v19 | Metered v20 | Native (same session) | Metered v20 / native |
+| Workload | Without the fast path | Metered (v20) | Native (same run) | Metered / native |
 | --- | ---: | ---: | ---: | ---: |
-| Numbers | 1,096 ns (22 allocations) | 418.6 ns (1 allocation) | 12.0 ns | 35 |
-| Quota reserve | 463.7 ns (9) | 237.7 ns (1) | 2.1 ns | 113 |
-| Quota release | 388.6 ns (8) | 187.8 ns (1) | 1.7 ns | 110 |
-| Quota remaining | 166.1 ns (2) | 13.2 ns (0) | 0.9 ns | 15 |
+| Numbers | 1,305 ns (22 allocations) | 372.0 ns (1 allocation) | 10.8 ns | 35 |
+| Quota reserve | 397.0 ns (9) | 172.1 ns (1) | 1.69 ns | 102 |
+| Quota release | 370.5 ns (8) | 180.0 ns (1) | 1.24 ns | 145 |
+| Quota remaining | 155.0 ns (2) | 11.5 ns (0) | 0.79 ns | 15 |
 
 What is left is the conversion at the boundary: the arguments are read
 from their nodes, and a record or sum result is rebuilt as fresh nodes in
 one allocation (two when its size depends on the constructor); a scalar
-result needs none. Byte folds and Trees take the paths they took before; in
-this session they measured Adler-32 1,341 µs (v19 1,344 µs), CRC-16 5,520 µs
-(5,830 µs), Tree balanced 54,950 ns (49,220 ns) and Tree skewed 31,311 ns
-(26,465 ns), differences that are noise of the shared machine: the generated
-code of those paths did not change.
+result needs none. Byte folds and Trees are not eligible and run the code
+they ran before; in the same run metered measured Adler-32 1,224 µs, CRC-16
+4,975 µs, Tree balanced 48,507 ns and Tree skewed 27,533 ns, 6.4 to 12.1
+times the native figures of that run.
 
 ### Records and sums
 

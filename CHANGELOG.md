@@ -64,13 +64,16 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   emitter's code when the caller's limits cover its worst case, computed per
   limit from the state machine's own accounting; otherwise, and for any
   malformed argument, the unchanged state machine runs, so results and
-  errors are the same. Measured in one session against the previous generator
-  (`lean-go-modulegen/v19`, commit `da2b025`):
-  DNS parse plus serialize through the metered adapter 11,688 ns to 3,169 ns
-  (186 to 46 allocations), UDP 6,388 ns to 2,679 ns, the demo header
-  4,265 ns to 1,853 ns, Numbers 1,096 ns to 418.6 ns, Quota reserve
-  463.7 ns to 237.7 ns, scalar roots such as `Clamp.clamp` 37.1 ns to
-  4.9 ns. Byte folds and recursive roots are unchanged. See
+  errors are the same. Measured in one binary on an idle machine, without
+  and with the fast path: DNS parse plus serialize through the metered
+  adapter 11,230 ns to 3,162 ns (186 to 46 allocations), UDP 6,968 ns to
+  2,608 ns, the demo header 4,247 ns to 1,907 ns, Numbers 1,305 ns to
+  372 ns, Quota reserve 397 ns to 172 ns. Against the previous generator
+  (`lean-go-modulegen/v19`, commit `da2b025`) in a separate session, typed
+  scalar entry points such as `Clamp.clamp` went from 37.1 ns to 4.9 ns.
+  Byte folds and recursive roots are unchanged. The differential tests of
+  the native emitter keep the state machine as their oracle
+  (`modulegen.GenerateStateMachine`). See
   [docs/research/extraction-modules.md](docs/research/extraction-modules.md#metered-fast-path).
 
 **Wire formats**

@@ -311,15 +311,16 @@ hand-written sample of the "before" run itself was disturbed (11.1 ns).
 The metered generator `lean-go-modulegen/v20` runs every root of these
 examples on its [fast path](research/extraction-modules.md#metered-fast-path)
 (native code, used when the limits cover the root's static worst case).
-Measured with the same benchmark, ten samples each from two alternating
-runs of the previous generator (v19, commit `da2b025`) and of v20 in one session
-(raw samples: [metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
+The benchmark above runs the metered adapter on both metered outputs, the
+one `--mode metered` emits and the one without the fast path, which is what
+v19 emitted. Medians of five on an idle machine, one binary (raw samples:
+[metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
 
-| Example | Metered v19 | Metered v20 | Native (same session) |
-| --- | ---: | ---: | ---: |
-| DNS | 11,688 ns (186 allocations) | 3,169 ns (46 allocations) | 106.7 ns |
-| UDP | 6,388 ns (112 allocations) | 2,679 ns (40 allocations) | 37.5 ns |
-| demo header | 4,265 ns (76 allocations) | 1,853 ns (28 allocations) | 20.5 ns |
+| Example | Without the fast path | Metered (v20) | Native (same run) | Hand-written (same run) |
+| --- | ---: | ---: | ---: | ---: |
+| DNS | 11,230 ns (186 allocations) | 3,162 ns (46 allocations) | 104.8 ns | 31.3 ns |
+| UDP | 6,968 ns (112 allocations) | 2,608 ns (40 allocations) | 36.0 ns | 8.2 ns |
+| demo header | 4,247 ns (76 allocations) | 1,907 ns (28 allocations) | 21.7 ns | 8.3 ns |
 
 The roots themselves now allocate one or two blocks for their result:
 timed apart (medians of five, with other jobs running), DNS `RunParse`

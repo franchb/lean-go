@@ -168,17 +168,17 @@ a form the producer rejects; [diagnostics](docs/diagnostics.md) say where.
 Measured in [native mode, Benchmarks](docs/native-mode.md#benchmarks): every
 native workload is within 1.1x of a hand-written Go transliteration of the
 same Lean source. Metered mode was 7.1 to 285 times slower than native; with
-the fast path, Numbers and Quota measured 15 to 113 times slower in one
-session (Numbers 418.6 ns against 1,096 ns before, Quota reserve 237.7 ns
-against 463.7 ns), while recursive Trees and the byte folds stay 6 to 13
-times slower.
+the fast path, Numbers and Quota measure 15 to 145 times slower (Numbers
+372 ns against 1,305 ns without it, Quota reserve 172 ns against 397 ns, in
+one binary on an idle machine), while recursive Trees and the byte folds
+stay 6 to 12 times slower.
 A better algorithm still wins: `hash/adler32` takes 30.9 µs on 64 KiB
 against 114.8 µs for the native Adler-32, whose Lean source reduces after
 every byte. Record-heavy code is further off: for the DNS header, native
 parse plus serialize takes 106.6 ns against 31.0 ns for a hand-written
 `encoding/binary` codec, about 3.4 times slower (UDP 4.7, the demo header
-2.3), and metered takes 3,169 ns with the fast path (11,688 ns before, in
-the same session). The native gap is Go copying 12-field structs
+2.3), and metered takes 3,162 ns with the fast path (11,230 ns without it,
+in the same binary). The native gap is Go copying 12-field structs
 through memory at the by-value API boundaries, not the extracted code
 ([wire formats](docs/wire-formats.md#native-against-metered)).
 
