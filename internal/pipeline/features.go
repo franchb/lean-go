@@ -195,15 +195,20 @@ func programFeatures(program *Object) ([]any, error) {
 				if err != nil {
 					return nil, err
 				}
+				// Only an admitted primitive declares a family. Any other
+				// name (another type, a suffixed or renamed leaf) is rejected
+				// by IR validation and must not claim a capability here.
 				if s, ok := name.(string); ok {
-					operation := s[strings.IndexByte(s, '.')+1:]
-					switch {
-					case strings.HasPrefix(operation, "toUInt"):
-						features[moduleir.FeatureWidthConversion] = true
-					case bitwiseOperations[operation]:
-						features[moduleir.FeatureBitwise] = true
-					case operation == "div" || operation == "mod":
-						features[moduleir.FeatureDivision] = true
+					if _, admitted := moduleir.LookupPrimitive(s); admitted {
+						operation := s[strings.IndexByte(s, '.')+1:]
+						switch {
+						case strings.HasPrefix(operation, "toUInt"):
+							features[moduleir.FeatureWidthConversion] = true
+						case bitwiseOperations[operation]:
+							features[moduleir.FeatureBitwise] = true
+						case operation == "div" || operation == "mod":
+							features[moduleir.FeatureDivision] = true
+						}
 					}
 				}
 			}
