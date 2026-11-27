@@ -15,8 +15,8 @@ Changes on the development branch since `v0.1.0-alpha.15`.
 - Translation validation: `lean-go generate --validate report|require` and
   `lean-go validate` prove, per extraction, that the IR program returns the
   encoding of the Lean function's result whenever it returns (partial
-  correctness). Every tracked program has a checked-in report; coverage is 88
-  of 88 functions and 54 of 54 roots. See
+  correctness). Every tracked program has a checked-in report; coverage is 95
+  of 95 functions and 61 of 61 roots. See
   [translation validation](docs/research/translation-validation.md).
   The proof automation now records every rewrite of its evaluation pass with
   an explicit proof, so the kernel no longer has to recheck those steps by
@@ -50,8 +50,24 @@ Changes on the development branch since `v0.1.0-alpha.15`.
 
 **What it supports**
 
-- The admitted Lean subset and the integer primitive table are unchanged
-  from alpha.15.
+- The unsigned integer matrix is complete: `UInt8`, `UInt16`, `UInt32` and
+  `UInt64` each admit the same fourteen operations (`+ - * / %`, the four
+  bitwise operations, both shifts and the three comparisons) and the
+  conversions to the other three widths, 68 primitives in all. Division
+  and remainder are new at every width, and `UInt16` gains the arithmetic,
+  comparisons and conversions it lacked. Both emitters test the divisor,
+  so `x / 0 = 0` and `x % 0 = x` as in Lean. A program that divides
+  declares the IR feature `division`. See the
+  [support matrix](docs/support-matrix.md), the new
+  [clock example](examples/proofs/clock) (three proved claims about
+  splitting seconds with `/` and `%`) and the `Unsigned` module example.
+- Translation validation follows the compiler's arithmetic rewrites that
+  come with division: `x / 2^k` exported as a shift, a literal on the left
+  of a multiplication, operands that are all literals folded to one, and
+  the folds `x % 0`, `x / 1`, `x * 1`, `x + 0`, `x % 1`, `x * 0` and
+  `0 / x`. Each step is an instance of a proved lemma or of core's
+  evaluation of literals.
+- Otherwise the admitted Lean subset is unchanged from alpha.15.
 
 **Output modes**
 

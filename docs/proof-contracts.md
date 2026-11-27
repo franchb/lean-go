@@ -399,7 +399,7 @@ claims through skipped `unsafe` and `partial` constants, unapproved axioms,
 the module system, build-time writes to the checker, toolchain and runtime
 `.olean` paths, and edited, re-emitted, other-mode and composition
 packages. The quota suite retains its
-library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16, crc16, adler32 and normalizer regenerate artifacts with an installed CLI,
+library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16, crc16, adler32, normalizer and clock regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all nine through both the direct and sdist-rebuilt wheels, freshly checking 58
+all ten through both the direct and sdist-rebuilt wheels, freshly checking 61
 source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).

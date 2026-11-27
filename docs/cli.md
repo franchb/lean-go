@@ -198,7 +198,7 @@ and proof evidence. Use the default compiler to reproduce the tagged examples.
 When upgrading from alpha.14 to alpha.15, regenerate the Go package, IR and proof evidence
 together with generator v18. Record byte folds use v22/v23 IR in alpha.15. This
 development checkout accepts only `lean-go-ir/v24` IR and `lean-go-manifest/v24`
-manifests from generator v19; regenerate earlier artifacts with its CLI. The Adler-32 example passes its two-word state directly through the generated Go loop.
+manifests from generator v20; regenerate earlier artifacts with its CLI. The Adler-32 example passes its two-word state directly through the generated Go loop.
 [Tagged alpha.14 guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.14/docs/cli.md)
 
 Use `uv tool update-shell` if your shell cannot find `lean-go`. The install
@@ -379,7 +379,7 @@ external generation, proof checking and a Go-only consumer. It also checks
 read-only installed resources and paths containing spaces. Both installed wheels
 regenerate and recheck the complete standalone clamp, flags, words, bytes, header, wire16, crc16, adler32,
 normalizer and clock demos, compare their tracked artifacts, freshly check all 61 source claims per
-wheel, and test and run all nine copied modules with Go alone. Each wheel also checks the two frame composition claims against both component manifests. `--without-lean`
+wheel, and test and run all ten copied modules with Go alone. Each wheel also checks the two frame composition claims against both component manifests. `--without-lean`
 explicitly restricts this smoke test to packaging,
 help/version and missing-tool errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.

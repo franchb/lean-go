@@ -103,7 +103,7 @@ connects a Lean function to Go through three links of different assurance:
    *whenever the IR program returns a value, it is the encoding of the Lean
    function's result*. It does not prove that the IR program terminates.
    Validation is off by default. Every tracked example has a checked-in
-   report; together they establish all 54 exported functions (88 of 88 IR
+   report; together they establish all 61 exported functions (95 of 95 IR
    functions) under the default budget
    ([coverage table](docs/research/translation-validation.md#9-coverage)).
 3. **Trusted, not proved.** The Lean kernel and toolchain; the meaning
@@ -129,24 +129,29 @@ to 64 exported functions sharing one package, and byte folds of the exact form `
 become a loop over a Go `[]byte`.
 
 Integer operations admitted by the producer's primitive table
-([`Primitives.lean`](producer/LeanGo/Module/Primitives.lean)):
+([`Primitives.lean`](producer/LeanGo/Module/Primitives.lean)): each of the
+four unsigned widths has the same fourteen operations and the conversions to
+the other three widths, 68 primitives in all
+([support matrix](docs/support-matrix.md)).
 
-| Type | `+` `-` `*` | `&&&` `\|\|\|` `^^^` `~~~` | `<<<` `>>>` | `==` `<` `≤` | Conversions |
-| --- | --- | --- | --- | --- | --- |
-| `UInt8` | yes | all four | both | yes | `toUInt16`, `toUInt32` |
-| `UInt16` | no | `\|\|\|` and `^^^` only | both | no | `toUInt8`, `toUInt32` |
-| `UInt32` | yes | all four | both | yes | `toUInt8`, `toUInt64` |
-| `UInt64` | yes | all four | both | yes | `toUInt32` |
+| Operations | On `UInt8`, `UInt16`, `UInt32` and `UInt64` |
+| --- | --- |
+| `+` `-` `*` | wrap modulo 2^n |
+| `/` `%` | total, as in Lean: `x / 0 = 0` and `x % 0 = x` |
+| `&&&` `\|\|\|` `^^^` `~~~` | bitwise |
+| `<<<` `>>>` | the count is reduced modulo the width |
+| `==` `<` `≤` | unsigned comparisons |
+| `toUInt8` … `toUInt64` | zero-extend or keep the low bits |
 
 Literals of all four widths are supported. Lean's fixed-width integers
 [wrap bit vectors](https://lean-lang.org/doc/reference/latest/Basic-Types/Fixed-Precision-Integers/);
 `+`, `-`, `*` and `<<<` wrap modulo 2^n as in
-[Go](https://go.dev/ref/spec#Integer_overflow), and shift counts are reduced
-modulo the width.
+[Go](https://go.dev/ref/spec#Integer_overflow). Go panics on an integer
+[division by zero](https://go.dev/ref/spec#Integer_operators), so the
+generated code tests the divisor first.
 
-Not supported, each rejected with a diagnostic: `/` and `%` at any width;
-`UInt16` arithmetic and comparisons; conversions not in the table (for
-example `UInt8.toUInt64`); `Nat`, `Int`, `String`, `Array`, `Option` and
+Not supported, each rejected with a diagnostic: signed integers, `USize`
+and floating point; `Nat`, `Int`, `String`, `Array`, `Option` and
 lists other than the byte-fold input; functions as arguments; polymorphism;
 mutual recursion; `partial` and `unsafe` definitions; custom compiler
 rewrites and external Lake packages. Ordinary-looking Lean can still compile to
