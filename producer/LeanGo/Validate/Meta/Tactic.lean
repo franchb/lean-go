@@ -1,6 +1,7 @@
 module
 public meta import Lean
 public import LeanGo.Validate.Spec
+public import LeanGo.Validate.Steps
 public meta section
 
 /-!
@@ -15,7 +16,12 @@ public meta section
      `encode`/`decode` equations, `Callable.call`), the IR function, the spec
      list, the source function `f` (unfolded once, so recursive calls stay
      folded and meet the spec environment's answers), the hypotheses and any
-     extra lemmas;
+     extra lemmas. The generic steps whose core lemmas are `rfl` and have the
+     same head on both sides (`Option.bind_some`, `List.foldl_cons`,
+     `ite_true`, `ite_false`) are taken from `LeanGo.Validate.Steps`, which
+     restates them with non-`rfl` proofs: `simp` then records each step with
+     an explicit proof instead of leaving the kernel to rediscover it by
+     unfolding, which on fixed-width arithmetic can be exponentially costly;
   3. if evaluation is stuck on a `cases` whose scrutinee is `encode t`, case
      split on `t` (an argument variable is destructed; any other term is
      generalized first, and a split on `decide p` is turned into `p`/`¬p`);
@@ -142,18 +148,18 @@ def runSimp (consts : Array Name) (extra : Array Term) (withJoins := false) : Ta
   let lemmas ← (ids ++ extra).mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
   if withJoins then
     evalTactic (← `(tactic|
-      simp only [ir_simp, $(VV `Code.eval_join):ident, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
+      simp only [ir_simp, $(VV `Code.eval_join):ident, $(VV `Steps.bind_some):ident, Option.bind_none, $(VV `Steps.ite_true):ident, $(VV `Steps.ite_false):ident, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
         Bool.false_eq_true, Bool.true_eq_false, decide_true, decide_false, Bool.not_true, Bool.not_false,
-        List.foldl_cons, List.foldl_nil, Option.some.injEq, Nat.reducePow, Nat.reduceMod,
+        $(VV `Steps.foldl_cons):ident, List.foldl_nil, Option.some.injEq, Nat.reducePow, Nat.reduceMod,
         $(mkCIdent `LeanGo.Validate.Meta.reduceUInt8Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt16Lit):ident,
         $(mkCIdent `LeanGo.Validate.Meta.reduceUInt32Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt64Lit):ident,
         $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt8):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt16):ident,
         $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt32):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt64):ident, $lemmas,*, *]))
   else
     evalTactic (← `(tactic|
-      simp only [ir_simp, Option.bind_some, Option.bind_none, ite_true, ite_false, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
+      simp only [ir_simp, $(VV `Steps.bind_some):ident, Option.bind_none, $(VV `Steps.ite_true):ident, $(VV `Steps.ite_false):ident, ↓reduceIte, Nat.reduceEqDiff, String.reduceEq, reduceCtorEq,
         Bool.false_eq_true, Bool.true_eq_false, decide_true, decide_false, Bool.not_true, Bool.not_false,
-        List.foldl_cons, List.foldl_nil, Option.some.injEq, Nat.reducePow, Nat.reduceMod,
+        $(VV `Steps.foldl_cons):ident, List.foldl_nil, Option.some.injEq, Nat.reducePow, Nat.reduceMod,
         $(mkCIdent `LeanGo.Validate.Meta.reduceUInt8Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt16Lit):ident,
         $(mkCIdent `LeanGo.Validate.Meta.reduceUInt32Lit):ident, $(mkCIdent `LeanGo.Validate.Meta.reduceUInt64Lit):ident,
         $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt8):ident, $(mkCIdent `LeanGo.Validate.Meta.shiftLitUInt16):ident,
@@ -258,7 +264,8 @@ partial def loop (consts : Array Name) (extra : Array Term) (fuel : Nat) (counte
     return
   -- Only reducible unfolding: a default-transparency `rfl` can produce proofs
   -- that the kernel checks by evaluating fixed-width arithmetic on symbolic
-  -- operands (observed: >12 GB on `DnsHeader.word1`).
+  -- operands (the same kernel cost as the definitional steps that
+  -- `LeanGo.Validate.Steps` avoids).
   if ← tryTac (evalTactic (← `(tactic| with_reducible rfl))) then return
   throwError "validate_obl: stuck at{indentExpr tgt}"
 
