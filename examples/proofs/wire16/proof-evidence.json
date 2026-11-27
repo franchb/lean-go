@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -7,7 +7,7 @@
       ],
       "expected": "Wire16Contract.complete_iff",
       "name": "Wire16Proofs.complete_iff",
-      "statement": "∀ (header : Header) (available consumed : UInt32),\n  Wire16.classify header available = Availability.complete consumed ↔\n    header.length.toNat ≤ available.toNat ∧ consumed.toNat = header.length.toNat"
+      "statement": "∀ (header : Header) (available : UInt32) (consumed : UInt32), Iff (Eq Availability (Wire16.classify header available) (Availability.complete consumed)) (And (LE.le Nat instLENat (UInt16.toNat (Header.length header)) (UInt32.toNat available)) (Eq Nat (UInt32.toNat consumed) (UInt16.toNat (Header.length header))))"
     },
     {
       "axioms": [
@@ -16,7 +16,7 @@
       ],
       "expected": "Wire16Contract.decode_be_value",
       "name": "Wire16Proofs.decode_be_value",
-      "statement": "∀ (p : BytePair), (Wire16.decodeBE p).toNat = p.hi.toNat * 256 + p.lo.toNat"
+      "statement": "∀ (p : BytePair), Eq Nat (UInt16.toNat (Wire16.decodeBE p)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (BytePair.hi p)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (BytePair.lo p)))"
     },
     {
       "axioms": [
@@ -25,7 +25,7 @@
       ],
       "expected": "Wire16Contract.decode_encode_be",
       "name": "Wire16Proofs.decode_encode_be",
-      "statement": "∀ (n : UInt16), Wire16.decodeBE (Wire16.encodeBE n) = n"
+      "statement": "∀ (n : UInt16), Eq UInt16 (Wire16.decodeBE (Wire16.encodeBE n)) n"
     },
     {
       "axioms": [
@@ -34,7 +34,7 @@
       ],
       "expected": "Wire16Contract.encode_be_bytes",
       "name": "Wire16Proofs.encode_be_bytes",
-      "statement": "∀ (n : UInt16), (Wire16.encodeBE n).hi.toNat = n.toNat / 256 ∧ (Wire16.encodeBE n).lo.toNat = n.toNat % 256"
+      "statement": "∀ (n : UInt16), And (Eq Nat (UInt8.toNat (BytePair.hi (Wire16.encodeBE n))) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt16.toNat n) (OfNat.ofNat Nat 256 (instOfNatNat 256)))) (Eq Nat (UInt8.toNat (BytePair.lo (Wire16.encodeBE n))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt16.toNat n) (OfNat.ofNat Nat 256 (instOfNatNat 256))))"
     },
     {
       "axioms": [
@@ -43,7 +43,7 @@
       ],
       "expected": "Wire16Contract.encode_decode_be",
       "name": "Wire16Proofs.encode_decode_be",
-      "statement": "∀ (p : BytePair), Wire16.encodeBE (Wire16.decodeBE p) = p"
+      "statement": "∀ (p : BytePair), Eq BytePair (Wire16.encodeBE (Wire16.decodeBE p)) p"
     },
     {
       "axioms": [
@@ -52,7 +52,7 @@
       ],
       "expected": "Wire16Contract.encode_parse_roundtrip",
       "name": "Wire16Proofs.encode_parse_roundtrip",
-      "statement": "∀ (q : ByteQuad),\n  q.b0 = 1 → q.b1.toNat < 4 → ∃ h, Wire16.parse q = ParseResult.parsed h ∧ Wire16.encode h = EncodeResult.encoded q"
+      "statement": "∀ (q : ByteQuad), Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1)) → LT.lt Nat instLTNat (UInt8.toNat (ByteQuad.b1 q)) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → Exists Header (fun (h : Header) => And (Eq ParseResult (Wire16.parse q) (ParseResult.parsed h)) (Eq EncodeResult (Wire16.encode h) (EncodeResult.encoded q)))"
     },
     {
       "axioms": [
@@ -61,7 +61,7 @@
       ],
       "expected": "Wire16Contract.encode_reserved_flags_iff",
       "name": "Wire16Proofs.encode_reserved_flags_iff",
-      "statement": "∀ (h : Header), Wire16.encode h = EncodeResult.reservedFlags ↔ 4 ≤ h.flags.toNat"
+      "statement": "∀ (h : Header), Iff (Eq EncodeResult (Wire16.encode h) EncodeResult.reservedFlags) (LE.le Nat instLENat (OfNat.ofNat Nat 4 (instOfNatNat 4)) (UInt8.toNat (Header.flags h)))"
     },
     {
       "axioms": [
@@ -70,7 +70,7 @@
       ],
       "expected": "Wire16Contract.encode_success_iff",
       "name": "Wire16Proofs.encode_success_iff",
-      "statement": "∀ (h : Header) (q : ByteQuad),\n  Wire16.encode h = EncodeResult.encoded q ↔\n    h.flags.toNat < 4 ∧\n      q.b0 = 1 ∧ q.b1 = h.flags ∧ q.b2.toNat = h.length.toNat / 256 ∧ q.b3.toNat = h.length.toNat % 256"
+      "statement": "∀ (h : Header) (q : ByteQuad), Iff (Eq EncodeResult (Wire16.encode h) (EncodeResult.encoded q)) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (And (Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1))) (And (Eq UInt8 (ByteQuad.b1 q) (Header.flags h)) (And (Eq Nat (UInt8.toNat (ByteQuad.b2 q)) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 256 (instOfNatNat 256)))) (Eq Nat (UInt8.toNat (ByteQuad.b3 q)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 256 (instOfNatNat 256))))))))"
     },
     {
       "axioms": [
@@ -79,7 +79,7 @@
       ],
       "expected": "Wire16Contract.need_more_iff",
       "name": "Wire16Proofs.need_more_iff",
-      "statement": "∀ (header : Header) (available missing : UInt32),\n  Wire16.classify header available = Availability.needMore missing ↔\n    available.toNat < header.length.toNat ∧ missing.toNat = header.length.toNat - available.toNat"
+      "statement": "∀ (header : Header) (available : UInt32) (missing : UInt32), Iff (Eq Availability (Wire16.classify header available) (Availability.needMore missing)) (And (LT.lt Nat instLTNat (UInt32.toNat available) (UInt16.toNat (Header.length header))) (Eq Nat (UInt32.toNat missing) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length header)) (UInt32.toNat available))))"
     },
     {
       "axioms": [
@@ -88,7 +88,7 @@
       ],
       "expected": "Wire16Contract.parse_encode_roundtrip",
       "name": "Wire16Proofs.parse_encode_roundtrip",
-      "statement": "∀ (h : Header),\n  h.flags.toNat < 4 → ∃ q, Wire16.encode h = EncodeResult.encoded q ∧ Wire16.parse q = ParseResult.parsed h"
+      "statement": "∀ (h : Header), LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → Exists ByteQuad (fun (q : ByteQuad) => And (Eq EncodeResult (Wire16.encode h) (EncodeResult.encoded q)) (Eq ParseResult (Wire16.parse q) (ParseResult.parsed h)))"
     },
     {
       "axioms": [
@@ -97,7 +97,7 @@
       ],
       "expected": "Wire16Contract.parse_reserved_flags_iff",
       "name": "Wire16Proofs.parse_reserved_flags_iff",
-      "statement": "∀ (q : ByteQuad), Wire16.parse q = ParseResult.reservedFlags ↔ q.b0 = 1 ∧ 4 ≤ q.b1.toNat"
+      "statement": "∀ (q : ByteQuad), Iff (Eq ParseResult (Wire16.parse q) ParseResult.reservedFlags) (And (Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1))) (LE.le Nat instLENat (OfNat.ofNat Nat 4 (instOfNatNat 4)) (UInt8.toNat (ByteQuad.b1 q))))"
     },
     {
       "axioms": [
@@ -106,7 +106,7 @@
       ],
       "expected": "Wire16Contract.parse_success_iff",
       "name": "Wire16Proofs.parse_success_iff",
-      "statement": "∀ (q : ByteQuad) (h : Header),\n  Wire16.parse q = ParseResult.parsed h ↔\n    q.b0 = 1 ∧ q.b1.toNat < 4 ∧ h.flags = q.b1 ∧ h.length.toNat = q.b2.toNat * 256 + q.b3.toNat"
+      "statement": "∀ (q : ByteQuad) (h : Header), Iff (Eq ParseResult (Wire16.parse q) (ParseResult.parsed h)) (And (Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1))) (And (LT.lt Nat instLTNat (UInt8.toNat (ByteQuad.b1 q)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (And (Eq UInt8 (Header.flags h) (ByteQuad.b1 q)) (Eq Nat (UInt16.toNat (Header.length h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (ByteQuad.b2 q)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (ByteQuad.b3 q)))))))"
     },
     {
       "axioms": [
@@ -115,7 +115,7 @@
       ],
       "expected": "Wire16Contract.parse_unsupported_version_iff",
       "name": "Wire16Proofs.parse_unsupported_version_iff",
-      "statement": "∀ (q : ByteQuad), Wire16.parse q = ParseResult.unsupportedVersion ↔ q.b0 ≠ 1"
+      "statement": "∀ (q : ByteQuad), Iff (Eq ParseResult (Wire16.parse q) ParseResult.unsupportedVersion) (Ne UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1)))"
     }
   ],
   "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
@@ -135,11 +135,11 @@
     "Wire16.encodeBE",
     "Wire16.parse"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
     "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

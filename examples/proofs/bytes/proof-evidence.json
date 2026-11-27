@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -8,7 +8,7 @@
       ],
       "expected": "ByteCodecContract.decodeBE_encodeBE",
       "name": "ByteCodecProofs.decodeBE_encodeBE",
-      "statement": "∀ (w : UInt32), ByteCodec.decodeBE (ByteCodec.encodeBE w) = w"
+      "statement": "∀ (word : UInt32), Eq UInt32 (ByteCodec.decodeBE (ByteCodec.encodeBE word)) word"
     },
     {
       "axioms": [
@@ -17,7 +17,7 @@
       ],
       "expected": "ByteCodecContract.decodeLE_encodeLE",
       "name": "ByteCodecProofs.decodeLE_encodeLE",
-      "statement": "∀ (w : UInt32), ByteCodec.decodeLE (ByteCodec.encodeLE w) = w"
+      "statement": "∀ (word : UInt32), Eq UInt32 (ByteCodec.decodeLE (ByteCodec.encodeLE word)) word"
     },
     {
       "axioms": [
@@ -25,7 +25,7 @@
       ],
       "expected": "ByteCodecContract.encodeBE_b0",
       "name": "ByteCodecProofs.encodeBE_b0",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b0.toNat = w.toNat / 16777216 % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b0 (ByteCodec.encodeBE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat word) (OfNat.ofNat Nat 16777216 (instOfNatNat 16777216))) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -33,7 +33,7 @@
       ],
       "expected": "ByteCodecContract.encodeBE_b1",
       "name": "ByteCodecProofs.encodeBE_b1",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b1.toNat = w.toNat / 65536 % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b1 (ByteCodec.encodeBE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat word) (OfNat.ofNat Nat 65536 (instOfNatNat 65536))) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -41,7 +41,7 @@
       ],
       "expected": "ByteCodecContract.encodeBE_b2",
       "name": "ByteCodecProofs.encodeBE_b2",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b2.toNat = w.toNat / 256 % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b2 (ByteCodec.encodeBE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat word) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -49,7 +49,7 @@
       ],
       "expected": "ByteCodecContract.encodeBE_b3",
       "name": "ByteCodecProofs.encodeBE_b3",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeBE w).b3.toNat = w.toNat % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b3 (ByteCodec.encodeBE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt32.toNat word) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -58,7 +58,7 @@
       ],
       "expected": "ByteCodecContract.encodeBE_decodeBE",
       "name": "ByteCodecProofs.encodeBE_decodeBE",
-      "statement": "∀ (q : ByteQuad), ByteCodec.encodeBE (ByteCodec.decodeBE q) = q"
+      "statement": "∀ (bytes : ByteQuad), Eq ByteQuad (ByteCodec.encodeBE (ByteCodec.decodeBE bytes)) bytes"
     },
     {
       "axioms": [
@@ -66,7 +66,7 @@
       ],
       "expected": "ByteCodecContract.encodeLE_b0",
       "name": "ByteCodecProofs.encodeLE_b0",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b0.toNat = w.toNat % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b0 (ByteCodec.encodeLE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt32.toNat word) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -74,7 +74,7 @@
       ],
       "expected": "ByteCodecContract.encodeLE_b1",
       "name": "ByteCodecProofs.encodeLE_b1",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b1.toNat = w.toNat / 256 % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b1 (ByteCodec.encodeLE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat word) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -82,7 +82,7 @@
       ],
       "expected": "ByteCodecContract.encodeLE_b2",
       "name": "ByteCodecProofs.encodeLE_b2",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b2.toNat = w.toNat / 65536 % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b2 (ByteCodec.encodeLE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat word) (OfNat.ofNat Nat 65536 (instOfNatNat 65536))) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -90,7 +90,7 @@
       ],
       "expected": "ByteCodecContract.encodeLE_b3",
       "name": "ByteCodecProofs.encodeLE_b3",
-      "statement": "∀ (w : UInt32), (ByteCodec.encodeLE w).b3.toNat = w.toNat / 16777216 % 256"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt8.toNat (ByteQuad.b3 (ByteCodec.encodeLE word))) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat word) (OfNat.ofNat Nat 16777216 (instOfNatNat 16777216))) (OfNat.ofNat Nat 256 (instOfNatNat 256)))"
     },
     {
       "axioms": [
@@ -99,7 +99,7 @@
       ],
       "expected": "ByteCodecContract.encodeLE_decodeLE",
       "name": "ByteCodecProofs.encodeLE_decodeLE",
-      "statement": "∀ (q : ByteQuad), ByteCodec.encodeLE (ByteCodec.decodeLE q) = q"
+      "statement": "∀ (bytes : ByteQuad), Eq ByteQuad (ByteCodec.encodeLE (ByteCodec.decodeLE bytes)) bytes"
     }
   ],
   "contract_sha256": "bdc9469d3ad0fcd92b7dec001369d0ab7483c0e3b88113db60aab33414ff9d03",
@@ -118,11 +118,11 @@
     "ByteCodec.encodeBE",
     "ByteCodec.encodeLE"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
     "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

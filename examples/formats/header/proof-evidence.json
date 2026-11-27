@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -9,7 +9,7 @@
       ],
       "expected": "DemoHeaderContract.accepts_iff",
       "name": "DemoHeaderProofs.accepts_iff",
-      "statement": "∀ (w : Wire), (∃ h, DemoHeader.parse w = ParseResult.ok h) ↔ w.b0.toNat = 1 ∧ w.b1.toNat / 4 % 64 = 0"
+      "statement": "∀ (w : Wire), Iff (Exists Header (fun (h : Header) => Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h))) (And (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))) (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (OfNat.ofNat Nat 64 (instOfNatNat 64))) (OfNat.ofNat Nat 0 (instOfNatNat 0))))"
     },
     {
       "axioms": [
@@ -19,7 +19,7 @@
       ],
       "expected": "DemoHeaderContract.parse_ok_iff",
       "name": "DemoHeaderProofs.parse_ok_iff",
-      "statement": "∀ (w : Wire) (h : Header),\n  DemoHeader.parse w = ParseResult.ok h ↔\n    (w.b0.toNat = 1 ∧ w.b1.toNat / 4 % 64 = 0) ∧\n      h.flags.toNat = w.b1.toNat % 4 ∧ h.length.toNat = w.b2.toNat * 256 + w.b3.toNat"
+      "statement": "∀ (w : Wire) (h : Header), Iff (Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h)) (And (And (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))) (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (OfNat.ofNat Nat 64 (instOfNatNat 64))) (OfNat.ofNat Nat 0 (instOfNatNat 0)))) (And (Eq Nat (UInt8.toNat (Header.flags h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4)))) (Eq Nat (UInt16.toNat (Header.length h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))))))"
     },
     {
       "axioms": [
@@ -29,7 +29,7 @@
       ],
       "expected": "DemoHeaderContract.parse_reservedNonzero_iff",
       "name": "DemoHeaderProofs.parse_reservedNonzero_iff",
-      "statement": "∀ (w : Wire), DemoHeader.parse w = ParseResult.reservedNonzero ↔ w.b0.toNat = 1 ∧ ¬w.b1.toNat / 4 % 64 = 0"
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (DemoHeader.parse w) ParseResult.reservedNonzero) (And (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))) (Not (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (OfNat.ofNat Nat 64 (instOfNatNat 64))) (OfNat.ofNat Nat 0 (instOfNatNat 0)))))"
     },
     {
       "axioms": [
@@ -39,7 +39,7 @@
       ],
       "expected": "DemoHeaderContract.parse_serialize",
       "name": "DemoHeaderProofs.parse_serialize",
-      "statement": "∀ (h : Header), h.flags.toNat < 4 → DemoHeader.parse (DemoHeader.serialize h) = ParseResult.ok h"
+      "statement": "∀ (h : Header), LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → Eq ParseResult (DemoHeader.parse (DemoHeader.serialize h)) (ParseResult.ok h)"
     },
     {
       "axioms": [
@@ -49,7 +49,7 @@
       ],
       "expected": "DemoHeaderContract.parse_validate",
       "name": "DemoHeaderProofs.parse_validate",
-      "statement": "∀ (w : Wire) (h : Header), DemoHeader.parse w = ParseResult.ok h → DemoHeader.validate h = Validity.valid"
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h) → Eq Validity (DemoHeader.validate h) Validity.valid"
     },
     {
       "axioms": [
@@ -59,7 +59,7 @@
       ],
       "expected": "DemoHeaderContract.parse_versionMismatch_iff",
       "name": "DemoHeaderProofs.parse_versionMismatch_iff",
-      "statement": "∀ (w : Wire), DemoHeader.parse w = ParseResult.versionMismatch ↔ ¬w.b0.toNat = 1"
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (DemoHeader.parse w) ParseResult.versionMismatch) (Not (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))))"
     },
     {
       "axioms": [
@@ -67,7 +67,7 @@
       ],
       "expected": "DemoHeaderContract.payload_complete_iff",
       "name": "DemoHeaderProofs.payload_complete_iff",
-      "statement": "∀ (h : Header) (available consumed : UInt32),\n  DemoHeader.classify h available = Availability.complete consumed ↔\n    h.length.toNat ≤ available.toNat ∧ consumed.toNat = h.length.toNat"
+      "statement": "∀ (h : Header) (available : UInt32) (consumed : UInt32), Iff (Eq Availability (DemoHeader.classify h available) (Availability.complete consumed)) (And (LE.le Nat instLENat (UInt16.toNat (Header.length h)) (UInt32.toNat available)) (Eq Nat (UInt32.toNat consumed) (UInt16.toNat (Header.length h))))"
     },
     {
       "axioms": [
@@ -76,7 +76,7 @@
       ],
       "expected": "DemoHeaderContract.payload_need_more_iff",
       "name": "DemoHeaderProofs.payload_need_more_iff",
-      "statement": "∀ (h : Header) (available missing : UInt32),\n  DemoHeader.classify h available = Availability.needMore missing ↔\n    available.toNat < h.length.toNat ∧ missing.toNat = h.length.toNat - available.toNat"
+      "statement": "∀ (h : Header) (available : UInt32) (missing : UInt32), Iff (Eq Availability (DemoHeader.classify h available) (Availability.needMore missing)) (And (LT.lt Nat instLTNat (UInt32.toNat available) (UInt16.toNat (Header.length h))) (Eq Nat (UInt32.toNat missing) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (UInt32.toNat available))))"
     },
     {
       "axioms": [
@@ -86,7 +86,7 @@
       ],
       "expected": "DemoHeaderContract.serialize_parse",
       "name": "DemoHeaderProofs.serialize_parse",
-      "statement": "∀ (w : Wire) (h : Header), DemoHeader.parse w = ParseResult.ok h → DemoHeader.serialize h = w"
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h) → Eq Wire (DemoHeader.serialize h) w"
     },
     {
       "axioms": [
@@ -94,7 +94,7 @@
       ],
       "expected": "DemoHeaderContract.validate_flagsTooWide_iff",
       "name": "DemoHeaderProofs.validate_flagsTooWide_iff",
-      "statement": "∀ (h : Header), DemoHeader.validate h = Validity.flagsTooWide ↔ ¬h.flags.toNat < 4"
+      "statement": "∀ (h : Header), Iff (Eq Validity (DemoHeader.validate h) Validity.flagsTooWide) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4))))"
     },
     {
       "axioms": [
@@ -102,7 +102,7 @@
       ],
       "expected": "DemoHeaderContract.validate_valid_iff",
       "name": "DemoHeaderProofs.validate_valid_iff",
-      "statement": "∀ (h : Header), DemoHeader.validate h = Validity.valid ↔ h.flags.toNat < 4"
+      "statement": "∀ (h : Header), Iff (Eq Validity (DemoHeader.validate h) Validity.valid) (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4)))"
     }
   ],
   "contract_sha256": "9432581e947a54034710f578511fc226d38423fc3ff0b617ae942c4d5d4709be",
@@ -122,11 +122,11 @@
     "DemoHeader.serialize",
     "DemoHeader.validate"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
     "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }
