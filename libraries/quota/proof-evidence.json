@@ -88,7 +88,7 @@
     }
   ],
   "contract_sha256": "480824820e5d9ca89b8d28fdbc62c4e01aa70dd9e4fdce548ab7eacbf918caef",
-  "generated_manifest_sha256": "e28d022de8a30edad2882b5be9ab3661857214909ffd9657d5f3de39828b63c5",
+  "generated_manifest_sha256": "d6aad68db258b7646ae0e690c512e7f496fce61cb2d3edc88f4b43829cb1b7b5",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Quota",
@@ -105,9 +105,9 @@
   ],
   "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
     "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }
