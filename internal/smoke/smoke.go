@@ -3,7 +3,7 @@
 // lean-go binary, run from outside the checkout against copies of the proof
 // demos) and the release-candidate walkthrough that prints a JSON receipt.
 // cmd/lean-go-dev exposes them as the installed-cli and release-candidate
-// commands. They replace scripts/check_cli_install.py, the standalone demo
+// commands. They replaced the retired scripts/check_cli_install.py, the standalone demo
 // verifiers (scripts/check_*_demo.py, scripts/check_checked_frame.py) and
 // scripts/check_release_candidate.py.
 package smoke
