@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -8,7 +8,7 @@
       ],
       "expected": "Adler32Contract.chunks_spec",
       "name": "Adler32Proofs.chunks_spec",
-      "statement": "Adler32Contract.chunks_spec"
+      "statement": "∀ (chunks : List (List UInt8)), Eq (Prod Nat Nat) (Adler32Contract.observe (List.foldl Adler32.State (List UInt8) Adler32.update Adler32.initial chunks)) (List.foldl (Prod Nat Nat) UInt8 Adler32Contract.referenceByte (Prod.mk Nat Nat (OfNat.ofNat Nat 1 (instOfNatNat 1)) (OfNat.ofNat Nat 0 (instOfNatNat 0))) (List.flatten UInt8 chunks))"
     },
     {
       "axioms": [
@@ -17,11 +17,11 @@
       ],
       "expected": "Adler32Contract.step_spec",
       "name": "Adler32Proofs.step_spec",
-      "statement": "Adler32Contract.step_spec"
+      "statement": "∀ (s : Adler32.State) (b : UInt8), Adler32Contract.reduced s → Eq (Prod Nat Nat) (Adler32Contract.observe (Adler32.step s b)) (Adler32Contract.referenceByte (Adler32Contract.observe s) b)"
     }
   ],
   "contract_sha256": "f076f6ac42270ab55cb2fa639a2a4ee53ef084c0df83d743be28415e5e7ab548",
-  "generated_manifest_sha256": "ecbd8ad274ba878e9d1c1f31c6ff86968f9489d5b73d5983a910641a414f3632",
+  "generated_manifest_sha256": "9ca6b32ad9e8f70acd2245ccbe2d4aca01a8e668ea6b74527922afa69edb3d9a",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Adler32",
@@ -35,11 +35,11 @@
     "Adler32.initial",
     "Adler32.update"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

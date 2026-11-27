@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -9,7 +9,7 @@
       ],
       "expected": "Crc16Contract.chunks_spec",
       "name": "Crc16Proofs.chunks_spec",
-      "statement": "∀ (state : UInt16) (chunks : List (List UInt8)),\n  (List.foldl Crc16.update state chunks).toBitVec = List.foldl Crc16Contract.referenceByte state.toBitVec chunks.flatten"
+      "statement": "∀ (state : UInt16) (chunks : List (List UInt8)), Eq (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) (UInt16.toBitVec (List.foldl UInt16 (List UInt8) Crc16.update state chunks)) (List.foldl (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) UInt8 Crc16Contract.referenceByte (UInt16.toBitVec state) (List.flatten UInt8 chunks))"
     },
     {
       "axioms": [
@@ -19,11 +19,11 @@
       ],
       "expected": "Crc16Contract.update_byte_spec",
       "name": "Crc16Proofs.update_byte_spec",
-      "statement": "∀ (state : UInt16) (byte : UInt8),\n  (Crc16.updateByte state byte).toBitVec = Crc16Contract.referenceByte state.toBitVec byte"
+      "statement": "∀ (state : UInt16) (byte : UInt8), Eq (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) (UInt16.toBitVec (Crc16.updateByte state byte)) (Crc16Contract.referenceByte (UInt16.toBitVec state) byte)"
     }
   ],
   "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
-  "generated_manifest_sha256": "d340b5819bb690ad4d6453afcad2e912a08224b974628637aa23b360096a896c",
+  "generated_manifest_sha256": "832a8fc34ed1ff1b742bc248575d7aa932c4a9a77e6859cf20ad460983f1c2af",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Crc16",
@@ -36,11 +36,11 @@
     "Crc16.update",
     "Crc16.updateByte"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

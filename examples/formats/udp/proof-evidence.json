@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -8,7 +8,7 @@
       ],
       "expected": "UdpHeaderContract.accepts_iff",
       "name": "UdpHeaderProofs.accepts_iff",
-      "statement": "∀ (w : Wire), (∃ h, UdpHeader.parse w = ParseResult.ok h) ↔ 8 ≤ w.b4.toNat * 256 + w.b5.toNat"
+      "statement": "∀ (w : Wire), Iff (Exists Header (fun (h : Header) => Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h))) (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w))))"
     },
     {
       "axioms": [
@@ -17,7 +17,7 @@
       ],
       "expected": "UdpHeaderContract.parse_lengthTooSmall_iff",
       "name": "UdpHeaderProofs.parse_lengthTooSmall_iff",
-      "statement": "∀ (w : Wire), UdpHeader.parse w = ParseResult.lengthTooSmall ↔ ¬8 ≤ w.b4.toNat * 256 + w.b5.toNat"
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (UdpHeader.parse w) ParseResult.lengthTooSmall) (Not (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))))"
     },
     {
       "axioms": [
@@ -26,7 +26,7 @@
       ],
       "expected": "UdpHeaderContract.parse_ok_iff",
       "name": "UdpHeaderProofs.parse_ok_iff",
-      "statement": "∀ (w : Wire) (h : Header),\n  UdpHeader.parse w = ParseResult.ok h ↔\n    8 ≤ w.b4.toNat * 256 + w.b5.toNat ∧\n      h.srcPort.toNat = w.b0.toNat * 256 + w.b1.toNat ∧\n        h.dstPort.toNat = w.b2.toNat * 256 + w.b3.toNat ∧\n          h.length.toNat = w.b4.toNat * 256 + w.b5.toNat ∧ h.checksum.toNat = w.b6.toNat * 256 + w.b7.toNat"
+      "statement": "∀ (w : Wire) (h : Header), Iff (Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h)) (And (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))) (And (Eq Nat (UInt16.toNat (Header.srcPort h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b1 w)))) (And (Eq Nat (UInt16.toNat (Header.dstPort h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w)))) (And (Eq Nat (UInt16.toNat (Header.length h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))) (Eq Nat (UInt16.toNat (Header.checksum h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b6 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b7 w))))))))"
     },
     {
       "axioms": [
@@ -36,7 +36,7 @@
       ],
       "expected": "UdpHeaderContract.parse_serialize",
       "name": "UdpHeaderProofs.parse_serialize",
-      "statement": "∀ (h : Header), 8 ≤ h.length.toNat → UdpHeader.parse (UdpHeader.serialize h) = ParseResult.ok h"
+      "statement": "∀ (h : Header), LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (UInt16.toNat (Header.length h)) → Eq ParseResult (UdpHeader.parse (UdpHeader.serialize h)) (ParseResult.ok h)"
     },
     {
       "axioms": [
@@ -45,7 +45,7 @@
       ],
       "expected": "UdpHeaderContract.parse_validate",
       "name": "UdpHeaderProofs.parse_validate",
-      "statement": "∀ (w : Wire) (h : Header), UdpHeader.parse w = ParseResult.ok h → UdpHeader.validate h = Validity.valid"
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h) → Eq Validity (UdpHeader.validate h) Validity.valid"
     },
     {
       "axioms": [
@@ -54,7 +54,7 @@
       ],
       "expected": "UdpHeaderContract.payload_complete_iff",
       "name": "UdpHeaderProofs.payload_complete_iff",
-      "statement": "∀ (h : Header) (available consumed : UInt32),\n  UdpHeader.classify h available = Availability.complete consumed ↔\n    h.length.toNat - 8 ≤ available.toNat ∧ consumed.toNat = h.length.toNat - 8"
+      "statement": "∀ (h : Header) (available : UInt32) (consumed : UInt32), Iff (Eq Availability (UdpHeader.classify h available) (Availability.complete consumed)) (And (LE.le Nat instLENat (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (UInt32.toNat available)) (Eq Nat (UInt32.toNat consumed) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8)))))"
     },
     {
       "axioms": [
@@ -63,7 +63,7 @@
       ],
       "expected": "UdpHeaderContract.payload_need_more_iff",
       "name": "UdpHeaderProofs.payload_need_more_iff",
-      "statement": "∀ (h : Header) (available missing : UInt32),\n  UdpHeader.classify h available = Availability.needMore missing ↔\n    available.toNat < h.length.toNat - 8 ∧ missing.toNat = h.length.toNat - 8 - available.toNat"
+      "statement": "∀ (h : Header) (available : UInt32) (missing : UInt32), Iff (Eq Availability (UdpHeader.classify h available) (Availability.needMore missing)) (And (LT.lt Nat instLTNat (UInt32.toNat available) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8)))) (Eq Nat (UInt32.toNat missing) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (UInt32.toNat available))))"
     },
     {
       "axioms": [
@@ -73,7 +73,7 @@
       ],
       "expected": "UdpHeaderContract.serialize_parse",
       "name": "UdpHeaderProofs.serialize_parse",
-      "statement": "∀ (w : Wire) (h : Header), UdpHeader.parse w = ParseResult.ok h → UdpHeader.serialize h = w"
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h) → Eq Wire (UdpHeader.serialize h) w"
     },
     {
       "axioms": [
@@ -81,7 +81,7 @@
       ],
       "expected": "UdpHeaderContract.validate_lengthTooSmall_iff",
       "name": "UdpHeaderProofs.validate_lengthTooSmall_iff",
-      "statement": "∀ (h : Header), UdpHeader.validate h = Validity.lengthTooSmall ↔ ¬8 ≤ h.length.toNat"
+      "statement": "∀ (h : Header), Iff (Eq Validity (UdpHeader.validate h) Validity.lengthTooSmall) (Not (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (UInt16.toNat (Header.length h))))"
     },
     {
       "axioms": [
@@ -89,11 +89,11 @@
       ],
       "expected": "UdpHeaderContract.validate_valid_iff",
       "name": "UdpHeaderProofs.validate_valid_iff",
-      "statement": "∀ (h : Header), UdpHeader.validate h = Validity.valid ↔ 8 ≤ h.length.toNat"
+      "statement": "∀ (h : Header), Iff (Eq Validity (UdpHeader.validate h) Validity.valid) (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (UInt16.toNat (Header.length h)))"
     }
   ],
   "contract_sha256": "82faa2267b826a1b1678e91aacce4eff221f8d45650aa856f16e27e6d3ea1add",
-  "generated_manifest_sha256": "503f298d8b6fd1370cbab37f98e0d0d3a14aaa7c7c839c4a737e9ff2bb1b3084",
+  "generated_manifest_sha256": "0a16b659229d1a6b92bd8bfffeef2128bc115bbf719a13ba82ad18f6130b7e8b",
   "generated_mode": "native",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
@@ -109,11 +109,11 @@
     "UdpHeader.serialize",
     "UdpHeader.validate"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

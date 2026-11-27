@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -9,7 +9,7 @@
       ],
       "expected": "CheckedFrameContract.accepts_reference_crc",
       "name": "CheckedFrameProofs.accepts_reference_crc",
-      "statement": "∀ (q : ByteQuad) (h : Header) (payload suffix : List UInt8) (tag : BytePair),\n  Wire16.parse q = ParseResult.parsed h →\n    h.length.toNat = payload.length →\n      (CheckedFrame.decode (CheckedFrame.headerBytes q ++ payload ++ CheckedFrame.trailerBytes tag ++ suffix) =\n          some (h.flags, payload, suffix) ↔\n        (Wire16.decodeBE tag).toBitVec =\n          List.foldl Crc16Contract.referenceByte 0 (CheckedFrame.headerBytes q ++ payload))"
+      "statement": "∀ (q : ByteQuad) (h : Header) (payload : List UInt8) (suffix : List UInt8) (tag : BytePair), Eq ParseResult (Wire16.parse q) (ParseResult.parsed h) → Eq Nat (UInt16.toNat (Header.length h)) (List.length UInt8 payload) → Iff (Eq (Option (Prod UInt8 (Prod (List UInt8) (List UInt8)))) (CheckedFrame.decode (HAppend.hAppend (List UInt8) (List UInt8) (List UInt8) (instHAppendOfAppend (List UInt8) (List.instAppend UInt8)) (HAppend.hAppend (List UInt8) (List UInt8) (List UInt8) (instHAppendOfAppend (List UInt8) (List.instAppend UInt8)) (HAppend.hAppend (List UInt8) (List UInt8) (List UInt8) (instHAppendOfAppend (List UInt8) (List.instAppend UInt8)) (CheckedFrame.headerBytes q) payload) (CheckedFrame.trailerBytes tag)) suffix)) (Option.some (Prod UInt8 (Prod (List UInt8) (List UInt8))) (Prod.mk UInt8 (Prod (List UInt8) (List UInt8)) (Header.flags h) (Prod.mk (List UInt8) (List UInt8) payload suffix)))) (Eq (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) (UInt16.toBitVec (Wire16.decodeBE tag)) (List.foldl (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) UInt8 Crc16Contract.referenceByte (OfNat.ofNat (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) 0 (BitVec.instOfNat (OfNat.ofNat Nat 16 (instOfNatNat 16)) 0)) (HAppend.hAppend (List UInt8) (List UInt8) (List UInt8) (instHAppendOfAppend (List UInt8) (List.instAppend UInt8)) (CheckedFrame.headerBytes q) payload)))"
     },
     {
       "axioms": [
@@ -18,13 +18,13 @@
       ],
       "expected": "CheckedFrameContract.roundtrip",
       "name": "CheckedFrameProofs.roundtrip",
-      "statement": "∀ (flags : UInt8) (payload suffix : List UInt8),\n  flags.toNat < 4 →\n    payload.length < 65536 →\n      ∃ bytes,\n        CheckedFrame.encode flags payload = some bytes ∧\n          CheckedFrame.decode (bytes ++ suffix) = some (flags, payload, suffix)"
+      "statement": "∀ (flags : UInt8) (payload : List UInt8) (suffix : List UInt8), LT.lt Nat instLTNat (UInt8.toNat flags) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → LT.lt Nat instLTNat (List.length UInt8 payload) (OfNat.ofNat Nat 65536 (instOfNatNat 65536)) → Exists (List UInt8) (fun (bytes : List UInt8) => And (Eq (Option (List UInt8)) (CheckedFrame.encode flags payload) (Option.some (List UInt8) bytes)) (Eq (Option (Prod UInt8 (Prod (List UInt8) (List UInt8)))) (CheckedFrame.decode (HAppend.hAppend (List UInt8) (List UInt8) (List UInt8) (instHAppendOfAppend (List UInt8) (List.instAppend UInt8)) bytes suffix)) (Option.some (Prod UInt8 (Prod (List UInt8) (List UInt8))) (Prod.mk UInt8 (Prod (List UInt8) (List UInt8)) flags (Prod.mk (List UInt8) (List UInt8) payload suffix)))))"
     }
   ],
   "components": {
     "crc16": {
       "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
-      "generated_manifest_sha256": "d340b5819bb690ad4d6453afcad2e912a08224b974628637aa23b360096a896c",
+      "generated_manifest_sha256": "832a8fc34ed1ff1b742bc248575d7aa932c4a9a77e6859cf20ad460983f1c2af",
       "module": "Crc16",
       "roots": [
         "Crc16.update",
@@ -33,7 +33,7 @@
     },
     "wire16": {
       "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
-      "generated_manifest_sha256": "afb9e7d72a986c923e17757060960b9487266068519c8ebf14f2138682f8da70",
+      "generated_manifest_sha256": "3ebc7e062c53c48fe13202684b1fcb1b41756a004be38aa2338bf8c7378f26d4",
       "module": "Wire16",
       "roots": [
         "Wire16.classify",
@@ -58,11 +58,11 @@
     "source/Crc16.lean": "4f64cc6b66252850e60ff5e283edcb48091238e16d3a28503f426ff0fe4a723e",
     "source/Wire16.lean": "8be7b9483b947fb9f7daf92986312659e5aa4bdbf37fac3a9454a817dec6eef4"
   },
-  "schema": "lean-go-proof-evidence/v2",
+  "schema": "lean-go-proof-evidence/v4",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

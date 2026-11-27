@@ -24,6 +24,28 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   obligations from beyond the 4096 MiB cap to well under a second each.
 - Proof evidence can be bound to native packages through their manifests
   (`"generated_mode": "native"`).
+- `check-proofs` no longer trusts the theorems it finds in the built proof
+  environment. A proof file could add a theorem without kernel checking
+  (for example with `debug.skipKernelTC` and `addDecl`) and have a false
+  statement certified, because the old checker compared types with
+  `Meta.isDefEq` and never sent the proof to the kernel. The checker is now
+  a separate program, staged outside the proof workspace after the build,
+  that imports none of the user's modules and runs none of their code: it
+  reads their `.olean` files as data, replays every declaration through
+  `Lean.Kernel.Environment.replay`, lets the kernel decide each claim and
+  collects axioms from the replayed environment. Proof and contract files
+  using the Lean module system are refused. Code that runs while the proofs
+  are built is still not sandboxed; see
+  [what is not guaranteed](docs/proof-contracts.md#what-it-does-not-guarantee).
+- `check-proofs` no longer binds evidence to a hand-edited package whose
+  manifest was re-hashed. It exports the module again from the hash-bound
+  sources and emits it again, and requires the manifest's program and every
+  package file byte for byte. Packages from another lean-go version are
+  refused with a hint to regenerate.
+- Proof evidence moves to `lean-go-proof-evidence/v3` (`v4` for
+  compositions): the recorded statement is now rendered by the checker from
+  the kernel term, with every argument shown and no notation, instead of
+  Lean's pretty printer. Earlier evidence must be regenerated.
 
 **What it supports**
 

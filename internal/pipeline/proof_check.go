@@ -16,12 +16,16 @@ import (
 // Fresh source-proof checking with evidence bound to generated Go.
 
 const (
-	EvidenceSchema            = "lean-go-proof-evidence/v1"
-	CompositionEvidenceSchema = "lean-go-proof-evidence/v2"
-	assurance                 = "Kernel-checked source statements; extraction and Go execution remain tested and trusted."
+	// v3 and v4 replace v1 and v2: statements are rendered by the checker
+	// from the kernel term of the expected proposition, and the generated
+	// package is rebuilt from the sources before it is bound.
+	EvidenceSchema            = "lean-go-proof-evidence/v3"
+	CompositionEvidenceSchema = "lean-go-proof-evidence/v4"
+	assurance                 = "Kernel-replayed source statements; extraction and Go execution remain tested and trusted."
 	checkerInput              = "producer/" + producer.CheckerFile
 	toolchainInput            = "producer/" + producer.ToolchainFile
-	harnessName               = "LeanGo/Proofs/Harness.lean"
+	// maxOleanBytes bounds one built runtime module read for hashing.
+	maxOleanBytes = 256 * 1024 * 1024
 )
 
 var approvedAxioms = map[string]bool{"propext": true, "Classical.choice": true, "Quot.sound": true}
@@ -92,20 +96,15 @@ func validateClaims(value any, claims [][2]string) ([]any, error) {
 	return items, nil
 }
 
-func proofHarness(claims [][2]string, modules []string) []byte {
-	var imports strings.Builder
-	for _, module := range modules {
-		fmt.Fprintf(&imports, "import %s\n", module)
+// checkerCommand runs the staged checker program: lean --run CHECKER LIB
+// MODULE... -- THEOREM EXPECTED ... Its only output is the claims JSON.
+func checkerCommand(lean, checker, lib string, modules []string, claims [][2]string) []string {
+	command := append([]string{lean, "--run", checker, lib}, modules...)
+	command = append(command, "--")
+	for _, claim := range claims {
+		command = append(command, claim[0], claim[1])
 	}
-	pairs := make([]string, len(claims))
-	for i, claim := range claims {
-		pairs[i] = fmt.Sprintf("(``%s, ``%s)", claim[0], claim[1])
-	}
-	return []byte("import LeanGo.Proofs.Check\n" + imports.String() + "\nopen Lean Elab Command\n" +
-		"elab \"#lean_go_proof_check\" : command => do\n" +
-		"  let claims ← liftTermElabM <| LeanGo.Proofs.checkTheorems [\n    " + strings.Join(pairs, ",\n    ") + "]\n" +
-		"  IO.FS.writeFile \"claims.json\" ((toJson claims).pretty ++ \"\\n\")\n\n" +
-		"#lean_go_proof_check\n")
+	return command
 }
 
 func workspaceSources(workspace string) (map[string]bool, error) {
@@ -185,9 +184,26 @@ func verifyProofWorkspace(workspace string, files map[string][]byte) error {
 	return nil
 }
 
-// prove compiles only snapshots in fixed, dependency-free scaffolding.
-// proveClaims is a variable so protocol tests can stand in for Lean.
+// prove builds only snapshots in fixed, dependency-free scaffolding and then
+// decides the claims with the checker program, which runs in its own process
+// outside the workspace and executes no user code (see
+// producer/LeanGo/Proofs/Check.lean). proveClaims is a variable so protocol
+// tests can stand in for Lean.
 var proveClaims = prove
+
+// oleanDigests hashes the built .olean of each module.
+func oleanDigests(lib string, modules map[string]Source) (map[string]string, error) {
+	out := map[string]string{}
+	for name, s := range modules {
+		path := filepath.Join(lib, filepath.FromSlash(strings.TrimSuffix(s.Relative, ".lean")+".olean"))
+		data, err := readRegular(path, maxOleanBytes)
+		if err != nil {
+			return nil, exportErrorf("proof workspace module was not built: %s", name)
+		}
+		out[name] = Digest(data)
+	}
+	return out, nil
+}
 
 func prove(claims [][2]string, project *ProjectSnapshot, tools *toolInputs, compiler Compiler) ([]any, error) {
 	env := childEnvironment(compiler)
@@ -212,7 +228,6 @@ func prove(claims [][2]string, project *ProjectSnapshot, tools *toolInputs, comp
 	}
 	files["lean-toolchain"] = compiler.PinFile()
 	files["lakefile.toml"] = LakeConfig(sortedKeys(modules))
-	files[producer.CheckerFile] = tools.checker
 	for _, relative := range sortedKeys(files) {
 		if err := writeFile(filepath.Join(workspace, filepath.FromSlash(relative)), files[relative]); err != nil {
 			return nil, err
@@ -230,43 +245,70 @@ func prove(claims [][2]string, project *ProjectSnapshot, tools *toolInputs, comp
 	if err := verifyProofWorkspace(workspace, files); err != nil {
 		return nil, err
 	}
-	if _, err := run(append([]string{lake, "build", "LeanGo.Proofs.Check"}, sortedKeys(modules)...), workspace, env); err != nil {
+	// The trusted runtime modules are built first and alone; their .olean
+	// files must be unchanged once the untrusted proof modules have been built.
+	lib := filepath.Join(workspace, ".lake", "build", "lib", "lean")
+	if _, err := run(append([]string{lake, "build"}, sortedKeys(project.Runtime)...), workspace, env); err != nil {
 		return nil, err
 	}
 	if err := verifyProofWorkspace(workspace, files); err != nil {
 		return nil, err
 	}
-	files[harnessName] = proofHarness(claims, sortedKeys(modules))
-	// User elaboration may have written files; never follow or replace the harness.
-	harness, err := os.OpenFile(filepath.Join(workspace, filepath.FromSlash(harnessName)), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
-	if errors.Is(err, fs.ErrExist) {
-		return nil, exportError("proof workspace reserved harness path already exists")
-	}
+	runtime, err := oleanDigests(lib, project.Runtime)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := harness.Write(files[harnessName]); err != nil {
-		harness.Close()
-		return nil, err
-	}
-	if err := harness.Close(); err != nil {
-		return nil, err
-	}
-	if _, err := run([]string{lake, "env", "lean", harnessName}, workspace, env); err != nil {
+	if _, err := run(append([]string{lake, "build"}, sortedKeys(modules)...), workspace, env); err != nil {
 		return nil, err
 	}
 	if err := verifyProofWorkspace(workspace, files); err != nil {
 		return nil, err
 	}
-	data, err := readRegular(filepath.Join(workspace, "claims.json"), maxDocumentBytes)
+	if again, err := oleanDigests(lib, project.Runtime); err != nil || !reflect.DeepEqual(again, runtime) {
+		return nil, exportError("proof workspace runtime build changed while proof modules were built")
+	}
+	// Code run by the build cannot reach the checker: it is staged only now,
+	// from the embedded producer, in a new directory outside the workspace.
+	stage, err := os.MkdirTemp("", "lean-go-proof-checker-")
 	if err != nil {
 		return nil, err
 	}
-	value, err := ParseJSON(data)
+	defer os.RemoveAll(stage)
+	checker := filepath.Join(stage, filepath.Base(producer.CheckerFile))
+	if err := writeExclusive(checker, tools.checker); err != nil {
+		return nil, err
+	}
+	output, err := run(checkerCommand(lean, checker, lib, sortedKeys(modules), claims), stage, env)
 	if err != nil {
-		return nil, exportError(err.Error())
+		return nil, err
+	}
+	if err := verifyProofWorkspace(workspace, files); err != nil {
+		return nil, err
+	}
+	if len(output) > maxDocumentBytes {
+		return nil, exportError("proof checker output exceeds byte limit")
+	}
+	value, err := ParseJSON([]byte(output))
+	if err != nil {
+		return nil, exportError("malformed proof checker output: " + err.Error())
 	}
 	return validateClaims(value, claims)
+}
+
+// writeExclusive creates a new file and never follows or replaces one.
+func writeExclusive(path string, data []byte) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if errors.Is(err, fs.ErrExist) {
+		return exportError("proof checker path already exists")
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(data); err != nil {
+		file.Close()
+		return err
+	}
+	return file.Close()
 }
 
 func digestInputs(inputs map[string][]byte) map[string]string {
@@ -305,6 +347,9 @@ func Evidence(contractPath, manifestPath string) ([]byte, *Contract, error) {
 	}
 	manifest, mode, err := verifyPackage(manifestPath, contract, project, compiler)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := rebuildPackage(manifestPath, contract, project, mode); err != nil {
 		return nil, nil, err
 	}
 	claims, err := proveClaims(contract.Claims, project, tools, compiler)
@@ -364,7 +409,7 @@ func CompositionEvidence(c *Composition, bindings map[string]string) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	project, components, err := compositionInputs(c, bindings, compiler)
+	project, components, err := compositionInputs(c, bindings, compiler, true)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +425,7 @@ func CompositionEvidence(c *Composition, bindings map[string]string) ([]byte, er
 	if !fresh.equal(c) {
 		return nil, changed
 	}
-	again, againComponents, err := compositionInputs(fresh, bindings, compiler)
+	again, againComponents, err := compositionInputs(fresh, bindings, compiler, false)
 	if err != nil {
 		return nil, err
 	}

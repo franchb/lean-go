@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -8,7 +8,7 @@
       ],
       "expected": "WordsContract.high_pack",
       "name": "WordsProofs.high_pack",
-      "statement": "∀ (hi lo : UInt32), Words.high (Words.pack hi lo) = hi"
+      "statement": "∀ (hi : UInt32) (lo : UInt32), Eq UInt32 (Words.high (Words.pack hi lo)) hi"
     },
     {
       "axioms": [
@@ -17,13 +17,13 @@
       ],
       "expected": "WordsContract.low_pack",
       "name": "WordsProofs.low_pack",
-      "statement": "∀ (hi lo : UInt32), Words.low (Words.pack hi lo) = lo"
+      "statement": "∀ (hi : UInt32) (lo : UInt32), Eq UInt32 (Words.low (Words.pack hi lo)) lo"
     },
     {
       "axioms": [],
       "expected": "WordsContract.narrow_truncates",
       "name": "WordsProofs.narrow_truncates",
-      "statement": "∀ (word : UInt64), (Words.narrow word).toNat = word.toNat % 2 ^ 32"
+      "statement": "∀ (word : UInt64), Eq Nat (UInt32.toNat (Words.narrow word)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt64.toNat word) (HPow.hPow Nat Nat Nat (instHPow Nat Nat (instPowNat Nat instNatPowNat)) (OfNat.ofNat Nat 2 (instOfNatNat 2)) (OfNat.ofNat Nat 32 (instOfNatNat 32))))"
     },
     {
       "axioms": [
@@ -31,7 +31,7 @@
       ],
       "expected": "WordsContract.narrow_widen",
       "name": "WordsProofs.narrow_widen",
-      "statement": "∀ (word : UInt32), Words.narrow (Words.widen word) = word"
+      "statement": "∀ (word : UInt32), Eq UInt32 (Words.narrow (Words.widen word)) word"
     },
     {
       "axioms": [
@@ -40,7 +40,7 @@
       ],
       "expected": "WordsContract.pack_unpack",
       "name": "WordsProofs.pack_unpack",
-      "statement": "∀ (word : UInt64), Words.pack (Words.high word) (Words.low word) = word"
+      "statement": "∀ (word : UInt64), Eq UInt64 (Words.pack (Words.high word) (Words.low word)) word"
     },
     {
       "axioms": [
@@ -48,17 +48,17 @@
       ],
       "expected": "WordsContract.widen_narrow",
       "name": "WordsProofs.widen_narrow",
-      "statement": "∀ (word : UInt64), Words.widen (Words.narrow word) = word % 4294967296"
+      "statement": "∀ (word : UInt64), Eq UInt64 (Words.widen (Words.narrow word)) (HMod.hMod UInt64 UInt64 UInt64 (instHMod UInt64 instModUInt64) word (OfNat.ofNat UInt64 4294967296 (UInt64.instOfNat 4294967296)))"
     },
     {
       "axioms": [],
       "expected": "WordsContract.widen_preserves",
       "name": "WordsProofs.widen_preserves",
-      "statement": "∀ (word : UInt32), (Words.widen word).toNat = word.toNat"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt64.toNat (Words.widen word)) (UInt32.toNat word)"
     }
   ],
   "contract_sha256": "8494cf05df9c4fac542270b442b7cba0c8ea286686420174f3c54c72a9cf52e0",
-  "generated_manifest_sha256": "2895bd17bb81520b4938eebf0e02a6867cfc59b9dfb9d8351cb489371e797e93",
+  "generated_manifest_sha256": "c460a513c4070cb0820860aba1229d8a3f5c6930bd4f7423adc28d2b8fa6f68c",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Words",
@@ -74,11 +74,11 @@
     "Words.pack",
     "Words.widen"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

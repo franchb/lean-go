@@ -47,7 +47,7 @@ go test -count=1 ./...
 
 `generate` writes `clampnative/` (identical existing output is accepted;
 differing output is refused without `--replace`). `check-proofs` rebuilds the
-proofs and prints `Checked 3 source theorems; evidence and generated files
+proofs and the package and prints `Checked 3 source theorems; evidence and generated files
 match.` The generated function (`clampnative/functions.go`) is:
 
 ```go
@@ -81,13 +81,21 @@ connects a Lean function to Go through three links of different assurance:
 
 1. **Source theorems (proved, kernel-checked).** A
    [proof contract](docs/proof-contracts.md) maps your theorems to
-   separately written expected statements. `lean-go check-proofs` rebuilds
-   them with the pinned Lean, rejects `sorry`, `native_decide` and any axiom
-   other than `propext`, `Classical.choice` and `Quot.sound`, and writes
-   evidence that records the digest of every generated file. Changing the
-   source, the proofs or a generated file makes the evidence fail. The
-   theorems are about the Lean function; whether they say what you need is
-   for a reviewer to decide.
+   separately written expected statements. `lean-go check-proofs` builds
+   them with the pinned Lean and then, in a separate process that runs none
+   of your code, replays every declaration of your modules through the Lean
+   kernel and has the kernel decide that each theorem proves its expected
+   statement. It rejects `sorry`, `native_decide` and any axiom other than
+   `propext`, `Classical.choice` and `Quot.sound`. This holds even if the
+   proof and contract files contain hostile Lean meta code, as long as that
+   code does not tamper with files while the proofs are built: the build is
+   not sandboxed
+   ([details](docs/proof-contracts.md#what-it-does-not-guarantee)). The
+   generated package must be exactly what this lean-go produces from the
+   same sources, byte for byte, and the evidence records the digest of every
+   generated file. Changing the source, the proofs or a generated file makes
+   the evidence fail. The theorems are about the Lean function; whether they
+   say what you need is for a reviewer to decide.
 2. **Translation validation (proved, kernel-checked, partial correctness).**
    Generation first produces an intermediate program (the *IR*, a JSON file
    such as `clamp.ir.json`). With `--validate report` or `--validate require`,
@@ -98,11 +106,13 @@ connects a Lean function to Go through three links of different assurance:
    report; together they establish all 54 exported functions (88 of 88 IR
    functions) under the default budget
    ([coverage table](docs/research/translation-validation.md#9-coverage)).
-3. **Trusted, not proved.** The Lean kernel; the meaning given to IR
-   programs (`producer/LeanGo/Validate`) and the JSON-to-Lean bridge; the
-   IR-to-Go printer and its runtime; the Go compiler; the producer's choice
-   of exported functions; and your Lean source, which is elaborated with
-   macros and initializers enabled. The IR-to-Go step is covered by
+3. **Trusted, not proved.** The Lean kernel and toolchain; the meaning
+   given to IR programs (`producer/LeanGo/Validate`) and the JSON-to-Lean
+   bridge; the IR-to-Go printer and its runtime; the Go compiler; the
+   producer's choice of exported functions; and your Lean source, which is
+   elaborated with macros and initializers enabled. Proof and contract
+   files are not trusted for logic, but code they run during the build can
+   read and write files with your permissions. The IR-to-Go step is covered by
    differential tests and fuzzing ([evidence](docs/native-mode.md#evidence)),
    not by proof.
 

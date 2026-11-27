@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -8,7 +8,7 @@
       ],
       "expected": "HeaderCodecContract.encode_length_overflow_iff",
       "name": "HeaderCodecProofs.encode_length_overflow_iff",
-      "statement": "∀ (h : Header), HeaderCodec.encode h = EncodeResult.lengthOverflow ↔ h.flags.toNat < 4 ∧ 65536 ≤ h.length.toNat"
+      "statement": "∀ (h : Header), Iff (Eq EncodeResult (HeaderCodec.encode h) EncodeResult.lengthOverflow) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (LE.le Nat instLENat (OfNat.ofNat Nat 65536 (instOfNatNat 65536)) (UInt32.toNat (Header.length h))))"
     },
     {
       "axioms": [
@@ -17,7 +17,7 @@
       ],
       "expected": "HeaderCodecContract.encode_parse_roundtrip",
       "name": "HeaderCodecProofs.encode_parse_roundtrip",
-      "statement": "∀ (q : ByteQuad),\n  q.b0 = 1 →\n    q.b1.toNat < 4 → ∃ h, HeaderCodec.parse q = ParseResult.parsed h ∧ HeaderCodec.encode h = EncodeResult.encoded q"
+      "statement": "∀ (q : ByteQuad), Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1)) → LT.lt Nat instLTNat (UInt8.toNat (ByteQuad.b1 q)) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → Exists Header (fun (h : Header) => And (Eq ParseResult (HeaderCodec.parse q) (ParseResult.parsed h)) (Eq EncodeResult (HeaderCodec.encode h) (EncodeResult.encoded q)))"
     },
     {
       "axioms": [
@@ -26,7 +26,7 @@
       ],
       "expected": "HeaderCodecContract.encode_reserved_flags_iff",
       "name": "HeaderCodecProofs.encode_reserved_flags_iff",
-      "statement": "∀ (h : Header), HeaderCodec.encode h = EncodeResult.reservedFlags ↔ 4 ≤ h.flags.toNat"
+      "statement": "∀ (h : Header), Iff (Eq EncodeResult (HeaderCodec.encode h) EncodeResult.reservedFlags) (LE.le Nat instLENat (OfNat.ofNat Nat 4 (instOfNatNat 4)) (UInt8.toNat (Header.flags h)))"
     },
     {
       "axioms": [
@@ -35,7 +35,7 @@
       ],
       "expected": "HeaderCodecContract.encode_success_iff",
       "name": "HeaderCodecProofs.encode_success_iff",
-      "statement": "∀ (h : Header) (q : ByteQuad),\n  HeaderCodec.encode h = EncodeResult.encoded q ↔\n    h.flags.toNat < 4 ∧\n      h.length.toNat < 65536 ∧\n        q.b0 = 1 ∧ q.b1 = h.flags ∧ q.b2.toNat = h.length.toNat / 256 ∧ q.b3.toNat = h.length.toNat % 256"
+      "statement": "∀ (h : Header) (q : ByteQuad), Iff (Eq EncodeResult (HeaderCodec.encode h) (EncodeResult.encoded q)) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (And (LT.lt Nat instLTNat (UInt32.toNat (Header.length h)) (OfNat.ofNat Nat 65536 (instOfNatNat 65536))) (And (Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1))) (And (Eq UInt8 (ByteQuad.b1 q) (Header.flags h)) (And (Eq Nat (UInt8.toNat (ByteQuad.b2 q)) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt32.toNat (Header.length h)) (OfNat.ofNat Nat 256 (instOfNatNat 256)))) (Eq Nat (UInt8.toNat (ByteQuad.b3 q)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt32.toNat (Header.length h)) (OfNat.ofNat Nat 256 (instOfNatNat 256)))))))))"
     },
     {
       "axioms": [
@@ -44,7 +44,7 @@
       ],
       "expected": "HeaderCodecContract.parse_encode_roundtrip",
       "name": "HeaderCodecProofs.parse_encode_roundtrip",
-      "statement": "∀ (h : Header),\n  h.flags.toNat < 4 →\n    h.length.toNat < 65536 →\n      ∃ q, HeaderCodec.encode h = EncodeResult.encoded q ∧ HeaderCodec.parse q = ParseResult.parsed h"
+      "statement": "∀ (h : Header), LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → LT.lt Nat instLTNat (UInt32.toNat (Header.length h)) (OfNat.ofNat Nat 65536 (instOfNatNat 65536)) → Exists ByteQuad (fun (q : ByteQuad) => And (Eq EncodeResult (HeaderCodec.encode h) (EncodeResult.encoded q)) (Eq ParseResult (HeaderCodec.parse q) (ParseResult.parsed h)))"
     },
     {
       "axioms": [
@@ -53,7 +53,7 @@
       ],
       "expected": "HeaderCodecContract.parse_reserved_flags_iff",
       "name": "HeaderCodecProofs.parse_reserved_flags_iff",
-      "statement": "∀ (q : ByteQuad), HeaderCodec.parse q = ParseResult.reservedFlags ↔ q.b0 = 1 ∧ 4 ≤ q.b1.toNat"
+      "statement": "∀ (q : ByteQuad), Iff (Eq ParseResult (HeaderCodec.parse q) ParseResult.reservedFlags) (And (Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1))) (LE.le Nat instLENat (OfNat.ofNat Nat 4 (instOfNatNat 4)) (UInt8.toNat (ByteQuad.b1 q))))"
     },
     {
       "axioms": [
@@ -62,7 +62,7 @@
       ],
       "expected": "HeaderCodecContract.parse_success_iff",
       "name": "HeaderCodecProofs.parse_success_iff",
-      "statement": "∀ (q : ByteQuad) (h : Header),\n  HeaderCodec.parse q = ParseResult.parsed h ↔\n    q.b0 = 1 ∧ q.b1.toNat < 4 ∧ h.flags = q.b1 ∧ h.length.toNat = q.b2.toNat * 256 + q.b3.toNat"
+      "statement": "∀ (q : ByteQuad) (h : Header), Iff (Eq ParseResult (HeaderCodec.parse q) (ParseResult.parsed h)) (And (Eq UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1))) (And (LT.lt Nat instLTNat (UInt8.toNat (ByteQuad.b1 q)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (And (Eq UInt8 (Header.flags h) (ByteQuad.b1 q)) (Eq Nat (UInt32.toNat (Header.length h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (ByteQuad.b2 q)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (ByteQuad.b3 q)))))))"
     },
     {
       "axioms": [
@@ -70,7 +70,7 @@
       ],
       "expected": "HeaderCodecContract.parse_unsupported_version_iff",
       "name": "HeaderCodecProofs.parse_unsupported_version_iff",
-      "statement": "∀ (q : ByteQuad), HeaderCodec.parse q = ParseResult.unsupportedVersion ↔ q.b0 ≠ 1"
+      "statement": "∀ (q : ByteQuad), Iff (Eq ParseResult (HeaderCodec.parse q) ParseResult.unsupportedVersion) (Ne UInt8 (ByteQuad.b0 q) (OfNat.ofNat UInt8 1 (UInt8.instOfNat 1)))"
     },
     {
       "axioms": [
@@ -79,11 +79,11 @@
       ],
       "expected": "HeaderCodecContract.parsed_length_bound",
       "name": "HeaderCodecProofs.parsed_length_bound",
-      "statement": "∀ (q : ByteQuad) (h : Header), HeaderCodec.parse q = ParseResult.parsed h → h.length.toNat < 65536"
+      "statement": "∀ (q : ByteQuad) (h : Header), Eq ParseResult (HeaderCodec.parse q) (ParseResult.parsed h) → LT.lt Nat instLTNat (UInt32.toNat (Header.length h)) (OfNat.ofNat Nat 65536 (instOfNatNat 65536))"
     }
   ],
   "contract_sha256": "e387d4f017a64c954b3fab2b8b4262a167f4d00b50bd52f3b94cdbdab0c5e513",
-  "generated_manifest_sha256": "d7727af16a4b46f4c49168e17b5d7b1cbcfb869b37be22184ddd1fcec99f0594",
+  "generated_manifest_sha256": "3287f1979c7f2c60b37f419a63084076f082a564be6f3e4139f620130265b6da",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "HeaderCodec",
@@ -96,11 +96,11 @@
     "HeaderCodec.encode",
     "HeaderCodec.parse"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "693a87d45c254b6bd79d397dd8e5318633b8116f6874b8e0966cf449a1469dec",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
-    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

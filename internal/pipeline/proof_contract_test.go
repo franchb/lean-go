@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/franchb/lean-go/producer"
 )
 
 // Ported from scripts/test_proof_contracts.py (protocol tests; the Lean
@@ -131,9 +133,25 @@ func sampleClaims(contract *Contract) []any {
 	return out
 }
 
-// fakeProve replaces the Lean proof run; side runs before returning claims.
+// fakeRebuild replaces the Lean re-export of generated packages
+// (proof_rebuild.go; the Lean tests are in lean_proofgate_test.go).
+func fakeRebuild(t *testing.T) *int {
+	t.Helper()
+	calls := new(int)
+	old := rebuildPackage
+	rebuildPackage = func(string, *Contract, *ProjectSnapshot, string) error {
+		*calls++
+		return nil
+	}
+	t.Cleanup(func() { rebuildPackage = old })
+	return calls
+}
+
+// fakeProve replaces the Lean proof run and package rebuild; side runs before
+// returning claims.
 func fakeProve(t *testing.T, side func() error) *int {
 	t.Helper()
+	fakeRebuild(t)
 	calls := new(int)
 	old := proveClaims
 	proveClaims = func(claims [][2]string, project *ProjectSnapshot, tools *toolInputs, c Compiler) ([]any, error) {
@@ -664,6 +682,12 @@ func fakeProofLean(t *testing.T, f *contractFixture, onRun func(command []string
 			os.WriteFile(filepath.Join(workspace, "lake-manifest.json"), []byte(`{"packages":[]}`), 0o644)
 			return fmt.Sprintf("Lean (version %s, test, commit %s, Release)", f.compiler.Version, f.compiler.Commit), nil
 		}
+		if slices.Contains(command, "build") {
+			// Lake writes one .olean per requested module.
+			for _, module := range command[slices.Index(command, "build")+1:] {
+				writeText(t, filepath.Join(workspace, ".lake", "build", "lib", "lean", strings.ReplaceAll(module, ".", string(filepath.Separator))+".olean"), "olean "+module)
+			}
+		}
 		return "", nil
 	}
 	t.Cleanup(func() { run, lookPath = oldRun, oldLook })
@@ -679,17 +703,37 @@ func TestFreshWorkspaceUsesSnapshotsAndIgnoresProjectCaches(t *testing.T) {
 	t.Setenv("LAKE_HOME", "/poison")
 	claimsJSON, _ := EncodeCompactOrdered(sampleClaims(contract))
 	oldRun := run
+	tools, _ := proofTools()
+	var built string
 	commands := fakeProofLean(t, f, func(command []string, workspace string) (string, bool) {
-		if workspace == f.root || exists(filepath.Join(workspace, "lakefile.lean")) || exists(filepath.Join(workspace, ".lake")) {
+		if len(command) > 3 && command[1] == "--run" {
+			// The checker is staged from the embedded producer after the
+			// build, outside the workspace, and runs there.
+			checker, lib := command[2], command[3]
+			if built == "" || isRelativeTo(workspace, built) || isRelativeTo(checker, built) || !isRelativeTo(checker, workspace) {
+				t.Errorf("checker %s runs in %s, built workspace %s", checker, workspace, built)
+			}
+			if readText(t, checker) != string(tools.checker) || lib != filepath.Join(built, ".lake", "build", "lib", "lean") {
+				t.Errorf("checker %s or library %s is not the staged one", checker, lib)
+			}
+			want := append([]string{}, sortedKeys(project.modules())...)
+			want = append(want, "--", contract.Claims[0][0], contract.Claims[0][1])
+			if !slices.Equal(command[4:], want) {
+				t.Errorf("checker arguments %v", command[4:])
+			}
+			return string(claimsJSON), true
+		}
+		if workspace == f.root || exists(filepath.Join(workspace, "lakefile.lean")) || !slices.Contains(command, "build") && exists(filepath.Join(workspace, ".lake")) {
 			t.Errorf("workspace %s is not fresh", workspace)
 		}
+		built = workspace
 		for _, s := range project.modules() {
 			if readText(t, filepath.Join(workspace, s.Relative)) != string(s.Data) {
 				t.Errorf("%s not staged from the snapshot", s.Relative)
 			}
 		}
-		if strings.HasSuffix(command[len(command)-1], ".lean") {
-			os.WriteFile(filepath.Join(workspace, "claims.json"), claimsJSON, 0o644)
+		if exists(filepath.Join(workspace, filepath.FromSlash(producer.CheckerFile))) {
+			t.Error("checker staged into the workspace")
 		}
 		return "", false
 	})
@@ -699,12 +743,13 @@ func TestFreshWorkspaceUsesSnapshotsAndIgnoresProjectCaches(t *testing.T) {
 		t.Fatal("child environment keeps Lean overrides")
 	}
 	_ = oldRun
-	tools, _ := proofTools()
 	claims, err := prove(contract.Claims, project, tools, f.compiler)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(claims) != 1 || len(*commands) != 4 || !slices.Contains((*commands)[2], "build") {
+	// Versions, the runtime modules alone, every module, then the checker.
+	if len(claims) != 1 || len(*commands) != 5 || !slices.Equal((*commands)[2][1:], []string{"build", "Example"}) ||
+		!slices.Equal((*commands)[3][1:], []string{"build", "Example", "ExampleContract", "ExampleProofs"}) || (*commands)[4][1] != "--run" {
 		t.Fatalf("claims %v commands %v", claims, *commands)
 	}
 }
@@ -791,6 +836,7 @@ func (c *compositionFixture) check(mode, output string) error {
 
 func noProofs(t *testing.T, side func()) *int {
 	t.Helper()
+	fakeRebuild(t)
 	calls := new(int)
 	old := proveClaims
 	proveClaims = func([][2]string, *ProjectSnapshot, *toolInputs, Compiler) ([]any, error) {

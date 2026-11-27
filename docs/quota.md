@@ -70,18 +70,20 @@ Quota uses the shared [proof-contract workflow](proof-contracts.md). Its
 [contract](../libraries/quota/proof-contract.json) maps the theorems to raw
 [expected propositions](../libraries/quota/proof/QuotaContract.lean), maintained
 separately from the proofs. The checker rebuilds the exact runtime and proof sources in a fresh,
-dependency-free project using the selected Lean compiler. It compares each theorem's type with an
-independently written expected proposition and collects its axiom dependencies.
+dependency-free project using the selected Lean compiler. In a separate process that imports none of
+those modules, it replays their declarations through the kernel, has the kernel check each theorem
+against an independently written expected proposition, and collects its axiom dependencies.
 Only `propext`, `Classical.choice` and `Quot.sound` are allowed; current proofs use
 only `propext` and `Quot.sound`. Admitted proofs, custom axioms and compiler-trust
 axioms are rejected. No project build scripts or precompiled local proofs are
 reused.
 
 [Proof evidence](../libraries/quota/proof-evidence.json) uses the shared
-`lean-go-proof-evidence/v1` schema. It records exact theorem statements, expected
+`lean-go-proof-evidence/v3` schema. It records the checked theorem statements, expected
 definition names, axiom lists, Lean identity, contract/source/proof/checker hashes and the
 generated manifest hash. Checking also verifies the selected roots, runtime
-source hash and hashes of the four generated Go files. The normal module IR
+source hash and hashes of the four generated Go files, and that exporting and
+emitting the sources again reproduces the package byte for byte. The normal module IR
 does not acquire application theorem claims; this is separate source evidence.
 
 The Lean kernel checks the source statements. The pinned Lean compiler, module

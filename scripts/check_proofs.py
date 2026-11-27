@@ -48,14 +48,10 @@ def validate_claims(claims, contract):
     return claims
 
 
-def harness(contract, modules):
-    imports = ''.join(f'import {module}\n' for module in sorted(modules))
-    pairs = ',\n    '.join(f'(``{name}, ``{expected})' for name, expected in contract.claims)
-    return ('import LeanGo.Proofs.Check\n' + imports + '\nopen Lean Elab Command\n' +
-            'elab "#lean_go_proof_check" : command => do\n' +
-            '  let claims ← liftTermElabM <| LeanGo.Proofs.checkTheorems [\n    ' + pairs + ']\n' +
-            '  IO.FS.writeFile "claims.json" ((toJson claims).pretty ++ "\\n")\n\n' +
-            '#lean_go_proof_check\n').encode()
+def checker_command(lean, checker, lib, modules, contract):
+    """The staged checker program: lean --run CHECKER LIB MODULE... -- THEOREM EXPECTED ..."""
+    pairs = [name for claim in contract.claims for name in claim]
+    return [lean, '--run', str(checker), str(lib), *sorted(modules), '--', *pairs]
 
 
 def workspace_sources(workspace):
@@ -82,19 +78,35 @@ def verify_workspace(workspace, files):
         raise ExportError('proof workspace must have no Lake dependencies')
 
 
+MAX_OLEAN_BYTES = 256 * 1024 * 1024
+
+
+def olean_digests(lib, modules):
+    digests = {}
+    for module, (relative, _data) in modules.items():
+        path = lib / (relative[:-len('.lean')] + '.olean')
+        try:
+            digests[module] = digest(read_regular(path, MAX_OLEAN_BYTES))
+        except ExportError as exc:
+            raise ExportError(f'proof workspace module was not built: {module}') from exc
+    return digests
+
+
 def prove(contract, project, tool_inputs, compiler):
-    """Compile only snapshots in fixed, dependency-free scaffolding."""
+    """Build only snapshots in fixed, dependency-free scaffolding, then decide
+    the claims with the checker program in its own process outside the
+    workspace (producer/LeanGo/Proofs/Check.lean), as the Go command does."""
     env = {key: value for key, value in os.environ.items()
            if not key.startswith(('LEAN_', 'LAKE_'))}
     env['ELAN_TOOLCHAIN'] = compiler.toolchain
     lean, lake = shutil.which('lean'), shutil.which('lake')
     if not lean or not lake:
         raise ExportError('pinned Lean and Lake executables must be available on PATH')
-    with tempfile.TemporaryDirectory(prefix='lean-go-source-proofs-') as directory:
+    with tempfile.TemporaryDirectory(prefix='lean-go-source-proofs-') as directory, \
+            tempfile.TemporaryDirectory(prefix='lean-go-proof-checker-') as staging:
         workspace = Path(directory)
         files = {relative: data for relative, data in project.modules.values()}
-        files.update({'lean-toolchain': compiler.pin_file, 'lakefile.toml': lake_config(project.modules),
-                      'LeanGo/Proofs/Check.lean': tool_inputs[CHECKER]})
+        files.update({'lean-toolchain': compiler.pin_file, 'lakefile.toml': lake_config(project.modules)})
         for relative, data in files.items():
             target = workspace / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -102,19 +114,54 @@ def prove(contract, project, tool_inputs, compiler):
         compiler.check_version(run([lean, '--version'], workspace, env))
         compiler.check_version(run([lake, 'env', 'lean', '--version'], workspace, env))
         verify_workspace(workspace, files)
-        run([lake, 'build', 'LeanGo.Proofs.Check', *sorted(project.modules)], workspace, env)
+        # Trusted runtime modules are built alone first; their .olean files must
+        # be unchanged after the untrusted proof modules are built.
+        lib = workspace / '.lake/build/lib/lean'
+        run([lake, 'build', *sorted(project.runtime)], workspace, env)
         verify_workspace(workspace, files)
-        harness_name = 'LeanGo/Proofs/Harness.lean'
-        files[harness_name] = harness(contract, project.modules)
-        # User elaboration may have written files; never follow or replace its harness.
+        runtime = olean_digests(lib, project.runtime)
+        run([lake, 'build', *sorted(project.modules)], workspace, env)
+        verify_workspace(workspace, files)
+        if olean_digests(lib, project.runtime) != runtime:
+            raise ExportError('proof workspace runtime build changed while proof modules were built')
+        # Staged only now, outside the workspace, so build code cannot replace it.
+        checker = Path(staging) / Path(CHECKER).name
+        with checker.open('xb') as output:
+            output.write(tool_inputs[CHECKER])
+        result = run(checker_command(lean, checker, lib, project.modules, contract), Path(staging), env)
+        verify_workspace(workspace, files)
         try:
-            with (workspace / harness_name).open('xb') as output:
-                output.write(files[harness_name])
-        except FileExistsError as exc:
-            raise ExportError('proof workspace reserved harness path already exists') from exc
-        run([lake, 'env', 'lean', 'LeanGo/Proofs/Harness.lean'], workspace, env)
-        verify_workspace(workspace, files)
-        return validate_claims(parse_json(read_regular(workspace / 'claims.json')), contract)
+            claims = parse_json(result.encode())
+        except ExportError as exc:
+            raise ExportError(f'malformed proof checker output: {exc}') from exc
+        return validate_claims(claims, contract)
+
+
+def rebuild_package(manifest_path, contract):
+    """Regenerate the package from the contract's sources with the Go command
+    and require the bound package to equal it byte for byte (see
+    internal/pipeline/proof_rebuild.go, which reports the cause in detail)."""
+    from generate import go_cli
+    manifest = parse_json(read_regular(manifest_path))
+    mode = 'native' if isinstance(manifest, dict) and manifest.get('mode') == 'native' else 'metered'
+    with tempfile.TemporaryDirectory(prefix='lean-go-rebuild-') as directory:
+        out, ir = Path(directory) / 'package', Path(directory) / 'package.ir.json'
+        arguments = ['generate', '--source-dir', str(contract.source_dir), '--module', contract.module,
+                     *[item for root in contract.roots for item in ('--root', root)],
+                     '--out', str(out), '--ir-output', str(ir), '--mode', mode]
+        if go_cli(arguments) != 0:
+            raise ExportError('generated package cannot be rebuilt from the contract sources')
+        depth = manifest.get('max_depth') if mode == 'native' else None
+        if depth is not None and depth != 10000:
+            out = Path(directory) / 'emitted'
+            if go_cli(['emit', '--in', str(ir), '--out', str(out), '--mode', 'native',
+                       '--native-max-depth', str(depth)]) != 0:
+                raise ExportError('generated package cannot be re-emitted')
+        package = Path(manifest_path).absolute().parent
+        fresh = {path.name: path.read_bytes() for path in out.iterdir()}
+        found = {path.name for path in package.iterdir()}
+        if found != set(fresh) or any(read_regular(package / name) != data for name, data in fresh.items()):
+            raise ExportError('generated package differs from a fresh rebuild of its sources; regenerate the package')
 
 
 def evidence(contract_path, manifest_path, tool_root=TOOL_ROOT):
@@ -123,13 +170,14 @@ def evidence(contract_path, manifest_path, tool_root=TOOL_ROOT):
     contract = load_contract(contract_path)
     project, tools = snapshot(contract), tool_snapshot(tool_root)
     manifest = verify_manifest(manifest_path, contract, project, compiler)
+    rebuild_package(manifest_path, contract)
     claims = prove(contract, project, tools, compiler)
     if (load_contract(contract_path) != contract or snapshot(contract) != project or
             tool_snapshot(tool_root) != tools or
             verify_manifest(manifest_path, contract, project, compiler) != manifest):
         raise ExportError('proof inputs or generated package changed during checking')
     result = {
-        'schema': 'lean-go-proof-evidence/v1',
+        'schema': 'lean-go-proof-evidence/v3',
         'lean_version': compiler.version, 'lean_commit': compiler.commit,
         'module': contract.module, 'roots': list(contract.roots),
         'contract_sha256': digest(contract.raw),
@@ -137,7 +185,7 @@ def evidence(contract_path, manifest_path, tool_root=TOOL_ROOT):
         'tool_inputs': {name: digest(data) for name, data in tools.items()},
         'generated_manifest_sha256': digest(manifest),
         'claims': claims,
-        'assurance': ('Kernel-checked source statements; extraction and Go execution '
+        'assurance': ('Kernel-replayed source statements; extraction and Go execution '
                       'remain tested and trusted.'),
     }
     return (json.dumps(result, sort_keys=True, indent=2, ensure_ascii=False) + '\n').encode()
@@ -148,17 +196,19 @@ def composition_evidence(contract, bindings, tool_root=TOOL_ROOT):
     compiler = selected_compiler()
     tools = tool_snapshot(tool_root)
     project, components = composition_inputs(contract, bindings, compiler)
+    for name, component in contract.components.items():
+        rebuild_package(bindings[name], component)
     claims = prove(contract, project, tools, compiler)
     fresh = load_composition(contract.path)
     if (fresh != contract or composition_inputs(fresh, bindings, compiler) != (project, components)
             or tool_snapshot(tool_root) != tools):
         raise ExportError('composition inputs or generated packages changed during checking')
-    record = dict(schema='lean-go-proof-evidence/v2', lean_version=compiler.version,
+    record = dict(schema='lean-go-proof-evidence/v4', lean_version=compiler.version,
                   lean_commit=compiler.commit, contract_sha256=digest(contract.raw),
                   components=components, claims=claims,
                   project_inputs={key: digest(data) for key, data in project.inputs.items()},
                   tool_inputs={key: digest(data) for key, data in tools.items()},
-                  assurance='Kernel-checked source statements; extraction and Go execution remain tested and trusted.')
+                  assurance='Kernel-replayed source statements; extraction and Go execution remain tested and trusted.')
     return (json.dumps(record, sort_keys=True, indent=2, ensure_ascii=False) + '\n').encode()
 
 

@@ -558,7 +558,9 @@ func ManifestBindings(c *Composition, pairs [][2]string) (map[string]string, err
 	return paths, nil
 }
 
-func compositionInputs(c *Composition, bindings map[string]string, compiler Compiler) (*ProjectSnapshot, *Object, error) {
+// compositionInputs snapshots and binds every component; with rebuild, each
+// package is also rebuilt from its sources (proof_rebuild.go).
+func compositionInputs(c *Composition, bindings map[string]string, compiler Compiler, rebuild bool) (*ProjectSnapshot, *Object, error) {
 	proofs, err := SourceSnapshot(c.ProofDir)
 	if err != nil {
 		return nil, nil, err
@@ -592,6 +594,11 @@ func compositionInputs(c *Composition, bindings map[string]string, compiler Comp
 		manifest, mode, err := verifyPackage(bindings[name], component, project, compiler)
 		if err != nil {
 			return nil, nil, err
+		}
+		if rebuild {
+			if err := rebuildPackage(bindings[name], component, project, mode); err != nil {
+				return nil, nil, exportErrorf("component %s: %v", name, err)
+			}
 		}
 		identity := NewObject()
 		identity.Set("contract_sha256", Digest(component.Raw))
