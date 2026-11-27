@@ -51,6 +51,28 @@ func commandEnv(extra map[string]string) []string {
 	}
 	return out
 }
+// generateWithCLI runs this checkout's lean-go generate from the repository
+// root, as a user of the command would: metered mode, the pinned Go release
+// required (--strict-go), relative paths resolved against the checkout. It
+// replaces the retired scripts/generate.py, which ran the same command.
+func generateWithCLI(t *testing.T, sourceDir, module, out, ir string, roots ...string) {
+	t.Helper()
+	root, err := filepath.Abs("..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"run", "./cmd/lean-go", "generate", "--source-dir", sourceDir, "--module", module}
+	for _, entry := range roots {
+		args = append(args, "--root", entry)
+	}
+	args = append(args, "--out", out, "--ir-output", ir, "--mode", "metered", "--strict-go")
+	cmd := exec.Command(goBinary(), args...)
+	cmd.Dir, cmd.Env = root, commandEnv(nil)
+	if text, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("lean-go generate %s %v: %v\n%s", module, roots, err, text)
+	}
+}
+
 func directoryFiles(t *testing.T, path string) map[string]string {
 	t.Helper()
 	out := map[string]string{}

@@ -378,16 +378,7 @@ func TestLocalNativeReference(t *testing.T) {
 
 func generateLocal(t *testing.T, out string) []byte {
 	t.Helper()
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command("uv", "run", "--locked", "python", "scripts/generate.py", "--source-dir", "examples/modules", "--module", "Local", "--root", "Local.run", "--out", out, "--ir-output", out+".json")
-	cmd.Dir = root
-	cmd.Env = commandEnv(nil)
-	if text, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("local generation: %v\n%s", err, text)
-	}
+	generateWithCLI(t, "examples/modules", "Local", out, out+".json", "Local.run")
 	data, err := os.ReadFile(out + ".json")
 	if err != nil {
 		t.Fatal(err)

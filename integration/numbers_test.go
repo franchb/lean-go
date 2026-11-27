@@ -226,16 +226,7 @@ func TestNumbersNativeReference(t *testing.T) {
 
 func generateNumbers(t *testing.T, out, rootFunction string) []byte {
 	t.Helper()
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command("uv", "run", "--locked", "python", "scripts/generate.py", "--source-dir", "examples/modules", "--module", "Numbers", "--root", rootFunction, "--out", out, "--ir-output", out+".json")
-	cmd.Dir = root
-	cmd.Env = commandEnv(nil)
-	if text, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("numeric generation: %v\n%s", err, text)
-	}
+	generateWithCLI(t, "examples/modules", "Numbers", out, out+".json", rootFunction)
 	data, err := os.ReadFile(out + ".json")
 	if err != nil {
 		t.Fatal(err)

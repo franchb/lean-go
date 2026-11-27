@@ -66,8 +66,8 @@ func selectedCompiler(t *testing.T) pipeline.Compiler {
 	return compiler
 }
 
-// generateMetered is scripts/generate.py: a fresh export emitted in its
-// default (metered) mode.
+// generateMetered is lean-go generate --mode metered, in process: a fresh
+// export emitted in the mode of the tracked artifacts.
 func generateMetered(t *testing.T, cache *pipeline.Cache, source, module, out, ir string, roots ...string) {
 	t.Helper()
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{SourceDir: source, Module: module, Roots: roots, Out: out, IROutput: ir,

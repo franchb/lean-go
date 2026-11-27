@@ -227,27 +227,19 @@ func TestMultiRootRegenerationOrder(t *testing.T) {
 	if os.Getenv("LEAN_GO_REGENERATE") != "1" {
 		t.Skip("set LEAN_GO_REGENERATE=1 for fresh multi-root extraction")
 	}
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	roots := []string{"Counters.initial", "Counters.advance", "Counters.read", "Counters.total"}
 	dir := t.TempDir()
 	for pass := range 2 {
 		out, ir := filepath.Join(dir, fmt.Sprintf("package%d", pass)), filepath.Join(dir, fmt.Sprintf("ir%d.json", pass))
-		args := []string{"run", "--locked", "python", "scripts/generate.py", "--source-dir", "examples/modules", "--module", "Counters", "--out", out, "--ir-output", ir}
+		ordered := make([]string, len(roots))
 		for i := range roots {
 			index := i
 			if pass == 1 {
 				index = len(roots) - 1 - i
 			}
-			args = append(args, "--root", roots[index])
+			ordered[i] = roots[index]
 		}
-		cmd := exec.Command("uv", args...)
-		cmd.Dir, cmd.Env = root, commandEnv(nil)
-		if log, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("regeneration: %v\n%s", err, log)
-		}
+		generateWithCLI(t, "examples/modules", "Counters", out, ir, ordered...)
 		actual, err := os.ReadFile(ir)
 		if err != nil {
 			t.Fatal(err)
