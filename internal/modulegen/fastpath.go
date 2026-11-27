@@ -143,7 +143,8 @@ func (e *apiEmitter) emitFast(w *bytes.Buffer) {
 	if len(conv.outOrd) > 0 {
 		w.WriteString(`
 // fastArena hands out the nodes and field slots of one converted result,
-// allocated together. Nodes are immutable once built, as everywhere else.
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
 type fastArena struct { nodes []node; fields []*node }
 func (a *fastArena) next() *node { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
 func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
