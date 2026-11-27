@@ -66,6 +66,9 @@ type model struct {
 	roots    []string
 	listType string // elided List UInt8, if any
 	maxDepth int
+	// prefix is set for embedded code (see GenerateEmbedded): every
+	// package-level name starts with it and nothing is exported.
+	prefix string
 }
 
 type ctorRef struct {
@@ -89,7 +92,11 @@ func isCanonicalBool(t moduleir.TypeDecl) bool {
 }
 
 func newModel(p *moduleir.Program, maxDepth int) (*model, error) {
-	m := &model{program: p, types: map[string]*typeInfo{}, ctors: map[string]ctorRef{}, funcs: map[string]*funcInfo{}, roots: moduleir.RootNames(p), maxDepth: maxDepth}
+	return newModelWithPrefix(p, maxDepth, "")
+}
+
+func newModelWithPrefix(p *moduleir.Program, maxDepth int, prefix string) (*model, error) {
+	m := &model{program: p, types: map[string]*typeInfo{}, ctors: map[string]ctorRef{}, funcs: map[string]*funcInfo{}, roots: moduleir.RootNames(p), maxDepth: maxDepth, prefix: prefix}
 	for name := range scalarWidths {
 		m.types[name] = &typeInfo{lean: name, kind: kindScalar, goName: scalarGo(name)}
 	}
@@ -150,7 +157,7 @@ func walkCode(c *moduleir.Code, visit func(*moduleir.Code)) {
 // recursive IR functions are not emitted at all.
 func (m *model) recognizeFolds() {
 	list, ok := m.types[byteList]
-	if !ok || len(list.decl.Constructors) != 2 {
+	if !ok || len(list.decl.Constructors) != 2 || m.prefix != "" {
 		return
 	}
 	nilCtor, cons := list.decl.Constructors[0], list.decl.Constructors[1]
@@ -383,7 +390,11 @@ func (m *model) allocateNames() {
 	internal := newInternalAllocator()
 	for _, name := range m.order {
 		info := m.types[name]
-		info.goName = exported.allocate(exportedName(name))
+		if m.prefix != "" {
+			info.goName = internal.allocateInternal(m.prefix + exportedName(name))
+		} else {
+			info.goName = exported.allocate(exportedName(name))
+		}
 	}
 	type candidate struct {
 		lean string
@@ -456,6 +467,8 @@ func (m *model) allocateNames() {
 	for _, decl := range m.program.Functions {
 		f := m.funcs[decl.Name]
 		switch {
+		case m.prefix != "":
+			f.callName = internal.allocateInternal(m.prefix + exportedName(decl.Name))
 		case f.elided:
 		case f.root && !f.depth && f.fold == nil:
 			f.callName = f.exported
