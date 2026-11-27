@@ -27,7 +27,7 @@ missing-argument errors use the selected diagnostic format.
 An unsupported polymorphic function can produce:
 
 ```json
-{"schema":"lean-go-diagnostics/v1","success":false,"diagnostics":[{"code":"unsupported_type","stage":"admission","message":"Unsupported first-order monomorphic type: Type","declaration":"Example.run","compiler_form":null,"location":{"path":"Example.lean","kind":"declaration","declaration":"Example.run","start":{"line":2,"column":4,"utf16_column":4,"byte_offset":22},"end":{"line":2,"column":7,"utf16_column":7,"byte_offset":25}},"hint":"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile."}]}
+{"schema":"lean-go-diagnostics/v1","success":false,"diagnostics":[{"code":"unsupported_type","compiler_form":null,"declaration":"Example.run","hint":"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.","location":{"path":"Example.lean","kind":"declaration","declaration":"Example.run","start":{"line":2,"column":4,"utf16_column":4,"byte_offset":22},"end":{"line":2,"column":7,"utf16_column":7,"byte_offset":25}},"message":"Unsupported first-order monomorphic type: Type","stage":"admission"}]}
 ```
 
 The envelope and field types are defined by the
