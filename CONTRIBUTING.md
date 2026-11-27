@@ -26,10 +26,13 @@ go test -count=1 ./...
 about 2.5 minutes on a shared 4-core machine, most of it in `integration`.
 Tests that run Lean are enabled by environment variables (`LEAN_GO_MODULES`,
 `LEAN_GO_NATIVE`, `LEAN_GO_REGENERATE`, `LEAN_GO_PROOFS`, `LEAN_GO_QUOTA`,
-`LEAN_GO_FORMATS`, `LEAN_GO_DIFFERENTIAL`, `LEAN_GO_VALIDATE`); the Linux
-extraction job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) sets
-all of them and shows the exact steps. Run the ones that cover your change and
-report in the pull request which checks you ran and which you could not.
+`LEAN_GO_FORMATS`, `LEAN_GO_DIFFERENTIAL`, `LEAN_GO_VALIDATE`,
+`LEAN_GO_PARITY`); the Linux extraction job in
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) sets all of them and
+shows the exact steps. With every variable set, run `go test -p 1` so that
+one Lean build runs at a time; the whole suite then takes about an hour on a
+4-core machine. Run the ones that cover your change and report in the pull
+request which checks you ran and which you could not.
 
 The developer harnesses are subcommands of `go run ./cmd/lean-go-dev` (`help`
 lists them). After a change to the command line or the proof demos, run the
