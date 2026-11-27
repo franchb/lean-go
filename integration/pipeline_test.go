@@ -51,6 +51,7 @@ func commandEnv(extra map[string]string) []string {
 	}
 	return out
 }
+
 // generateWithCLI runs this checkout's lean-go generate from the repository
 // root, as a user of the command would: metered mode, the pinned Go release
 // required (--strict-go), relative paths resolved against the checkout. It
