@@ -18,21 +18,22 @@
   "process_timeout_ms": 3600000
  },
  "library": {
-  "producer/LeanGo/Validate.lean": "7830c3286b8a079fed88fe503cf01415e6be8a56750b22e71d1390a4ca9fe668",
+  "producer/LeanGo/Validate.lean": "c2160eda90954ffbca553182759f74e6d91b194551bb510bd8dd3eaf16172d85",
   "producer/LeanGo/Validate/Attr.lean": "921c765cd3d6b1d545b736cd6543b57835a3781fef49f6dc8c894268c42d0ccd",
   "producer/LeanGo/Validate/Command.lean": "ea9c506f481f9206f04493ee1161169e90c0a8466668dcfbe1c55a6e69d98dac",
   "producer/LeanGo/Validate/Meta.lean": "d48de3a6582762bd0b2c3d2c32a16eff0b0a7bc5427e0c947ee4d64d2f340a14",
   "producer/LeanGo/Validate/Meta/Axioms.lean": "790d7bc6a6098f85e8910c31f708f65a1189afa5b06a7a753c9d5784e6171320",
   "producer/LeanGo/Validate/Meta/Derive.lean": "3830b4eeac2f963cd8c333c5a88f1e2ab4723176310b9c5cdf8691ae3af044dd",
   "producer/LeanGo/Validate/Meta/Load.lean": "0577ddf48ec969a97c6c5f0ffdb7f87d399a0cd46921778e9f193c8215707d86",
-  "producer/LeanGo/Validate/Meta/Tactic.lean": "7a79ac2eb261b0563d3c840a1755ccc4be6dd908be728dfe9f0f63c50c11b635",
+  "producer/LeanGo/Validate/Meta/Tactic.lean": "4c3abec4faaac7b6f5d55e2144999c97ccb817335cdc4965e9b6c8b6de161f9f",
   "producer/LeanGo/Validate/Prim.lean": "0797889fce524ae04905b6995aded609b1c59e1de83067e08b6b2f5ccb793ed1",
   "producer/LeanGo/Validate/Semantics.lean": "931ca0afa704842954cf28127d917a68b0eb6b5902a813354180491fe3b7ba44",
   "producer/LeanGo/Validate/Soundness.lean": "e77e6ebfce735dd1be5f935f8071417842ed1899025cb2fad2aa9188666da8b4",
   "producer/LeanGo/Validate/Spec.lean": "c6e6de8469c41fe3a664955d763fa5efb2469d9ec17adf6b3a1a330391396a38",
+  "producer/LeanGo/Validate/Steps.lean": "9fc90931b03345c0ded7841bd2917d8710fa31853f227e51361b4a0e9b028fc5",
   "producer/LeanGo/Validate/Syntax.lean": "c648dce4dbd711439d6a0bfb600bbba47ecfd0d96a02d6555f3e08563f5974d3",
   "producer/LeanGo/Validate/Value.lean": "219f092ace1db12e7c560ba357409d202768b8e498157fe443edaf3ee29877a2",
-  "tool/lean-go/validate": "21fb22b5b63024f28eacc2d26917d56303c0b0aaa5202b9193946f6eeeba52dd"
+  "tool/lean-go/validate": "9b4336d7df7ad73292853d04d32420c36d65d256a4879290f970825a157558b5"
  },
  "program": "LeanGo.Validated.prog",
  "specification_list": "LeanGo.Validated.spec",
@@ -245,10 +246,14 @@
    "kind": "source",
    "source_owner": "DnsHeader.serialize",
    "specification": "DnsHeader.serialize",
-   "status": "failed",
-   "reason_class": "memory_limit",
-   "statement": "",
-   "axioms": []
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_10",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec)\n    LeanGo.Validated.prog.«DnsHeader.serialize»)\n  DnsHeader.serialize",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
   },
   {
    "name": "DnsHeader.u16",
@@ -302,10 +307,14 @@
    "kind": "source",
    "source_owner": "DnsHeader.word1",
    "specification": "DnsHeader.word1",
-   "status": "failed",
-   "reason_class": "memory_limit",
-   "statement": "",
-   "axioms": []
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_13",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«DnsHeader.word1»)\n  DnsHeader.word1",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
   }
  ],
  "programs": [
@@ -342,11 +351,16 @@
     "DnsHeader.serialize",
     "DnsHeader.word1"
    ],
-   "status": "not_established",
-   "reason_class": "missing_functions",
-   "missing": [
-    "DnsHeader.serialize",
-    "DnsHeader.word1"
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_1",
+   "theorem": "LeanGo.Validated.sound_1",
+   "statement": "∀ (n : Nat),\n  LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"DnsHeader.serialize\")\n    DnsHeader.serialize",
+   "explicit_theorem": "LeanGo.Validated.explicit_1",
+   "explicit_statement": "∀ (n : Nat) (h : Header) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"DnsHeader.serialize\" [LeanGo.Validate.Encode.encode h] = some v →\n    v = LeanGo.Validate.Encode.encode (DnsHeader.serialize h)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
    ]
   },
   {
@@ -369,10 +383,10 @@
  ],
  "summary": {
   "functions": 14,
-  "proved": 12,
-  "failed": 2,
+  "proved": 14,
+  "failed": 0,
   "not_attempted": 0,
   "roots": 3,
-  "roots_proved": 2
+  "roots_proved": 3
  }
 }
