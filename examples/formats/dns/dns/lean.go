@@ -14,23 +14,22 @@ import (
 
 var errUnexpected = errors.New("unexpected value from the extracted code")
 
-func toLean(h Header) codec.Header { return codec.Header(h) }
+func toLean(h *Header) codec.Header { return codec.Header(*h) }
 
-func fromLean(lh codec.Header) Header { return Header(lh) }
-
-func leanParse(raw *[HeaderSize]byte) (Header, Reason, error) {
+func leanParse(raw *[HeaderSize]byte, h *Header) (Reason, error) {
 	r := codec.Parse(codec.Wire{B0: raw[0], B1: raw[1], B2: raw[2], B3: raw[3], B4: raw[4], B5: raw[5], B6: raw[6], B7: raw[7], B8: raw[8], B9: raw[9], B10: raw[10], B11: raw[11]})
-	if lh, ok := r.AsOk(); ok {
-		return fromLean(lh), 0, nil
+	var ok bool
+	if *(*codec.Header)(h), ok = r.AsOk(); ok {
+		return 0, nil
 	}
 	switch {
 	case r.IsZNonzero():
-		return Header{}, ReasonZNonzero, nil
+		return ReasonZNonzero, nil
 	}
-	return Header{}, 0, internal(errUnexpected)
+	return 0, internal(errUnexpected)
 }
 
-func leanValidate(h Header) (Reason, error) {
+func leanValidate(h *Header) (Reason, error) {
 	r := codec.Validate(toLean(h))
 	switch {
 	case r.IsValid():
@@ -53,7 +52,7 @@ func leanValidate(h Header) (Reason, error) {
 	return 0, internal(errUnexpected)
 }
 
-func leanSerialize(h Header) ([HeaderSize]byte, error) {
+func leanSerialize(dst []byte, h *Header) ([]byte, error) {
 	w := codec.Serialize(toLean(h))
-	return [HeaderSize]byte{w.B0, w.B1, w.B2, w.B3, w.B4, w.B5, w.B6, w.B7, w.B8, w.B9, w.B10, w.B11}, nil
+	return append(dst, w.B0, w.B1, w.B2, w.B3, w.B4, w.B5, w.B6, w.B7, w.B8, w.B9, w.B10, w.B11), nil
 }

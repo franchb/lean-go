@@ -123,6 +123,13 @@ func internal(err error) error { return fmt.Errorf("%w: %v", ErrInternal, err) }
 // Validate reports whether h can be serialized: every field fits its width
 // and satisfies its declared constraints. It returns nil or an *Error.
 func Validate(h Header) error {
+	return validate(&h)
+}
+
+// validate is Validate on a header passed by pointer. Header is copied in
+// memory whenever it is passed by value, so the adapter passes it by pointer
+// internally.
+func validate(h *Header) error {
 	reason, err := leanValidate(h)
 	if err != nil {
 		return err
@@ -136,14 +143,10 @@ func Validate(h Header) error {
 // AppendSerialize appends the encoding of h to dst. On error it returns dst
 // unchanged, without writing to its spare capacity.
 func AppendSerialize(dst []byte, h Header) ([]byte, error) {
-	if err := Validate(h); err != nil {
+	if err := validate(&h); err != nil {
 		return dst, err
 	}
-	raw, err := leanSerialize(h)
-	if err != nil {
-		return dst, err
-	}
-	return append(dst, raw[:]...), nil
+	return leanSerialize(dst, &h)
 }
 
 // Parse decodes the header at the start of data. It returns the header and
@@ -157,7 +160,8 @@ func Parse(data []byte) (Header, int, error) {
 	}
 	var raw [HeaderSize]byte
 	copy(raw[:], data)
-	h, reason, err := leanParse(&raw)
+	var h Header
+	reason, err := leanParse(&raw, &h)
 	if err != nil {
 		return Header{}, 0, err
 	}
