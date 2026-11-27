@@ -197,7 +197,17 @@ round:
   multiplication by the power of two (justified by the proved lemmas
   `UIntN.shiftLeft_lit : x <<< k = x * 2 ^ (k % w)`), `reduceUIntNLit`
   reduces literals modulo the width (a definitional step), and `UIntN.shiftLeft
-  a b = a <<< b` etc. are `rfl` lemmas.
+  a b = a <<< b` etc. are `rfl` lemmas. Division brought more rewrites of the
+  same kind ([support matrix](../support-matrix.md#compiler-rewrites)), each
+  bridged the same way: `shiftRightLitUIntN` turns a right shift by a literal
+  into a division by the power of two (`UIntN.shiftRight_lit`, since the
+  compiler exports `x / 16` as `x >>> 4`); `mulLitLeftUIntN` moves a literal
+  factor to the right (`UIntN.mul_comm`), so `16 * x` meets `x * 16`; core's
+  `UIntN.mod_zero`, `div_one`, `mul_one`, `add_zero`, `zero_add`, `mod_one`,
+  `mul_zero` and `zero_div` undo the folds; and core's `UIntN.reduceAdd` …
+  `reduceNot` evaluate operations whose operands are all literals, which the
+  compiler folds to one literal. `TestValidationBridgesCompilerArithmetic`
+  proves one function per rewrite.
 * Scalars are no longer destructed into their `BitVec` field (they are
   structures, too); this made kernel checking of large arithmetic bodies
   expensive.
@@ -377,6 +387,7 @@ current validation library.
 | records | `testdata/records.validation.json` | 3 / 3 | 1 / 1 | – |
 | reduced | `testdata/reduced.validation.json` | 3 / 3 | 1 / 1 | – |
 | trees | `testdata/trees.validation.json` | 2 / 2 | 1 / 1 | – |
+| unsigned | `testdata/unsigned.validation.json` | 5 / 5 | 5 / 5 | – |
 | wide | `testdata/wide.validation.json` | 2 / 2 | 1 / 1 | – |
 | quota | `testdata/quota.validation.json` | 4 / 4 | 4 / 4 | – |
 | clamp | `examples/proofs/clamp/clamp.validation.json` | 2 / 2 | 1 / 1 | – |
@@ -388,10 +399,11 @@ current validation library.
 | crc16 | `examples/proofs/crc16/crc16.validation.json` | 3 / 3 | 2 / 2 | – |
 | adler32 | `examples/proofs/adler32/adler32.validation.json` | 5 / 5 | 3 / 3 | – |
 | normalizer | `examples/proofs/normalizer/normalizer.validation.json` | 3 / 3 | 1 / 1 | – |
+| clock | `examples/proofs/clock/clock.validation.json` | 2 / 2 | 2 / 2 | – |
 | format dns | `examples/formats/dns/dns.validation.json` | 14 / 14 | 3 / 3 | – |
 | format header | `examples/formats/header/header.validation.json` | 7 / 7 | 4 / 4 | – |
 | format udp | `examples/formats/udp/udp.validation.json` | 7 / 7 | 4 / 4 | – |
-| **total** | 22 programs | **88 / 88** | **54 / 54** | |
+| **total** | 24 programs | **95 / 95** | **61 / 61** | |
 <!-- validation-coverage:end -->
 
 Every tracked function and root is proved under the default budget. The
@@ -506,7 +518,7 @@ alone before reading it as a verdict.
    `native_decide`/`bv_decide` (`Lean.ofReduceBool`, `Lean.trustCompiler`) or
    a declared axiom. It covers the library, the command's meta code, the
    examples and — through `Examples/Command.lean`, which runs the command with
-   `strict` inside the build — everything the command adds (2754
+   `strict` inside the build — everything the command adds (2767
    declarations). In an extraction, the command applies the same check to
    every theorem it adds before reporting it as proved.
 2. The semantics (`Value`, `Prim.eval`, `Code.eval`, `Program.run`,

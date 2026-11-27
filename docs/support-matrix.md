@@ -6,7 +6,7 @@ distinct widths. Every entry is an exact pinned Lean declaration with an audited
 extern symbol and axiom set (`producer/LeanGo/Module/Primitives.lean`); the IR
 validator (`internal/moduleir`), the metered emitter (`internal/modulegen`, boxed
 executor and scalar-native path), the native emitter (`internal/nativegen`) and
-the Lean validation semantics (`validation/LeanGo/Validate/Prim.lean`) use the
+the Lean validation semantics (`producer/LeanGo/Validate/Prim.lean`) use the
 same names and meanings.
 
 Semantics are Lean's, exactly. `w` is the width in bits and `m = 2^w`.
@@ -58,6 +58,12 @@ every form it produces is an admitted primitive or a literal:
 | `x % 0`, `x / 1`, `x * 1`, `x + 0` | `x` |
 | `x % 1`, `x * 0`, `0 / y` | the literal `0` |
 | constant operands, such as `100 / 7 + 100 % 0` | the exact literal (`114`) |
+
+[Translation validation](research/translation-validation.md) proves the
+exported IR equal to the source across each of these rewrites: it brings
+both sides to one form with proved lemmas (a shift by a literal is a
+multiplication or division by the power of two, a literal factor stands on
+the right) and with core's lemmas and literal evaluation for the folds.
 
 ## IR features
 

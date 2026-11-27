@@ -199,16 +199,19 @@ The compiler's simplifier rewrites some source arithmetic before the
 extractor sees it (`x * 256` becomes `x <<< 8`, a literal is reduced modulo
 the width, `UInt32.shiftLeft a b` is the `<<<` instance). Symbolic evaluation
 compares the IR side with the source side syntactically, so both sides are
-brought to one normal form: a shift by a literal amount is a multiplication
-by the corresponding power of two, and named operations are their notation.
-Every lemma is proved, so this only affects which obligations are provable. -/
+brought to one normal form: a left shift by a literal amount is a
+multiplication by the corresponding power of two, a right shift by a literal
+amount is a division by it (the compiler turns `x / 16` into `x >>> 4`), and
+named operations are their notation. Every lemma is proved, so this only
+affects which obligations are provable. -/
 
-/-- `x <<< k = x * m` when `m = 2 ^ (k % w)`, and `(n : UIntW) = m` when
-`m = n % 2 ^ w`, per width. The `validate_obl` simprocs `shiftLitUIntW` and
-`reduceUIntWLit` instantiate them with literals `k`, `m`, `n` and close the side
-condition by `rfl` on closed natural numbers, so the kernel never has to
-compute with a literal inside a symbolic term. (A numeral is an atom for
-`simp`, so these cannot be ordinary rewrite rules.) -/
+/-- `x <<< k = x * m` and `x >>> k = x / m` when `m = 2 ^ (k % w)`, and
+`(n : UIntW) = m` when `m = n % 2 ^ w`, per width. The `validate_obl` simprocs
+`shiftLitUIntW`, `shiftRightLitUIntW` and `reduceUIntWLit` instantiate them with
+literals `k`, `m`, `n` and close the side condition by `rfl` on closed natural
+numbers, so the kernel never has to compute with a literal inside a symbolic
+term. (A numeral is an atom for `simp`, so these cannot be ordinary rewrite
+rules.) -/
 theorem UInt8.shiftLeft_lit (x : UInt8) (k m : Nat) (h : 2 ^ (k % 8) = m) :
     x <<< (OfNat.ofNat k : UInt8) = x * (OfNat.ofNat m : UInt8) := by
   subst h
@@ -224,6 +227,16 @@ theorem UInt8.ofNat_lit (n m : Nat) (h : n % 256 = m) :
   subst h
   apply UInt8.toNat_inj.mp
   simp [UInt8.toNat_ofNat]
+
+theorem UInt8.shiftRight_lit (x : UInt8) (k m : Nat) (h : 2 ^ (k % 8) = m) :
+    x >>> (OfNat.ofNat k : UInt8) = x / (OfNat.ofNat m : UInt8) := by
+  subst h
+  apply UInt8.toNat_inj.mp
+  have h1 : k % 256 % 8 = k % 8 := Nat.mod_mod_of_dvd k (by decide)
+  have h2 : 2 ^ (k % 8) < 256 :=
+    Nat.lt_of_lt_of_le (Nat.pow_lt_pow_right (by decide) (Nat.mod_lt k (by decide))) (by decide)
+  simp [UInt8.toNat_shiftRight, UInt8.toNat_div, UInt8.toNat_ofNat, Nat.shiftRight_eq_div_pow, h1,
+    Nat.mod_eq_of_lt h2]
 
 theorem UInt16.shiftLeft_lit (x : UInt16) (k m : Nat) (h : 2 ^ (k % 16) = m) :
     x <<< (OfNat.ofNat k : UInt16) = x * (OfNat.ofNat m : UInt16) := by
@@ -241,6 +254,16 @@ theorem UInt16.ofNat_lit (n m : Nat) (h : n % 65536 = m) :
   apply UInt16.toNat_inj.mp
   simp [UInt16.toNat_ofNat]
 
+theorem UInt16.shiftRight_lit (x : UInt16) (k m : Nat) (h : 2 ^ (k % 16) = m) :
+    x >>> (OfNat.ofNat k : UInt16) = x / (OfNat.ofNat m : UInt16) := by
+  subst h
+  apply UInt16.toNat_inj.mp
+  have h1 : k % 65536 % 16 = k % 16 := Nat.mod_mod_of_dvd k (by decide)
+  have h2 : 2 ^ (k % 16) < 65536 :=
+    Nat.lt_of_lt_of_le (Nat.pow_lt_pow_right (by decide) (Nat.mod_lt k (by decide))) (by decide)
+  simp [UInt16.toNat_shiftRight, UInt16.toNat_div, UInt16.toNat_ofNat, Nat.shiftRight_eq_div_pow, h1,
+    Nat.mod_eq_of_lt h2]
+
 theorem UInt32.shiftLeft_lit (x : UInt32) (k m : Nat) (h : 2 ^ (k % 32) = m) :
     x <<< (OfNat.ofNat k : UInt32) = x * (OfNat.ofNat m : UInt32) := by
   subst h
@@ -257,6 +280,16 @@ theorem UInt32.ofNat_lit (n m : Nat) (h : n % 4294967296 = m) :
   apply UInt32.toNat_inj.mp
   simp [UInt32.toNat_ofNat]
 
+theorem UInt32.shiftRight_lit (x : UInt32) (k m : Nat) (h : 2 ^ (k % 32) = m) :
+    x >>> (OfNat.ofNat k : UInt32) = x / (OfNat.ofNat m : UInt32) := by
+  subst h
+  apply UInt32.toNat_inj.mp
+  have h1 : k % 4294967296 % 32 = k % 32 := Nat.mod_mod_of_dvd k (by decide)
+  have h2 : 2 ^ (k % 32) < 4294967296 :=
+    Nat.lt_of_lt_of_le (Nat.pow_lt_pow_right (by decide) (Nat.mod_lt k (by decide))) (by decide)
+  simp [UInt32.toNat_shiftRight, UInt32.toNat_div, UInt32.toNat_ofNat, Nat.shiftRight_eq_div_pow, h1,
+    Nat.mod_eq_of_lt h2]
+
 theorem UInt64.shiftLeft_lit (x : UInt64) (k m : Nat) (h : 2 ^ (k % 64) = m) :
     x <<< (OfNat.ofNat k : UInt64) = x * (OfNat.ofNat m : UInt64) := by
   subst h
@@ -272,6 +305,16 @@ theorem UInt64.ofNat_lit (n m : Nat) (h : n % 18446744073709551616 = m) :
   subst h
   apply UInt64.toNat_inj.mp
   simp [UInt64.toNat_ofNat]
+
+theorem UInt64.shiftRight_lit (x : UInt64) (k m : Nat) (h : 2 ^ (k % 64) = m) :
+    x >>> (OfNat.ofNat k : UInt64) = x / (OfNat.ofNat m : UInt64) := by
+  subst h
+  apply UInt64.toNat_inj.mp
+  have h1 : k % 18446744073709551616 % 64 = k % 64 := Nat.mod_mod_of_dvd k (by decide)
+  have h2 : 2 ^ (k % 64) < 18446744073709551616 :=
+    Nat.lt_of_lt_of_le (Nat.pow_lt_pow_right (by decide) (Nat.mod_lt k (by decide))) (by decide)
+  simp [UInt64.toNat_shiftRight, UInt64.toNat_div, UInt64.toNat_ofNat, Nat.shiftRight_eq_div_pow, h1,
+    Nat.mod_eq_of_lt h2]
 
 section
 variable (a b : UInt8) (c d : UInt16) (e f : UInt32) (g h : UInt64)

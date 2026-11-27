@@ -63,10 +63,17 @@ def findScrutinee (e : Expr) : Option Expr :=
 
 /-! Literal normal forms (see `UIntW.shiftLeft_lit`, `UIntW.ofNat_lit`):
 a scalar literal outside its width's range (the source may write
-`4294967297 : UInt32`, the IR records `1`) is reduced, and a shift by a literal
-amount becomes a multiplication by the power of two (the compiler turns
-`x * 256` into `x <<< 8`). Each step is an instance of a proved lemma whose
-side condition is `rfl` on closed natural numbers. -/
+`4294967297 : UInt32`, the IR records `1`) is reduced, a left shift by a
+literal amount becomes a multiplication by the power of two (the compiler
+turns `x * 256` into `x <<< 8`) and a right shift by a literal amount becomes
+a division by it (the compiler turns `x / 16` into `x >>> 4`). Each step is an
+instance of a proved lemma whose side condition is `rfl` on closed natural
+numbers. A literal on the left of a multiplication moves to the right
+(`mulLitLeftUIntW`, by `UIntW.mul_comm`), so `16 * x`, which the compiler also
+turns into a shift, meets `x * 16`. The compiler folds `x % 0`, `x / 1`,
+`x * 1` and `x + 0` to `x`, `x % 1`, `x * 0` and `0 / x` to `0`, and operands
+that are all literals to one literal; `arithmeticForms` lists the core lemmas
+and the core ground-evaluation simprocs that do the same to both sides. -/
 simproc_decl reduceUInt8Lit ((OfNat.ofNat _ : UInt8)) := fun e => do
   let_expr OfNat.ofNat _ n _ ← e | return .continue
   let some v ← Nat.fromExpr? n | return .continue
@@ -84,6 +91,22 @@ simproc_decl shiftLitUInt8 ((_ <<< _ : UInt8)) := fun e => do
   let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt8.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
     (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
   return .done { expr := rhs, proof? := some pf }
+simproc_decl shiftRightLitUInt8 ((_ >>> _ : UInt8)) := fun e => do
+  let_expr HShiftRight.hShiftRight _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 8)
+  let rhs ← mkAppM ``HDiv.hDiv #[x, toExpr (UInt8.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt8.shiftRight_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl mulLitLeftUInt8 ((_ * _ : UInt8)) := fun e => do
+  let_expr HMul.hMul _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← x | return .continue
+  let some _ ← Nat.fromExpr? n | return .continue
+  if y.isAppOfArity ``OfNat.ofNat 3 then return .continue
+  let rhs ← mkAppM ``HMul.hMul #[y, x]
+  return .done { expr := rhs, proof? := some (← mkAppM ``UInt8.mul_comm #[x, y]) }
 simproc_decl reduceUInt16Lit ((OfNat.ofNat _ : UInt16)) := fun e => do
   let_expr OfNat.ofNat _ n _ ← e | return .continue
   let some v ← Nat.fromExpr? n | return .continue
@@ -101,6 +124,22 @@ simproc_decl shiftLitUInt16 ((_ <<< _ : UInt16)) := fun e => do
   let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt16.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
     (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
   return .done { expr := rhs, proof? := some pf }
+simproc_decl shiftRightLitUInt16 ((_ >>> _ : UInt16)) := fun e => do
+  let_expr HShiftRight.hShiftRight _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 16)
+  let rhs ← mkAppM ``HDiv.hDiv #[x, toExpr (UInt16.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt16.shiftRight_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl mulLitLeftUInt16 ((_ * _ : UInt16)) := fun e => do
+  let_expr HMul.hMul _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← x | return .continue
+  let some _ ← Nat.fromExpr? n | return .continue
+  if y.isAppOfArity ``OfNat.ofNat 3 then return .continue
+  let rhs ← mkAppM ``HMul.hMul #[y, x]
+  return .done { expr := rhs, proof? := some (← mkAppM ``UInt16.mul_comm #[x, y]) }
 simproc_decl reduceUInt32Lit ((OfNat.ofNat _ : UInt32)) := fun e => do
   let_expr OfNat.ofNat _ n _ ← e | return .continue
   let some v ← Nat.fromExpr? n | return .continue
@@ -118,6 +157,22 @@ simproc_decl shiftLitUInt32 ((_ <<< _ : UInt32)) := fun e => do
   let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt32.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
     (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
   return .done { expr := rhs, proof? := some pf }
+simproc_decl shiftRightLitUInt32 ((_ >>> _ : UInt32)) := fun e => do
+  let_expr HShiftRight.hShiftRight _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 32)
+  let rhs ← mkAppM ``HDiv.hDiv #[x, toExpr (UInt32.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt32.shiftRight_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl mulLitLeftUInt32 ((_ * _ : UInt32)) := fun e => do
+  let_expr HMul.hMul _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← x | return .continue
+  let some _ ← Nat.fromExpr? n | return .continue
+  if y.isAppOfArity ``OfNat.ofNat 3 then return .continue
+  let rhs ← mkAppM ``HMul.hMul #[y, x]
+  return .done { expr := rhs, proof? := some (← mkAppM ``UInt32.mul_comm #[x, y]) }
 simproc_decl reduceUInt64Lit ((OfNat.ofNat _ : UInt64)) := fun e => do
   let_expr OfNat.ofNat _ n _ ← e | return .continue
   let some v ← Nat.fromExpr? n | return .continue
@@ -135,6 +190,36 @@ simproc_decl shiftLitUInt64 ((_ <<< _ : UInt64)) := fun e => do
   let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt64.shiftLeft_lit) x (mkRawNatLit k) (mkRawNatLit m)
     (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
   return .done { expr := rhs, proof? := some pf }
+simproc_decl shiftRightLitUInt64 ((_ >>> _ : UInt64)) := fun e => do
+  let_expr HShiftRight.hShiftRight _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← y | return .continue
+  let some k ← Nat.fromExpr? n | return .continue
+  let m := 2 ^ (k % 64)
+  let rhs ← mkAppM ``HDiv.hDiv #[x, toExpr (UInt64.ofNat m)]
+  let pf := mkApp4 (mkConst ``LeanGo.Validate.UInt64.shiftRight_lit) x (mkRawNatLit k) (mkRawNatLit m)
+    (mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Nat) (mkRawNatLit m))
+  return .done { expr := rhs, proof? := some pf }
+simproc_decl mulLitLeftUInt64 ((_ * _ : UInt64)) := fun e => do
+  let_expr HMul.hMul _ _ _ _ x y ← e | return .continue
+  let_expr OfNat.ofNat _ n _ ← x | return .continue
+  let some _ ← Nat.fromExpr? n | return .continue
+  if y.isAppOfArity ``OfNat.ofNat 3 then return .continue
+  let rhs ← mkAppM ``HMul.hMul #[y, x]
+  return .done { expr := rhs, proof? := some (← mkAppM ``UInt64.mul_comm #[x, y]) }
+
+/-- Lemmas and simprocs that bring compiler-rewritten arithmetic to one form,
+per width: the literal normal forms above, the folds of the compiler's
+constant folder, and core's evaluation of operations on literals. -/
+def arithmeticForms : Array Name := Id.run do
+  let mut out := #[]
+  for width in #["UInt8", "UInt16", "UInt32", "UInt64"] do
+    out := out.push (.str (.str (.str (.str .anonymous "LeanGo") "Validate") "Meta") ("shiftRightLit" ++ width))
+    out := out.push (.str (.str (.str (.str .anonymous "LeanGo") "Validate") "Meta") ("mulLitLeft" ++ width))
+    for name in #["mod_zero", "div_one", "mul_one", "add_zero", "zero_add", "mod_one", "zero_div", "mul_zero",
+        "reduceAdd", "reduceSub", "reduceMul", "reduceDiv", "reduceMod", "reduceAnd", "reduceOr", "reduceXor",
+        "reduceShiftLeft", "reduceShiftRight", "reduceNot"] do
+      out := out.push (.str (.str .anonymous width) name)
+  return out
 
 /-- One symbolic-evaluation pass. Join declarations are *not* unfolded here
 (`Code.eval_join` is not in `ir_simp`): `generalizeJoin` names each
@@ -143,7 +228,7 @@ jump's arguments, instead of being copied into (and simplified under) every
 enclosing closure. `withJoins := true` is the fallback for a join that sits
 under a binder and therefore cannot be generalized. -/
 def runSimp (consts : Array Name) (extra : Array Term) (withJoins := false) : TacticM Unit := do
-  let ids : Array Term := consts.map fun n => mkCIdent n
+  let ids : Array Term := (arithmeticForms ++ consts).map fun n => mkCIdent n
   let lemmas ← (ids ++ extra).mapM fun t => `(Lean.Parser.Tactic.simpLemma| $t:term)
   if withJoins then
     evalTactic (← `(tactic|

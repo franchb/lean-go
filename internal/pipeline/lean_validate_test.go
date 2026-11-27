@@ -69,6 +69,49 @@ func TestRequireProvesSmallExamples(t *testing.T) {
 	}
 }
 
+// The compiler's constant folder rewrites arithmetic before export
+// (docs/support-matrix.md, "Compiler rewrites"). Validation brings both sides
+// to one form, so each of these source functions is proved equal to its
+// rewritten IR.
+func TestValidationBridgesCompilerArithmetic(t *testing.T) {
+	requireValidate(t)
+	source := t.TempDir()
+	writeText(t, filepath.Join(source, "Forms.lean"), `namespace Forms
+def leftLiteral (x : UInt32) : UInt32 := 16 * x
+def powers (x : UInt64) : UInt64 := x / 2 + x / 1024 + x * 8
+def constant (x : UInt16) : UInt16 := x + (100 / 7 + 100 % 0)
+def zeros (x : UInt64) : UInt64 := x * 0 + x % 1 + x
+def identities (x : UInt8) : UInt8 := (x % 0) / 1 * 1 + 0
+def wrapped (x : UInt8) : UInt8 := x / 256 + 0 / x
+end Forms
+`)
+	roots := []string{"Forms.constant", "Forms.identities", "Forms.leftLiteral", "Forms.powers", "Forms.wrapped", "Forms.zeros"}
+	out := t.TempDir()
+	result, err := generateExample(t, validationExample{"forms", source, "Forms", roots}, out, &ValidationOptions{Mode: ValidateRequire})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The export must show the rewrites, or the test proves nothing about them.
+	ir := string(result.IR)
+	for _, want := range []string{`"UInt32.shiftLeft"`, `"UInt64.shiftRight"`, `"kind":"uint16","name":"114"`, `"UInt8.div"`} {
+		if !strings.Contains(ir, want) {
+			t.Errorf("the IR lacks %s: the compiler did not rewrite as expected", want)
+		}
+	}
+	for _, gone := range []string{`"UInt32.mul"`, `"UInt64.div"`, `"UInt64.mod"`, `"UInt16.div"`, `"UInt8.mod"`, `"UInt8.mul"`} {
+		if strings.Contains(ir, gone) {
+			t.Errorf("the IR still has %s", gone)
+		}
+	}
+	parsed, err := ParseValidationReport(result.Validation.ReportJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !parsed.Complete() || parsed.Summary.Roots != len(roots) {
+		t.Fatalf("%v", parsed.Unproved())
+	}
+}
+
 func readFiles(t *testing.T, dir string) map[string]string {
 	t.Helper()
 	out := map[string]string{}
