@@ -66,7 +66,9 @@ func Coverage(root string) ([]CoverageRow, error) {
 	type entry struct{ program, report string }
 	var entries []entry
 	for _, spec := range Packages {
-		entries = append(entries, entry{spec.Name(), spec.Validation()})
+		if spec.Validates() {
+			entries = append(entries, entry{spec.Name(), spec.Validation()})
+		}
 	}
 	formats, err := FormatNames(root)
 	if err != nil {

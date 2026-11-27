@@ -113,7 +113,7 @@ var generateOptions = []option{
 	{name: "out", values: 1, meta: "DIR", help: "Go package output directory"},
 	{name: "ir-output", values: 1, meta: "FILE", help: "separate producer IR output file"},
 	{name: "diagnostics", values: 1, choices: []string{"text", "json"}, meta: "text|json", help: "failure report format (default text)"},
-	{name: "mode", values: 1, choices: []string{"metered", "native"}, meta: "metered|native", help: "Go emission mode (default metered)"},
+	{name: "mode", values: 1, choices: []string{"metered", "native"}, meta: "metered|native", help: "Go emission mode (default native; metered adds resource budgets)"},
 	{name: "replace", help: "replace an existing differing generated package after success"},
 	{name: "no-cache", help: "build the producer from scratch instead of using the cache"},
 	{name: "strict-go", help: "refuse to run unless lean-go was built with the pinned Go release"},
@@ -187,7 +187,7 @@ func runGenerate(p *parsed) (result *pipeline.GenerateResult, err error) {
 var emitOptions = []option{
 	{name: "in", values: 1, meta: "FILE", help: "input extraction IR JSON file"},
 	{name: "out", values: 1, meta: "DIR", help: "output Go package directory (existing output must be identical)"},
-	{name: "mode", values: 1, choices: []string{"metered", "native"}, meta: "metered|native", help: "Go emission mode (default metered)"},
+	{name: "mode", values: 1, choices: []string{"metered", "native"}, meta: "metered|native", help: "Go emission mode (default native; metered adds resource budgets)"},
 	{name: "native-max-depth", values: 1, meta: "N", help: "native mode: nested calls allowed along a recursive call chain"},
 	{name: "replace", help: "replace an existing differing generated package"},
 }

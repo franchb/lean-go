@@ -36,7 +36,7 @@ func exampleNames(t *testing.T) []string {
 // extractedFiles are produced by the pipeline rather than rendered.
 func (f *Format) extractedFiles() []string {
 	out := []string{f.IRPath(), f.EvidencePath()}
-	for _, name := range []string{"api.go", "control.go", "manifest.json", "runtime.go", "schema.go"} {
+	for _, name := range []string{"functions.go", "manifest.json", "native.go", "types.go"} {
 		out = append(out, filepath.Join(f.ExtractedDir(), name))
 	}
 	return out

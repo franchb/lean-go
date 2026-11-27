@@ -10,8 +10,10 @@ header into:
 2. a proof contract (`proof/<Module>Contract.lean`, `proof-contract.json`) of
    expected propositions stated from the spec, and proofs of them
    (`proof/<Module>Proofs.lean`) produced by one fixed scheme;
-3. a Go package over `[]byte` on top of the extracted code that never panics,
-   never modifies or keeps the caller's slices, and returns typed errors;
+3. a Go package over `[]byte` on top of the code extracted in
+   [native mode](native-mode.md) (plain Go functions, no limits or budgets)
+   that never panics, never modifies or keeps the caller's slices, and
+   returns typed errors;
 4. generated Go property and fuzz tests, including a second, independent
    reading of the spec with `encoding/binary`.
 
@@ -92,8 +94,11 @@ go run ./cmd/lean-go-format generate -spec spec.json -out DIR
 ```
 
 `generate` renders the sources into a fresh temporary directory, runs the
-lean-go extractor and the proof checker there, and copies every file into
-`DIR`. Files of `DIR` it does not produce, such as a README or hand-written
+lean-go extractor in native mode and the proof checker there, checks that the
+extracted Go API has the names `lean.go` calls, and copies every file into
+`DIR`. `DIR/internal/extracted` is replaced as a whole (it must be a package
+lean-go generated), so files of an older metered extraction do not survive.
+Other files of `DIR` it does not produce, such as a README or hand-written
 tests, are left alone. `-sources-only` writes the generated sources without
 running Lean. `-repo` points at the lean-go checkout (default: the current
 directory). One format takes about 20 to 30 seconds.
@@ -101,8 +106,8 @@ directory). One format takes about 20 to 30 seconds.
 | Output | Produced by |
 | --- | --- |
 | `go.mod`, `proof-contract.json`, `source/`, `proof/`, `<name>/<name>.go`, `<name>/lean.go`, `<name>/<name>_gen_test.go` | the generator |
-| `internal/extracted/` (manifest and four Go files), `<name>.ir.json` | the extractor |
-| `proof-evidence.json` | the proof checker |
+| `internal/extracted/` (native manifest, `native.go`, `types.go`, `functions.go`), `<name>.ir.json` | the extractor |
+| `proof-evidence.json` (bound to the native manifest, `"generated_mode": "native"`) | the proof checker |
 
 The result is a standalone Go module that builds with Go alone.
 
@@ -129,8 +134,12 @@ input with capacity equal to its length. A short header gives
 checking that the length field describes the payload, and `PayloadLength(h)`
 returns the declared count.
 
-Each call validates and converts its arguments; `ErrInternal` wraps a failure
-of the extracted code (such as a resource limit) and indicates a bug.
+Each call converts its arguments and calls one extracted function: `Parse`,
+`Validate`, `Serialize` and `Classify` of the native package are plain total
+Go functions over Go structs, so there are no limits, budgets or input caps
+in the path, and a successful call allocates nothing. `ErrInternal` wraps an
+unexpected result of the extracted code and indicates a bug; it cannot occur
+for the tracked examples.
 
 ## What is proved
 
@@ -248,6 +257,48 @@ The generated `<name>_gen_test.go` checks, without Lean:
   `referenceDecoders`. The examples register decoders written from RFC 768,
   RFC 1035 and the original header demo.
 
+### Native against metered
+
+Until this release the adapters ran on the metered extraction. A repository
+test, without Lean, builds each example twice in one temporary module: the
+adapter over the tracked IR emitted in native mode, and the same adapter
+with the previous metered backend over the same IR emitted in metered mode
+(`internal/wireformat/meteredbackend_test.go`, kept only as this oracle). It
+compares `Parse` (header, consumed count, payload, error text, input left
+unchanged) on every length up to two bytes past the header, all-zero and
+all-ones inputs with every single bit flipped, 20,000 random inputs and
+20,000 valid encodings followed by random bytes; and `Validate`,
+`AppendSerialize`, `PayloadLength` and `AppendFrame` on every field at every
+bit boundary and 20,000 random headers:
+
+```sh
+go test -count=1 -run TestNativeAdapterMatchesMeteredAdapter ./internal/wireformat
+LEAN_GO_FORMATS_FUZZ=30s go test -count=1 -run TestNativeAdapterMatchesMeteredAdapter/dns ./internal/wireformat
+LEAN_GO_FORMATS_BENCH=1 go test -count=1 -v -run TestNativeAdapterMatchesMeteredAdapter/dns ./internal/wireformat
+```
+
+A 30-second run of each DNS fuzz target found no failure: `FuzzParse`
+1,360,625 executions, `FuzzRoundTrip` 1,377,473 and
+`FuzzNativeMatchesMetered` 1,926,722.
+
+DNS `Parse` followed by `AppendSerialize` of a 12-byte header, `-cpu 1`,
+median of five runs, Go 1.27.4, a shared 4-core Intel Xeon @ 2.10GHz (other
+work ran concurrently, so ratios mean more than absolute times).
+"Hand-written" is an `encoding/binary` codec with the same checks:
+
+| Adapter backend | Time | Allocations | / hand-written | / native |
+| --- | ---: | ---: | ---: | ---: |
+| native (this release) | 163.5 ns | 0 (0 B) | 5.1 | 1 |
+| metered (previous) | 11,808 ns | 186 (15,768 B) | 370 | 72 |
+| hand-written `encoding/binary` | 31.9 ns | 0 (0 B) | 1 | 0.20 |
+
+The native adapter is about 72 times faster than the metered one and
+allocates nothing. The remaining gap to the hand-written codec is not
+metering: a CPU profile puts most of the time in building and copying the
+`Wire`, `Header` and `ParseResult` values, Lean records of 12 or more scalar
+fields that Go passes through memory field by field, around the non-inlined
+`Parse` and `Serialize`.
+
 Repository tests in `internal/wireformat` check spec validation, that the
 tracked examples equal the generator's output, that each example passes its
 tests with Go alone, and that the generated header package agrees with
@@ -272,7 +323,9 @@ every lean-go package; see [proof contracts](proof-contracts.md). The
 contract is generated from the spec by the same tool that generates the
 proofs, so reviewers should read the contract and check that it says what
 the format requires. The adapter and the backend glue in `lean.go` only copy
-bytes and map results; the decisions come from the extracted functions.
+bytes and map results; the decisions come from the extracted functions. The
+evidence is bound to the native manifest, which records the digest of every
+extracted Go file.
 
 ## Code layout
 
@@ -280,8 +333,9 @@ bytes and map results; the decisions come from the extracted functions.
   strict decoding and validation.
 - `leanrt.go`: the runtime Lean. `leanproof.go`, `proofs.go`,
   `proofs_main.go`: the contract and the proofs.
-- `goadapter.go`: the adapter. `gobackend.go`: the glue for the extracted
-  package's typed API, the one file to replace for another emission mode.
-  `gotests.go`: the generated tests.
+- `goadapter.go`: the adapter. `gobackend.go`: `lean.go`, the glue for the
+  native extracted package, and `checkNativeAPI`, which compares the names it
+  uses with the manifest's `go_api`. `gotests.go`: the generated tests.
 - `pipeline.go`: `runPipeline`, the only function that calls the extractor
-  (`scripts/generate.py`) and the proof checker (`scripts/check_proofs.py`).
+  (in native mode) and the proof checker, both in-process through
+  `internal/pipeline`.

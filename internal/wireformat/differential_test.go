@@ -1,0 +1,424 @@
+package wireformat
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/franchb/lean-go/internal/pipeline"
+)
+
+// The native-backed adapter agrees with the previous metered-backed adapter.
+//
+// For each example the test builds one temporary module holding both: the
+// adapter the generator renders today over the tracked IR emitted in native
+// mode, and a copy of the same adapter with the previous backend
+// (backendMetered) over the same IR emitted in metered mode. A generated test
+// compares Parse, Validate, AppendSerialize and, for payload formats,
+// PayloadLength and AppendFrame on boundary and random inputs. No Lean is
+// needed: the IR is tracked.
+//
+// LEAN_GO_FORMATS_FUZZ=30s also fuzzes the comparison, and
+// LEAN_GO_FORMATS_BENCH=1 runs the DNS benchmarks (native-backed, metered-backed
+// and a hand-written encoding/binary codec), printing their output.
+
+const differentialTest = `package differential
+
+import (
+	"bytes"
+	"math/rand/v2"
+	"reflect"
+	"testing"
+
+	native "{{module}}/{{name}}"
+	metered "{{module}}/{{name}}metered"
+)
+
+type parsed struct {
+	h       native.Header
+	n       int
+	payload []byte
+	err     string
+}
+
+func errText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
+{{parse}}
+
+type appended struct {
+	out []byte
+	err string
+}
+
+func compareParse(t *testing.T, data []byte) {
+	t.Helper()
+	before := bytes.Clone(data)
+	a, b := parseNative(data), parseMetered(data)
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("Parse(% x): native %+v, metered %+v", data, a, b)
+	}
+	if !bytes.Equal(data, before) {
+		t.Fatalf("Parse modified its input")
+	}
+}
+
+func compareHeader(t *testing.T, h native.Header) {
+	t.Helper()
+	m := metered.Header(h)
+	if a, b := errText(native.Validate(h)), errText(metered.Validate(m)); a != b {
+		t.Fatalf("Validate(%+v): native %q, metered %q", h, a, b)
+	}
+	prefix := []byte{0xa5, 0x5a}
+	a, errA := native.AppendSerialize(bytes.Clone(prefix), h)
+	b, errB := metered.AppendSerialize(bytes.Clone(prefix), m)
+	if !bytes.Equal(a, b) || errText(errA) != errText(errB) {
+		t.Fatalf("AppendSerialize(%+v): native % x %v, metered % x %v", h, a, errA, b, errB)
+	}
+	if errA == nil {
+		compareParse(t, a[len(prefix):])
+	}
+	{{header}}
+}
+
+// value draws a field value biased towards bit boundaries.
+func value(r *rand.Rand, bits int) uint64 {
+	mask := uint64(1)<<bits - 1
+	if bits == 64 {
+		mask = ^uint64(0)
+	}
+	switch r.IntN(6) {
+	case 0:
+		return 0
+	case 1:
+		return mask
+	case 2:
+		k := 1 + r.IntN(bits)
+		return (uint64(1)<<k - 1) & mask
+	case 3:
+		k := r.IntN(bits)
+		return uint64(1) << k
+	case 4:
+		return uint64(r.IntN(17))
+	}
+	return r.Uint64() & mask
+}
+
+func randomHeader(r *rand.Rand) native.Header {
+	var h native.Header
+	v := reflect.ValueOf(&h).Elem()
+	for i := range v.NumField() {
+		f := v.Field(i)
+		f.SetUint(value(r, f.Type().Bits()))
+	}
+	return h
+}
+
+func TestNativeMatchesMetered(t *testing.T) {
+	r := rand.New(rand.NewPCG(1, {{seed}}))
+	// Boundary inputs: every length up to two bytes past the header, all
+	// zero and all ones, and every single bit set or cleared.
+	for n := 0; n <= native.HeaderSize+2; n++ {
+		for _, fill := range []byte{0x00, 0xff} {
+			compareParse(t, bytes.Repeat([]byte{fill}, n))
+		}
+	}
+	for bit := range native.HeaderSize * 8 {
+		for _, fill := range []byte{0x00, 0xff} {
+			data := bytes.Repeat([]byte{fill}, native.HeaderSize+8)
+			data[bit/8] ^= 0x80 >> (bit % 8)
+			compareParse(t, data)
+		}
+	}
+	// Field boundaries, then random headers.
+	var zero native.Header
+	compareHeader(t, zero)
+	v := reflect.ValueOf(zero)
+	for i := range v.NumField() {
+		bits := v.Field(i).Type().Bits()
+		for k := 0; k <= bits; k++ {
+			for _, x := range []uint64{uint64(1)<<k - 1, uint64(1) << k} {
+				var h native.Header
+				f := reflect.ValueOf(&h).Elem().Field(i)
+				f.SetUint(x)
+				compareHeader(t, h)
+			}
+		}
+	}
+	for range 20000 {
+		compareHeader(t, randomHeader(r))
+	}
+	// Random bytes, and valid encodings followed by random payload bytes.
+	for range 20000 {
+		data := make([]byte, r.IntN(native.HeaderSize+40))
+		for i := range data {
+			data[i] = byte(r.Uint32())
+		}
+		compareParse(t, data)
+		if out, err := native.AppendSerialize(nil, randomHeader(r)); err == nil {
+			compareParse(t, append(out, data...))
+		}
+	}
+}
+
+func FuzzNativeMatchesMetered(f *testing.F) {
+	f.Add(make([]byte, native.HeaderSize))
+	f.Add(bytes.Repeat([]byte{0xff}, native.HeaderSize+4))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		compareParse(t, data)
+		if len(data) >= 8 {
+			r := rand.New(rand.NewPCG(uint64(len(data)), uint64(data[0])|uint64(data[1])<<8|uint64(data[len(data)-1])<<16))
+			compareHeader(t, randomHeader(r))
+		}
+	})
+}
+`
+
+const parsePlain = `func parseNative(data []byte) parsed {
+	h, n, err := native.Parse(data)
+	return parsed{h: h, n: n, err: errText(err)}
+}
+
+func parseMetered(data []byte) parsed {
+	h, n, err := metered.Parse(data)
+	return parsed{h: native.Header(h), n: n, err: errText(err)}
+}`
+
+const parsePayload = `func parseNative(data []byte) parsed {
+	h, n, payload, err := native.Parse(data)
+	if payload != nil && cap(payload) != len(payload) {
+		panic("payload capacity exceeds its length")
+	}
+	return parsed{h: h, n: n, payload: payload, err: errText(err)}
+}
+
+func parseMetered(data []byte) parsed {
+	h, n, payload, err := metered.Parse(data)
+	return parsed{h: native.Header(h), n: n, payload: payload, err: errText(err)}
+}`
+
+const headerPayload = `a1, e1 := native.PayloadLength(h)
+	b1, f1 := metered.PayloadLength(m)
+	if a1 != b1 || errText(e1) != errText(f1) {
+		t.Fatalf("PayloadLength(%+v): native %d %v, metered %d %v", h, a1, e1, b1, f1)
+	}
+	for _, size := range []uint32{0, 1, a1 - 1, a1, a1 + 1} {
+		if size > 1<<16 {
+			continue
+		}
+		payload := bytes.Repeat([]byte{0x3c}, int(size))
+		c, e2 := native.AppendFrame(bytes.Clone(prefix), h, payload)
+		d, f2 := metered.AppendFrame(bytes.Clone(prefix), m, payload)
+		if !bytes.Equal(c, d) || errText(e2) != errText(f2) {
+			t.Fatalf("AppendFrame(%+v, %d bytes): native %v, metered %v", h, size, e2, f2)
+		}
+		if e2 == nil {
+			compareParse(t, c[len(prefix):])
+		}
+	}`
+
+// The DNS benchmarks: parse then serialize one header per iteration.
+const dnsBenchmark = `package differential
+
+import (
+	"encoding/binary"
+	"errors"
+	"testing"
+
+	native "{{module}}/dns"
+	metered "{{module}}/dnsmetered"
+)
+
+var message = []byte{0xab, 0xcd, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x07, 'e', 'x'}
+
+type header struct {
+	ID                             uint16
+	QR, Opcode, AA, TC, RD, RA, Rcode uint8
+	QD, AN, NS, AR                 uint16
+}
+
+var errZ = errors.New("dns: z nonzero")
+var errWide = errors.New("dns: field too wide")
+
+// A hand-written encoding/binary codec with the same checks.
+func parseHand(b []byte) (header, error) {
+	if len(b) < 12 {
+		return header{}, errors.New("dns: truncated")
+	}
+	flags := binary.BigEndian.Uint16(b[2:4])
+	if flags&0x0070 != 0 {
+		return header{}, errZ
+	}
+	return header{binary.BigEndian.Uint16(b[0:2]), uint8(flags >> 15), uint8(flags>>11) & 0xf, uint8(flags>>10) & 1,
+		uint8(flags>>9) & 1, uint8(flags>>8) & 1, uint8(flags>>7) & 1, uint8(flags) & 0xf,
+		binary.BigEndian.Uint16(b[4:6]), binary.BigEndian.Uint16(b[6:8]), binary.BigEndian.Uint16(b[8:10]), binary.BigEndian.Uint16(b[10:12])}, nil
+}
+
+func appendHand(dst []byte, h header) ([]byte, error) {
+	if h.QR > 1 || h.Opcode > 15 || h.AA > 1 || h.TC > 1 || h.RD > 1 || h.RA > 1 || h.Rcode > 15 {
+		return dst, errWide
+	}
+	flags := uint16(h.QR)<<15 | uint16(h.Opcode)<<11 | uint16(h.AA)<<10 | uint16(h.TC)<<9 | uint16(h.RD)<<8 | uint16(h.RA)<<7 | uint16(h.Rcode)
+	dst = binary.BigEndian.AppendUint16(dst, h.ID)
+	dst = binary.BigEndian.AppendUint16(dst, flags)
+	dst = binary.BigEndian.AppendUint16(dst, h.QD)
+	dst = binary.BigEndian.AppendUint16(dst, h.AN)
+	dst = binary.BigEndian.AppendUint16(dst, h.NS)
+	return binary.BigEndian.AppendUint16(dst, h.AR), nil
+}
+
+func TestHandMatchesNative(t *testing.T) {
+	h, _, err := native.Parse(message)
+	g, err2 := parseHand(message)
+	a, _ := native.AppendSerialize(nil, h)
+	b, _ := appendHand(nil, g)
+	if err != nil || err2 != nil || string(a) != string(b) || string(a) != string(message[:12]) {
+		t.Fatalf("% x vs % x: %v %v", a, b, err, err2)
+	}
+}
+
+func BenchmarkParseSerialize(b *testing.B) {
+	buf := make([]byte, 0, 64)
+	b.Run("native", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			h, _, err := native.Parse(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = native.AppendSerialize(buf[:0], h); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("metered", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			h, _, err := metered.Parse(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = metered.AppendSerialize(buf[:0], h); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("handwritten", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			h, err := parseHand(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = appendHand(buf[:0], h); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+`
+
+func goOutput(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.CommandContext(t.Context(), goBinary(), args...)
+	cmd.Dir, cmd.Env = dir, goEnv()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("go %v in %s: %v\n%s", args, dir, err, out)
+	}
+	return string(out)
+}
+
+func expand(text string, vars map[string]string) string {
+	for k, v := range vars {
+		text = strings.ReplaceAll(text, "{{"+k+"}}", v)
+	}
+	return text
+}
+
+func writeTree(t *testing.T, dir string, files map[string][]byte) {
+	t.Helper()
+	for name, data := range files {
+		path := filepath.Join(dir, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// differentialModule writes the two adapters and the comparison into dir.
+func differentialModule(t *testing.T, name, dir string) {
+	t.Helper()
+	f, err := Load(filepath.Join(examplesDir, name, "spec.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ir, err := os.ReadFile(filepath.Join(examplesDir, name, f.IRPath()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	files := map[string][]byte{}
+	for path, text := range f.Files() {
+		if path == "go.mod" || filepath.Dir(path) == f.AdapterDir() && !strings.HasSuffix(path, "_test.go") {
+			files[filepath.ToSlash(path)] = []byte(text)
+		}
+	}
+	for mode, sub := range map[string]string{"native": "internal/extracted", "metered": "internal/meteredextracted"} {
+		extracted, err := pipeline.Emit(ir, pipeline.EmitOptions{Mode: mode})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for file, data := range extracted {
+			if strings.HasSuffix(file, ".go") {
+				files[sub+"/"+file] = data
+			}
+		}
+	}
+	// The previous adapter: the same <name>.go with the metered backend.
+	rename := func(text string) []byte {
+		text = strings.Replace(text, "\npackage "+f.Name+"\n", "\npackage "+f.Name+"metered\n", 1)
+		return []byte(strings.Replace(text, f.ExtractedImport(), f.GoModulePath()+"/internal/meteredextracted", 1))
+	}
+	files[f.Name+"metered/"+f.Name+".go"] = rename(f.adapterGo())
+	files[f.Name+"metered/lean.go"] = rename(gofmt("lean.go", backendMetered(f)))
+	parse, header := parsePlain, ""
+	if f.Payload != nil {
+		parse, header = parsePayload, headerPayload
+	}
+	vars := map[string]string{"module": f.GoModulePath(), "name": f.Name, "parse": parse, "header": header, "seed": fmt.Sprint(len(name))}
+	files["differential/differential_test.go"] = []byte(gofmt("differential_test.go", expand(differentialTest, vars)))
+	if name == "dns" {
+		files["differential/bench_test.go"] = []byte(gofmt("bench_test.go", expand(dnsBenchmark, vars)))
+	}
+	writeTree(t, dir, files)
+}
+
+func TestNativeAdapterMatchesMeteredAdapter(t *testing.T) {
+	if testing.Short() {
+		t.Skip("builds three nested modules")
+	}
+	for _, name := range exampleNames(t) {
+		t.Run(name, func(t *testing.T) {
+			dir := filepath.Join(t.TempDir(), name)
+			differentialModule(t, name, dir)
+			runGo(t, dir, "vet", "./...")
+			runGo(t, dir, "test", "-count=1", "./...")
+			if fuzz := os.Getenv("LEAN_GO_FORMATS_FUZZ"); fuzz != "" {
+				t.Log(goOutput(t, dir, "test", "-run", "^$", "-fuzz", "^FuzzNativeMatchesMetered$", "-fuzztime", fuzz, "./differential"))
+			}
+			if os.Getenv("LEAN_GO_FORMATS_BENCH") != "" && name == "dns" {
+				t.Log(goOutput(t, dir, "test", "-run", "^$", "-bench", ".", "-benchmem", "-cpu", "1", "-count", "5", "./differential"))
+			}
+		})
+	}
+}

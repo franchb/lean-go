@@ -36,7 +36,7 @@ def check_demo(demo, cli, go, workspace, env, identity):
     package = deployed / spec.name
     ir = workspace / f'{spec.name}.ir.json'
     command = [str(cli), 'generate', '--source-dir', str(source / 'source'),
-               '--module', spec.module, '--out', str(package), '--ir-output', str(ir)]
+               '--module', spec.module, '--out', str(package), '--ir-output', str(ir), '--mode', 'metered']
     for root in spec.roots:
         command.extend(['--root', root])
     run(command, workspace, env)

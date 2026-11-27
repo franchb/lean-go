@@ -1,0 +1,55 @@
+{
+  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClampContract.bounded",
+      "name": "ClampProofs.bounded",
+      "statement": "∀ (value limit : UInt64), Clamp.clamp value limit ≤ limit"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClampContract.idempotent",
+      "name": "ClampProofs.idempotent",
+      "statement": "∀ (value limit : UInt64), Clamp.clamp (Clamp.clamp value limit) limit = Clamp.clamp value limit"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "ClampContract.preserves",
+      "name": "ClampProofs.preserves",
+      "statement": "∀ (value limit : UInt64), value ≤ limit → Clamp.clamp value limit = value"
+    }
+  ],
+  "contract_sha256": "fcfe62273f3dc4e23cd5c5f87ebb0a6e8b5e464f6d148cb540bca02eb0c1990d",
+  "generated_manifest_sha256": "4410c82a7c9f863c854a7aea8e5383e81ed7e85fcefa9fad0f88bc23ce1306cc",
+  "generated_mode": "native",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "Clamp",
+  "project_inputs": {
+    "proof/ClampContract.lean": "8cded06b63d5501dcb63a239f878de388a52861ca77ac8caf6c2f3a825c26d7c",
+    "proof/ClampProofs.lean": "9f371e869cb21fe693a600acd1975411aa7e32ce00a1a7df43bb560faf9e22d5",
+    "source/Clamp.lean": "86e818cb6fef89f81c399ac1375bde9984f884523a268ed72b8a963dadfcb90f",
+    "source/Clamp/Bounds.lean": "4b77e0660bb47c5806631b36b19e9c0d73b944dbb56a9bb3e246a6699a0c97c7"
+  },
+  "roots": [
+    "Clamp.clamp"
+  ],
+  "schema": "lean-go-proof-evidence/v1",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "a1cf66fde047cc6c88b48e2b2b18db1b4dff1f3e52c38935b3859e182091c875",
+    "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
+  }
+}

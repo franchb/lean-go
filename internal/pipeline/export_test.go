@@ -496,26 +496,29 @@ func TestEmitModes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	metered, err := Emit(data, EmitOptions{})
+	native, err := Emit(data, EmitOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	native, err := Emit(data, EmitOptions{Mode: "native"})
+	metered, err := Emit(data, EmitOptions{Mode: "metered"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(metered["api.go"]) == string(native[firstKey(native)]) && len(metered) == len(native) {
-		t.Fatal("native mode produced the metered package")
+		t.Fatal("metered mode produced the native package")
 	}
-	explicit, _ := Emit(data, EmitOptions{Mode: "metered"})
-	if string(explicit["control.go"]) != string(metered["control.go"]) {
-		t.Fatal("metered is not the default")
+	explicit, _ := Emit(data, EmitOptions{Mode: "native"})
+	if string(explicit["functions.go"]) != string(native["functions.go"]) || !strings.Contains(string(native["manifest.json"]), `"mode": "native"`) {
+		t.Fatal("native is not the default")
 	}
 	if _, err := Emit(data, EmitOptions{Mode: "fast"}); err == nil {
 		t.Fatal("unknown mode accepted")
 	}
-	if _, err := Emit(data, EmitOptions{NativeMaxDepth: 5}); err == nil {
+	if _, err := Emit(data, EmitOptions{Mode: "metered", NativeMaxDepth: 5}); err == nil {
 		t.Fatal("max depth without native mode accepted")
+	}
+	if _, err := Emit(data, EmitOptions{NativeMaxDepth: 5}); err != nil {
+		t.Fatalf("max depth with the default native mode: %v", err)
 	}
 }
 

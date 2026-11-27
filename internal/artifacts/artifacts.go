@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -17,28 +18,42 @@ import (
 )
 
 // Package is one generated package, its IR fixture and optional bound evidence.
-// Paths are slash-separated and relative to the checkout root.
+// Paths are slash-separated and relative to the checkout root. Mode is the
+// emission mode, always explicit so a change of the default leaves tracked
+// bytes alone.
 type Package struct {
 	Package, IR, SourceDir, Module string
 	Roots                          []string
 	Contract, Evidence             string
+	Mode                           string
 }
 
 // Validation is the tracked translation-validation report of the package's
 // IR, next to the IR file (x.ir.json becomes x.validation.json).
 func (p Package) Validation() string { return pipeline.DefaultReportPath(p.IR) }
 
+// Validates reports whether this entry writes the report: validation does not
+// depend on the emission mode, so only the first entry of an IR does.
+func (p Package) Validates() bool {
+	for _, other := range Packages {
+		if other.IR == p.IR {
+			return other.Package == p.Package
+		}
+	}
+	return true
+}
+
 // Name is the package directory's base name.
 func (p Package) Name() string { return filepath.Base(filepath.FromSlash(p.Package)) }
 
 func fixture(name, module string, roots ...string) Package {
-	return Package{Package: "generated/" + name, IR: "testdata/" + name + ".ir.json", SourceDir: "examples/modules", Module: module, Roots: roots}
+	return Package{Package: "generated/" + name, IR: "testdata/" + name + ".ir.json", SourceDir: "examples/modules", Module: module, Roots: roots, Mode: "metered"}
 }
 
 func demo(name, module string, roots ...string) Package {
 	base := "examples/proofs/" + name
 	return Package{Package: base + "/" + name, IR: base + "/" + name + ".ir.json", SourceDir: base + "/source",
-		Module: module, Roots: roots, Contract: base + "/proof-contract.json", Evidence: base + "/proof-evidence.json"}
+		Module: module, Roots: roots, Contract: base + "/proof-contract.json", Evidence: base + "/proof-evidence.json", Mode: "metered"}
 }
 
 // Packages are the tracked module packages, in scripts/regenerate_all.py order.
@@ -54,8 +69,13 @@ var Packages = []Package{
 	fixture("wide", "Wide", "Wide.compute"),
 	{Package: "generated/quota", IR: "testdata/quota.ir.json", SourceDir: "libraries/quota/source", Module: "Quota",
 		Roots:    []string{"Quota.create", "Quota.release", "Quota.remaining", "Quota.reserve"},
-		Contract: "libraries/quota/proof-contract.json", Evidence: "libraries/quota/proof-evidence.json"},
+		Contract: "libraries/quota/proof-contract.json", Evidence: "libraries/quota/proof-evidence.json", Mode: "metered"},
 	demo("clamp", "Clamp", "Clamp.clamp"),
+	// The native variant of clamp shares its source, contract and IR (the IR
+	// does not depend on the mode) and carries its own evidence.
+	{Package: "examples/proofs/clamp/clampnative", IR: "examples/proofs/clamp/clamp.ir.json", SourceDir: "examples/proofs/clamp/source",
+		Module: "Clamp", Roots: []string{"Clamp.clamp"}, Contract: "examples/proofs/clamp/proof-contract.json",
+		Evidence: "examples/proofs/clamp/native-proof-evidence.json", Mode: "native"},
 	demo("flags", "Flags", "Flags.clear", "Flags.contains", "Flags.set", "Flags.toggle"),
 	demo("words", "Words", "Words.high", "Words.low", "Words.narrow", "Words.pack", "Words.widen"),
 	demo("bytes", "ByteCodec", "ByteCodec.decodeBE", "ByteCodec.decodeLE", "ByteCodec.encodeBE", "ByteCodec.encodeLE"),
@@ -94,10 +114,14 @@ func at(root, relative string) string { return filepath.Join(root, filepath.From
 
 // GeneratePackage extracts one package (and its evidence) under stage.
 func GeneratePackage(root, stage string, spec Package, cache *pipeline.Cache) error {
+	var validation *pipeline.ValidationOptions
+	if spec.Validates() {
+		validation = trackedValidation(at(stage, spec.Validation()))
+	}
 	if _, err := pipeline.Generate(pipeline.GenerateOptions{
 		SourceDir: at(root, spec.SourceDir), Module: spec.Module, Roots: spec.Roots,
-		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Cache: cache, StrictGo: true,
-		Validation: trackedValidation(at(stage, spec.Validation())),
+		Out: at(stage, spec.Package), IROutput: at(stage, spec.IR), Emit: pipeline.EmitOptions{Mode: spec.Mode},
+		Cache: cache, StrictGo: true, Validation: validation,
 	}); err != nil {
 		return fmt.Errorf("%s: %w", spec.Package, err)
 	}
@@ -278,7 +302,10 @@ func Regenerate(root string, jobs int, cache *pipeline.Cache, progress io.Writer
 	fmt.Fprintf(progress, "regenerated %s\n", Frame.Evidence)
 	var artifacts []string
 	for _, spec := range Packages {
-		artifacts = append(artifacts, spec.Package, spec.IR, spec.Validation())
+		artifacts = append(artifacts, spec.Package, spec.IR)
+		if spec.Validates() {
+			artifacts = append(artifacts, spec.Validation())
+		}
 		if spec.Evidence != "" {
 			artifacts = append(artifacts, spec.Evidence)
 		}
@@ -295,6 +322,14 @@ func Regenerate(root string, jobs int, cache *pipeline.Cache, progress io.Writer
 		}
 		sort.Strings(names)
 		for _, file := range names {
+			// The extracted package is one artifact, so files of an
+			// earlier emission mode are removed with it.
+			if path.Dir(file) == "internal/extracted" {
+				if file == "internal/extracted/manifest.json" {
+					artifacts = append(artifacts, FormatsDir+"/"+name+"/internal/extracted")
+				}
+				continue
+			}
 			artifacts = append(artifacts, FormatsDir+"/"+name+"/"+file)
 		}
 	}

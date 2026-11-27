@@ -5,11 +5,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/franchb/lean-go/internal/moduleir"
+	"github.com/franchb/lean-go/internal/nativegen"
 )
 
 // Strict project contracts and generated-package binding for source proofs;
@@ -296,54 +298,125 @@ func pyReprValue(v any) string {
 	return "?"
 }
 
+// Generated package modes the checker binds.
+const (
+	MeteredMode = "metered"
+	NativeMode  = "native"
+)
+
+// maxNativeFiles bounds the Go file inventory a native manifest may list.
+const maxNativeFiles = 16
+
+// packageLayout returns the mode and generated Go file names that a manifest's
+// schema fixes. A metered package is always the four files in generatedGo. A
+// native package lists its files in generated_files; each must be a plain,
+// non-test Go file name, and the manifest must record mode "native" and the
+// current native generator.
+func packageLayout(manifest *Object) (string, []string, error) {
+	switch manifest.Values["schema"] {
+	case moduleir.ManifestSchema:
+		return MeteredMode, generatedGo, nil
+	case nativegen.ManifestSchema:
+	default:
+		return "", nil, unsupportedManifest(manifest.Values["schema"])
+	}
+	if manifest.Values["mode"] != NativeMode || manifest.Values["generator"] != nativegen.Version {
+		return "", nil, exportErrorf("native manifest must record mode %q and generator %s", NativeMode, nativegen.Version)
+	}
+	files, ok := manifest.Values["generated_files"].(*Object)
+	if !ok || len(files.Keys) < 1 || len(files.Keys) > maxNativeFiles {
+		return "", nil, exportError("generated file inventory differs")
+	}
+	names := make([]string, 0, len(files.Keys))
+	for _, name := range files.Keys {
+		if !plainGoFile(name) {
+			return "", nil, exportError("generated file inventory differs")
+		}
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return NativeMode, names, nil
+}
+
+func unsupportedManifest(found any) error {
+	return exportErrorf("unsupported generated manifest schema %s; regenerate the package with the current lean-go tool (%s or %s)",
+		pyReprValue(found), moduleir.ManifestSchema, nativegen.ManifestSchema)
+}
+
+// plainGoFile accepts lower-case portable names such as types.go.
+func plainGoFile(name string) bool {
+	stem, ok := strings.CutSuffix(name, ".go")
+	if !ok || stem == "" || strings.HasSuffix(stem, "_test") || stem[0] < 'a' || stem[0] > 'z' {
+		return false
+	}
+	for _, r := range stem {
+		if !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
 // VerifyManifest binds a generated package to the contract and returns its bytes.
 func VerifyManifest(path string, c *Contract, project *ProjectSnapshot, compiler Compiler) ([]byte, error) {
+	raw, _, err := verifyPackage(path, c, project, compiler)
+	return raw, err
+}
+
+// verifyPackage binds a metered or native generated package to the contract
+// and returns the manifest bytes and the package mode. The manifest schema
+// fixes the layout and the manifest lists the files; the directory must hold
+// exactly the manifest and those files, each matching its recorded SHA-256.
+func verifyPackage(path string, c *Contract, project *ProjectSnapshot, compiler Compiler) ([]byte, string, error) {
 	path, err := absolutePath(path)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	for _, name := range generatedGo {
 		if baseName(path) == name {
-			return nil, exportError("manifest must be separate from generated Go files")
+			return nil, "", exportError("manifest must be separate from generated Go files")
 		}
 	}
 	raw, err := readRegular(path, maxDocumentBytes)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	value, err := ParseJSON(raw)
 	if err != nil {
-		return nil, exportError(err.Error())
+		return nil, "", exportError(err.Error())
 	}
 	manifest, ok := value.(*Object)
-	if !ok || manifest.Values["schema"] != moduleir.ManifestSchema {
-		var found any
-		if ok {
-			found = manifest.Values["schema"]
-		}
-		return nil, exportErrorf("unsupported generated manifest schema %s; regenerate the package with the current lean-go tool (%s)", pyReprValue(found), moduleir.ManifestSchema)
+	if !ok {
+		return nil, "", unsupportedManifest(nil)
+	}
+	mode, names, err := packageLayout(manifest)
+	if err != nil {
+		return nil, "", err
+	}
+	if slices.Contains(names, baseName(path)) {
+		return nil, "", exportError("manifest must be separate from generated Go files")
 	}
 	program, ok := manifest.Values["program"].(*Object)
 	mismatch := exportError("generated program, roots or Lean pin differ from contract")
 	if !ok {
-		return nil, mismatch
+		return nil, "", mismatch
 	}
 	if _, hasRoot := program.Values["root"]; hasRoot {
-		return nil, mismatch
+		return nil, "", mismatch
 	}
 	for key, want := range map[string]string{"schema": Schema, "profile": Profile, "stage": Stage, "module": c.Module,
 		"lean_version": compiler.Version, "lean_commit": compiler.Commit} {
 		if program.Values[key] != want {
-			return nil, mismatch
+			return nil, "", mismatch
 		}
 	}
 	roots, ok := program.Values["roots"].([]any)
 	if !ok || len(roots) != len(c.Roots) {
-		return nil, mismatch
+		return nil, "", mismatch
 	}
 	for i, root := range c.Roots {
 		if roots[i] != root {
-			return nil, mismatch
+			return nil, "", mismatch
 		}
 	}
 	inputs, ok := program.Values["inputs"].(*Object)
@@ -364,18 +437,18 @@ func VerifyManifest(path string, c *Contract, project *ProjectSnapshot, compiler
 		same = same && recorded[key] == digest
 	}
 	if !same {
-		return nil, exportError("runtime source inventory or hashes differ from generated manifest")
+		return nil, "", exportError("runtime source inventory or hashes differ from generated manifest")
 	}
 	files, ok := manifest.Values["generated_files"].(*Object)
-	if !ok || !files.HasExactly(generatedGo...) {
-		return nil, exportError("generated file inventory differs")
+	if !ok || !files.HasExactly(names...) {
+		return nil, "", exportError("generated file inventory differs")
 	}
 	entries, err := os.ReadDir(filepath.Dir(path))
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	expected := map[string]bool{baseName(path): true}
-	for _, name := range generatedGo {
+	for _, name := range names {
 		expected[name] = true
 	}
 	found := map[string]bool{}
@@ -383,18 +456,18 @@ func VerifyManifest(path string, c *Contract, project *ProjectSnapshot, compiler
 		found[entry.Name()] = true
 	}
 	if !reflect.DeepEqual(found, expected) {
-		return nil, exportError("generated directory inventory differs")
+		return nil, "", exportError("generated directory inventory differs")
 	}
-	for _, name := range generatedGo {
+	for _, name := range names {
 		data, err := readRegular(filepath.Join(filepath.Dir(path), name), maxDocumentBytes)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		if files.Values[name] != Digest(data) {
-			return nil, exportErrorf("generated file hash differs: %s", name)
+			return nil, "", exportErrorf("generated file hash differs: %s", name)
 		}
 	}
-	return raw, nil
+	return raw, mode, nil
 }
 
 // Composition is a v2 contract binding one proof project to several packages.
@@ -516,13 +589,17 @@ func compositionInputs(c *Composition, bindings map[string]string, compiler Comp
 		if count > MaxFiles || size > MaxSourceBytes {
 			return nil, nil, exportError("combined proof project exceeds file or byte limit")
 		}
-		manifest, err := VerifyManifest(bindings[name], component, project, compiler)
+		manifest, mode, err := verifyPackage(bindings[name], component, project, compiler)
 		if err != nil {
 			return nil, nil, err
 		}
 		identity := NewObject()
 		identity.Set("contract_sha256", Digest(component.Raw))
 		identity.Set("generated_manifest_sha256", Digest(manifest))
+		// Metered components keep their original fields; other modes are recorded.
+		if mode != MeteredMode {
+			identity.Set("generated_mode", mode)
+		}
 		identity.Set("module", component.Module)
 		identity.Set("roots", component.Roots)
 		identities.Set(name, identity)

@@ -16,7 +16,7 @@ import (
 
 // EmitOptions selects how module IR becomes Go.
 type EmitOptions struct {
-	Mode           string // "metered" (default) or "native"
+	Mode           string // "native" (default) or "metered"
 	NativeMaxDepth int    // native mode only; 0 selects the default
 }
 
@@ -24,7 +24,7 @@ type EmitOptions struct {
 func Emit(data []byte, opts EmitOptions) (map[string][]byte, error) {
 	mode := opts.Mode
 	if mode == "" {
-		mode = "metered"
+		mode = "native"
 	}
 	if mode != "metered" && mode != "native" {
 		return nil, fmt.Errorf("unknown mode %q: use metered or native", mode)
