@@ -88,29 +88,34 @@ func natWiden(v1 uint32) uint64 {
 	return uint64(v1)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Words.high.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Words.high in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 3 && l.MaxSteps >= 4 && l.MaxFrames >= 1 && l.MaxSlots >= 4
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 3 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 4 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 4 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Words.low.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Words.low in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 2 && l.MaxFrames >= 1 && l.MaxSlots >= 2
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 2 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers2 reports whether valid limits l cover the static worst case of Words.narrow.
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Words.narrow in every dimension.
 func fastCovers2(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 2 && l.MaxFrames >= 1 && l.MaxSlots >= 2
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 2 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers3 reports whether valid limits l cover the static worst case of Words.pack.
+// fastCovers3 reports whether l is valid and covers the static worst case of
+// Words.pack in every dimension.
 func fastCovers3(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 5 && l.MaxSteps >= 6 && l.MaxFrames >= 1 && l.MaxSlots >= 7
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 5 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 6 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 7 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers4 reports whether valid limits l cover the static worst case of Words.widen.
+// fastCovers4 reports whether l is valid and covers the static worst case of
+// Words.widen in every dimension.
 func fastCovers4(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 2 && l.MaxFrames >= 1 && l.MaxSlots >= 2
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 2 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -173,7 +178,7 @@ func fastRun(entry int, args []*node, l Limits) (*node, bool) {
 // RunHigh invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunHigh(a0 uint64, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0 := a0
 		return natHigh(x0), nil
 	}
@@ -191,7 +196,7 @@ func RunHigh(a0 uint64, l Limits) (uint32, error) {
 // RunLow invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunLow(a0 uint64, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0 := a0
 		return natLow(x0), nil
 	}
@@ -209,7 +214,7 @@ func RunLow(a0 uint64, l Limits) (uint32, error) {
 // RunNarrow invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunNarrow(a0 uint64, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers2(l) {
+	if fastCovers2(l) {
 		x0 := a0
 		return natNarrow(x0), nil
 	}
@@ -227,7 +232,7 @@ func RunNarrow(a0 uint64, l Limits) (uint32, error) {
 // RunPack invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunPack(a0 uint32, a1 uint32, l Limits) (uint64, error) {
-	if checkLimits(l) == nil && fastCovers3(l) {
+	if fastCovers3(l) {
 		x0 := a0
 		x1 := a1
 		return natPack(x0, x1), nil
@@ -246,7 +251,7 @@ func RunPack(a0 uint32, a1 uint32, l Limits) (uint64, error) {
 // RunWiden invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunWiden(a0 uint32, l Limits) (uint64, error) {
-	if checkLimits(l) == nil && fastCovers4(l) {
+	if fastCovers4(l) {
 		x0 := a0
 		return natWiden(x0), nil
 	}

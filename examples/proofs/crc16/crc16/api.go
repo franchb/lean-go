@@ -126,9 +126,10 @@ func natUpdateByte(v1 uint16, v2 uint8) uint16 {
 	return natStep(natStep(natStep(natStep(natStep(natStep(natStep(natStep(v1 ^ (uint16(v2) << 8)))))))))
 }
 
-// fastCovers2 reports whether valid limits l cover the static worst case of Crc16.updateByte.
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Crc16.updateByte in every dimension.
 func fastCovers2(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 60 && l.MaxSteps >= 85 && l.MaxFrames >= 2 && l.MaxSlots >= 78
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 60 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 85 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 78 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -290,7 +291,7 @@ func RunUpdate(state uint16, data []byte, l Limits) (uint16, error) {
 // RunUpdateByte invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunUpdateByte(a0 uint16, a1 uint8, l Limits) (uint16, error) {
-	if checkLimits(l) == nil && fastCovers2(l) {
+	if fastCovers2(l) {
 		x0 := a0
 		x1 := a1
 		return natUpdateByte(x0, x1), nil

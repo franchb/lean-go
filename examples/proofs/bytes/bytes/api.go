@@ -217,48 +217,59 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putUInt8(v uint8) *node {
 	n := a.next()
-	*n = node{typ: 3, scalar8: v, size: 1, depth: 1}
+	n.typ, n.scalar8, n.size, n.depth = 3, v, 1, 1
 	return n
 }
 
 // fastPut1 builds the nodes of x in a.
 func fastPut1(a *fastArena, x natByteQuad) *node {
 	n := a.next()
+	n.typ, n.tag = 1, 0
 	f := a.take(4)
 	f[0] = a.putUInt8(x.B0)
 	f[1] = a.putUInt8(x.B1)
 	f[2] = a.putUInt8(x.B2)
 	f[3] = a.putUInt8(x.B3)
-	*n = node{typ: 1, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab1 holds the 5 nodes of a ByteQuad value.
+type fastSlab1 struct {
+	nodes  [5]node
+	fields [4]*node
+}
+
 // fastOut1 converts x into fresh nodes.
 func fastOut1(x natByteQuad) *node {
-	s := uint64(5)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab1)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut1(&a, x)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of ByteCodec.decodeBE.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// ByteCodec.decodeBE in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 5 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 13 && l.MaxSteps >= 15 && l.MaxFrames >= 1 && l.MaxSlots >= 18
+	return 5 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 13 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 15 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 18 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of ByteCodec.decodeLE.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// ByteCodec.decodeLE in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 5 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 13 && l.MaxSteps >= 15 && l.MaxFrames >= 1 && l.MaxSlots >= 18
+	return 5 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 13 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 15 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 18 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers2 reports whether valid limits l cover the static worst case of ByteCodec.encodeBE.
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// ByteCodec.encodeBE in every dimension.
 func fastCovers2(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 11 && l.MaxSteps >= 12 && l.MaxFrames >= 1 && l.MaxSlots >= 12
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 11 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 12 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 12 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers3 reports whether valid limits l cover the static worst case of ByteCodec.encodeLE.
+// fastCovers3 reports whether l is valid and covers the static worst case of
+// ByteCodec.encodeLE in every dimension.
 func fastCovers3(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 11 && l.MaxSteps >= 12 && l.MaxFrames >= 1 && l.MaxSlots >= 12
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 11 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 12 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 12 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -308,7 +319,7 @@ func fastRun(entry int, args []*node, l Limits) (*node, bool) {
 // RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunDecodeBE(a0 ByteQuad, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0, ok0 := fastIn1(a0.v.n)
 		if ok0 {
 			return natDecodeBE(x0), nil
@@ -328,7 +339,7 @@ func RunDecodeBE(a0 ByteQuad, l Limits) (uint32, error) {
 // RunDecodeLE invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunDecodeLE(a0 ByteQuad, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0, ok0 := fastIn1(a0.v.n)
 		if ok0 {
 			return natDecodeLE(x0), nil
@@ -348,7 +359,7 @@ func RunDecodeLE(a0 ByteQuad, l Limits) (uint32, error) {
 // RunEncodeBE invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunEncodeBE(a0 uint32, l Limits) (ByteQuad, error) {
-	if checkLimits(l) == nil && fastCovers2(l) {
+	if fastCovers2(l) {
 		x0 := a0
 		return ByteQuad{v: Value{fastOut1(natEncodeBE(x0))}}, nil
 	}
@@ -366,7 +377,7 @@ func RunEncodeBE(a0 uint32, l Limits) (ByteQuad, error) {
 // RunEncodeLE invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunEncodeLE(a0 uint32, l Limits) (ByteQuad, error) {
-	if checkLimits(l) == nil && fastCovers3(l) {
+	if fastCovers3(l) {
 		x0 := a0
 		return ByteQuad{v: Value{fastOut1(natEncodeLE(x0))}}, nil
 	}

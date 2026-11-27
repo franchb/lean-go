@@ -237,73 +237,90 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putBool(v bool) *node {
 	n := a.next()
-	tag := 0
+	n.typ, n.size, n.depth = 1, 1, 1
 	if v {
-		tag = 1
+		n.tag = 1
 	}
-	*n = node{typ: 1, tag: tag, size: 1, depth: 1}
 	return n
 }
 func (a *fastArena) putUInt64(v uint64) *node {
 	n := a.next()
-	*n = node{typ: 4, scalar64: v, size: 1, depth: 1}
+	n.typ, n.scalar64, n.size, n.depth = 4, v, 1, 1
 	return n
 }
 
 // fastPut3 builds the nodes of x in a.
 func fastPut3(a *fastArena, x natState) *node {
 	n := a.next()
+	n.typ, n.tag = 3, 0
 	f := a.take(2)
 	f[0] = a.putUInt64(x.Capacity)
 	f[1] = a.putUInt64(x.Used)
-	*n = node{typ: 3, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab3 holds the 3 nodes of a Quota.State value.
+type fastSlab3 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
 // fastOut3 converts x into fresh nodes.
 func fastOut3(x natState) *node {
-	s := uint64(3)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab3)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut3(&a, x)
 }
 
 // fastPut2 builds the nodes of x in a.
 func fastPut2(a *fastArena, x natOutcome) *node {
 	n := a.next()
+	n.typ, n.tag = 2, 0
 	f := a.take(2)
 	f[0] = fastPut3(a, x.State)
 	f[1] = a.putBool(x.Accepted)
-	*n = node{typ: 2, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab2 holds the 5 nodes of a Quota.Outcome value.
+type fastSlab2 struct {
+	nodes  [5]node
+	fields [4]*node
+}
+
 // fastOut2 converts x into fresh nodes.
 func fastOut2(x natOutcome) *node {
-	s := uint64(5)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut2(&a, x)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Quota.create.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Quota.create in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 3 && l.MaxAllocations >= 2 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 3
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 3 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 3 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Quota.release.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Quota.release in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 4 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 5 && l.MaxSteps >= 9 && l.MaxFrames >= 1 && l.MaxSlots >= 11
+	return 4 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 5 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 9 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 11 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers2 reports whether valid limits l cover the static worst case of Quota.remaining.
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Quota.remaining in every dimension.
 func fastCovers2(l Limits) bool {
-	return l.MaxNodes >= 3 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 2 && l.MaxSteps >= 5 && l.MaxFrames >= 1 && l.MaxSlots >= 6
+	return 3 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 5 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 6 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers3 reports whether valid limits l cover the static worst case of Quota.reserve.
+// fastCovers3 reports whether l is valid and covers the static worst case of
+// Quota.reserve in every dimension.
 func fastCovers3(l Limits) bool {
-	return l.MaxNodes >= 4 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 6 && l.MaxSteps >= 10 && l.MaxFrames >= 1 && l.MaxSlots >= 12
+	return 4 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 6 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 10 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 12 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -361,7 +378,7 @@ func fastRun(entry int, args []*node, l Limits) (*node, bool) {
 // RunCreate invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunCreate(a0 uint64, l Limits) (State, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0 := a0
 		return State{v: Value{fastOut3(natCreate(x0))}}, nil
 	}
@@ -379,7 +396,7 @@ func RunCreate(a0 uint64, l Limits) (State, error) {
 // RunRelease invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunRelease(a0 State, a1 uint64, l Limits) (Outcome, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0, ok0 := fastIn3(a0.v.n)
 		x1 := a1
 		if ok0 {
@@ -400,7 +417,7 @@ func RunRelease(a0 State, a1 uint64, l Limits) (Outcome, error) {
 // RunRemaining invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunRemaining(a0 State, l Limits) (uint64, error) {
-	if checkLimits(l) == nil && fastCovers2(l) {
+	if fastCovers2(l) {
 		x0, ok0 := fastIn3(a0.v.n)
 		if ok0 {
 			return natRemaining(x0), nil
@@ -420,7 +437,7 @@ func RunRemaining(a0 State, l Limits) (uint64, error) {
 // RunReserve invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunReserve(a0 State, a1 uint64, l Limits) (Outcome, error) {
-	if checkLimits(l) == nil && fastCovers3(l) {
+	if fastCovers3(l) {
 		x0, ok0 := fastIn3(a0.v.n)
 		x1 := a1
 		if ok0 {

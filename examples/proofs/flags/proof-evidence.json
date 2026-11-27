@@ -79,7 +79,7 @@
     }
   ],
   "contract_sha256": "9e7848aed7edaaf624ba641a8e82d007689c969b4941437960ceaff4fad8780c",
-  "generated_manifest_sha256": "bc064332b9a55a7d84245d89d19cbbe30cfacd577f608984ce583aaad521b16c",
+  "generated_manifest_sha256": "97f2922d386c60834c13a4200e013e330bf377982a9f206aa0660e93f9237d10",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Flags",

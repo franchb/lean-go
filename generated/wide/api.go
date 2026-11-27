@@ -268,22 +268,22 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putBool(v bool) *node {
 	n := a.next()
-	tag := 0
+	n.typ, n.size, n.depth = 1, 1, 1
 	if v {
-		tag = 1
+		n.tag = 1
 	}
-	*n = node{typ: 1, tag: tag, size: 1, depth: 1}
 	return n
 }
 func (a *fastArena) putUInt64(v uint64) *node {
 	n := a.next()
-	*n = node{typ: 3, scalar64: v, size: 1, depth: 1}
+	n.typ, n.scalar64, n.size, n.depth = 3, v, 1, 1
 	return n
 }
 
 // fastPut2 builds the nodes of x in a.
 func fastPut2(a *fastArena, x natResults) *node {
 	n := a.next()
+	n.typ, n.tag = 2, 0
 	f := a.take(13)
 	f[0] = a.putUInt64(x.Sum)
 	f[1] = a.putUInt64(x.Difference)
@@ -298,21 +298,28 @@ func fastPut2(a *fastArena, x natResults) *node {
 	f[10] = a.putUInt64(x.Wrapped)
 	f[11] = a.putUInt64(x.Above53)
 	f[12] = a.putUInt64(x.Mixed)
-	*n = node{typ: 2, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab2 holds the 14 nodes of a Wide.Results value.
+type fastSlab2 struct {
+	nodes  [14]node
+	fields [13]*node
+}
+
 // fastOut2 converts x into fresh nodes.
 func fastOut2(x natResults) *node {
-	s := uint64(14)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut2(&a, x)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Wide.compute.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Wide.compute in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 14 && l.MaxAllocations >= 17 && l.MaxSteps >= 20 && l.MaxFrames >= 2 && l.MaxSlots >= 22
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 14 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 17 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 20 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 22 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root natively when l covers its bound and every argument converts.
@@ -334,7 +341,7 @@ func fastRun(args []*node, l Limits) (*node, bool) {
 // RunTyped invokes the selected Lean root through Run and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunTyped(a0 uint64, a1 uint64, l Limits) (Results, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0 := a0
 		x1 := a1
 		return Results{v: Value{fastOut2(natCompute(x0, x1))}}, nil

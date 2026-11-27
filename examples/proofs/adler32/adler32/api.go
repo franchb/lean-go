@@ -205,36 +205,45 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putUInt32(v uint32) *node {
 	n := a.next()
-	*n = node{typ: 0, scalar: v, size: 1, depth: 1}
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
 	return n
 }
 
 // fastPut1 builds the nodes of x in a.
 func fastPut1(a *fastArena, x natState) *node {
 	n := a.next()
+	n.typ, n.tag = 1, 0
 	f := a.take(2)
 	f[0] = a.putUInt32(x.Low)
 	f[1] = a.putUInt32(x.High)
-	*n = node{typ: 1, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab1 holds the 3 nodes of a Adler32.State value.
+type fastSlab1 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
 // fastOut1 converts x into fresh nodes.
 func fastOut1(x natState) *node {
-	s := uint64(3)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab1)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut1(&a, x)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Adler32.checksum.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Adler32.checksum in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 3 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 3 && l.MaxSteps >= 5 && l.MaxFrames >= 1 && l.MaxSlots >= 6
+	return 3 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 3 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 5 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 6 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Adler32.initial.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Adler32.initial in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 3 && l.MaxAllocations >= 3 && l.MaxSteps >= 4 && l.MaxFrames >= 1 && l.MaxSlots >= 3
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 3 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 3 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 4 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 3 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -272,7 +281,7 @@ func (b *budget) scalarWork(steps, allocations uint64) bool {
 // RunChecksum invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunChecksum(a0 State, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0, ok0 := fastIn1(a0.v.n)
 		if ok0 {
 			return natChecksum(x0), nil
@@ -292,7 +301,7 @@ func RunChecksum(a0 State, l Limits) (uint32, error) {
 // RunInitial invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunInitial(l Limits) (State, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		return State{v: Value{fastOut1(natInitial())}}, nil
 	}
 	out, err := RunRoot("Adler32.initial", []Value{}, l)

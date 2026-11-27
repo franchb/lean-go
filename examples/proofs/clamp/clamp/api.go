@@ -90,9 +90,10 @@ func natClamp(v1 uint64, v2 uint64) uint64 {
 	return natCap(v1, v2)
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Clamp.clamp.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Clamp.clamp in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 5 && l.MaxFrames >= 2 && l.MaxSlots >= 6
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 5 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 6 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root natively when l covers its bound and every argument converts.
@@ -114,7 +115,7 @@ func fastRun(args []*node, l Limits) (*node, bool) {
 // RunTyped invokes the selected Lean root through Run and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0 := a0
 		x1 := a1
 		return natClamp(x0, x1), nil

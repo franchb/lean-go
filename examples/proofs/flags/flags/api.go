@@ -97,24 +97,28 @@ func natToggle(v1 uint32, v2 uint32) uint32 {
 	return v1 ^ v2
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Flags.clear.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Flags.clear in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 2 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 4
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 4 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Flags.contains.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Flags.contains in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 2 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 4
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 4 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers2 reports whether valid limits l cover the static worst case of Flags.set.
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Flags.set in every dimension.
 func fastCovers2(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 2 && l.MaxFrames >= 1 && l.MaxSlots >= 3
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 3 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers3 reports whether valid limits l cover the static worst case of Flags.toggle.
+// fastCovers3 reports whether l is valid and covers the static worst case of
+// Flags.toggle in every dimension.
 func fastCovers3(l Limits) bool {
-	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 2 && l.MaxFrames >= 1 && l.MaxSlots >= 3
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 3 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -180,7 +184,7 @@ func fastRun(entry int, args []*node, l Limits) (*node, bool) {
 // RunClear invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunClear(a0 uint32, a1 uint32, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0 := a0
 		x1 := a1
 		return natClear(x0, x1), nil
@@ -199,7 +203,7 @@ func RunClear(a0 uint32, a1 uint32, l Limits) (uint32, error) {
 // RunContains invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunContains(a0 uint32, a1 uint32, l Limits) (bool, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0 := a0
 		x1 := a1
 		return natContains(x0, x1), nil
@@ -218,7 +222,7 @@ func RunContains(a0 uint32, a1 uint32, l Limits) (bool, error) {
 // RunSet invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunSet(a0 uint32, a1 uint32, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers2(l) {
+	if fastCovers2(l) {
 		x0 := a0
 		x1 := a1
 		return natSet(x0, x1), nil
@@ -237,7 +241,7 @@ func RunSet(a0 uint32, a1 uint32, l Limits) (uint32, error) {
 // RunToggle invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunToggle(a0 uint32, a1 uint32, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers3(l) {
+	if fastCovers3(l) {
 		x0 := a0
 		x1 := a1
 		return natToggle(x0, x1), nil

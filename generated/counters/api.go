@@ -249,78 +249,95 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putBool(v bool) *node {
 	n := a.next()
-	tag := 0
+	n.typ, n.size, n.depth = 1, 1, 1
 	if v {
-		tag = 1
+		n.tag = 1
 	}
-	*n = node{typ: 1, tag: tag, size: 1, depth: 1}
 	return n
 }
 func (a *fastArena) putUInt32(v uint32) *node {
 	n := a.next()
-	*n = node{typ: 0, scalar: v, size: 1, depth: 1}
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
 	return n
 }
 func (a *fastArena) putUInt64(v uint64) *node {
 	n := a.next()
-	*n = node{typ: 4, scalar64: v, size: 1, depth: 1}
+	n.typ, n.scalar64, n.size, n.depth = 4, v, 1, 1
 	return n
 }
 
 // fastPut2 builds the nodes of x in a.
 func fastPut2(a *fastArena, x natCount) *node {
 	n := a.next()
+	n.typ, n.tag = 2, 0
 	f := a.take(1)
 	f[0] = a.putUInt32(x.Value)
-	*n = node{typ: 2, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab2 holds the 2 nodes of a Counters.Count value.
+type fastSlab2 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
 // fastOut2 converts x into fresh nodes.
 func fastOut2(x natCount) *node {
-	s := uint64(2)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut2(&a, x)
 }
 
 // fastPut3 builds the nodes of x in a.
 func fastPut3(a *fastArena, x natState) *node {
 	n := a.next()
+	n.typ, n.tag = 3, 0
 	f := a.take(3)
 	f[0] = fastPut2(a, x.Count)
 	f[1] = a.putUInt64(x.Total)
 	f[2] = a.putBool(x.Enabled)
-	*n = node{typ: 3, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab3 holds the 5 nodes of a Counters.State value.
+type fastSlab3 struct {
+	nodes  [5]node
+	fields [4]*node
+}
+
 // fastOut3 converts x into fresh nodes.
 func fastOut3(x natState) *node {
-	s := uint64(5)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab3)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut3(&a, x)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Counters.advance.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Counters.advance in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 7 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 4 && l.MaxSteps >= 14 && l.MaxFrames >= 2 && l.MaxSlots >= 19
+	return 7 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 4 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 14 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 19 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Counters.initial.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Counters.initial in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 3 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 2 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 5
+	return 3 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 5 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers2 reports whether valid limits l cover the static worst case of Counters.read.
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Counters.read in every dimension.
 func fastCovers2(l Limits) bool {
-	return l.MaxNodes >= 5 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 5
+	return 5 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 5 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
-// fastCovers4 reports whether valid limits l cover the static worst case of Counters.total.
+// fastCovers4 reports whether l is valid and covers the static worst case of
+// Counters.total in every dimension.
 func fastCovers4(l Limits) bool {
-	return l.MaxNodes >= 5 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 5
+	return 5 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 5 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root with function id entry natively when it is eligible,
@@ -382,7 +399,7 @@ func fastRun(entry int, args []*node, l Limits) (*node, bool) {
 // RunAdvance invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunAdvance(a0 State, a1 Count, l Limits) (State, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0, ok0 := fastIn3(a0.v.n)
 		x1, ok1 := fastIn2(a1.v.n)
 		if ok0 && ok1 {
@@ -403,7 +420,7 @@ func RunAdvance(a0 State, a1 Count, l Limits) (State, error) {
 // RunInitial invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunInitial(a0 uint32, a1 uint64, a2 bool, l Limits) (State, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0 := a0
 		x1 := a1
 		x2 := a2
@@ -423,7 +440,7 @@ func RunInitial(a0 uint32, a1 uint64, a2 bool, l Limits) (State, error) {
 // RunRead invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunRead(a0 State, l Limits) (uint32, error) {
-	if checkLimits(l) == nil && fastCovers2(l) {
+	if fastCovers2(l) {
 		x0, ok0 := fastIn3(a0.v.n)
 		if ok0 {
 			return natRead(x0), nil
@@ -443,7 +460,7 @@ func RunRead(a0 State, l Limits) (uint32, error) {
 // RunTotal invokes its selected Lean root through RunRoot and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunTotal(a0 State, l Limits) (uint64, error) {
-	if checkLimits(l) == nil && fastCovers4(l) {
+	if fastCovers4(l) {
 		x0, ok0 := fastIn3(a0.v.n)
 		if ok0 {
 			return natTotal(x0), nil

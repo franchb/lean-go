@@ -21,7 +21,7 @@
     }
   ],
   "contract_sha256": "f076f6ac42270ab55cb2fa639a2a4ee53ef084c0df83d743be28415e5e7ab548",
-  "generated_manifest_sha256": "8aec7b9943bf2b1a80aafdeb15e01e8db5e4d67f9c2f7a84fd14714b8e60165c",
+  "generated_manifest_sha256": "c08bc5aed874fc6b90404b2c030b6856b6a578eecf61813112eb80e6c8369c75",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Adler32",

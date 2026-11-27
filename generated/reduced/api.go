@@ -175,30 +175,38 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putUInt32(v uint32) *node {
 	n := a.next()
-	*n = node{typ: 0, scalar: v, size: 1, depth: 1}
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
 	return n
 }
 
 // fastPut2 builds the nodes of x in a.
 func fastPut2(a *fastArena, x natCount) *node {
 	n := a.next()
+	n.typ, n.tag = 2, 0
 	f := a.take(1)
 	f[0] = a.putUInt32(x.Value)
-	*n = node{typ: 2, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab2 holds the 2 nodes of a Reduced.Count value.
+type fastSlab2 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
 // fastOut2 converts x into fresh nodes.
 func fastOut2(x natCount) *node {
-	s := uint64(2)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut2(&a, x)
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Reduced.run.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Reduced.run in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 9 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 2 && l.MaxAllocations >= 21 && l.MaxSteps >= 55 && l.MaxFrames >= 3 && l.MaxSlots >= 64
+	return 9 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 2 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 21 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 55 <= l.MaxSteps && l.MaxSteps <= 4194304 && 3 <= l.MaxFrames && l.MaxFrames <= 8192 && 64 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root natively when l covers its bound and every argument converts.
@@ -232,7 +240,7 @@ func fastRun(args []*node, l Limits) (*node, bool) {
 // RunTyped invokes the selected Lean root through Run and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunTyped(a0 bool, a1 Count, a2 Count, a3 Count, a4 Count, l Limits) (Count, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0 := a0
 		x1, ok1 := fastIn2(a1.v.n)
 		x2, ok2 := fastIn2(a2.v.n)

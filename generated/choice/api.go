@@ -162,26 +162,33 @@ func fastPut1(a *fastArena, x natSignal) *node {
 	n := a.next()
 	switch x.tag {
 	case 0:
-		*n = node{typ: 1, tag: 0}
+		n.typ, n.tag = 1, 0
 	case 1:
-		*n = node{typ: 1, tag: 1}
+		n.typ, n.tag = 1, 1
 	default:
-		*n = node{typ: 1, tag: 2}
+		n.typ, n.tag = 1, 2
 	}
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab1 holds the 1 nodes of a Choice.Signal value.
+type fastSlab1 struct {
+	nodes  [1]node
+	fields [0]*node
+}
+
 // fastOut1 converts x into fresh nodes.
 func fastOut1(x natSignal) *node {
-	s := uint64(1)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab1)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut1(&a, x)
 }
 
-// fastCovers0 reports whether valid limits l cover the static worst case of Choice.rotate.
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Choice.rotate in every dimension.
 func fastCovers0(l Limits) bool {
-	return l.MaxNodes >= 1 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 4
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 4 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root natively when l covers its bound and every argument converts.
@@ -199,7 +206,7 @@ func fastRun(args []*node, l Limits) (*node, bool) {
 // RunTyped invokes the selected Lean root through Run and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunTyped(a0 Signal, l Limits) (Signal, error) {
-	if checkLimits(l) == nil && fastCovers0(l) {
+	if fastCovers0(l) {
 		x0, ok0 := fastIn1(a0.v.n)
 		if ok0 {
 			return Signal{v: Value{fastOut1(natRotate(x0))}}, nil

@@ -391,93 +391,121 @@ func fastMeasure(n *node) {
 }
 func (a *fastArena) putBool(v bool) *node {
 	n := a.next()
-	tag := 0
+	n.typ, n.size, n.depth = 1, 1, 1
 	if v {
-		tag = 1
+		n.tag = 1
 	}
-	*n = node{typ: 1, tag: tag, size: 1, depth: 1}
 	return n
 }
 func (a *fastArena) putUInt32(v uint32) *node {
 	n := a.next()
-	*n = node{typ: 0, scalar: v, size: 1, depth: 1}
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
 	return n
 }
 
 // fastPut2 builds the nodes of x in a.
 func fastPut2(a *fastArena, x natCount) *node {
 	n := a.next()
+	n.typ, n.tag = 2, 0
 	f := a.take(1)
 	f[0] = a.putUInt32(x.Value)
-	*n = node{typ: 2, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab2 holds the 2 nodes of a Joins.Count value.
+type fastSlab2 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
 // fastOut2 converts x into fresh nodes.
 func fastOut2(x natCount) *node {
-	s := uint64(2)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut2(&a, x)
 }
 
 // fastPut4 builds the nodes of x in a.
 func fastPut4(a *fastArena, x natNested) *node {
 	n := a.next()
+	n.typ, n.tag = 4, 0
 	f := a.take(1)
 	f[0] = fastPut2(a, x.Count)
-	*n = node{typ: 4, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab4 holds the 3 nodes of a Joins.Nested value.
+type fastSlab4 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
 // fastOut4 converts x into fresh nodes.
 func fastOut4(x natNested) *node {
-	s := uint64(3)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab4)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut4(&a, x)
 }
 
 // fastPut3 builds the nodes of x in a.
 func fastPut3(a *fastArena, x natEnabled) *node {
 	n := a.next()
+	n.typ, n.tag = 3, 0
 	f := a.take(1)
 	f[0] = a.putBool(x.Value)
-	*n = node{typ: 3, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab3 holds the 2 nodes of a Joins.Enabled value.
+type fastSlab3 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
 // fastOut3 converts x into fresh nodes.
 func fastOut3(x natEnabled) *node {
-	s := uint64(2)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab3)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut3(&a, x)
 }
 
 // fastPut5 builds the nodes of x in a.
 func fastPut5(a *fastArena, x natState) *node {
 	n := a.next()
+	n.typ, n.tag = 5, 0
 	f := a.take(4)
 	f[0] = fastPut2(a, x.Count)
 	f[1] = fastPut4(a, x.Nested)
 	f[2] = fastPut3(a, x.Enabled)
 	f[3] = a.putUInt32(x.Raw)
-	*n = node{typ: 5, tag: 0, fields: f}
+	n.fields = f
 	fastMeasure(n)
 	return n
 }
 
+// fastSlab5 holds the 9 nodes of a Joins.State value.
+type fastSlab5 struct {
+	nodes  [9]node
+	fields [8]*node
+}
+
 // fastOut5 converts x into fresh nodes.
 func fastOut5(x natState) *node {
-	s := uint64(9)
-	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	s := new(fastSlab5)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
 	return fastPut5(&a, x)
 }
 
-// fastCovers1 reports whether valid limits l cover the static worst case of Joins.update.
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Joins.update in every dimension.
 func fastCovers1(l Limits) bool {
-	return l.MaxNodes >= 12 && l.MaxDepth >= 4 && l.MaxOutputNodes >= 9 && l.MaxAllocations >= 13 && l.MaxSteps >= 49 && l.MaxFrames >= 2 && l.MaxSlots >= 70
+	return 12 <= l.MaxNodes && l.MaxNodes <= 65536 && 4 <= l.MaxDepth && l.MaxDepth <= 4096 && 9 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 13 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 49 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 70 <= l.MaxSlots && l.MaxSlots <= 1048576
 }
 
 // fastRun runs the root natively when l covers its bound and every argument converts.
@@ -503,7 +531,7 @@ func fastRun(args []*node, l Limits) (*node, bool) {
 // RunTyped invokes the selected Lean root through Run and its existing limits, or natively
 // when the limits cover the root's static worst case.
 func RunTyped(a0 State, a1 Count, a2 bool, l Limits) (State, error) {
-	if checkLimits(l) == nil && fastCovers1(l) {
+	if fastCovers1(l) {
 		x0, ok0 := fastIn5(a0.v.n)
 		x1, ok1 := fastIn2(a1.v.n)
 		x2 := a2
