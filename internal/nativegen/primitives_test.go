@@ -111,7 +111,6 @@ func TestPrimitiveSemantics(t *testing.T) {
 	t.Log(goCommand(t, dir, "test", "-count=1", "-v", "."))
 }
 
-
 // The reference model follows the Lean definitions over natural numbers:
 // arithmetic modulo 2^w, shift counts modulo w, x / 0 = 0, x % 0 = x, and
 // conversions modulo 2^target.

@@ -287,7 +287,8 @@ A 30-second run of each DNS fuzz target found no failure: `FuzzParse`
 median of five runs, Go 1.27.4, a shared 4-core Intel Xeon @ 2.10GHz (other
 work ran concurrently, so ratios mean more than absolute times).
 "Hand-written" is an `encoding/binary` codec with the same checks; "before"
-is the previous release, measured in the same session (raw samples:
+is `lean-go-nativegen/v1` with the earlier adapter, measured in the same
+session (raw samples:
 [wire-format-bench.txt](research/data/wire-format-bench.txt)):
 
 | Example | Native | Hand-written | Native / hand-written | Before | Before / hand-written | Metered (modulegen v19) |
@@ -304,7 +305,7 @@ The metered generator `lean-go-modulegen/v20` runs every root of these
 examples on its [fast path](research/extraction-modules.md#metered-fast-path)
 (native code, used when the limits cover the root's static worst case).
 Measured with the same benchmark, ten samples each from two alternating
-runs of the previous release (commit `da2b025`) and of v20 in one session
+runs of the previous generator (v19, commit `da2b025`) and of v20 in one session
 (raw samples: [metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
 
 | Example | Metered v19 | Metered v20 | Native (same session) |

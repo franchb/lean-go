@@ -63,4 +63,3 @@ func (m *model) emitFold(w *bytes.Buffer, f *funcInfo) {
 	}
 	fmt.Fprintf(w, "func %s(state %s, data []byte) (%s, error) {\nfor _, b := range data {\nnext, err := %s(0, state, b)\nif err != nil {\nreturn %s, err\n}\nstate = next\n}\nreturn state, nil\n}\n", f.exported, typ, typ, step.callName, m.zero(f.decl.Result))
 }
-

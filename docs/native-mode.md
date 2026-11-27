@@ -279,7 +279,7 @@ root without recursion or recursive types runs native code when the limits
 cover its static worst case
 ([metered fast path](research/extraction-modules.md#metered-fast-path)), as
 Numbers and Quota do with the default limits. The same harness, run back to
-back for the previous release (commit `da2b025`) and for v20 in one session
+back for the previous generator (v19, commit `da2b025`) and for v20 in one session
 (medians of five; raw samples:
 [metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
 

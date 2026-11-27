@@ -64,7 +64,8 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   emitter's code when the caller's limits cover its worst case, computed per
   limit from the state machine's own accounting; otherwise, and for any
   malformed argument, the unchanged state machine runs, so results and
-  errors are the same. Measured in one session against the previous release:
+  errors are the same. Measured in one session against the previous generator
+  (`lean-go-modulegen/v19`, commit `da2b025`):
   DNS parse plus serialize through the metered adapter 11,688 ns to 3,169 ns
   (186 to 46 allocations), UDP 6,388 ns to 2,679 ns, the demo header
   4,265 ns to 1,853 ns, Numbers 1,096 ns to 418.6 ns, Quota reserve

@@ -147,6 +147,12 @@ on the state machine. A scalar root whose bound exceeds the caps of
 `DefaultLimits` (an exponential call tree) keeps the exactly metered scalar
 entry point of earlier releases.
 
+One case is slower than before. A scalar root on the fast path no longer has
+that scalar entry point, so with limits below its bound it now runs on the
+state machine, where v19 ran metered native code. Results and errors are
+unchanged; only callers that pass limits tighter than the root's static
+worst case are affected.
+
 The strict IR decoder rejects malformed Unicode, duplicate/unknown/missing/null
 fields and trailing input. Independent validation checks lexical scopes, types,
 exhaustiveness, source metadata and exact function/type closure. Limits include
