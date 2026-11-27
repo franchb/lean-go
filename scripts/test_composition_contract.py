@@ -35,6 +35,10 @@ class CompositionTests(unittest.TestCase):
         self.prove = mock.patch.object(check_proofs, 'prove', return_value=[])
         self.check = self.prove.start()
         self.addCleanup(self.prove.stop)
+        # Rebuilding the packages needs Lean; these protocol tests stand in for it.
+        rebuild = mock.patch.object(check_proofs, 'rebuild_package')
+        self.rebuild = rebuild.start()
+        self.addCleanup(rebuild.stop)
 
     def run_check(self, mode='--output', output=None):
         args = ['--contract', str(self.contract), mode, str(output or self.output)]

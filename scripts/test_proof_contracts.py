@@ -67,6 +67,10 @@ class ContractFixture(unittest.TestCase):
         for name in GENERATED:
             (self.manifest_path.parent / name).write_bytes(('package extracted // ' + name).encode())
         self.write_manifest()
+        # Rebuilding the package needs Lean; protocol tests stand in for it.
+        rebuild = mock.patch.object(proofs, 'rebuild_package')
+        self.rebuild = rebuild.start()
+        self.addCleanup(rebuild.stop)
 
     def write_contract(self, document=None):
         self.contract_path.write_text(json.dumps(self.document if document is None else document))
@@ -365,7 +369,8 @@ class EvidenceProtocolTests(ContractFixture):
         evidence = json.loads(raw)
         self.assertEqual((evidence['lean_version'], evidence['lean_commit']), self.compiler)
         _, project = self.project()
-        self.assertEqual(evidence['schema'], 'lean-go-proof-evidence/v1')
+        self.assertEqual(evidence['schema'], 'lean-go-proof-evidence/v3')
+        self.rebuild.assert_called_with(self.manifest_path, self.project()[0])
         self.assertEqual(evidence['contract_sha256'], sha(self.contract_path.read_bytes()))
         self.assertEqual(evidence['project_inputs'], {name: sha(data) for name, data in project.inputs.items()})
         self.assertTrue({'scripts/diagnostics.py', 'scripts/source_locations.py',
@@ -453,28 +458,44 @@ class EvidenceProtocolTests(ContractFixture):
         cache.write_text('stale compiled proof')
         contract, project = self.project()
         commands = []
+        built = []
         def fake_run(command, workspace, env):
             commands.append(command)
-            self.assertNotEqual(workspace, self.root)
-            self.assertFalse((workspace / 'lakefile.lean').exists())
-            self.assertFalse((workspace / '.lake').exists())
-            for relative, data in project.modules.values():
-                self.assertEqual((workspace / relative).read_bytes(), data)
             self.assertNotIn('LEAN_PATH', env)
             self.assertNotIn('LAKE_HOME', env)
             self.assertEqual(env['ELAN_TOOLCHAIN'], self.compiler.toolchain)
+            if command[1] == '--run':
+                # The checker is staged after the build, outside the workspace.
+                checker, lib = Path(command[2]), Path(command[3])
+                self.assertTrue(built and not workspace.is_relative_to(built[0]) and checker.parent == workspace)
+                self.assertEqual(checker.read_bytes(), proofs.tool_snapshot()[proofs.CHECKER])
+                self.assertEqual(lib, built[0] / '.lake/build/lib/lean')
+                self.assertEqual(command[4:], [*sorted(project.modules), '--', *contract.claims[0]])
+                return json.dumps(self.sample_claims())
+            self.assertNotEqual(workspace, self.root)
+            built[:] = [workspace]
+            self.assertFalse((workspace / 'lakefile.lean').exists())
+            self.assertFalse((workspace / proofs.CHECKER).exists())
+            if 'build' not in command:
+                self.assertFalse((workspace / '.lake').exists())
+            for relative, data in project.modules.values():
+                self.assertEqual((workspace / relative).read_bytes(), data)
             (workspace / 'lake-manifest.json').write_text('{"packages":[]}')
             if command[-1] == '--version':
                 return f'Lean (version {self.compiler.version}, test, commit {self.compiler.commit}, Release)'
-            if command[-1].endswith('.lean'):
-                (workspace / 'claims.json').write_text(json.dumps(self.sample_claims()))
+            for module in command[command.index('build') + 1:]:
+                olean = workspace / '.lake/build/lib/lean' / (module.replace('.', '/') + '.olean')
+                olean.parent.mkdir(parents=True, exist_ok=True)
+                olean.write_text('olean ' + module)
             return ''
         with mock.patch.object(proofs, 'run', side_effect=fake_run), \
                 mock.patch.object(proofs.shutil, 'which', side_effect=lambda name: name), \
                 mock.patch.dict(os.environ, {'LEAN_PATH': '/poison', 'LAKE_HOME': '/poison'}):
             self.assertEqual(proofs.prove(contract, project, proofs.tool_snapshot(), self.compiler), self.sample_claims())
-        self.assertEqual(len(commands), 4)
-        self.assertIn('build', commands[2])
+        # Versions, the runtime modules alone, every module, then the checker.
+        self.assertEqual(len(commands), 5)
+        self.assertEqual(commands[2][1:], ['build', 'Example'])
+        self.assertEqual(commands[3][1:], ['build', 'Example', 'ExampleContract', 'ExampleProofs'])
 
     def test_staged_input_and_dependency_changes_are_rejected(self):
         contract, project = self.project()
@@ -486,6 +507,7 @@ class EvidenceProtocolTests(ContractFixture):
                     return f'Lean (version {self.compiler.version}, test, commit {self.compiler.commit}, Release)'
                 if 'build' in command:
                     data = '{"packages":[{"name":"unexpected"}]}' if target == 'lake-manifest.json' else 'changed input'
+                    (workspace / target).parent.mkdir(parents=True, exist_ok=True)
                     (workspace / target).write_text(data)
                 return ''
             with self.subTest(target=target), mock.patch.object(proofs, 'run', side_effect=fake_run), \
