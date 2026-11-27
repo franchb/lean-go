@@ -22,8 +22,9 @@ func TestRejectedRuntimeBoundariesPreserveOutput(t *testing.T) {
 		"recursive_override": {"@[noinline] def f (_ : Bool) : Bool := true\npartial def f._unsafe_rec (b : Bool) : Bool :=\n  match b with | true => false | false => f._unsafe_rec true\ndef run (b : Bool) : Bool := f b\n",
 			"recursive implementation|repeated compilation"},
 		"polymorphic": {"def run {α : Type} (x : α) : α := x\n", "polymorph|type|Type|universe"},
-		"division":    {"def run (x : UInt32) : UInt32 := x / 3\n", "primitive|Primitive|Unsupported|unsupported|extern source dependency|provenance"},
-		"sorry_proof": {"theorem forged : False := by sorry\ndef run (_ : Bool) : Bool := False.elim forged\n", "axiom|proof|Unsupported|unsupported|Missing pure|missing pure"},
+		// Unsigned division is admitted; division of natural numbers is not.
+		"natural_division": {"def run (x : Nat) : Nat := x / 3\n", "primitive|Primitive|Unsupported|unsupported|extern source dependency|provenance"},
+		"sorry_proof":      {"theorem forged : False := by sorry\ndef run (_ : Bool) : Bool := False.elim forged\n", "axiom|proof|Unsupported|unsupported|Missing pure|missing pure"},
 		"local_csimp": {"def original (_ : Bool) : Bool := true\ndef replacement (_ : Bool) : Bool := false\ntheorem forged : original = replacement := by sorry\nsection\nattribute [local csimp] forged\n@[noinline] def run (x : Bool) : Bool := original x\nend\n",
 			"axiom|sorry|rewrite|proof"},
 		"scoped_csimp": {"def original (_ : Bool) : Bool := true\ndef replacement (_ : Bool) : Bool := false\ntheorem forged : original = replacement := by sorry\nnamespace RewriteScope\nattribute [scoped csimp] forged\nend RewriteScope\nopen scoped RewriteScope\n@[noinline] def run (x : Bool) : Bool := original x\n",
