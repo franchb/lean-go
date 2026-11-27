@@ -290,7 +290,7 @@ work ran concurrently, so ratios mean more than absolute times).
 is the previous release, measured in the same session (raw samples:
 [wire-format-bench.txt](research/data/wire-format-bench.txt)):
 
-| Example | Native | Hand-written | Native / hand-written | Before | Before / hand-written | Metered |
+| Example | Native | Hand-written | Native / hand-written | Before | Before / hand-written | Metered (modulegen v19) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | DNS | 106.6 ns | 31.0 ns | 3.4 | 160.4 ns | 5.1 | 10,914 ns (186 allocations) |
 | UDP | 36.5 ns | 7.7 ns | 4.7 | 42.1 ns | 5.3 | 6,109 ns (112 allocations) |
@@ -299,6 +299,27 @@ is the previous release, measured in the same session (raw samples:
 Native and hand-written allocate nothing. UDP's "before" ratio uses the
 8.0 ns hand-written time of an earlier run in the same session; the
 hand-written sample of the "before" run itself was disturbed (11.1 ns).
+
+The metered generator `lean-go-modulegen/v20` runs every root of these
+examples on its [fast path](research/extraction-modules.md#metered-fast-path)
+(native code, used when the limits cover the root's static worst case).
+Measured with the same benchmark, ten samples each from two alternating
+runs of the previous release (commit `da2b025`) and of v20 in one session
+(raw samples: [metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
+
+| Example | Metered v19 | Metered v20 | Native (same session) |
+| --- | ---: | ---: | ---: |
+| DNS | 11,688 ns (186 allocations) | 3,169 ns (46 allocations) | 106.7 ns |
+| UDP | 6,388 ns (112 allocations) | 2,679 ns (40 allocations) | 37.5 ns |
+| demo header | 4,265 ns (76 allocations) | 1,853 ns (28 allocations) | 20.5 ns |
+
+The roots themselves now allocate one or two blocks for their result:
+timed apart (medians of five, with other jobs running), DNS `RunParse`
+takes 476 ns (2 allocations, 1,136 bytes) and `RunSerialize` 453 ns (1
+allocation), most of it allocating and clearing the 14 or 13 result
+nodes. The rest of the metered time is in the adapter's conversions:
+`NewWire` and `NewHeader` build one node per field (659 and 702 ns, 14
+allocations each), and every field is read back through an accessor.
 
 The remaining gap is not in the extracted code. A CPU profile of the DNS
 benchmark puts about 2% of the time in `extracted.Parse` and

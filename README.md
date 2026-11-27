@@ -151,17 +151,24 @@ a form the producer rejects; [diagnostics](docs/diagnostics.md) say where.
 - **Metered** (`--mode metered`): the same IR compiled to an explicit-stack
   state machine over boxed values, with seven resource budgets per call.
   Choose it when the package processes untrusted recursive input and must
-  bound its work.
+  bound its work. A root without recursion runs native code instead when
+  the limits cover its statically computed worst case, with the same
+  results and errors ([metered fast path](docs/research/extraction-modules.md#metered-fast-path)).
 
 Measured in [native mode, Benchmarks](docs/native-mode.md#benchmarks): every
 native workload is within 1.1x of a hand-written Go transliteration of the
-same Lean source, and metered mode is 7.1 to 285 times slower than native.
+same Lean source. Metered mode was 7.1 to 285 times slower than native; with
+the fast path, Numbers and Quota measured 15 to 113 times slower in one
+session (Numbers 418.6 ns against 1,096 ns before, Quota reserve 237.7 ns
+against 463.7 ns), while recursive Trees and the byte folds stay 6 to 13
+times slower.
 A better algorithm still wins: `hash/adler32` takes 30.9 µs on 64 KiB
 against 114.8 µs for the native Adler-32, whose Lean source reduces after
 every byte. Record-heavy code is further off: for the DNS header, native
 parse plus serialize takes 106.6 ns against 31.0 ns for a hand-written
 `encoding/binary` codec, about 3.4 times slower (UDP 4.7, the demo header
-2.3), and metered takes 10,914 ns. The gap is Go copying 12-field structs
+2.3), and metered takes 3,169 ns with the fast path (11,688 ns before, in
+the same session). The native gap is Go copying 12-field structs
 through memory at the by-value API boundaries, not the extracted code
 ([wire formats](docs/wire-formats.md#native-against-metered)).
 
