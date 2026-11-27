@@ -279,7 +279,7 @@ func TestDiagnosticsLeanAssertions(t *testing.T) {
 	t.Run("custom_csimp_is_explicit_source_audit_rejection", func(t *testing.T) {
 		item := reject(t, map[string]string{"Example.lean": csimp}, "Example", "run", "")
 		location := obj(item["location"])
-		if item["code"] != "source_audit" || item["declaration"] != "original" || item["compiler_form"] != "csimp" ||
+		if item["stage"] != "admission" || item["code"] != "source_audit" || item["declaration"] != "original" || item["compiler_form"] != "csimp" ||
 			!strings.Contains(str2(item["message"]), "Unsupported historical compiler rewrite: original -> replacement via replacement_eq") ||
 			location["path"] != "Example.lean" || location["declaration"] != "original" || obj(location["start"])["line"] != 1.0 {
 			t.Fatal(item)
@@ -313,7 +313,7 @@ func TestDiagnosticsLeanAssertions(t *testing.T) {
 	t.Run("unsupported_constructor_field_has_its_known_declaration_range", func(t *testing.T) {
 		item := reject(t, map[string]string{"Example.lean": "inductive Choice where\n  | number (x : UInt32)\n  | fn (f : UInt32 → UInt32)\ndef run (x : Choice) : Choice := x\n"}, "Example", "run", "")
 		location := obj(item["location"])
-		if item["code"] != "unsupported_type" || item["declaration"] != "Choice.fn" || location["path"] != "Example.lean" ||
+		if item["stage"] != "admission" || item["code"] != "unsupported_type" || item["declaration"] != "Choice.fn" || location["path"] != "Example.lean" ||
 			location["declaration"] != "Choice.fn" || obj(location["start"])["line"] != 3.0 || obj(location["start"])["column"] != 4.0 {
 			t.Fatal(item)
 		}
