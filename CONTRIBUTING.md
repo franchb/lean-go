@@ -23,16 +23,18 @@ go test -count=1 ./...
 ```
 
 `go test` uses the tracked generated packages and needs no Lean; it took
-about 2.5 minutes on a shared 4-core machine, most of it in `integration`.
+about 3 minutes on a shared 4-core machine, most of it in `integration` and
+`internal/modulegen`.
 Tests that run Lean are enabled by environment variables (`LEAN_GO_MODULES`,
 `LEAN_GO_NATIVE`, `LEAN_GO_REGENERATE`, `LEAN_GO_PROOFS`, `LEAN_GO_QUOTA`,
 `LEAN_GO_FORMATS`, `LEAN_GO_DIFFERENTIAL`, `LEAN_GO_VALIDATE`,
 `LEAN_GO_PARITY`); the Linux extraction job in
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) sets all of them and
 shows the exact steps. With every variable set, run `go test -p 1` so that
-one Lean build runs at a time; the whole suite then takes about an hour on a
-4-core machine. Run the ones that cover your change and report in the pull
-request which checks you ran and which you could not.
+one Lean build runs at a time; the whole suite then took about 40 minutes on
+a 4-core machine with a warm producer cache. Run the ones that cover your
+change and report in the pull request which checks you ran and which you
+could not.
 
 The developer harnesses are subcommands of `go run ./cmd/lean-go-dev` (`help`
 lists them). After a change to the command line or the proof demos, run the
@@ -57,9 +59,10 @@ It produces every artifact in a fresh temporary tree, replaces tracked copies
 only after all of them succeeded, and ends with `N of M artifacts changed`; a
 second run reports `0 of M`. A run on an unchanged checkout (120 artifacts,
 two jobs, warm producer cache) took about 3 minutes on a shared 4-core
-machine. Each validation process is capped at 4096 MiB and the DNS example
-reaches that cap; on a machine short of memory, use `--jobs 1`. `go run ./cmd/lean-go regenerate --coverage` prints the
-validation coverage table, which must match the one in
+machine. Each validation process is capped at 4096 MiB; the largest tracked
+program peaks at about 1.7 GB. On a machine short of memory, use `--jobs 1`.
+`go run ./cmd/lean-go regenerate --coverage` prints the validation coverage
+table, which must match the one in
 [translation-validation.md](docs/research/translation-validation.md#9-coverage).
 Review the changed source, IR, manifest and evidence together. Source bytes
 are hashed, so keep repository text in LF form.

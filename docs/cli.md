@@ -223,6 +223,15 @@ ordinary `.lean` sources and cannot contain symlinks. Existing source admission,
 import restrictions and resource limits are unchanged; see
 [the supported subset](getting-started.md).
 
+The symlink rule covers paths as well as files. No existing component of the
+source directory, of the package output directory, or of the contract,
+manifest and evidence paths given to `check-proofs` may be a symbolic link, so
+a project reached through a linked directory is rejected; give the real path
+instead. On macOS, `/tmp` and `/var` are links into `/private`: name
+`/private/tmp/...` or work below your home directory. CI covers Linux and
+Windows only; the macOS consequence follows from the rule and has not been run
+there.
+
 ```sh
 lean-go generate \
   --source-dir ./project/source --module Clamp --root Clamp.clamp \
