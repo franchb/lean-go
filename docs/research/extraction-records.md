@@ -1,5 +1,7 @@
 # Record fields and source-shaped wrappers
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 This report records the record-adapter milestone. The subsequent
 [local join milestone](extraction-joins.md) adds conditional branch results and
 advances new exports to v4 IR; the representation rules below still apply.

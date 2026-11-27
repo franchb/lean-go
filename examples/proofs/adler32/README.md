@@ -14,9 +14,10 @@ CGO_ENABLED=0 go run .
 
 The source proof checks one step from any state with both sums below 65521 against a natural-number reference. From the standard seed, any list of chunks gives the same pair of sums as processing its concatenation with that reference. Go tests compare the packed checksum and streaming prefixes with `hash/adler32` and compare the raw and slice APIs at each of the seven resource limits. [Contract](proof/Adler32Contract.lean) · [Proofs](proof/Adler32Proofs.lean) · [Go tests](main_test.go)
 
-To regenerate the package and verify the two proof claims, use the development checkout with Python 3.15 via uv, Go 1.27.4 and the default Lean 4.36.0 pin. Run these commands from the repository root.
+To regenerate the package and verify the two proof claims, use the development checkout with Go 1.27.4 and the default Lean 4.36.0 pin. Run this command from the repository root:
 
 ```sh
-uv sync --locked --reinstall-package lean-go-tools
-CGO_ENABLED=0 uv run --locked python scripts/check_adler32_demo.py --cli "$PWD/.venv/bin/lean-go"
+go run ./cmd/lean-go-dev installed-cli --demo adler32
 ```
+
+It builds the checkout's lean-go (with `go build`, and with `go install` from a module archive), regenerates a copy of this example with each binary, compares the package, IR and evidence bytes with the tracked ones, freshly checks both claims, and tests and runs the copied Go module with Go alone. Add `--cli "$(command -v lean-go)"` to check an installed lean-go instead.

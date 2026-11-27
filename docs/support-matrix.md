@@ -94,14 +94,16 @@ remainder.
 
 ## Evidence
 
-- `scripts/test_unsigned.py` (with `LEAN_GO_MODULES=1`): every primitive of every
-  width from ordinary notation and direct names, the compiler rewrites above,
-  rejections, and native Lean against both Go APIs and an arithmetic model on
-  boundary values (0, 1, maxima, powers of two, zero divisors, shift counts at
+- `internal/pipeline/lean_unsigned_test.go` (with `LEAN_GO_MODULES=1`): every
+  primitive of every width from ordinary notation and direct names, the
+  compiler rewrites above and the rejections; `integration/unsigned_native_test.go`
+  (with `LEAN_GO_MODULES=1`): native Lean against both Go APIs and an
+  arithmetic model on boundary values (0, 1, maxima, powers of two, zero divisors, shift counts at
   and above the width).
 - `internal/moduleir` and `internal/modulegen` unit tests over the whole matrix,
   `internal/nativegen` agreement between the native matrix and the validator.
-- The differential campaign (`scripts/differential.py`) on all four widths,
+- The differential campaign (`go run ./cmd/lean-go-dev differential`) on all
+  four widths,
   generating division and remainder and zero-divisor inputs.
 - The compatibility corpus cases `division`, `uint16_land`, `uint32_narrow16`
   and `folded_numeric`, and the [clock example](../examples/proofs/clock).

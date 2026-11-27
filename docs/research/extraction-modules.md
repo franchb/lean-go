@@ -1,5 +1,7 @@
 # Ordinary Lean modules to pure Go
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 This report records the original v2 module milestone. Later extensions added
 [UInt32 operations](extraction-uint32.md), [record adapters](extraction-records.md)
 and [local joins](extraction-joins.md). New source exports use v4; the Go backend

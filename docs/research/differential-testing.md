@@ -1,5 +1,7 @@
 # Program-level differential testing
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The campaign generates new small Lean source programs and compares an
 independent source-AST model with six executions: a compiled native Lean
 executable; the extracted metered Go package through its raw (`Value`) and

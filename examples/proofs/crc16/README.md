@@ -50,11 +50,10 @@ Use the CLI built from this checkout. The byte and chunk roots use generator v20
 Lean 4.36.0 available, run
 
 ```sh
-uv sync --locked --reinstall-package lean-go-tools
-uv run --locked python scripts/check_crc16_demo.py --cli "$PWD/.venv/bin/lean-go"
+go run ./cmd/lean-go-dev installed-cli --demo crc16
 ```
 
-The verifier regenerates the package, IR and proof evidence, checks their
+The check builds the checkout's lean-go, regenerates the package, IR and proof evidence, checks their
 bytes against the tracked files, rechecks both theorems and then runs the
 consumer with cgo disabled and only Go on its executable path. The compiler
 compatibility workflow repeats generation and both theorem checks on Lean

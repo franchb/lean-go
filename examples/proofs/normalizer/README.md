@@ -4,7 +4,7 @@ This directory is a complete Go module. Copy it anywhere, then build and run it
 with Go **1.27.4**. It has no external Go dependencies, `replace` directives, or
 runtime dependency on the lean-go repository. The checked-in package was generated
 from ordinary Lean source through the module extractor. Regenerate it with this
-[checkout's CLI](../../../docs/cli.md#development-checkout).
+[checkout's CLI](../../../docs/cli.md#install).
 
 The Lean program is the normalizer from the project's original extraction pilot,
 now extracted through the general module pipeline. It pushes negations onto
@@ -88,7 +88,7 @@ With the CLI installed from the same checkout, run from this directory:
 
 ```sh
 lean-go doctor
-lean-go generate --source-dir source --module Normalizer --root Normalizer.normalize --out normalizer --ir-output normalizer.ir.json
+lean-go generate --source-dir source --module Normalizer --root Normalizer.normalize --out normalizer --ir-output normalizer.ir.json --mode metered
 lean-go check-proofs --contract proof-contract.json --manifest normalizer/manifest.json --output proof-evidence.json
 lean-go check-proofs --contract proof-contract.json --manifest normalizer/manifest.json --evidence proof-evidence.json
 ```
@@ -99,13 +99,13 @@ generated Go by hand.
 
 ## Verify the complete handoff
 
-From the lean-go checkout used to install the development CLI:
+From the root of the lean-go checkout used to install the CLI:
 
 ```sh
-normalizer_cli=$(command -v lean-go)
-uv run --locked python scripts/check_normalizer_demo.py --cli "$normalizer_cli"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo normalizer
 ```
 
-The verifier copies this directory into a fresh temporary project, regenerates
+The check copies this directory into a fresh temporary project, regenerates
 every artifact with the installed CLI, compares the bytes, rechecks both proofs,
-and runs the copied tests and executable with Go alone.
+and runs the copied tests and executable with Go alone, comparing the output
+with the expected text.

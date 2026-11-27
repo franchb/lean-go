@@ -1,5 +1,7 @@
 # Typed Go APIs
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The module generator adds a typed facade to v5 ordinary-module exports. The
 existing raw `Input`, `Value`, `Import` and `Run` interface remains available.
 Generated consumers use only the Go standard library with `CGO_ENABLED=0`.

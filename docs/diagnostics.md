@@ -1,35 +1,28 @@
 # Extraction diagnostics
 
-Diagnostics are included in **v0.1.0-alpha.5**, Python package `0.1.0a5`.
-Follow the [CLI installation guide](cli.md), or use a checkout of the release
-with `uv sync --locked` (refresh an editable installation with
-`uv sync --locked --reinstall-package lean-go-tools`). The pinned Python 3.15,
-Go 1.27.4 and Lean 4.36.0-rc2 toolchains remain required.
+Diagnostics are part of `lean-go generate` (since v0.1.0-alpha.5). Install the
+command as described in the [CLI installation guide](cli.md); it needs the
+pinned Lean and Lake on `PATH`.
 
 Generation prints readable errors to stderr by default, including a known LCNF
 form, the original rejection reason and a next-step hint. Select one JSON report
 with either `--diagnostics=json` or `--diagnostics json`:
 
 ```sh
-uv run --locked lean-go generate \
+lean-go generate \
   --source-dir ./source --module Example --root Example.run \
   --out ./generated/example --ir-output ./example.ir.json \
   --diagnostics=json
 ```
 
-The same option works on `scripts/generate.py` and `scripts/export_module.py`,
-and on the Go command's `lean-go generate` ([Go command](cli.md#go-command-development-checkout)),
-which `scripts/generate.py` now wraps; it emits the same stages, codes, messages,
-locations and key order.
 Failures return a nonzero exit status and print one JSON document on stderr,
 without additional child-process logs or a second generic error. Child failure
 logs may appear inside the report's escaped `message` string. Failure produces
-no stdout. Successful generation retains its human-readable stdout summary;
-successful `export_module.py` is silent. Success does not emit a JSON report.
-Invalid argparse syntax (for example a missing flag value or an unknown option)
-still prints argparse usage text and exits with status 2. Extraction errors,
-missing toolchains, invalid source/output paths and installed-CLI preflight
-errors use the selected diagnostic format.
+no stdout. Successful generation retains its human-readable stdout summary. Success does
+not emit a JSON report. Invalid command syntax (for example a missing flag
+value or an unknown option) prints usage text and exits with status 2.
+Extraction errors, missing toolchains, invalid source/output paths and
+missing-argument errors use the selected diagnostic format.
 
 An unsupported polymorphic function can produce:
 

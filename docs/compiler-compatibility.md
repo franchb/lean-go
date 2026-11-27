@@ -81,7 +81,7 @@ composition:
   `go run .` with only Go on `PATH`, offline, then runs the same consumer with
   the tracked packages and requires the same program output.
 
-Compared with the former `check_toolchain_demos.py`, it also covers the native
+Compared with the retired Python `check_toolchain_demos.py`, it also covers the native
 clamp package and the clamp native tests, and checks the composition evidence
 again after writing it. It does not compare program output with literals kept
 in the harness; it compares it with the tracked packages' output instead (the

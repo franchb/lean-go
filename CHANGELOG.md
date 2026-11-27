@@ -123,10 +123,20 @@ Changes on the development branch since `v0.1.0-alpha.15`.
 - The extraction pipeline is a single Go command, `lean-go`, with the
   subcommands `generate`, `emit`, `check-proofs`, `validate`, `format`,
   `regenerate`, `doctor` and `version`. The Lean producer is embedded in the
-  binary and its compiled form is kept in a content-addressed cache. The
-  Python entry points (`scripts/generate.py`, `scripts/check_proofs.py`,
-  `scripts/regenerate_all.py` and the `lean-go-tools` wheel) remain as thin
-  wrappers. See [docs/cli.md](docs/cli.md).
+  binary and its compiled form is kept in a content-addressed cache. See
+  [docs/cli.md](docs/cli.md).
+- The repository no longer contains Python. The `lean-go-tools` wheel and its
+  `lean-go` command, `scripts/` (the wrappers, verifiers and test suites),
+  `pyproject.toml` and `uv.lock` are removed, and CI no longer installs uv or
+  Python. Install the command with `go install ./cmd/lean-go` from a checkout,
+  or, from the first tag that contains it,
+  `go install github.com/franchb/lean-go/cmd/lean-go@<tag>`. The tests are Go
+  tests; the demo verifiers, the installed-CLI smoke and the release
+  walkthrough are `go run ./cmd/lean-go-dev installed-cli` and
+  `release-candidate`. The installed-CLI check installs the command from a
+  module archive of the tracked files, as `go install ...@<tag>` does, and
+  checks each demo against an independent list of its claims and its expected
+  output.
 - One IR schema, `lean-go-ir/v24`, replaces the per-feature versions; the IR
   lists the capability families it uses in `features`. IR and manifests from
   earlier releases are rejected and must be regenerated.

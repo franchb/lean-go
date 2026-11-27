@@ -1,5 +1,7 @@
 # UInt64 extraction
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 Ordinary module exports use IR v6 and `pure-module/v4` to add exact UInt64
 computation. Consumers remain Go standard-library packages with `CGO_ENABLED=0`.
 Current regeneration uses pinned Lean 4.36.0-rc2, Go 1.27.4 and Python 3.15 through uv.

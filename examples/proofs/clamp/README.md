@@ -4,7 +4,7 @@ This directory is a complete Go module. Copy it anywhere, then build and run it
 with Go **1.27.4**. It has no external Go dependencies, `replace` directives, or
 runtime dependency on the lean-go repository. The checked-in package was generated
 from ordinary Lean source through the installed `lean-go` CLI. Regenerate it with this
-[checkout's CLI](../../../docs/cli.md#development-checkout).
+[checkout's CLI](../../../docs/cli.md#install).
 
 The assurance is **proved Lean logic with tested, trusted extraction**. The three
 source theorems do not constitute an end-to-end proof of the generated Go program.
@@ -108,20 +108,20 @@ exercise the extraction boundary; they are not proofs for all Go executions.
 
 ## Regenerate and check proofs
 
-Regenerate these artifacts with the CLI from the same checkout, replacing the
-example path with its absolute path:
+Regenerate these artifacts with the CLI from the same checkout; from the
+repository root:
 
 ```sh
-uv tool install --force --python 3.15 /absolute/path/to/lean-go
+go install ./cmd/lean-go
 ```
 
-See the [development installation guide](../../../docs/cli.md#development-checkout).
+See the [installation guide](../../../docs/cli.md#install).
 For historical alpha.7 reproduction, use its
 [tagged example](https://github.com/franchb/lean-go/tree/v0.1.0-alpha.7/examples/proofs/clamp)
 and [tagged CLI guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
 together. Alpha.4 likewise requires its tagged demo and CLI with Lean 4.35.0.
 
-The current producer requires Python **3.15**, Go **1.27.4**, and Lean/Lake
+The current producer requires Go **1.27.4** and Lean/Lake
 **4.36.0** with Lean commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`.
 Then run from this directory:
 
@@ -145,31 +145,29 @@ source, proof and generated directories. Never edit generated Go by hand.
 
 ## Verify the complete handoff
 
-From the same lean-go checkout used to install the development CLI above:
+From the root of the lean-go checkout used to install the CLI above:
 
 ```sh
-clamp_cli=$(command -v lean-go)
-uv run --locked python scripts/check_clamp_demo.py --cli "$clamp_cli"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo clamp
 ```
 
-Capture the installed CLI before `uv run` adds the checkout environment to
-`PATH`. In PowerShell, use `$clamp_cli = (Get-Command lean-go).Source` before
-the verifier command.
+In PowerShell, pass `--cli (Get-Command lean-go).Source`. Without `--cli`, the
+check builds and installs the checkout's lean-go itself.
 
-The verifier copies this entire directory into a fresh external temporary
+The check copies this entire directory into a fresh external temporary
 project, generates new artifacts with the installed CLI, compares every generated
-file, IR and evidence byte, rechecks all three proofs, and runs the copied tests
-and executable after deploying only Go sources and `go.mod` to a second directory,
+file, IR and evidence byte, rechecks all three proofs against an independent claim list, and runs
+the copied tests and executable, comparing the output with the expected text,
+after deploying only Go sources and `go.mod` to a second directory,
 with only Go's binary directory on `PATH`. Module download and
 checksum lookup are disabled, cgo is disabled, and Go caches are isolated.
 
 Ordinary root `go test ./...` separately copies only `go.mod`, the consumer and
 its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
-modules would otherwise be skipped. The installed CLI smoke
-runs the complete clamp, flags, words, bytes, header, wire16 and crc16 verifiers through both direct and
-sdist-rebuilt wheels on Linux and Windows in CI, checking 54 source claims per
-wheel. Alpha.7 shipped the first three demos with generator v9. Alpha.8 shipped the
+modules would otherwise be skipped. The complete installed-CLI check (`go run ./cmd/lean-go-dev installed-cli`)
+runs all ten demos with a built and a module-installed binary on Linux and
+Windows in CI, checking 61 source claims per binary. Alpha.7 shipped the first three demos with generator v9. Alpha.8 shipped the
 byte codec with generator v10. Alpha.9 ships the header codec with generator v11.
 Pair examples with the CLI from the same checkout or tag. See the
 [article](../../../docs/articles/lean-proofs-to-go.md)

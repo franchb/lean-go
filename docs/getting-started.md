@@ -3,7 +3,7 @@
 This walkthrough extracts a small Lean module into a Go package, calls it from
 Go, and then adds translation validation. It needs Go 1.27.4 and Lean 4.36.0
 at commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9` with `lean` and `lake`
-on `PATH`. Python is not needed.
+on `PATH`.
 
 ## Install the command
 

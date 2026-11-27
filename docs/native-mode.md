@@ -19,11 +19,8 @@ resource budgets on untrusted recursive input: pass `--mode metered` to
 depend on the mode. `--native-max-depth N` (`emit` only) sets the recursion
 guard described below.
 
-Three older entry points keep metered as their default so that existing
-callers and the tracked metered artifacts are unchanged: the legacy flag
-form `lean-go -in FILE -out DIR [-mode native]`, and the Python wrappers
-`scripts/generate.py` and the `lean-go` command of the `lean-go-tools` wheel,
-which accept `--mode native`. `lean-go regenerate` names the mode of every
+The legacy flag form `lean-go -in FILE -out DIR [-mode native]` keeps metered
+as its default so that existing callers are unchanged. `lean-go regenerate` names the mode of every
 tracked artifact explicitly (see [`internal/artifacts`](../internal/artifacts)).
 
 The emitter is [`internal/nativegen`](../internal/nativegen). It reads only
@@ -331,7 +328,9 @@ LEAN_GO_NATIVE_BENCH=. go test -count=1 -v -run TestDifferential ./internal/nati
 - `==` on recursive handles, or on values containing them, compares identity.
 - Byte folds are recognized only for roots of the exact `foldl` shape.
 - A type with no finite value is rejected rather than given an error result.
-- The Python demo verifiers (`scripts/check_*_demo.py`) reproduce the
-  tracked metered packages only.
+- The installed-CLI demo checks (`go run ./cmd/lean-go-dev installed-cli`)
+  reproduce the tracked metered demo packages only; the native clamp package
+  is checked by `lean-go regenerate` and the demo check of
+  [compiler-compatibility.md](compiler-compatibility.md).
 - Native output is tested and trusted, like metered output; there is no
   proof that the Go code implements the Lean source.

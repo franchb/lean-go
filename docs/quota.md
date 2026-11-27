@@ -2,8 +2,8 @@
 
 `github.com/franchb/lean-go/quota` is an immutable counter with a fixed `uint64`
 capacity. It is available starting with `v0.1.0-alpha.3`. Consumers need Go 1.27.4
-and can build with `CGO_ENABLED=0`. They do not need Lean, Python, a C compiler or
-a native library.
+and can build with `CGO_ENABLED=0`. They do not need Lean, a C compiler or a
+native library.
 
 ```go
 import "github.com/franchb/lean-go/quota"
@@ -93,11 +93,14 @@ preserves semantics. Source elaboration is trusted, as for other module exports.
 
 ## Reproduce the checks
 
-Use the repository's pinned Lean, Go 1.27.4, and Python 3.15 through `uv`:
+Use the repository's pinned Lean and Go 1.27.4, from the repository root:
 
 ```sh
-uv run --locked python scripts/check_quota.py
-LEAN_GO_QUOTA=1 uv run --locked python scripts/test_quota_proofs.py
+go run ./cmd/lean-go check-proofs \
+  --contract libraries/quota/proof-contract.json \
+  --manifest generated/quota/manifest.json \
+  --evidence libraries/quota/proof-evidence.json
+CGO_ENABLED=0 LEAN_GO_QUOTA=1 go test -count=1 -p 1 -run Quota ./internal/pipeline
 CGO_ENABLED=0 go test -count=1 ./quota
 CGO_ENABLED=0 LEAN_GO_NATIVE=1 LEAN_GO_REGENERATE=1 \
   go test -count=1 -run '^TestQuota' ./integration
@@ -115,15 +118,21 @@ Benchmarks report time and allocation costs without machine-dependent thresholds
 To generate a fresh candidate package and matching evidence in a new directory:
 
 ```sh
-uv run --locked python scripts/generate.py \
+go run ./cmd/lean-go generate \
   --source-dir libraries/quota/source --module Quota \
   --root Quota.create --root Quota.reserve \
   --root Quota.release --root Quota.remaining \
-  --out /tmp/quota-candidate --ir-output /tmp/quota-candidate.ir.json
-uv run --locked python scripts/check_quota.py \
+  --out /tmp/quota-candidate --ir-output /tmp/quota-candidate.ir.json \
+  --mode metered
+go run ./cmd/lean-go check-proofs \
+  --contract libraries/quota/proof-contract.json \
   --manifest /tmp/quota-candidate/manifest.json \
   --output /tmp/quota-candidate-proof-evidence.json
 ```
+
+`--mode metered` gives the package layout of the tracked `generated/quota`;
+without it, `generate` writes a native package, which `check-proofs` binds as
+well.
 
 Review source, proof, generated-code and evidence changes together. Existing
 differing output is protected; use fresh candidate paths for a changed program.

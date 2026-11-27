@@ -1,5 +1,7 @@
 # Lean extraction feasibility
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 Date: 2026-11-11 · Maintainer: franchb <hello@franchb.com>
 
 **Decision: Proceed with pure mono LCNF for the controlled normalizer subset.**
