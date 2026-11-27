@@ -19,9 +19,11 @@ import (
 //	leanSerialize(dst []byte, h *Header) ([]byte, error)
 //	leanClassify(h *Header, available uint32) (count uint32, complete bool, err error)
 //
-// leanParse sets *h only when it returns no reason and no error;
-// leanSerialize appends exactly HeaderSize bytes, or on error returns dst
-// unchanged without writing to its spare capacity.
+// leanParse stores the parsed header in *h when it returns no reason and no
+// error; on any other result *h is unspecified (the native backend zeroes
+// it) and the adapter does not read it. leanSerialize appends exactly
+// HeaderSize bytes, or on error returns dst unchanged without writing to its
+// spare capacity.
 //
 // Headers travel by pointer inside the adapter. Header has more fields than
 // Go keeps in registers, so every by-value pass or return is a memory copy,
