@@ -22,8 +22,9 @@ import (
 // needed: the IR is tracked.
 //
 // LEAN_GO_FORMATS_FUZZ=30s also fuzzes the comparison, and
-// LEAN_GO_FORMATS_BENCH=1 runs the DNS benchmarks (native-backed, metered-backed
-// and a hand-written encoding/binary codec), printing their output.
+// LEAN_GO_FORMATS_BENCH=1 runs the benchmarks of every example (native-backed,
+// metered-backed and a hand-written encoding/binary codec), printing their
+// output.
 
 const differentialTest = `package differential
 
@@ -224,37 +225,99 @@ const headerPayload = `a1, e1 := native.PayloadLength(h)
 		}
 	}`
 
-// The DNS benchmarks: parse then serialize one header per iteration.
-const dnsBenchmark = `package differential
+// The benchmarks: parse then serialize one message per iteration, through
+// the native-backed adapter, the metered-backed adapter and a hand-written
+// encoding/binary codec with the same checks. Payload formats parse the
+// header and its payload and append the frame again.
+const benchmarkTest = `package differential
 
 import (
 	"encoding/binary"
 	"errors"
 	"testing"
 
-	native "{{module}}/dns"
-	metered "{{module}}/dnsmetered"
+	native "{{module}}/{{name}}"
+	metered "{{module}}/{{name}}metered"
 )
 
-var message = []byte{0xab, 0xcd, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x07, 'e', 'x'}
+var errTruncated = errors.New("truncated")
+var errInvalid = errors.New("invalid")
+
+{{hand}}
+
+func BenchmarkParseSerialize(b *testing.B) {
+	buf := make([]byte, 0, 64)
+	b.Run("native", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			{{loopNative}}
+		}
+	})
+	b.Run("metered", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			{{loopMetered}}
+		}
+	})
+	b.Run("handwritten", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			{{loopHand}}
+		}
+	})
+}
+`
+
+const loopPlain = `h, _, err := {{pkg}}.Parse(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = {{pkg}}.AppendSerialize(buf[:0], h); err != nil {
+				b.Fatal(err)
+			}`
+
+const loopPayload = `h, _, payload, err := {{pkg}}.Parse(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = {{pkg}}.AppendFrame(buf[:0], h, payload); err != nil {
+				b.Fatal(err)
+			}`
+
+const loopHandPlain = `h, err := parseHand(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = appendHand(buf[:0], h); err != nil {
+				b.Fatal(err)
+			}`
+
+const loopHandPayload = `h, payload, err := parseHand(message)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if buf, err = appendHand(buf[:0], h, payload); err != nil {
+				b.Fatal(err)
+			}`
+
+// handCodecs are the hand-written codecs, each with a test that it agrees
+// with the native adapter on the benchmark message.
+var handCodecs = map[string]string{
+	"dns": `var message = []byte{0xab, 0xcd, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01, 0x07, 'e', 'x'}
 
 type header struct {
-	ID                             uint16
+	ID                                uint16
 	QR, Opcode, AA, TC, RD, RA, Rcode uint8
-	QD, AN, NS, AR                 uint16
+	QD, AN, NS, AR                    uint16
 }
 
-var errZ = errors.New("dns: z nonzero")
-var errWide = errors.New("dns: field too wide")
-
-// A hand-written encoding/binary codec with the same checks.
 func parseHand(b []byte) (header, error) {
 	if len(b) < 12 {
-		return header{}, errors.New("dns: truncated")
+		return header{}, errTruncated
 	}
 	flags := binary.BigEndian.Uint16(b[2:4])
 	if flags&0x0070 != 0 {
-		return header{}, errZ
+		return header{}, errInvalid
 	}
 	return header{binary.BigEndian.Uint16(b[0:2]), uint8(flags >> 15), uint8(flags>>11) & 0xf, uint8(flags>>10) & 1,
 		uint8(flags>>9) & 1, uint8(flags>>8) & 1, uint8(flags>>7) & 1, uint8(flags) & 0xf,
@@ -263,7 +326,7 @@ func parseHand(b []byte) (header, error) {
 
 func appendHand(dst []byte, h header) ([]byte, error) {
 	if h.QR > 1 || h.Opcode > 15 || h.AA > 1 || h.TC > 1 || h.RD > 1 || h.RA > 1 || h.Rcode > 15 {
-		return dst, errWide
+		return dst, errInvalid
 	}
 	flags := uint16(h.QR)<<15 | uint16(h.Opcode)<<11 | uint16(h.AA)<<10 | uint16(h.TC)<<9 | uint16(h.RD)<<8 | uint16(h.RA)<<7 | uint16(h.Rcode)
 	dst = binary.BigEndian.AppendUint16(dst, h.ID)
@@ -282,48 +345,87 @@ func TestHandMatchesNative(t *testing.T) {
 	if err != nil || err2 != nil || string(a) != string(b) || string(a) != string(message[:12]) {
 		t.Fatalf("% x vs % x: %v %v", a, b, err, err2)
 	}
+}`,
+	"udp": `var message = []byte{0x12, 0x34, 0x00, 0x35, 0x00, 0x0b, 0xab, 0xcd, 'x', 'y', 'z', 0xee}
+
+type header struct{ Src, Dst, Length, Checksum uint16 }
+
+func parseHand(b []byte) (header, []byte, error) {
+	if len(b) < 8 {
+		return header{}, nil, errTruncated
+	}
+	h := header{binary.BigEndian.Uint16(b[0:2]), binary.BigEndian.Uint16(b[2:4]), binary.BigEndian.Uint16(b[4:6]), binary.BigEndian.Uint16(b[6:8])}
+	if h.Length < 8 {
+		return header{}, nil, errInvalid
+	}
+	end := int(h.Length)
+	if len(b) < end {
+		return header{}, nil, errTruncated
+	}
+	return h, b[8:end:end], nil
 }
 
-func BenchmarkParseSerialize(b *testing.B) {
-	buf := make([]byte, 0, 64)
-	b.Run("native", func(b *testing.B) {
-		b.ReportAllocs()
-		for b.Loop() {
-			h, _, err := native.Parse(message)
-			if err != nil {
-				b.Fatal(err)
-			}
-			if buf, err = native.AppendSerialize(buf[:0], h); err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-	b.Run("metered", func(b *testing.B) {
-		b.ReportAllocs()
-		for b.Loop() {
-			h, _, err := metered.Parse(message)
-			if err != nil {
-				b.Fatal(err)
-			}
-			if buf, err = metered.AppendSerialize(buf[:0], h); err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-	b.Run("handwritten", func(b *testing.B) {
-		b.ReportAllocs()
-		for b.Loop() {
-			h, err := parseHand(message)
-			if err != nil {
-				b.Fatal(err)
-			}
-			if buf, err = appendHand(buf[:0], h); err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
+func appendHand(dst []byte, h header, payload []byte) ([]byte, error) {
+	if h.Length < 8 || len(payload) != int(h.Length)-8 {
+		return dst, errInvalid
+	}
+	dst = binary.BigEndian.AppendUint16(dst, h.Src)
+	dst = binary.BigEndian.AppendUint16(dst, h.Dst)
+	dst = binary.BigEndian.AppendUint16(dst, h.Length)
+	dst = binary.BigEndian.AppendUint16(dst, h.Checksum)
+	return append(dst, payload...), nil
 }
-`
+
+func TestHandMatchesNative(t *testing.T) {
+	h, _, p, err := native.Parse(message)
+	g, q, err2 := parseHand(message)
+	a, _ := native.AppendFrame(nil, h, p)
+	b, _ := appendHand(nil, g, q)
+	if err != nil || err2 != nil || string(a) != string(b) || string(a) != string(message[:11]) {
+		t.Fatalf("% x vs % x: %v %v", a, b, err, err2)
+	}
+}`,
+	"header": `var message = []byte{0x01, 0x02, 0x00, 0x03, 'a', 'b', 'c', 0xee}
+
+type header struct {
+	Flags  uint8
+	Length uint16
+}
+
+func parseHand(b []byte) (header, []byte, error) {
+	if len(b) < 4 {
+		return header{}, nil, errTruncated
+	}
+	if b[0] != 1 || b[1]&0xfc != 0 {
+		return header{}, nil, errInvalid
+	}
+	h := header{b[1] & 3, binary.BigEndian.Uint16(b[2:4])}
+	end := 4 + int(h.Length)
+	if len(b) < end {
+		return header{}, nil, errTruncated
+	}
+	return h, b[4:end:end], nil
+}
+
+func appendHand(dst []byte, h header, payload []byte) ([]byte, error) {
+	if h.Flags > 3 || len(payload) != int(h.Length) {
+		return dst, errInvalid
+	}
+	dst = append(dst, 1, h.Flags)
+	dst = binary.BigEndian.AppendUint16(dst, h.Length)
+	return append(dst, payload...), nil
+}
+
+func TestHandMatchesNative(t *testing.T) {
+	h, _, p, err := native.Parse(message)
+	g, q, err2 := parseHand(message)
+	a, _ := native.AppendFrame(nil, h, p)
+	b, _ := appendHand(nil, g, q)
+	if err != nil || err2 != nil || string(a) != string(b) || string(a) != string(message[:7]) {
+		t.Fatalf("% x vs % x: %v %v", a, b, err, err2)
+	}
+}`,
+}
 
 func goOutput(t *testing.T, dir string, args ...string) string {
 	t.Helper()
@@ -397,8 +499,14 @@ func differentialModule(t *testing.T, name, dir string) {
 	}
 	vars := map[string]string{"module": f.GoModulePath(), "name": f.Name, "parse": parse, "header": header, "seed": fmt.Sprint(len(name))}
 	files["differential/differential_test.go"] = []byte(gofmt("differential_test.go", expand(differentialTest, vars)))
-	if name == "dns" {
-		files["differential/bench_test.go"] = []byte(gofmt("bench_test.go", expand(dnsBenchmark, vars)))
+	if hand, ok := handCodecs[name]; ok {
+		loop, loopHand := loopPlain, loopHandPlain
+		if f.Payload != nil {
+			loop, loopHand = loopPayload, loopHandPayload
+		}
+		bench := expand(benchmarkTest, map[string]string{"hand": hand, "loopNative": strings.ReplaceAll(loop, "{{pkg}}", "native"),
+			"loopMetered": strings.ReplaceAll(loop, "{{pkg}}", "metered"), "loopHand": loopHand})
+		files["differential/bench_test.go"] = []byte(gofmt("bench_test.go", expand(bench, vars)))
 	}
 	writeTree(t, dir, files)
 }
@@ -416,7 +524,7 @@ func TestNativeAdapterMatchesMeteredAdapter(t *testing.T) {
 			if fuzz := os.Getenv("LEAN_GO_FORMATS_FUZZ"); fuzz != "" {
 				t.Log(goOutput(t, dir, "test", "-run", "^$", "-fuzz", "^FuzzNativeMatchesMetered$", "-fuzztime", fuzz, "./differential"))
 			}
-			if os.Getenv("LEAN_GO_FORMATS_BENCH") != "" && name == "dns" {
+			if os.Getenv("LEAN_GO_FORMATS_BENCH") != "" {
 				t.Log(goOutput(t, dir, "test", "-run", "^$", "-bench", ".", "-benchmem", "-cpu", "1", "-count", "5", "./differential"))
 			}
 		})
