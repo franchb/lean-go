@@ -60,128 +60,208 @@ func apiReadUInt16(n *node) (uint16, bool) {
 	return n.scalar16, true
 }
 
-// scalarWork charges the same IR steps and logical scalar allocations as execute.
-func (b *budget) scalarWork(steps, allocations uint64) bool {
-	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
-		return false
-	}
-	b.steps += steps
-	b.allocations += allocations
-	return true
-}
-func scalarFunc0(b *budget, depth int, v1 uint64) (uint32, error) {
-	if err := b.enter(4, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(4, 3) {
-		return 0, ErrResource
-	}
-	v2 := uint64(32)
-	v3 := v1 >> (v2 & 63)
-	v4 := uint32(v3)
-	return v4, nil
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natHigh implements the Lean function Words.high.
+func natHigh(v1 uint64) uint32 {
+	return uint32(v1 >> 32)
 }
 
-// RunHigh runs the scalar root with native Go values and the public resource limits.
+// natLow implements the Lean function Words.low.
+func natLow(v1 uint64) uint32 {
+	return uint32(v1)
+}
+
+// natNarrow implements the Lean function Words.narrow.
+func natNarrow(v1 uint64) uint32 {
+	return uint32(v1)
+}
+
+// natPack implements the Lean function Words.pack.
+func natPack(v1 uint32, v2 uint32) uint64 {
+	return (uint64(v1) << 32) | uint64(v2)
+}
+
+// natWiden implements the Lean function Words.widen.
+func natWiden(v1 uint32) uint64 {
+	return uint64(v1)
+}
+
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Words.high in every dimension.
+func fastCovers0(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 3 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 4 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 4 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Words.low in every dimension.
+func fastCovers1(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 2 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Words.narrow in every dimension.
+func fastCovers2(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 2 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers3 reports whether l is valid and covers the static worst case of
+// Words.pack in every dimension.
+func fastCovers3(l Limits) bool {
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 5 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 6 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 7 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers4 reports whether l is valid and covers the static worst case of
+// Words.widen in every dimension.
+func fastCovers4(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 2 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 2 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root with function id entry natively when it is eligible,
+// l covers its bound and every argument converts.
+func fastRun(entry int, args []*node, l Limits) (*node, bool) {
+	switch entry {
+	case 0:
+		if !fastCovers0(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt64(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt32Node(natHigh(x0)), true
+	case 1:
+		if !fastCovers1(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt64(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt32Node(natLow(x0)), true
+	case 2:
+		if !fastCovers2(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt64(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt32Node(natNarrow(x0)), true
+	case 3:
+		if !fastCovers3(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt32(args[0])
+		if !ok {
+			return nil, false
+		}
+		x1, ok := apiReadUInt32(args[1])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt64Node(natPack(x0, x1)), true
+	case 4:
+		if !fastCovers4(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt32(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt64Node(natWiden(x0)), true
+	}
+	return nil, false
+}
+
+// RunHigh invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunHigh(a0 uint64, l Limits) (uint32, error) {
-	if err := checkLimits(l); err != nil {
+	if fastCovers0(l) {
+		x0 := a0
+		return natHigh(x0), nil
+	}
+	out, err := RunRoot("Words.high", []Value{{n: apiUInt64Node(a0)}}, l)
+	if err != nil {
 		return 0, err
 	}
-	if l.MaxNodes < 1 {
-		return 0, ErrResource
+	value, ok := apiReadUInt32(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	b := budget{limits: l}
-	return scalarFunc0(&b, 0, a0)
-}
-func scalarFunc1(b *budget, depth int, v1 uint64) (uint32, error) {
-	if err := b.enter(2, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(2, 1) {
-		return 0, ErrResource
-	}
-	v2 := uint32(v1)
-	return v2, nil
+	return value, nil
 }
 
-// RunLow runs the scalar root with native Go values and the public resource limits.
+// RunLow invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunLow(a0 uint64, l Limits) (uint32, error) {
-	if err := checkLimits(l); err != nil {
+	if fastCovers1(l) {
+		x0 := a0
+		return natLow(x0), nil
+	}
+	out, err := RunRoot("Words.low", []Value{{n: apiUInt64Node(a0)}}, l)
+	if err != nil {
 		return 0, err
 	}
-	if l.MaxNodes < 1 {
-		return 0, ErrResource
+	value, ok := apiReadUInt32(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	b := budget{limits: l}
-	return scalarFunc1(&b, 0, a0)
-}
-func scalarFunc2(b *budget, depth int, v1 uint64) (uint32, error) {
-	if err := b.enter(2, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(2, 1) {
-		return 0, ErrResource
-	}
-	v2 := uint32(v1)
-	return v2, nil
+	return value, nil
 }
 
-// RunNarrow runs the scalar root with native Go values and the public resource limits.
+// RunNarrow invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunNarrow(a0 uint64, l Limits) (uint32, error) {
-	if err := checkLimits(l); err != nil {
+	if fastCovers2(l) {
+		x0 := a0
+		return natNarrow(x0), nil
+	}
+	out, err := RunRoot("Words.narrow", []Value{{n: apiUInt64Node(a0)}}, l)
+	if err != nil {
 		return 0, err
 	}
-	if l.MaxNodes < 1 {
-		return 0, ErrResource
+	value, ok := apiReadUInt32(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	b := budget{limits: l}
-	return scalarFunc2(&b, 0, a0)
-}
-func scalarFunc3(b *budget, depth int, v1 uint32, v2 uint32) (uint64, error) {
-	if err := b.enter(7, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(6, 5) {
-		return 0, ErrResource
-	}
-	v3 := uint64(v1)
-	v4 := uint64(32)
-	v5 := v3 << (v4 & 63)
-	v6 := uint64(v2)
-	v7 := v5 | v6
-	return v7, nil
+	return value, nil
 }
 
-// RunPack runs the scalar root with native Go values and the public resource limits.
+// RunPack invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunPack(a0 uint32, a1 uint32, l Limits) (uint64, error) {
-	if err := checkLimits(l); err != nil {
+	if fastCovers3(l) {
+		x0 := a0
+		x1 := a1
+		return natPack(x0, x1), nil
+	}
+	out, err := RunRoot("Words.pack", []Value{{n: apiUInt32Node(a0)}, {n: apiUInt32Node(a1)}}, l)
+	if err != nil {
 		return 0, err
 	}
-	if l.MaxNodes < 2 {
-		return 0, ErrResource
+	value, ok := apiReadUInt64(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	b := budget{limits: l}
-	return scalarFunc3(&b, 0, a0, a1)
-}
-func scalarFunc4(b *budget, depth int, v1 uint32) (uint64, error) {
-	if err := b.enter(2, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(2, 1) {
-		return 0, ErrResource
-	}
-	v2 := uint64(v1)
-	return v2, nil
+	return value, nil
 }
 
-// RunWiden runs the scalar root with native Go values and the public resource limits.
+// RunWiden invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunWiden(a0 uint32, l Limits) (uint64, error) {
-	if err := checkLimits(l); err != nil {
+	if fastCovers4(l) {
+		x0 := a0
+		return natWiden(x0), nil
+	}
+	out, err := RunRoot("Words.widen", []Value{{n: apiUInt32Node(a0)}}, l)
+	if err != nil {
 		return 0, err
 	}
-	if l.MaxNodes < 1 {
-		return 0, ErrResource
+	value, ok := apiReadUInt64(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	b := budget{limits: l}
-	return scalarFunc4(&b, 0, a0)
+	return value, nil
 }

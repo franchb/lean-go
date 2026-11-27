@@ -7,9 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/franchb/lean-go/internal/modulegen"
 	"github.com/franchb/lean-go/internal/moduleir"
 )
+
+// MeteredGenerate is modulegen.Generate, set by metered_test.go: modulegen
+// embeds this package's output, so only the external test package can import it.
+var MeteredGenerate func(*moduleir.Program) (map[string][]byte, error)
 
 // meteredAPI is the part of the metered manifest's go_api the driver needs.
 type meteredAPI struct {
@@ -526,7 +529,7 @@ func harnessModule(t testing.TB, dir string, opts Options) []string {
 	programs = append(programs, collidingTrees(t))
 	for _, p := range programs {
 		path := p.Module
-		metered, err := modulegen.Generate(clone(t, p))
+		metered, err := MeteredGenerate(clone(t, p))
 		if err != nil {
 			t.Fatalf("%s metered: %v", path, err)
 		}

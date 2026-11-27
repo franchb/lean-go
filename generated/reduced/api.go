@@ -95,8 +95,162 @@ func (v Count) Value() (uint32, bool) {
 	return value, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natCount is the Lean structure Reduced.Count, built by Reduced.Count.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natCount struct {
+	Value uint32
+}
+
+// natX_redArg implements the Lean function Reduced.add._redArg.
+func natX_redArg(v1 natCount, v3 natCount) natCount {
+	return natCount{Value: v1.Value + v3.Value}
+}
+
+// natRun implements the Lean function Reduced.run.
+func natRun(v1 bool, v2 natCount, v4 natCount, v6 natCount, v8 natCount) natCount {
+	v13 := natX_redArg2(v1, natCount{Value: v4.Value}, natCount{Value: v6.Value}, natCount{Value: v8.Value})
+	return natCount{Value: v13.Value}
+}
+
+// natX_redArg2 implements the Lean function Reduced.run._redArg.
+func natX_redArg2(v1 bool, v2 natCount, v4 natCount, v6 natCount) natCount {
+	var v9 uint32
+	{
+		if v1 {
+			v9 = v2.Value
+			goto j8
+		}
+		v9 = v4.Value
+		goto j8
+	}
+j8:
+	v12 := natX_redArg(natCount{Value: v9}, natCount{Value: v6.Value})
+	v16 := natX_redArg(natCount{Value: v12.Value}, natCount{Value: v6.Value})
+	v20 := natX_redArg(natCount{Value: v16.Value}, natCount{Value: v6.Value})
+	v24 := natX_redArg(natCount{Value: v20.Value}, natCount{Value: v6.Value})
+	return natCount{Value: v24.Value}
+}
+
+// fastIn2 converts a well-formed Reduced.Count node; false means fall back.
+func fastIn2(n *node) (natCount, bool) {
+	if n == nil || n.typ != 2 || n.size == 0 || n.depth == 0 || n.size > 2 || n.depth > 2 {
+		return natCount{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natCount{}, false
+		}
+		a0, ok := apiReadUInt32(n.fields[0])
+		if !ok {
+			return natCount{}, false
+		}
+		return natCount{Value: a0}, true
+	}
+	return natCount{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putUInt32(v uint32) *node {
+	n := a.next()
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
+	return n
+}
+
+// fastPut2 builds the nodes of x in a.
+func fastPut2(a *fastArena, x natCount) *node {
+	n := a.next()
+	n.typ, n.tag = 2, 0
+	f := a.take(1)
+	f[0] = a.putUInt32(x.Value)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab2 holds the 2 nodes of a Reduced.Count value.
+type fastSlab2 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
+// fastOut2 converts x into fresh nodes.
+func fastOut2(x natCount) *node {
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut2(&a, x)
+}
+
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Reduced.run in every dimension.
+func fastCovers1(l Limits) bool {
+	return 9 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 2 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 21 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 55 <= l.MaxSteps && l.MaxSteps <= 4194304 && 3 <= l.MaxFrames && l.MaxFrames <= 8192 && 64 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers1(l) {
+		return nil, false
+	}
+	x0, ok := apiReadBool(args[0])
+	if !ok {
+		return nil, false
+	}
+	x1, ok := fastIn2(args[1])
+	if !ok {
+		return nil, false
+	}
+	x2, ok := fastIn2(args[2])
+	if !ok {
+		return nil, false
+	}
+	x3, ok := fastIn2(args[3])
+	if !ok {
+		return nil, false
+	}
+	x4, ok := fastIn2(args[4])
+	if !ok {
+		return nil, false
+	}
+	return fastOut2(natRun(x0, x1, x2, x3, x4)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 bool, a1 Count, a2 Count, a3 Count, a4 Count, l Limits) (Count, error) {
+	if fastCovers1(l) {
+		x0 := a0
+		x1, ok1 := fastIn2(a1.v.n)
+		x2, ok2 := fastIn2(a2.v.n)
+		x3, ok3 := fastIn2(a3.v.n)
+		x4, ok4 := fastIn2(a4.v.n)
+		if ok1 && ok2 && ok3 && ok4 {
+			return Count{v: Value{fastOut2(natRun(x0, x1, x2, x3, x4))}}, nil
+		}
+	}
 	out, err := Run([]Value{{n: apiBoolNode(a0)}, {n: a1.v.n}, {n: a2.v.n}, {n: a3.v.n}, {n: a4.v.n}}, l)
 	if err != nil {
 		return Count{}, err

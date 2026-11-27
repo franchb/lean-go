@@ -214,6 +214,9 @@ func RunRoot(root string, args []Value, l Limits) (Value, error) {
 		total += v.n.size
 		nodes[i] = v.n
 	}
+	if result, ok := fastRun(entry, nodes, l); ok {
+		return Value{result}, nil
+	}
 	b := &budget{limits: l}
 	result, err := execute(b, entry, nodes)
 	if err != nil {

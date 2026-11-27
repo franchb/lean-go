@@ -7,12 +7,15 @@ import (
 	"io/fs"
 	"sort"
 	"strings"
+
+	"github.com/franchb/lean-go/internal/nativegen"
 )
 
 //go:embed *.go templates/*
 var sourceFiles embed.FS
 
-// SourceDigest identifies generator source and templates, excluding tests.
+// SourceDigest identifies generator source and templates, excluding tests,
+// and the native emitter whose output the fast path embeds.
 func SourceDigest() string {
 	var names []string
 	fs.WalkDir(sourceFiles, ".", func(path string, d fs.DirEntry, err error) error {
@@ -33,5 +36,7 @@ func SourceDigest() string {
 		h.Write(data)
 		h.Write([]byte{0})
 	}
+	// Metered packages embed native code for the fast path.
+	h.Write([]byte("nativegen\x00" + nativegen.SourceDigest() + "\x00"))
 	return hex.EncodeToString(h.Sum(nil))
 }

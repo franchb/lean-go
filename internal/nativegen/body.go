@@ -32,7 +32,7 @@ func (m *model) emitFunction(w *bytes.Buffer, f *funcInfo, used map[string]bool)
 		}
 	})
 	e.analyze()
-	if f.root && !f.depth && f.fold == nil {
+	if f.root && !f.depth && f.fold == nil && m.prefix == "" {
 		fmt.Fprintf(w, "\n// %s is the Lean function %s.\n", f.callName, f.decl.Name)
 	} else {
 		fmt.Fprintf(w, "\n// %s implements the Lean function %s.\n", f.callName, f.decl.Name)

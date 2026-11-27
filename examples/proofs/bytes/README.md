@@ -43,7 +43,7 @@ not describe resource-limit failures.
 
 Runtime source uses only byte/word casts, `UInt32` shifts and OR. The generated
 bundle uses `lean-go-ir/v24`, `lean-go-manifest/v24`, `pure-module/v22`, and
-`lean-go-modulegen/v19`. Tests independently compare all four typed and raw roots
+`lean-go-modulegen/v20`. Tests independently compare all four typed and raw roots
 with `encoding/binary`, check the twelve laws over 652 boundary, distinct-byte,
 one-hot and seeded cases, and exercise malformed inputs, ownership and budgets.
 Each encoder requires 11 allocations and 12 steps; each decoder requires 13

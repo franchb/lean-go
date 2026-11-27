@@ -23,11 +23,13 @@ func (g *generator) renderTemplate(name string) ([]byte, error) {
 		UInt16Type int
 		UInt64Type int
 		MultiRoot  bool
+		Fast       bool
 	}{
 		UInt8Type:  g.types["UInt8"],
 		UInt16Type: g.types["UInt16"],
 		UInt64Type: g.types["UInt64"],
 		MultiRoot:  moduleir.HasMultipleRoots(g.program),
+		Fast:       g.fast != nil,
 	}
 	var out bytes.Buffer
 	if err := parsed.Execute(&out, data); err != nil {

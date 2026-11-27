@@ -59,6 +59,18 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   functions with no resource budgets. The original budgeted output is
   `--mode metered`. See [docs/native-mode.md](docs/native-mode.md).
 - The clamp example also tracks a native package with its own evidence.
+- Metered fast path (`lean-go-modulegen/v20`): a metered root whose call
+  graph has no recursion and whose types are not recursive runs the native
+  emitter's code when the caller's limits cover its worst case, computed per
+  limit from the state machine's own accounting; otherwise, and for any
+  malformed argument, the unchanged state machine runs, so results and
+  errors are the same. Measured in one session against the previous release:
+  DNS parse plus serialize through the metered adapter 11,688 ns to 3,169 ns
+  (186 to 46 allocations), UDP 6,388 ns to 2,679 ns, the demo header
+  4,265 ns to 1,853 ns, Numbers 1,096 ns to 418.6 ns, Quota reserve
+  463.7 ns to 237.7 ns, scalar roots such as `Clamp.clamp` 37.1 ns to
+  4.9 ns. Byte folds and recursive roots are unchanged. See
+  [docs/research/extraction-modules.md](docs/research/extraction-modules.md#metered-fast-path).
 
 **Wire formats**
 

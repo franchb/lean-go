@@ -35,11 +35,14 @@ sources = ["src"]
 "internal/modulegen/primitives.go" = "lean_go/_payload/internal/modulegen/primitives.go"
 "internal/modulegen/roots.go" = "lean_go/_payload/internal/modulegen/roots.go"
 "internal/modulegen/bytefold.go" = "lean_go/_payload/internal/modulegen/bytefold.go"
+"internal/modulegen/bound.go" = "lean_go/_payload/internal/modulegen/bound.go"
+"internal/modulegen/fastpath.go" = "lean_go/_payload/internal/modulegen/fastpath.go"
 "internal/modulegen/scalar.go" = "lean_go/_payload/internal/modulegen/scalar.go"
 "internal/modulegen/templates.go" = "lean_go/_payload/internal/modulegen/templates.go"
 "internal/modulegen/templates/api.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/api.go.tmpl"
 "internal/modulegen/templates/runtime.go.tmpl" = "lean_go/_payload/internal/modulegen/templates/runtime.go.tmpl"
 "internal/nativegen/body.go" = "lean_go/_payload/internal/nativegen/body.go"
+"internal/nativegen/embed.go" = "lean_go/_payload/internal/nativegen/embed.go"
 "internal/nativegen/functions.go" = "lean_go/_payload/internal/nativegen/functions.go"
 "internal/nativegen/generate.go" = "lean_go/_payload/internal/nativegen/generate.go"
 "internal/nativegen/model.go" = "lean_go/_payload/internal/nativegen/model.go"
@@ -163,11 +166,14 @@ include = [
   "/internal/modulegen/primitives.go",
   "/internal/modulegen/roots.go",
   "/internal/modulegen/bytefold.go",
+  "/internal/modulegen/bound.go",
+  "/internal/modulegen/fastpath.go",
   "/internal/modulegen/scalar.go",
   "/internal/modulegen/templates.go",
   "/internal/modulegen/templates/api.go.tmpl",
   "/internal/modulegen/templates/runtime.go.tmpl",
   "/internal/nativegen/body.go",
+  "/internal/nativegen/embed.go",
   "/internal/nativegen/functions.go",
   "/internal/nativegen/generate.go",
   "/internal/nativegen/model.go",

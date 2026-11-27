@@ -185,7 +185,7 @@ The three [wire-format examples](wire-formats.md) are native too.
 | | Metered | Native |
 | --- | --- | --- |
 | Values | boxed immutable nodes; zero wrapper is invalid | Go values; every value, zero included, is valid |
-| Calls | explicit-stack state machine, `(T, error)` everywhere | Go calls; `error` only on recursive chains |
+| Calls | explicit-stack state machine, or native code for roots without recursion when the limits cover their static bound; `(T, error)` everywhere | Go calls; `error` only on recursive chains |
 | Budgets | seven limits per call | recursion depth only |
 | Byte folds | at most 4,095 bytes per call | unlimited |
 | Raw API | `Value`, `Input`, `Import`, `RunRoot` | none |
@@ -271,6 +271,33 @@ touches only sums whose constructors carry fields). Re-measured back to back
 against v1 in one session, every native workload stayed within noise:
 Numbers 11.0 ns (v1 11.2), Quota reserve 1.58 ns (1.58), Tree balanced
 6,876 ns (6,898), Adler-32 108.8 µs (107.1), with the same allocations.
+
+### Metered fast path
+
+The metered column above is `lean-go-modulegen/v19`. Since v20 a metered
+root without recursion or recursive types runs native code when the limits
+cover its static worst case
+([metered fast path](research/extraction-modules.md#metered-fast-path)), as
+Numbers and Quota do with the default limits. The same harness, run back to
+back for the previous release (commit `da2b025`) and for v20 in one session
+(medians of five; raw samples:
+[metered-fastpath-bench.txt](research/data/metered-fastpath-bench.txt)):
+
+| Workload | Metered v19 | Metered v20 | Native (same session) | Metered v20 / native |
+| --- | ---: | ---: | ---: | ---: |
+| Numbers | 1,096 ns (22 allocations) | 418.6 ns (1 allocation) | 12.0 ns | 35 |
+| Quota reserve | 463.7 ns (9) | 237.7 ns (1) | 2.1 ns | 113 |
+| Quota release | 388.6 ns (8) | 187.8 ns (1) | 1.7 ns | 110 |
+| Quota remaining | 166.1 ns (2) | 13.2 ns (0) | 0.9 ns | 15 |
+
+What is left is the conversion at the boundary: the arguments are read
+from their nodes, and a record or sum result is rebuilt as fresh nodes in
+one allocation (two when its size depends on the constructor); a scalar
+result needs none. Byte folds and Trees take the paths they took before; in
+this session they measured Adler-32 1,341 µs (v19 1,344 µs), CRC-16 5,520 µs
+(5,830 µs), Tree balanced 54,950 ns (49,220 ns) and Tree skewed 31,311 ns
+(26,465 ns), differences that are noise of the shared machine: the generated
+code of those paths did not change.
 
 ### Records and sums
 

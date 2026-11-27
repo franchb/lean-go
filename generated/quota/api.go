@@ -136,8 +136,253 @@ func (v State) Used() (uint64, bool) {
 	return value, true
 }
 
-// RunCreate invokes its selected Lean root through RunRoot and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natOutcome is the Lean structure Quota.Outcome, built by Quota.Outcome.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natOutcome struct {
+	State    natState
+	Accepted bool
+}
+
+// natState is the Lean structure Quota.State, built by Quota.State.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natState struct {
+	Capacity uint64
+	Used     uint64
+}
+
+// natCreate implements the Lean function Quota.create.
+func natCreate(v1 uint64) natState {
+	return natState{Capacity: v1, Used: uint64(0)}
+}
+
+// natRelease implements the Lean function Quota.release.
+func natRelease(v1 natState, v2 uint64) natOutcome {
+	v5 := v1.Used <= v1.Capacity
+	if v5 {
+		v7 := v2 <= v1.Used
+		if v7 {
+			return natOutcome{State: natState{Capacity: v1.Capacity, Used: v1.Used - v2}, Accepted: v7}
+		}
+		return natOutcome{State: v1, Accepted: v7}
+	}
+	return natOutcome{State: v1, Accepted: v5}
+}
+
+// natRemaining implements the Lean function Quota.remaining.
+func natRemaining(v1 natState) uint64 {
+	if v1.Used <= v1.Capacity {
+		return v1.Capacity - v1.Used
+	}
+	return uint64(0)
+}
+
+// natReserve implements the Lean function Quota.reserve.
+func natReserve(v1 natState, v2 uint64) natOutcome {
+	v5 := v1.Used <= v1.Capacity
+	if v5 {
+		v8 := v2 <= (v1.Capacity - v1.Used)
+		if v8 {
+			return natOutcome{State: natState{Capacity: v1.Capacity, Used: v1.Used + v2}, Accepted: v8}
+		}
+		return natOutcome{State: v1, Accepted: v8}
+	}
+	return natOutcome{State: v1, Accepted: v5}
+}
+
+// fastIn3 converts a well-formed Quota.State node; false means fall back.
+func fastIn3(n *node) (natState, bool) {
+	if n == nil || n.typ != 3 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 2 {
+		return natState{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 2 {
+			return natState{}, false
+		}
+		a0, ok := apiReadUInt64(n.fields[0])
+		if !ok {
+			return natState{}, false
+		}
+		a1, ok := apiReadUInt64(n.fields[1])
+		if !ok {
+			return natState{}, false
+		}
+		return natState{Capacity: a0, Used: a1}, true
+	}
+	return natState{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putBool(v bool) *node {
+	n := a.next()
+	n.typ, n.size, n.depth = 1, 1, 1
+	if v {
+		n.tag = 1
+	}
+	return n
+}
+func (a *fastArena) putUInt64(v uint64) *node {
+	n := a.next()
+	n.typ, n.scalar64, n.size, n.depth = 4, v, 1, 1
+	return n
+}
+
+// fastPut3 builds the nodes of x in a.
+func fastPut3(a *fastArena, x natState) *node {
+	n := a.next()
+	n.typ, n.tag = 3, 0
+	f := a.take(2)
+	f[0] = a.putUInt64(x.Capacity)
+	f[1] = a.putUInt64(x.Used)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab3 holds the 3 nodes of a Quota.State value.
+type fastSlab3 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
+// fastOut3 converts x into fresh nodes.
+func fastOut3(x natState) *node {
+	s := new(fastSlab3)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut3(&a, x)
+}
+
+// fastPut2 builds the nodes of x in a.
+func fastPut2(a *fastArena, x natOutcome) *node {
+	n := a.next()
+	n.typ, n.tag = 2, 0
+	f := a.take(2)
+	f[0] = fastPut3(a, x.State)
+	f[1] = a.putBool(x.Accepted)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab2 holds the 5 nodes of a Quota.Outcome value.
+type fastSlab2 struct {
+	nodes  [5]node
+	fields [4]*node
+}
+
+// fastOut2 converts x into fresh nodes.
+func fastOut2(x natOutcome) *node {
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut2(&a, x)
+}
+
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Quota.create in every dimension.
+func fastCovers0(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 3 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 3 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Quota.release in every dimension.
+func fastCovers1(l Limits) bool {
+	return 4 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 5 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 9 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 11 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Quota.remaining in every dimension.
+func fastCovers2(l Limits) bool {
+	return 3 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 2 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 5 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 6 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers3 reports whether l is valid and covers the static worst case of
+// Quota.reserve in every dimension.
+func fastCovers3(l Limits) bool {
+	return 4 <= l.MaxNodes && l.MaxNodes <= 65536 && 3 <= l.MaxDepth && l.MaxDepth <= 4096 && 5 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 6 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 10 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 12 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root with function id entry natively when it is eligible,
+// l covers its bound and every argument converts.
+func fastRun(entry int, args []*node, l Limits) (*node, bool) {
+	switch entry {
+	case 0:
+		if !fastCovers0(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt64(args[0])
+		if !ok {
+			return nil, false
+		}
+		return fastOut3(natCreate(x0)), true
+	case 1:
+		if !fastCovers1(l) {
+			return nil, false
+		}
+		x0, ok := fastIn3(args[0])
+		if !ok {
+			return nil, false
+		}
+		x1, ok := apiReadUInt64(args[1])
+		if !ok {
+			return nil, false
+		}
+		return fastOut2(natRelease(x0, x1)), true
+	case 2:
+		if !fastCovers2(l) {
+			return nil, false
+		}
+		x0, ok := fastIn3(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt64Node(natRemaining(x0)), true
+	case 3:
+		if !fastCovers3(l) {
+			return nil, false
+		}
+		x0, ok := fastIn3(args[0])
+		if !ok {
+			return nil, false
+		}
+		x1, ok := apiReadUInt64(args[1])
+		if !ok {
+			return nil, false
+		}
+		return fastOut2(natReserve(x0, x1)), true
+	}
+	return nil, false
+}
+
+// RunCreate invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunCreate(a0 uint64, l Limits) (State, error) {
+	if fastCovers0(l) {
+		x0 := a0
+		return State{v: Value{fastOut3(natCreate(x0))}}, nil
+	}
 	out, err := RunRoot("Quota.create", []Value{{n: apiUInt64Node(a0)}}, l)
 	if err != nil {
 		return State{}, err
@@ -149,8 +394,16 @@ func RunCreate(a0 uint64, l Limits) (State, error) {
 	return value, nil
 }
 
-// RunRelease invokes its selected Lean root through RunRoot and its existing limits.
+// RunRelease invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunRelease(a0 State, a1 uint64, l Limits) (Outcome, error) {
+	if fastCovers1(l) {
+		x0, ok0 := fastIn3(a0.v.n)
+		x1 := a1
+		if ok0 {
+			return Outcome{v: Value{fastOut2(natRelease(x0, x1))}}, nil
+		}
+	}
 	out, err := RunRoot("Quota.release", []Value{{n: a0.v.n}, {n: apiUInt64Node(a1)}}, l)
 	if err != nil {
 		return Outcome{}, err
@@ -162,8 +415,15 @@ func RunRelease(a0 State, a1 uint64, l Limits) (Outcome, error) {
 	return value, nil
 }
 
-// RunRemaining invokes its selected Lean root through RunRoot and its existing limits.
+// RunRemaining invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunRemaining(a0 State, l Limits) (uint64, error) {
+	if fastCovers2(l) {
+		x0, ok0 := fastIn3(a0.v.n)
+		if ok0 {
+			return natRemaining(x0), nil
+		}
+	}
 	out, err := RunRoot("Quota.remaining", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return 0, err
@@ -175,8 +435,16 @@ func RunRemaining(a0 State, l Limits) (uint64, error) {
 	return value, nil
 }
 
-// RunReserve invokes its selected Lean root through RunRoot and its existing limits.
+// RunReserve invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunReserve(a0 State, a1 uint64, l Limits) (Outcome, error) {
+	if fastCovers3(l) {
+		x0, ok0 := fastIn3(a0.v.n)
+		x1 := a1
+		if ok0 {
+			return Outcome{v: Value{fastOut2(natReserve(x0, x1))}}, nil
+		}
+	}
 	out, err := RunRoot("Quota.reserve", []Value{{n: a0.v.n}, {n: apiUInt64Node(a1)}}, l)
 	if err != nil {
 		return Outcome{}, err

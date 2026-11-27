@@ -188,8 +188,358 @@ func (v State) Raw() (uint32, bool) {
 	return value, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natCount is the Lean structure Joins.Count, built by Joins.Count.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natCount struct {
+	Value uint32
+}
+
+// natEnabled is the Lean structure Joins.Enabled, built by Joins.Enabled.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natEnabled struct {
+	Value bool
+}
+
+// natNested is the Lean structure Joins.Nested, built by Joins.Nested.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natNested struct {
+	Count natCount
+}
+
+// natState is the Lean structure Joins.State, built by Joins.State.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natState struct {
+	Count   natCount
+	Nested  natNested
+	Enabled natEnabled
+	Raw     uint32
+}
+
+// natAdd implements the Lean function Joins.add.
+func natAdd(v1 uint32, v2 uint32) uint32 {
+	return v1 + v2
+}
+
+// natUpdate implements the Lean function Joins.update.
+func natUpdate(v1 natState, v2 natCount, v4 bool) natState {
+	var v6 uint32
+	var v7 uint32
+	var v8 uint32
+	var v9 uint32
+	var v10 bool
+	{
+		var v18 uint32
+		var v19 uint32
+		var v20 uint32
+		var v21 uint32
+		{
+			var v25 bool
+			var v26 uint32
+			var v27 uint32
+			var v28 uint32
+			var v29 uint32
+			var v30 uint32
+			{
+				var v38 uint32
+				{
+					if v4 {
+						v38 = v2.Value
+						goto j37
+					}
+					v38 = v1.Count.Value
+					goto j37
+				}
+			j37:
+				if v1.Enabled.Value {
+					if v38 < v1.Raw {
+						v25, v26, v27, v28, v29, v30 = v1.Enabled.Value, v1.Count.Value, v1.Raw, v1.Nested.Count.Value, v38, v38
+						goto j24
+					}
+					v25, v26, v27, v28, v29, v30 = v1.Enabled.Value, v1.Count.Value, v1.Raw, v1.Nested.Count.Value, v38, v1.Raw
+					goto j24
+				}
+				v18, v19, v20, v21 = v1.Count.Value, v1.Raw, v38, natAdd(v1.Nested.Count.Value, v38)
+				goto j17
+			}
+		j24:
+			v34 := natAdd(natAdd(natAdd(natAdd(v30, v28), v2.Value), v26), v27)
+			if v25 {
+				v6, v7, v8, v9, v10 = v34, natAdd(v29, v26), v27, v29, false
+				goto j5
+			}
+			v18, v19, v20, v21 = v26, v27, v29, v34
+			goto j17
+		}
+	j17:
+		v6, v7, v8, v9, v10 = v21, natAdd(v20, v18), v19, v20, true
+		goto j5
+	}
+j5:
+	return natState{Count: natCount{Value: v7}, Nested: natNested{Count: natCount{Value: v6}}, Enabled: natEnabled{Value: v10}, Raw: natAdd(v8, v9)}
+}
+
+// fastIn2 converts a well-formed Joins.Count node; false means fall back.
+func fastIn2(n *node) (natCount, bool) {
+	if n == nil || n.typ != 2 || n.size == 0 || n.depth == 0 || n.size > 2 || n.depth > 2 {
+		return natCount{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natCount{}, false
+		}
+		a0, ok := apiReadUInt32(n.fields[0])
+		if !ok {
+			return natCount{}, false
+		}
+		return natCount{Value: a0}, true
+	}
+	return natCount{}, false
+}
+
+// fastIn4 converts a well-formed Joins.Nested node; false means fall back.
+func fastIn4(n *node) (natNested, bool) {
+	if n == nil || n.typ != 4 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 3 {
+		return natNested{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natNested{}, false
+		}
+		a0, ok := fastIn2(n.fields[0])
+		if !ok {
+			return natNested{}, false
+		}
+		return natNested{Count: a0}, true
+	}
+	return natNested{}, false
+}
+
+// fastIn3 converts a well-formed Joins.Enabled node; false means fall back.
+func fastIn3(n *node) (natEnabled, bool) {
+	if n == nil || n.typ != 3 || n.size == 0 || n.depth == 0 || n.size > 2 || n.depth > 2 {
+		return natEnabled{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natEnabled{}, false
+		}
+		a0, ok := apiReadBool(n.fields[0])
+		if !ok {
+			return natEnabled{}, false
+		}
+		return natEnabled{Value: a0}, true
+	}
+	return natEnabled{}, false
+}
+
+// fastIn5 converts a well-formed Joins.State node; false means fall back.
+func fastIn5(n *node) (natState, bool) {
+	if n == nil || n.typ != 5 || n.size == 0 || n.depth == 0 || n.size > 9 || n.depth > 4 {
+		return natState{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 4 {
+			return natState{}, false
+		}
+		a0, ok := fastIn2(n.fields[0])
+		if !ok {
+			return natState{}, false
+		}
+		a1, ok := fastIn4(n.fields[1])
+		if !ok {
+			return natState{}, false
+		}
+		a2, ok := fastIn3(n.fields[2])
+		if !ok {
+			return natState{}, false
+		}
+		a3, ok := apiReadUInt32(n.fields[3])
+		if !ok {
+			return natState{}, false
+		}
+		return natState{Count: a0, Nested: a1, Enabled: a2, Raw: a3}, true
+	}
+	return natState{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putBool(v bool) *node {
+	n := a.next()
+	n.typ, n.size, n.depth = 1, 1, 1
+	if v {
+		n.tag = 1
+	}
+	return n
+}
+func (a *fastArena) putUInt32(v uint32) *node {
+	n := a.next()
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
+	return n
+}
+
+// fastPut2 builds the nodes of x in a.
+func fastPut2(a *fastArena, x natCount) *node {
+	n := a.next()
+	n.typ, n.tag = 2, 0
+	f := a.take(1)
+	f[0] = a.putUInt32(x.Value)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab2 holds the 2 nodes of a Joins.Count value.
+type fastSlab2 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
+// fastOut2 converts x into fresh nodes.
+func fastOut2(x natCount) *node {
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut2(&a, x)
+}
+
+// fastPut4 builds the nodes of x in a.
+func fastPut4(a *fastArena, x natNested) *node {
+	n := a.next()
+	n.typ, n.tag = 4, 0
+	f := a.take(1)
+	f[0] = fastPut2(a, x.Count)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab4 holds the 3 nodes of a Joins.Nested value.
+type fastSlab4 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
+// fastOut4 converts x into fresh nodes.
+func fastOut4(x natNested) *node {
+	s := new(fastSlab4)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut4(&a, x)
+}
+
+// fastPut3 builds the nodes of x in a.
+func fastPut3(a *fastArena, x natEnabled) *node {
+	n := a.next()
+	n.typ, n.tag = 3, 0
+	f := a.take(1)
+	f[0] = a.putBool(x.Value)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab3 holds the 2 nodes of a Joins.Enabled value.
+type fastSlab3 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
+// fastOut3 converts x into fresh nodes.
+func fastOut3(x natEnabled) *node {
+	s := new(fastSlab3)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut3(&a, x)
+}
+
+// fastPut5 builds the nodes of x in a.
+func fastPut5(a *fastArena, x natState) *node {
+	n := a.next()
+	n.typ, n.tag = 5, 0
+	f := a.take(4)
+	f[0] = fastPut2(a, x.Count)
+	f[1] = fastPut4(a, x.Nested)
+	f[2] = fastPut3(a, x.Enabled)
+	f[3] = a.putUInt32(x.Raw)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab5 holds the 9 nodes of a Joins.State value.
+type fastSlab5 struct {
+	nodes  [9]node
+	fields [8]*node
+}
+
+// fastOut5 converts x into fresh nodes.
+func fastOut5(x natState) *node {
+	s := new(fastSlab5)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut5(&a, x)
+}
+
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Joins.update in every dimension.
+func fastCovers1(l Limits) bool {
+	return 12 <= l.MaxNodes && l.MaxNodes <= 65536 && 4 <= l.MaxDepth && l.MaxDepth <= 4096 && 9 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 13 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 49 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 70 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers1(l) {
+		return nil, false
+	}
+	x0, ok := fastIn5(args[0])
+	if !ok {
+		return nil, false
+	}
+	x1, ok := fastIn2(args[1])
+	if !ok {
+		return nil, false
+	}
+	x2, ok := apiReadBool(args[2])
+	if !ok {
+		return nil, false
+	}
+	return fastOut5(natUpdate(x0, x1, x2)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 State, a1 Count, a2 bool, l Limits) (State, error) {
+	if fastCovers1(l) {
+		x0, ok0 := fastIn5(a0.v.n)
+		x1, ok1 := fastIn2(a1.v.n)
+		x2 := a2
+		if ok0 && ok1 {
+			return State{v: Value{fastOut5(natUpdate(x0, x1, x2))}}, nil
+		}
+	}
 	out, err := Run([]Value{{n: a0.v.n}, {n: a1.v.n}, {n: apiBoolNode(a2)}}, l)
 	if err != nil {
 		return State{}, err
