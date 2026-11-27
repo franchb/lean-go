@@ -46,6 +46,9 @@ const (
 	ReasonDeriveFailed     = "derive_failed"
 	ReasonOther            = "other"
 	reasonMissingFunctions = "missing_functions"
+	// ReasonNotReported marks an IR function or a requested root that the
+	// validation command's report does not mention.
+	ReasonNotReported = "not_reported"
 )
 
 // reasonWords renders a reason class for people ("failed: memory limit").
@@ -302,7 +305,9 @@ func (r *ValidationReport) Unproved() []string {
 			out = append(out, line)
 		}
 	}
+	reported := make(map[string]bool, len(r.Programs))
 	for _, p := range r.Programs {
+		reported[p.Root] = true
 		if p.Status != "proved" {
 			line := "root " + p.Root + ": " + strings.ReplaceAll(p.Status, "_", " ")
 			if len(p.Missing) > 0 {
@@ -311,6 +316,16 @@ func (r *ValidationReport) Unproved() []string {
 				line += ": " + reasonWords(p.ReasonClass)
 			}
 			out = append(out, line)
+		}
+	}
+	// A root without a program entry is not established, whatever else the
+	// report says: completeness is judged against the roots that were asked
+	// for, not against the entries that happen to be present.
+	if r.Status == ValidationCompleted {
+		for _, root := range r.Roots {
+			if !reported[root] {
+				out = append(out, "root "+root+": "+reasonWords(ReasonNotReported))
+			}
 		}
 	}
 	return out
@@ -372,8 +387,11 @@ type reportInputs struct {
 	compiler Compiler
 	options  ValidationOptions
 	library  map[string]string
-	killed   map[string]killedObligation
-	attempts []ValidationAttempt
+	// functions names every function of the exported IR; the report must
+	// account for each of them.
+	functions []string
+	killed    map[string]killedObligation
+	attempts  []ValidationAttempt
 	// processReason is set when no report could be obtained.
 	processReason, processClass string
 }
@@ -459,7 +477,27 @@ func splitReport(raw *rawValidationReport, in reportInputs) (*ValidationReport, 
 			report.Summary.NotAttempted++
 		}
 	}
-	report.Summary.Functions = len(raw.Functions)
+	// The command is expected to report every IR function and every root.
+	// The runner does not take that on trust: whatever a completed report
+	// leaves out is entered as not attempted, so that it counts as unproved.
+	if raw.Status == ValidationCompleted {
+		reported := make(map[string]bool, len(raw.Functions))
+		for _, f := range raw.Functions {
+			reported[f.Name] = true
+		}
+		for _, name := range in.functions {
+			if reported[name] {
+				continue
+			}
+			reported[name] = true
+			report.Functions = append(report.Functions, ReportFunction{
+				Name: name, Params: []string{}, Status: "not_attempted", ReasonClass: ReasonNotReported, Axioms: []string{}})
+			diagnostics.Functions = append(diagnostics.Functions, DiagnosticFunction{
+				Name: name, Status: "not_attempted", Reason: "the validation command did not report this function"})
+			report.Summary.NotAttempted++
+		}
+	}
+	report.Summary.Functions = len(report.Functions)
 	for _, p := range raw.Programs {
 		program := ReportProgram{Root: p.Root, Closure: nonNil(p.Closure), Status: p.Status}
 		switch p.Status {
@@ -478,6 +516,22 @@ func splitReport(raw *rawValidationReport, in reportInputs) (*ValidationReport, 
 		}
 		report.Programs = append(report.Programs, program)
 		diagnostics.Programs = append(diagnostics.Programs, DiagnosticProgram{Root: p.Root, Reason: p.Reason, TimeMs: p.TimeMs})
+	}
+	if raw.Status == ValidationCompleted {
+		reported := make(map[string]bool, len(raw.Programs))
+		for _, p := range raw.Programs {
+			reported[p.Root] = true
+		}
+		for _, root := range in.roots {
+			if reported[root] {
+				continue
+			}
+			reported[root] = true
+			report.Programs = append(report.Programs, ReportProgram{
+				Root: root, Closure: []string{}, Status: "not_established", ReasonClass: ReasonNotReported})
+			diagnostics.Programs = append(diagnostics.Programs, DiagnosticProgram{
+				Root: root, Reason: "the validation command did not report this root"})
+		}
 	}
 	report.Summary.Roots = len(in.roots)
 	return report, diagnostics

@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -271,10 +272,28 @@ func runValidation(r validationRun) (*ValidationResult, error) {
 	}
 	report, diagnostics := splitReport(raw, reportInputs{
 		module: r.module, roots: r.roots, irSHA256: Digest(r.ir), compiler: r.compiler, options: opts,
-		library: ValidationInventory(), killed: killed, attempts: attempts,
+		library: ValidationInventory(), functions: irFunctionNames(r.ir), killed: killed, attempts: attempts,
 		processReason: processReason, processClass: processClass,
 	})
 	return encodeValidation(report, diagnostics)
+}
+
+// irFunctionNames lists the functions of an exported IR program in order.
+// Unreadable IR yields nil; the export step has already rejected that.
+func irFunctionNames(ir []byte) []string {
+	var program struct {
+		Functions []struct {
+			Name string `json:"name"`
+		} `json:"functions"`
+	}
+	if json.Unmarshal(ir, &program) != nil {
+		return nil
+	}
+	names := make([]string, 0, len(program.Functions))
+	for _, f := range program.Functions {
+		names = append(names, f.Name)
+	}
+	return names
 }
 
 func encodeValidation(report *ValidationReport, diagnostics *ValidationDiagnostics) (*ValidationResult, error) {

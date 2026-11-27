@@ -470,3 +470,75 @@ func TestValidationIsOutsideTheExtractionInventory(t *testing.T) {
 		t.Fatal("producer files")
 	}
 }
+
+// The runner does not take the command's word for what the program contains:
+// an IR function or a requested root that a completed report leaves out is
+// entered as not attempted and makes the report incomplete.
+func TestCompletedReportMustCoverEveryFunctionAndRoot(t *testing.T) {
+	yes := true
+	allProved := func() *rawValidationReport {
+		return &rawValidationReport{
+			Module: "M", Roots: []string{"M.f", "M.g"}, Status: "completed", IRFileMatches: &yes,
+			Functions: []rawFunction{proved("M.f"), proved("M.g"), proved("M.h")},
+			Programs: []rawProgram{
+				{Root: "M.f", Closure: []string{"M.f", "M.h"}, Status: "proved", Theorem: "t0"},
+				{Root: "M.g", Closure: []string{"M.g"}, Status: "proved", Theorem: "t1"},
+			},
+		}
+	}
+	in := sampleInputs()
+	in.killed = nil
+	in.functions = []string{"M.f", "M.g", "M.h"}
+
+	report, _ := splitReport(allProved(), in)
+	if !report.Complete() || report.Summary.Functions != 3 || report.Summary.Proved != 3 || report.Summary.RootsProved != 2 {
+		t.Fatalf("a full report is not complete: %v %+v", report.Unproved(), report.Summary)
+	}
+
+	// The command drops a function.
+	raw := allProved()
+	raw.Functions = raw.Functions[:2]
+	report, diagnostics := splitReport(raw, in)
+	unproved := strings.Join(report.Unproved(), "; ")
+	if report.Complete() || !strings.Contains(unproved, "M.h: not_attempted: not reported") {
+		t.Fatalf("a missing function went unnoticed: %q", unproved)
+	}
+	if report.Summary.Functions != 3 || report.Summary.Proved != 2 || report.Summary.NotAttempted != 1 ||
+		len(diagnostics.Functions) != 3 || diagnostics.Functions[2].Name != "M.h" {
+		t.Fatalf("summary %+v diagnostics %+v", report.Summary, diagnostics.Functions)
+	}
+
+	// The command drops a root.
+	raw = allProved()
+	raw.Programs = raw.Programs[:1]
+	report, diagnostics = splitReport(raw, in)
+	unproved = strings.Join(report.Unproved(), "; ")
+	if report.Complete() || !strings.Contains(unproved, "root M.g: not established: not reported") {
+		t.Fatalf("a missing root went unnoticed: %q", unproved)
+	}
+	if report.Summary.Roots != 2 || report.Summary.RootsProved != 1 || len(report.Programs) != 2 || len(diagnostics.Programs) != 2 {
+		t.Fatalf("summary %+v programs %+v", report.Summary, report.Programs)
+	}
+
+	// A tracked report that lost a program entry is incomplete when read back.
+	report, _ = splitReport(allProved(), in)
+	report.Programs = report.Programs[:1]
+	if report.Complete() || !strings.Contains(strings.Join(report.Unproved(), "; "), "root M.g: not reported") {
+		t.Fatalf("a report without one of its roots reads as complete: %v", report.Unproved())
+	}
+
+	// A run that did not complete is reported as such and not padded.
+	raw = allProved()
+	raw.Status, raw.Reason, raw.Functions, raw.Programs = "load_failed", "IR not loaded: x", nil, nil
+	report, _ = splitReport(raw, in)
+	if report.Complete() || len(report.Functions) != 0 || len(report.Programs) != 0 {
+		t.Fatalf("an incomplete run was padded or accepted: %+v", report)
+	}
+
+	if names := irFunctionNames([]byte(`{"functions":[{"name":"M.f"},{"name":"M.h"}]}`)); !slices.Equal(names, []string{"M.f", "M.h"}) {
+		t.Fatalf("IR function names %v", names)
+	}
+	if irFunctionNames([]byte(`not json`)) != nil {
+		t.Fatal("unreadable IR produced names")
+	}
+}
