@@ -11,11 +11,13 @@ tool. Use the CLI and examples from the same tag to reproduce a release's proof
 evidence. The checker is included starting with the `v0.1.0-alpha.3` source release.
 
 You supply ordinary Lean runtime code, proofs and separately authored expected
-propositions. The checker rebuilds them with pinned Lean, verifies the exact
-theorem statements and permitted axioms, then binds deterministic evidence to
-the source and generated Go bytes. Reviewers still decide whether the selected
-propositions express the intended requirements. This does not prove correctness
-of the compiler or extractor.
+propositions. The checker builds them with pinned Lean, then has the Lean
+kernel decide each claim in a separate process that runs none of your code,
+and binds deterministic evidence to the sources and to a generated package
+that it rebuilds from those sources. Reviewers still decide whether the
+selected propositions express the intended requirements. This does not prove
+correctness of the compiler or extractor. What is and is not established is
+listed under [evidence and assurance](#evidence-and-assurance).
 
 ## Project layout
 
@@ -91,8 +93,12 @@ end LibraryProofs
 
 Expected definitions and theorems must have no universe parameters. Each
 expected declaration must be a `def` whose type is
-exactly `Prop`; the checker compares its value to the theorem's type. It never
-copies the theorem type to manufacture an expectation.
+exactly `Prop`; the kernel checks that the theorem proves its value. The
+checker never copies the theorem type to manufacture an expectation.
+
+Proof and contract files must not use the Lean module system (a `module`
+header); the checker refuses such a module by name, and the same applies to
+runtime modules.
 
 ## Bind one proof to multiple generated packages
 
@@ -244,46 +250,118 @@ result to arbitrary chunk boundaries in the proof module.
 
 ## Evidence and assurance
 
-The fresh workspace uses fixed, dependency-free Lake scaffolding and the pinned
-Lean identity. Each claim must name a theorem. Its type must match the selected
-expected proposition, and all transitive axioms must be among `propext`,
-`Classical.choice` and `Quot.sound`. `sorry`, custom axioms and compiler-trust
-shortcuts such as `native_decide` are rejected.
+### What the check does
 
-Manifest checks require the module, roots, profile and Lean identity to match.
-The full runtime source hash inventory must match the extraction inputs. The
-manifest schema fixes the package layout and the manifest lists its files:
-a metered package is the manifest and its four generated Go files
-(`api.go`, `control.go`, `runtime.go`, `schema.go`); a native package must
-record `"mode": "native"` and the current native generator, and its
-`generated_files` names its Go files (`functions.go`, `native.go`,
-`types.go` today; only plain lower-case non-test `.go` names are accepted).
-The generated directory must contain exactly the manifest and those files,
-and every file hash must match, so a missing, extra or changed file is
-rejected. Snapshots and binding are checked again
-after Lean finishes, before evidence can be written.
+1. **Build.** A fresh workspace holds the snapshotted runtime and proof
+   sources, the pinned `lean-toolchain` and a fixed, dependency-free Lake
+   configuration; project scripts, dependency settings and caches are not
+   used. The runtime modules are built first and alone, and the digests of
+   their `.olean` files are recorded. Then every module is built. The
+   snapshotted sources and fixed configuration are compared after each step,
+   and the runtime `.olean` files must be unchanged after the proof modules
+   are built.
+2. **Decide.** Only after the build, the checker program
+   ([`producer/LeanGo/Proofs/Check.lean`](../producer/LeanGo/Proofs/Check.lean),
+   embedded in the `lean-go` binary) is written to a new temporary directory
+   outside the workspace and run there with `lean --run`. It does not
+   elaborate or import any module of the workspace, so it runs no
+   initializer, macro, elaborator, attribute handler, delaborator or
+   unification hint from them. It reads the workspace `.olean` files as
+   data. It imports the toolchain modules they depend on from the pinned
+   toolchain's own library directory, never from the workspace, and without
+   loading environment extensions. It then replays every declaration of every
+   workspace module (runtime, contract and proof modules alike) through the
+   kernel with `Lean.Kernel.Environment.replay`, one module at a time in
+   import order; each module may refer only to its own declarations and to
+   those of modules it imports. Any kernel rejection fails the check and
+   names the declaration. `replay` does not send `unsafe` or `partial`
+   constants to the kernel; they are left out of the checked environment, so
+   a claim that depends on one fails.
+3. **Claims.** For each claim, the theorem must be a theorem without universe
+   parameters and the expected statement a closed `def` of type `Prop`
+   without universe parameters. The kernel then decides the claim: the
+   checker adds a theorem whose type is the expected proposition and whose
+   value is the claimed theorem, and the kernel must accept it. `Meta.isDefEq`
+   is not used. All axioms that the claim and the expected proposition
+   depend on are collected from the replayed environment; only `propext`,
+   `Classical.choice` and `Quot.sound` are accepted, so `sorry`, the axiom
+   that `native_decide` adds and declared axioms are rejected.
+4. **Package.** The manifest must name the contract's module, roots, profile
+   and Lean identity, list the runtime source hashes, and describe the package
+   directory exactly (a metered package is the manifest and `api.go`,
+   `control.go`, `runtime.go`, `schema.go`; a native package records
+   `"mode": "native"` and the current native generator and lists its Go
+   files). Then the module and roots are exported again from the hash-bound
+   sources, which must give exactly the `program` in the manifest, and that
+   program is emitted again with the manifest's mode and `max_depth`, which
+   must give exactly the package's files, `manifest.json` included, byte for
+   byte. A package from another lean-go version fails with a message that
+   says so; regenerate it. The export reuses the producer cache.
+5. **Recheck.** The contract, the sources and the package are read again
+   before evidence is written or compared.
 
-The temporary workspace's snapshotted sources, trusted checker and fixed
-configuration are also checked around compilation. The harness is prepared
-after the project build, so project compilation cannot silently replace an
-already-staged checker program.
+`lean-go-proof-evidence/v3` (and `v4` for compositions) records contract
+bytes, logical project/tool input hashes, the selected module and roots,
+manifest hash, theorem and expected names, statements and axiom
+dependencies. Evidence for a native package also records
+`"generated_mode": "native"`, as does a native component's entry in
+composition evidence; metered evidence has no mode field. It has no
+machine-specific absolute paths. Changing a contract, proof, checker, runtime
+source or generated package requires fresh evidence. The quota sidecar uses
+this shared schema.
 
-`lean-go-proof-evidence/v1` records contract bytes, logical project/tool input
-hashes, the selected module and roots, manifest hash, theorem and expected names,
-statements and axiom dependencies. Evidence for a native package also records
-`"generated_mode": "native"`, as does a native component's entry in composition
-evidence; metered evidence has no mode field. It has no machine-specific absolute paths.
-Changing a contract, proof, checker, runtime source or generated package requires
-fresh evidence. The quota sidecar now uses this shared schema; its runtime and
-Go API are unchanged.
+The recorded `statement` is the expected proposition as the kernel checked
+it, rendered by the checker itself from the kernel term rather than by Lean's
+pretty printer, so no notation or delaborator from any module affects it.
+It shows every argument, including implicit and instance arguments, uses no
+notation and omits universe levels, for example
+`∀ (value : UInt64) (limit : UInt64), LE.le UInt64 instLEUInt64 (Clamp.clamp value limit) limit`.
+This is harder to read than the earlier pretty-printed text (schema `v1`/`v2`);
+read the contract file for the statement as written, and the evidence for the
+statement that was actually checked. They differ only if the contract module
+computes its definitions with meta code or the build was tampered with.
 
-Source elaboration is trusted, including macros, initializers and other
-compile-time metaprograms. Workspace integrity checks detect input changes;
-they do not sandbox hostile code or authenticate a compromised toolchain.
-As with ordinary module extraction, the evidence
-is source-level assurance, not a proof of semantics preservation through Lean's
-compiler, the extractor, Go emission/runtime or the Go compiler. Normal module IR
-theorem claims are unchanged by this separate workflow.
+### What it guarantees, against whom
+
+The proof and contract modules are untrusted as far as logic goes: they may
+contain any Lean, including meta code that adds declarations by any route,
+sets options such as `debug.skipKernelTC`, or registers macros,
+elaborators, attributes, unification hints, delaborators or initializers.
+For such inputs, `check-proofs` succeeds only if each claimed theorem is
+accepted by the kernel as a proof of its expected proposition, in the
+environment of the built workspace modules on top of the pinned toolchain,
+using no axioms other than the three above; and only if the bound package is
+exactly what this lean-go generates from the hash-bound runtime sources.
+
+### What it does not guarantee
+
+- **Hostile I/O during the build is not contained.** Lean code runs while the
+  workspace is built, with your permissions; there is no sandbox. Such code
+  can read and write files and start processes. The checks above take away
+  the easy routes: it cannot replace the checker, which does not exist yet
+  and is then written elsewhere; it cannot change the snapshotted sources or
+  the runtime `.olean` files without failing the check; `.olean` files that it
+  writes for toolchain module names are not read. It can still write crafted
+  `.olean` files for proof or contract modules (they are replayed like any
+  other, and the recorded statement shows what was checked, but the `.olean`
+  reader is not hardened against malformed files), modify the toolchain
+  installation or other files it can write, or leave a process running that
+  changes files after a check has passed. Check untrusted proofs in a
+  disposable container or virtual machine.
+- **The runtime sources and the toolchain are trusted.** Runtime modules are
+  elaborated with macros and initializers enabled, as for extraction, and
+  are built in the same workspace before the proofs. The Lean kernel, the
+  toolchain's own `.olean` files and the `.olean` reader are trusted.
+- **Expected statements need review.** The gate shows that the theorem proves
+  the expected definition as built. Whether that definition says what you
+  need, and whether it is the one written in the contract file when the
+  contract module uses meta code, is for a reviewer.
+- **No resource bound.** A hostile proof can make the kernel or the build run
+  for a long time; each Lean process is stopped after 300 seconds.
+- As with ordinary module extraction, the evidence is source-level assurance,
+  not a proof of semantics preservation through Lean's compiler, the
+  extractor, Go emission/runtime or the Go compiler. Normal module IR theorem
+  claims are unchanged by this separate workflow.
 
 ## Contributor checks
 
@@ -296,7 +374,16 @@ CGO_ENABLED=0 go test -count=1 ./...
 
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
-and an external project with a Go-only consumer. The quota suite retains its
+and an external project with a Go-only consumer. The Lean-gated attack tests in
+`internal/pipeline/lean_proofgate_test.go` (`LEAN_GO_PROOFS=1 go test -p 1
+-run TestProofGate ./internal/pipeline`) cover the threats above: a theorem
+added with `debug.skipKernelTC`, declarations inserted without `addDecl`, a
+forged unification hint, initializers, delaborators and a user-declared
+`Lean.reduceBool` that would print a forged result, shadowing definitions,
+claims through skipped `unsafe` and `partial` constants, unapproved axioms,
+the module system, build-time writes to the checker, toolchain and runtime
+`.olean` paths, and edited, re-emitted, other-mode and composition
+packages. The quota suite retains its
 library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16, crc16, adler32 and normalizer regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
 all nine through both the direct and sdist-rebuilt wheels, freshly checking 58
