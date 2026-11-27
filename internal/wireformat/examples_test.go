@@ -92,6 +92,8 @@ func TestExamplesMatchGenerator(t *testing.T) {
 			switch {
 			case generated, slices.Contains(pipeline, path):
 			case path == "spec.json" || path == "README.md":
+			// the translation-validation report lean-go regenerate tracks next to the IR
+			case path == name+".validation.json":
 			case filepath.Dir(path) == f.AdapterDir() && strings.HasSuffix(path, "_test.go"):
 			default:
 				t.Errorf("%s: unexpected file %s", name, path)
