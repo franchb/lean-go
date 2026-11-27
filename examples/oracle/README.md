@@ -18,6 +18,7 @@ The [guide](../../docs/oracle-testing.md) explains the method and when to use it
 | Path | Contents |
 | --- | --- |
 | `model/adler32/`, `model/crc16/` | Generated native-mode model packages (package `extracted`) and their manifests. Do not edit them. |
+| `model/adler32-proof-evidence.json`, `model/crc16-proof-evidence.json` | Evidence written by `lean-go check-proofs` for each model package: the proof contract's claims, checked by the Lean kernel, bound to the digests of the package's files and of the Lean sources |
 | [`../proofs/adler32/adler32.ir.json`](../proofs/adler32/adler32.ir.json), [`../proofs/crc16/crc16.ir.json`](../proofs/crc16/crc16.ir.json) | The producer IR the models were emitted from: the proved examples' own IR files, shared with their metered packages |
 | `fast/adler32.go` | `UpdateAdler32`: sums in blocks of up to `AdlerBlock` = 5,552 bytes, eight bytes per iteration, reduces once per block |
 | `fast/crc16.go` | `UpdateCRC16`: two 256-entry tables, two bytes per lookup pair |
@@ -48,8 +49,12 @@ reference over the concatenation, from any state. The
 contracts. The proof contracts
 ([Adler-32](../proofs/adler32/proof-contract.json),
 [CRC-16](../proofs/crc16/proof-contract.json)) bind those theorems to the
-same source files used here. The proofs concern the Lean source, not the
-generated Go.
+same source files used here, and the evidence files next to the models
+record that `lean-go check-proofs` accepted the claims for exactly these
+model packages: it rebuilt each package from the sources and required the
+tracked files to match byte for byte
+([proof contracts](../../docs/proof-contracts.md#evidence-and-assurance)).
+The proofs concern the Lean source, not the generated Go.
 
 **Tested, not proved.** The fast code agrees with the models on everything
 the tests run.

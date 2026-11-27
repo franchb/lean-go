@@ -1,0 +1,46 @@
+{
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Adler32Contract.chunks_spec",
+      "name": "Adler32Proofs.chunks_spec",
+      "statement": "∀ (chunks : List (List UInt8)), Eq (Prod Nat Nat) (Adler32Contract.observe (List.foldl Adler32.State (List UInt8) Adler32.update Adler32.initial chunks)) (List.foldl (Prod Nat Nat) UInt8 Adler32Contract.referenceByte (Prod.mk Nat Nat (OfNat.ofNat Nat 1 (instOfNatNat 1)) (OfNat.ofNat Nat 0 (instOfNatNat 0))) (List.flatten UInt8 chunks))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Adler32Contract.step_spec",
+      "name": "Adler32Proofs.step_spec",
+      "statement": "∀ (s : Adler32.State) (b : UInt8), Adler32Contract.reduced s → Eq (Prod Nat Nat) (Adler32Contract.observe (Adler32.step s b)) (Adler32Contract.referenceByte (Adler32Contract.observe s) b)"
+    }
+  ],
+  "contract_sha256": "f076f6ac42270ab55cb2fa639a2a4ee53ef084c0df83d743be28415e5e7ab548",
+  "generated_manifest_sha256": "d1134eb5f37a9f99e1e438bd9d3d0bd292aaf4917bb0095a7ac7d2da40e639bf",
+  "generated_mode": "native",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "Adler32",
+  "project_inputs": {
+    "proof/Adler32Contract.lean": "10e473d5b89501513f3c10c5926b1df7d1cb6b313ed1141f17e3f06bcd642e10",
+    "proof/Adler32Proofs.lean": "726c51e12f468cdcf5f9f4ea922cbabacf0b6ae8ceefd3cb24e43f4a45fa4575",
+    "source/Adler32.lean": "9263491c9a5af3553ca52f3997f37bff7e10291cc929c509ef20fa1508bf9c69"
+  },
+  "roots": [
+    "Adler32.checksum",
+    "Adler32.initial",
+    "Adler32.update"
+  ],
+  "schema": "lean-go-proof-evidence/v3",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "c7f4d266945fe318ea6e37a5b007ef9bd3a358533fbe5439bae63fa39070b75f",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
+  }
+}

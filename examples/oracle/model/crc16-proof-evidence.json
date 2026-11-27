@@ -1,0 +1,47 @@
+{
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Crc16Contract.chunks_spec",
+      "name": "Crc16Proofs.chunks_spec",
+      "statement": "∀ (state : UInt16) (chunks : List (List UInt8)), Eq (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) (UInt16.toBitVec (List.foldl UInt16 (List UInt8) Crc16.update state chunks)) (List.foldl (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) UInt8 Crc16Contract.referenceByte (UInt16.toBitVec state) (List.flatten UInt8 chunks))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Crc16Contract.update_byte_spec",
+      "name": "Crc16Proofs.update_byte_spec",
+      "statement": "∀ (state : UInt16) (byte : UInt8), Eq (BitVec (OfNat.ofNat Nat 16 (instOfNatNat 16))) (UInt16.toBitVec (Crc16.updateByte state byte)) (Crc16Contract.referenceByte (UInt16.toBitVec state) byte)"
+    }
+  ],
+  "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
+  "generated_manifest_sha256": "60f2bbc2bf541201d7020ebc6f5d0532c98a9f9c5a4ab5785cf0f3968017b683",
+  "generated_mode": "native",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "Crc16",
+  "project_inputs": {
+    "proof/Crc16Contract.lean": "e5d99b56bec6c1fea70251ed50dcb262364a49c1ca719e6768122128b6666cb2",
+    "proof/Crc16Proofs.lean": "2002e6bfdb7688d86a6465acb4feeb7c35fcdc97e41369ceb6c799eb9912435d",
+    "source/Crc16.lean": "4f64cc6b66252850e60ff5e283edcb48091238e16d3a28503f426ff0fe4a723e"
+  },
+  "roots": [
+    "Crc16.update",
+    "Crc16.updateByte"
+  ],
+  "schema": "lean-go-proof-evidence/v3",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "c7f4d266945fe318ea6e37a5b007ef9bd3a358533fbe5439bae63fa39070b75f",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
+  }
+}

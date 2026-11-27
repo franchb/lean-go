@@ -87,12 +87,15 @@ var Packages = []Package{
 	demo("normalizer", "Normalizer", "Normalizer.normalize"),
 	demo("clock", "Clock", "Clock.join", "Clock.split"),
 	// The models of the oracle example: native packages of the proved
-	// checksum sources. They share the demos' IR and carry no evidence of
-	// their own; the proof contracts stay with the demos.
+	// checksum sources. They share the demos' sources, contracts and IR, and
+	// carry their own evidence, which binds the proved claims to the model
+	// bytes the example's tests compare against.
 	{Package: "examples/oracle/model/adler32", IR: "examples/proofs/adler32/adler32.ir.json", SourceDir: "examples/proofs/adler32/source",
-		Module: "Adler32", Roots: []string{"Adler32.checksum", "Adler32.initial", "Adler32.update"}, Mode: "native"},
+		Module: "Adler32", Roots: []string{"Adler32.checksum", "Adler32.initial", "Adler32.update"},
+		Contract: "examples/proofs/adler32/proof-contract.json", Evidence: "examples/oracle/model/adler32-proof-evidence.json", Mode: "native"},
 	{Package: "examples/oracle/model/crc16", IR: "examples/proofs/crc16/crc16.ir.json", SourceDir: "examples/proofs/crc16/source",
-		Module: "Crc16", Roots: []string{"Crc16.update", "Crc16.updateByte"}, Mode: "native"},
+		Module: "Crc16", Roots: []string{"Crc16.update", "Crc16.updateByte"},
+		Contract: "examples/proofs/crc16/proof-contract.json", Evidence: "examples/oracle/model/crc16-proof-evidence.json", Mode: "native"},
 }
 
 // Frame is the checked-frame composition over two demo packages.
@@ -152,8 +155,11 @@ func GeneratePackage(root, stage string, spec Package, cache *pipeline.Cache) er
 func CheckFrame(root, stage, manifests string) error {
 	var pairs [][2]string
 	for _, name := range Frame.Components {
+		// A component is the demo package of that name; other tracked
+		// packages may share the base name (the oracle example's models).
+		demo := demo(name, "")
 		for _, spec := range Packages {
-			if spec.Name() == name {
+			if spec.Package == demo.Package {
 				pairs = append(pairs, [2]string{name, at(manifests, spec.Package+"/manifest.json")})
 			}
 		}
