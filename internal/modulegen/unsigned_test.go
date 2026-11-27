@@ -79,13 +79,15 @@ func TestGeneratedUnsignedMatrix(t *testing.T) {
 }
 
 func checkUnsignedMatrix(t *testing.T, sources []string) {
-	files, err := generate(unsignedMatrixProgram(sources))
+	// Without the fast path (the output before lean-go-modulegen/v20) every
+	// typed root uses the metered scalar entry and the raw entry uses the
+	// state machine; both guard the divisor.
+	files, err := generateWith(declare(unsignedMatrixProgram(sources)), generateOptions{stateMachine: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	api := string(files["api.go"])
 	for _, width := range sources {
-		// Every typed root uses the scalar-native path with the zero-divisor guard.
 		root := exportedAPIName(matrixRoot(width + ".div"))
 		if !strings.Contains(api, "func Run"+root+"(") || !strings.Contains(api, "func scalarFunc") {
 			t.Fatal("missing typed root", root)
@@ -97,6 +99,16 @@ func checkUnsignedMatrix(t *testing.T, sources []string) {
 	}
 	if n := len(regexp.MustCompile(`if f\.slots\[[0-9]+\]\.scalar[0-9]* != 0 \{`).FindAllString(string(files["control.go"]), -1)); n != 4*len(sources) {
 		t.Fatal("boxed division without a zero-divisor guard", n)
+	}
+	// The default output runs every root of the matrix on the fast path
+	// (native code) when the limits cover its bound. The same consumer runs
+	// against both outputs, including the exact resource accounting.
+	fast, err := generate(unsignedMatrixProgram(sources))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if text := string(fast["api.go"]); !strings.Contains(text, "func fastCovers") || strings.Contains(text, "func scalarFunc") {
+		t.Fatal("the default output does not run the matrix on the fast path")
 	}
 	var cases strings.Builder
 	for _, name := range unsignedMatrix(sources) {
@@ -126,6 +138,7 @@ func checkUnsignedMatrix(t *testing.T, sources []string) {
 		source += divisionResources
 	}
 	runGenerated(t, files, source)
+	runGenerated(t, fast, source)
 }
 
 func widthBits(typ string) int {
