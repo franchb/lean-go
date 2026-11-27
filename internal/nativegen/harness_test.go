@@ -455,8 +455,10 @@ func (d *driver) emitHostile(types []moduleir.TypeDecl) {
 
 // emitDestructors checks the Is and As methods of every sum and recursive
 // type on constructed values and on the zero value: exactly one Is method
-// holds, the matching As method returns the fields and true, and every other
-// As method returns zero values and false.
+// holds, the matching As method returns true and the fields the value was
+// built from (zero fields for the zero value), and every other As method
+// returns zero values and false. Fields are compared with ==, so a boxed
+// field must come back as the same node.
 func (d *driver) emitDestructors(types []moduleir.TypeDecl) {
 	d.printf("\nfunc TestHostileDestructors(t *testing.T) {\nr := rand.New(rand.NewSource(7))\n_ = r\n")
 	for _, typ := range types {
@@ -464,7 +466,9 @@ func (d *driver) emitDestructors(types []moduleir.TypeDecl) {
 		if api.Kind == "record" {
 			continue
 		}
-		check := func(value string, built int) {
+		// built is the index of the constructor value was built with, or -1
+		// for the zero value; args are the variables holding its fields.
+		check := func(value string, built int, args []string) {
 			d.printf("{\nv := %s\n", value)
 			for k, c := range typ.Constructors {
 				want := "true"
@@ -480,27 +484,26 @@ func (d *driver) emitDestructors(types []moduleir.TypeDecl) {
 				}
 				vars := names("a", len(c.Fields))
 				d.printf("{\n%s, ok := v.%s()\nif ok != %s {\nt.Fatalf(\"%%v: %s() reports %%v\", v, ok)\n}\n", strings.Join(vars, ", "), api.As[c.Name], want, api.As[c.Name])
-				if want == "false" {
-					for j, field := range c.Fields {
+				for j, field := range c.Fields {
+					switch {
+					case want == "false" || built < 0:
 						d.printf("if a%d != (%s) {\nt.Fatalf(\"%%v: %s() field %d is not zero\", v)\n}\n", j, d.zero(field), api.As[c.Name], j)
-					}
-				} else {
-					for j := range c.Fields {
-						d.printf("_ = a%d\n", j)
+					default:
+						d.printf("if a%d != %s {\nt.Fatalf(\"%%v: %s() field %d is not the constructor argument\", v)\n}\n", j, args[j], api.As[c.Name], j)
 					}
 				}
 				d.printf("}\n")
 			}
 			d.printf("}\n")
 		}
-		check(d.natType(typ.Name)+"{}", -1)
+		check(d.natType(typ.Name)+"{}", -1, nil)
 		for k, c := range typ.Constructors {
-			var args []string
-			for _, field := range c.Fields {
-				args = append(args, d.gen(field, "2"))
-			}
+			args := names("x", len(c.Fields))
 			d.printf("for range 20 {\n")
-			check(fmt.Sprintf("nat.%s(%s)", api.Constructors[c.Name], strings.Join(args, ", ")), k)
+			for j, field := range c.Fields {
+				d.printf("%s := %s\n", args[j], d.gen(field, "2"))
+			}
+			check(fmt.Sprintf("nat.%s(%s)", api.Constructors[c.Name], strings.Join(args, ", ")), k, args)
 			d.printf("}\n")
 		}
 	}
