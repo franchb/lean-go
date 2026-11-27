@@ -1,5 +1,7 @@
 // Package bench compares native and metered generated Go with line-for-line
-// handwritten transliterations of the same Lean sources. Run through
+// handwritten transliterations of the same Lean sources. "Metered" is the
+// default metered output (with the fast path); for Numbers and Quota,
+// "MeteredStateMachine" is the same IR generated without the fast path. Run through
 // LEAN_GO_NATIVE_BENCH=. go test -run TestDifferential ./internal/nativegen.
 package bench
 
@@ -7,15 +9,17 @@ import (
 	"hash/adler32"
 	"testing"
 
-	madler "difftest/Adler32/met"
+	madler "difftest/Adler32/metdefault"
 	nadler "difftest/Adler32/nat"
-	mcrc "difftest/Crc16/met"
+	mcrc "difftest/Crc16/metdefault"
 	ncrc "difftest/Crc16/nat"
-	mnum "difftest/Numbers/met"
+	snum "difftest/Numbers/met"
+	mnum "difftest/Numbers/metdefault"
 	nnum "difftest/Numbers/nat"
-	mquota "difftest/Quota/met"
+	squota "difftest/Quota/met"
+	mquota "difftest/Quota/metdefault"
 	nquota "difftest/Quota/nat"
-	mtree "difftest/Trees/met"
+	mtree "difftest/Trees/metdefault"
 	ntree "difftest/Trees/nat"
 )
 
@@ -309,6 +313,7 @@ func BenchmarkCRC16(b *testing.B) {
 var numbersHand numbersResult
 var numbersNative nnum.Results
 var numbersMetered mnum.Results
+var numbersStateMachine snum.Results
 
 func BenchmarkNumbers(b *testing.B) {
 	a, c := uint32(123456789), uint32(37)
@@ -335,17 +340,34 @@ func BenchmarkNumbers(b *testing.B) {
 			numbersMetered = v
 		}
 	})
+	b.Run("MeteredStateMachine", func(b *testing.B) {
+		l := snum.DefaultLimits()
+		b.ReportAllocs()
+		for b.Loop() {
+			v, err := snum.RunTyped(a, c, l)
+			if err != nil {
+				b.Fatal(err)
+			}
+			numbersStateMachine = v
+		}
+	})
 }
 
 var quotaHand quotaOutcome
 var quotaNative nquota.Outcome
 var quotaMetered mquota.Outcome
+var quotaStateMachine squota.Outcome
 
 func BenchmarkQuota(b *testing.B) {
 	hand := quotaState{1000, 400}
 	native := nquota.State{Capacity: 1000, Used: 400}
 	l := mquota.DefaultLimits()
 	metered, err := mquota.NewState(1000, 400, l)
+	if err != nil {
+		b.Fatal(err)
+	}
+	sl := squota.DefaultLimits()
+	stateMachine, err := squota.NewState(1000, 400, sl)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -363,6 +385,14 @@ func BenchmarkQuota(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			if quotaMetered, err = mquota.RunReserve(metered, 7, l); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("Reserve/MeteredStateMachine", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			if quotaStateMachine, err = squota.RunReserve(stateMachine, 7, sl); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -385,6 +415,14 @@ func BenchmarkQuota(b *testing.B) {
 			}
 		}
 	})
+	b.Run("Release/MeteredStateMachine", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			if quotaStateMachine, err = squota.RunRelease(stateMachine, 7, sl); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 	b.Run("Remaining/Native", func(b *testing.B) {
 		for b.Loop() {
 			sink64 = nquota.Remaining(native)
@@ -399,6 +437,14 @@ func BenchmarkQuota(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			if sink64, err = mquota.RunRemaining(metered, l); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("Remaining/MeteredStateMachine", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			if sink64, err = squota.RunRemaining(stateMachine, sl); err != nil {
 				b.Fatal(err)
 			}
 		}

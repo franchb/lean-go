@@ -10,9 +10,16 @@ import (
 	"github.com/franchb/lean-go/internal/moduleir"
 )
 
-// MeteredGenerate is modulegen.Generate, set by metered_test.go: modulegen
-// embeds this package's output, so only the external test package can import it.
-var MeteredGenerate func(*moduleir.Program) (map[string][]byte, error)
+// StateMachineGenerate is modulegen.GenerateStateMachine and MeteredGenerate
+// is modulegen.Generate, both set by metered_test.go: modulegen embeds this
+// package's output, so only the external test package can import it.
+//
+// The differential driver compares the native package with the state-machine
+// package "met", the metered output without the fast path: the fast path runs
+// this emitter's own code, so a comparison with it would not be independent.
+// The default metered output "metdefault", which --mode metered produces, is
+// generated next to it for the benchmarks.
+var StateMachineGenerate, MeteredGenerate func(*moduleir.Program) (map[string][]byte, error)
 
 // meteredAPI is the part of the metered manifest's go_api the driver needs.
 type meteredAPI struct {
@@ -42,7 +49,8 @@ func manifestAPI(t testing.TB, files map[string][]byte, into any) {
 }
 
 // driver writes a differential test comparing the native package "nat" with
-// the metered package "met" generated from the same IR. It uses only the two
+// the metered state-machine package "met" (no fast path) generated from the
+// same IR. It uses only the two
 // manifests' public name maps and the IR's type declarations.
 type driver struct {
 	p       *moduleir.Program
@@ -513,8 +521,9 @@ func (d *driver) emitDestructors(types []moduleir.TypeDecl) {
 	d.printf("}\n")
 }
 
-// harnessModule generates metered and native packages plus a driver for each
-// tracked program into dir, a fresh Go module named difftest.
+// harnessModule generates the state-machine (met), default metered
+// (metdefault) and native packages plus a driver for each tracked program
+// into dir, a fresh Go module named difftest.
 func harnessModule(t testing.TB, dir string, opts Options) []string {
 	t.Helper()
 	writePackage(t, dir, map[string][]byte{"go.mod": []byte("module difftest\n\ngo 1.27\n")})
@@ -529,7 +538,11 @@ func harnessModule(t testing.TB, dir string, opts Options) []string {
 	programs = append(programs, collidingTrees(t))
 	for _, p := range programs {
 		path := p.Module
-		metered, err := MeteredGenerate(clone(t, p))
+		metered, err := StateMachineGenerate(clone(t, p))
+		if err != nil {
+			t.Fatalf("%s metered state machine: %v", path, err)
+		}
+		meteredDefault, err := MeteredGenerate(clone(t, p))
 		if err != nil {
 			t.Fatalf("%s metered: %v", path, err)
 		}
@@ -539,6 +552,7 @@ func harnessModule(t testing.TB, dir string, opts Options) []string {
 		}
 		base := dir + "/" + p.Module
 		writePackage(t, base+"/met", metered)
+		writePackage(t, base+"/metdefault", meteredDefault)
 		writePackage(t, base+"/nat", native)
 		source := newDriver(t, p, metered, native).source()
 		writePackage(t, base, map[string][]byte{"diff_test.go": []byte(source)})

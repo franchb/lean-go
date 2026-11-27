@@ -7,8 +7,9 @@ import (
 	"testing"
 )
 
-// buildHarness writes the differential module: for every tracked program a
-// metered package, a native package and a generated driver, plus the
+// buildHarness writes the differential module: for every tracked program the
+// metered state-machine package (the oracle), the default metered package,
+// a native package and a generated driver, plus the
 // hand-written checks and benchmarks under testdata/harness.
 func buildHarness(t testing.TB) string {
 	t.Helper()
