@@ -52,13 +52,13 @@ func TestUInt16PrimitiveBoundary(t *testing.T) {
 			}
 		})
 	}
-	for _, op := range []string{"add", "sub", "mul", "div", "mod", "land", "xor._boxed", "complement", "decEq", "decLt", "decLe", "toNat", "toUInt32._boxed", "toUInt64", "shiftLeft._boxed", "shift_right"} {
+	for _, op := range []string{"and", "xor._boxed", "neg", "toNat", "toUInt16", "toUInt32._boxed", "toUSize", "shiftLeft._boxed", "shift_right", "log2", "decNe"} {
 		name := "UInt16." + op
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatalf("unexpected primitive %s", name)
 		}
 	}
-	for _, name := range []string{"UInt32.toUInt16", "UInt64.toUInt16", "Nat.toUInt16", "UInt8.toUInt16._boxed", "Fake.UInt16.lor", "Fake.UInt16.xor", "instXorOpUInt16"} {
+	for _, name := range []string{"Int16.toUInt16", "USize.toUInt16", "Nat.toUInt16", "UInt8.toUInt16._boxed", "Fake.UInt16.lor", "Fake.UInt16.xor", "instXorOpUInt16"} {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatalf("unexpected primitive %s", name)
 		}

@@ -94,10 +94,11 @@ import (
 func main() {{
     var inputs [][2]uint{width}
     if err := json.NewDecoder(os.Stdin).Decode(&inputs); err != nil {{ panic(err) }}
+    // uint64 results: encoding/json would write a []uint8 as base64.
     result := struct {{
-        Raw []uint{width} `json:"raw"`
-        Typed []uint{width} `json:"typed"`
-    }}{{make([]uint{width}, len(inputs)), make([]uint{width}, len(inputs))}}
+        Raw []uint64 `json:"raw"`
+        Typed []uint64 `json:"typed"`
+    }}{{make([]uint64, len(inputs)), make([]uint64, len(inputs))}}
     limits := x.DefaultLimits()
     for i, pair := range inputs {{
         args := make([]x.Value, 2)
@@ -110,10 +111,10 @@ func main() {{
         if err != nil {{ panic(err) }}
         value, ok := raw.UInt{width}()
         if !ok || raw.Type() != "UInt{width}" || len(raw.Fields()) != 0 {{ panic("invalid scalar result") }}
-        result.Raw[i] = value
+        result.Raw[i] = uint64(value)
         typed, err := x.RunTyped(pair[0], pair[1], limits)
         if err != nil {{ panic(err) }}
-        result.Typed[i] = typed
+        result.Typed[i] = uint64(typed)
     }}
     if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {{ panic(err) }}
 }}
@@ -200,8 +201,8 @@ class Backend:
         from differential_model import render_lean
 
         width = program.width
-        if width not in (32, 64) or not isinstance(inputs, list) or not 1 <= len(inputs) <= 4096:
-            raise ValueError("expected width 32 or 64 and between 1 and 4096 input pairs")
+        if width not in (8, 16, 32, 64) or not isinstance(inputs, list) or not 1 <= len(inputs) <= 4096:
+            raise ValueError("expected width 8, 16, 32 or 64 and between 1 and 4096 input pairs")
         if any(not isinstance(pair, (list, tuple)) or len(pair) != 2 or
                any(type(value) is not int or not 0 <= value < (1 << width) for value in pair)
                for pair in inputs):

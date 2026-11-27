@@ -1,0 +1,18 @@
+package compatconsumer
+
+import (
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+// The pinned compiler folds `a / 1` to `a`; the extracted root is the identity.
+func TestDivisionByOneIsIdentity(t *testing.T) {
+	limits := x.DefaultLimits()
+	for _, a := range []uint32{0, 1, 2, 3, 0x7fffffff, 0x80000000, 0xfffffffe, 0xffffffff} {
+		got, err := x.RunTyped(a, limits)
+		if err != nil || got != a {
+			t.Fatalf("%d / 1 = %d, %v", a, got, err)
+		}
+	}
+}

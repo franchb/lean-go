@@ -49,7 +49,7 @@ func TestUInt8CatalogAndLiteralBoundary(t *testing.T) {
 			t.Fatal("invalid literal", literal)
 		}
 	}
-	for _, name := range []string{"UInt8.div", "UInt8.mod", "UInt8.toUInt64", "UInt64.toUInt8", "UInt8.toNat", "UInt8.add._boxed", "Fake.UInt8.add"} {
+	for _, name := range []string{"UInt8.divide", "UInt8.mod._boxed", "UInt8.toUInt8", "Int8.toUInt8", "UInt8.toNat", "UInt8.add._boxed", "Fake.UInt8.add"} {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatal("unexpected primitive", name)
 		}

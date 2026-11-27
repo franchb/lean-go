@@ -66,6 +66,7 @@ var Packages = []Package{
 	fixture("records", "Records", "Records.update"),
 	fixture("reduced", "Reduced", "Reduced.run"),
 	fixture("trees", "Trees", "Trees.mirror"),
+	fixture("unsigned", "Unsigned", "Unsigned.folded", "Unsigned.ops16", "Unsigned.ops32", "Unsigned.ops64", "Unsigned.ops8"),
 	fixture("wide", "Wide", "Wide.compute"),
 	{Package: "generated/quota", IR: "testdata/quota.ir.json", SourceDir: "libraries/quota/source", Module: "Quota",
 		Roots:    []string{"Quota.create", "Quota.release", "Quota.remaining", "Quota.reserve"},
@@ -84,6 +85,7 @@ var Packages = []Package{
 	demo("crc16", "Crc16", "Crc16.update", "Crc16.updateByte"),
 	demo("adler32", "Adler32", "Adler32.checksum", "Adler32.initial", "Adler32.update"),
 	demo("normalizer", "Normalizer", "Normalizer.normalize"),
+	demo("clock", "Clock", "Clock.join", "Clock.split"),
 }
 
 // Frame is the checked-frame composition over two demo packages.

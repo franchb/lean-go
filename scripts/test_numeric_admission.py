@@ -75,9 +75,8 @@ def run (a b : UInt32) : UInt32 := a + b
                 '@[extern \"lean_go_untrusted\"] opaque foreign : UInt32 → UInt32 → UInt32\n'
                 'instance : Add UInt32 := ⟨foreign⟩\n'
                 'def run (a b : UInt32) : UInt32 := a + b\n',
-            'division': 'def run (a b : UInt32) : UInt32 := a / b\n',
-            'folded_division': 'def run (a : UInt32) : UInt32 := a / 1\n',
-            'remainder': 'def run (a b : UInt32) : UInt32 := a % b\n',
+            'signed_division': 'def run (a b : Int32) : Int32 := a / b\n',
+            'natural_remainder': 'def run (a b : UInt32) : UInt32 := (a.toNat % b.toNat).toUInt32\n',
             'foreign': '@[extern "lean_go_untrusted"] opaque foreign : UInt32 → UInt32\n'
                        'def run (a : UInt32) : UInt32 := foreign a\n',
             'axiom': 'axiom forged : UInt32\ndef run : UInt32 := forged\n',

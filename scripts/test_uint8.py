@@ -41,7 +41,7 @@ class ByteFeatureTests(unittest.TestCase):
             program, roots = self.raw(dict(op='return'), multi)
             program['provenance'] = [dict(name='UInt8.add', dependencies=['UInt8', 'UInt32.toUInt8'])]
             self.assertEqual(self.features(program, roots), [])
-            for name in ('UInt8.add._boxed', 'UInt8.toUInt64', 'UInt64.toUInt8', 'UInt16.add', 'Fake.UInt8.add'):
+            for name in ('UInt8.add._boxed', 'UInt8.toUInt8', 'USize.toUInt8', 'UInt16.add', 'Fake.UInt8.add'):
                 program, roots = self.raw(dict(op='let', value=dict(kind='primitive', name=name), next=dict(op='return')), multi)
                 self.assertEqual(self.features(program, roots), [])
 
@@ -89,11 +89,9 @@ class ByteAdmissionTests(unittest.TestCase):
         self.assertEqual(multi['features'], ['uint32', 'uint8', 'width_conversion'])
 
     def test_unsupported_widths_aliases_and_operators_remain_rejected(self):
-        for source in ('def run (a b : UInt8) := a / b\n',
-                       'def run (a b : UInt8) :=\n  let _unused := a % b\n  a\n',
-                       'def run (a : USize) := a\n',
-                       'def run (a : UInt8) := a.toUInt64\n',
-                       'def run (a : UInt64) := a.toUInt8\n',
+        for source in ('def run (a : USize) := a\n',
+                       'def run (a : UInt8) := a.toUSize\n',
+                       'def run (a : Int8) := a / 3\n',
                        'def run (a : UInt8) := a.toNat\n',
                        'abbrev Byte := UInt8\ndef run (a : Byte) := a\n',
                        'unsafe def run (a : UInt8) := a\n',
@@ -108,7 +106,8 @@ run_cmd Lean.Elab.Command.liftCoreM do
   let pristine ← getEnv
   let leaves := numericPrimitives.filter fun p =>
     #[``UInt8, ``UInt16].contains p.operand || #[``UInt8, ``UInt16].contains p.result
-  unless leaves.size == 21 do throwError "UInt8/UInt16 catalog size"
+  -- 17 leaves of each operand width and four narrowing casts from UInt32/UInt64.
+  unless leaves.size == 38 do throwError "UInt8/UInt16 catalog size"
   for primitive in leaves do
     validateNumericPrimitive primitive
     let some decl ← getMonoDecl? primitive.name | throwError "missing numeric leaf"

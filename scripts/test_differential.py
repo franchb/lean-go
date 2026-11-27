@@ -253,8 +253,8 @@ class CompiledFaultInjectionTests(unittest.TestCase):
         original_consumer = differential_backend.consumer_source
         def faulty_consumer(width):
             source = original_consumer(width)
-            self.assertEqual(source.count('result.Raw[i] = value'), 1)
-            return source.replace('result.Raw[i] = value', 'result.Raw[i] = value + 1')
+            self.assertEqual(source.count('result.Raw[i] = uint64(value)'), 1)
+            return source.replace('result.Raw[i] = uint64(value)', 'result.Raw[i] = uint64(value + 1)')
 
         repo = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory(prefix='lean-go-compiled-fault-') as temporary:

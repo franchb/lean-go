@@ -71,7 +71,7 @@ occurs exactly once and records before/after digests and a unified patch.
 
 The producer must build before the corpus runs. If compilation fails, its
 status is `producer_build_failed` and every case stays `not_run`. The corpus
-contains eleven accepted cases and nine required rejections.
+contains seventeen accepted cases and seven required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -82,21 +82,23 @@ contains eleven accepted cases and nine required rejections.
 | `bytes` | UInt8 wrapping arithmetic, comparisons, bitwise operations, modulo-8 shifts and UInt8/UInt32 conversions with independent Go checks |
 | `uint16` | Every two-byte big-endian value checked against Go, plus OR and dynamic shifts at and beyond 16 bits |
 | `uint16_widen` | `UInt16.toUInt32` preserves every one of the 65,536 possible values |
-| `uint32_narrow16` | The inverse narrowing cast `UInt32.toUInt16` is rejected during source admission |
+| `uint32_narrow16` | The narrowing cast `UInt32.toUInt16` keeps every low halfword under five high halfwords |
 | `record_fold` | A named two-field accumulator with nonzero seeds, counting and summing a borrowed byte slice |
 | `byte_fold` | A named UInt32 byte step folded over a Go slice, including empty input and wrapping sums |
 | `uint16_xor` | Ordinary `^^^` compared directly with native Lean and Go for 196,608 operand pairs |
-| `uint16_land` | `admission` / `source_audit` naming the unsupported `UInt16.land` |
+| `uint16_land` | Direct `UInt16.land` compared with native Lean and Go for 196,608 operand pairs |
+| `division` | Division and remainder of all four widths, including zero divisors, and a `/ 65536` that the compiler turns into a shift, compared with native Lean and Go |
+| `folded_numeric` | Division by one, which the compiler folds to the identity |
 | `records` | Imported modern modules, nominal nested records, record updates, and shared types across two roots |
 | `helpers` | Reduced-argument and captured local helpers with independent scalar results |
 | `joins` | Both branches of nested joins/cases and wrapping continuation arithmetic |
 | `polymorphic` | `admission` / `unsupported_type` |
 | `extern` | `admission` / `source_audit` |
 | `unsafe` | `admission` / `source_audit` |
-| `folded_numeric` | `admission` / `source_audit`, even for division by one |
 | `custom_pass` | `admission` / `source_audit` for a no-op custom compiler pass |
 | `custom_csimp` | `admission` / `source_audit` for a valid custom compiler rewrite |
 | `with_ptr_eq` | `admission` / `source_audit` naming `withPtrEq`, after standalone Lean compiles the Bool caller |
+| `signed_division` | `admission` / `source_audit` naming `Int32.div`: signed integers stay unsupported |
 
 For `UInt16.toUInt32`, both supported Lean builds expose a safe unary definition
 in `Init.Data.UInt.BasicAux` with extern name `lean_uint16_to_uint32`. The Go

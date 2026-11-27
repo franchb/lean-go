@@ -45,7 +45,7 @@ func TestWidthConversionCatalogAndArguments(t *testing.T) {
 			}
 		}
 	}
-	for _, name := range []string{"UInt32.toUInt32", "UInt64.toUInt64", "UInt16.toUInt64", "UInt32.toUInt16", "UInt64.toNat", "UInt32.toUInt64._boxed", "Fake.UInt32.toUInt64", "UInt32.toUint64", "UInt64.toUInt32.injected"} {
+	for _, name := range []string{"UInt32.toUInt32", "UInt64.toUInt64", "UInt16.toUInt16", "UInt32.toUInt128", "UInt64.toNat", "UInt64.toUSize", "UInt32.toUInt64._boxed", "Fake.UInt32.toUInt64", "UInt32.toUint64", "UInt64.toUInt32.injected"} {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatal("admitted unknown conversion", name)
 		}

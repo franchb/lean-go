@@ -12,12 +12,13 @@ MAX_NODES = 2048
 MAX_DEPTH = 24
 MAX_LITERAL = (1 << 65) - 1
 _ARITY = {
-    "a": 0, "b": 0, "lit": 0, "add": 2, "sub": 2, "mul": 2,
+    "a": 0, "b": 0, "lit": 0, "add": 2, "sub": 2, "mul": 2, "div": 2, "mod": 2,
     "land": 2, "lor": 2, "xor": 2, "complement": 1, "shr": 2,
     "shl": 2, "if": 3, "helper": 2, "wrap": 1, "record": 2,
     "update": 3, "eq": 2, "lt": 2, "le": 2,
 }
 _PREDICATES = frozenset(("eq", "lt", "le"))
+WIDTHS = (8, 16, 32, 64)
 
 
 @dataclass(frozen=True)
@@ -41,8 +42,8 @@ def _integer(value, label, maximum):
 
 
 def _width(width):
-    if type(width) is not int or width not in (32, 64):
-        raise ValueError("width must be 32 or 64")
+    if type(width) is not int or width not in WIDTHS:
+        raise ValueError("width must be 8, 16, 32 or 64")
 
 
 def _check_expr(expr, boolean, allow_helper, budget, depth=0):
@@ -113,6 +114,11 @@ def _eval(expr, a, b, modulus, width, helper):
         return (left - right) % modulus
     if op == "mul":
         return (left * right) % modulus
+    # Lean defines x / 0 = 0 and x % 0 = x; both results are below the modulus.
+    if op == "div":
+        return left // right if right else 0
+    if op == "mod":
+        return left % right if right else left
     if op == "shl":
         return (left * pow(2, right % width)) % modulus
     if op == "eq":
@@ -145,8 +151,8 @@ def _leaf(rng, width):
 def _generate_expr(rng, width, depth):
     if depth == 0 or rng.randrange(5) == 0:
         return _leaf(rng, width)
-    op = rng.choice(("add", "sub", "mul", "shl", "land", "lor", "xor", "complement", "shr",
-                     "if", "wrap", "record", "update"))
+    op = rng.choice(("add", "sub", "mul", "div", "mod", "shl", "land", "lor", "xor", "complement",
+                     "shr", "if", "wrap", "record", "update"))
     if op == "if":
         condition = Expr(rng.choice(tuple(sorted(_PREDICATES))),
                          (_generate_expr(rng, width, depth - 1), _leaf(rng, width)))
@@ -181,7 +187,8 @@ def inputs(seed, width, count):
     """Return exactly count distinct pairs: boundary pairs, then seeded randoms.
 
     Count is the total, not the number added after boundaries. The prefix covers
-    extrema, unsigned high bits, width-masked shifts and UInt64 values above 2^53.
+    extrema, unsigned high bits, width-masked shifts, zero divisors and UInt64
+    values above 2^53.
     """
     _integer(seed, "seed", (1 << 64) - 1)
     _width(width)
@@ -191,7 +198,8 @@ def inputs(seed, width, count):
     high = 1 << (width - 1)
     boundaries = [(0, 0), (maximum, 1), (0, 1), (maximum, maximum),
                   (1, width), (high, 1), (1, width - 1), (1, width + 1),
-                  (1, 0), (0, maximum), (high - 1, high), (high, high - 1)]
+                  (1, 0), (0, maximum), (high - 1, high), (high, high - 1),
+                  (maximum, 0), (high, 0)]
     if width == 64:
         boundaries.extend(((1 << 53, (1 << 53) + 1), ((1 << 53) + 1, 1 << 53)))
     result = boundaries[:count]
@@ -250,7 +258,7 @@ def _render(expr, scalar):
     args = [_render(arg, scalar) for arg in expr.args]
     if expr.op == "complement":
         return f"(~~~{args[0]})"
-    operator = {"add": "+", "sub": "-", "mul": "*",
+    operator = {"add": "+", "sub": "-", "mul": "*", "div": "/", "mod": "%",
                 "land": "&&&", "lor": "|||", "xor": "^^^", "shl": "<<<", "shr": ">>>",
                 "eq": "==", "lt": "<", "le": "<="}.get(expr.op)
     if operator is not None:

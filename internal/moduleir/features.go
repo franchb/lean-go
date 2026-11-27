@@ -15,6 +15,9 @@ const (
 	FeatureBitwise = "bitwise"
 	// FeatureByteFold: the producer's byte-list type, used by byte-fold roots.
 	FeatureByteFold = "byte_fold"
+	// FeatureDivision: unsigned division or remainder of any width, with Lean's
+	// x / 0 = 0 and x % 0 = x, which every emitter must guard.
+	FeatureDivision = "division"
 	// FeatureJoin: local join points and jumps.
 	FeatureJoin = "join"
 	// FeatureRecordFold: a byte-fold-shaped function whose accumulator is a source record.
@@ -58,6 +61,8 @@ func (v *validator) usePrimitive(p Primitive) {
 		v.use(FeatureWidthConversion)
 	case slices.Contains([]string{"land", "lor", "xor", "complement", "shiftLeft", "shiftRight"}, operation):
 		v.use(FeatureBitwise)
+	case operation == "div" || operation == "mod":
+		v.use(FeatureDivision)
 	}
 }
 

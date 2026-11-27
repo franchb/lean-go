@@ -353,9 +353,9 @@
   "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_type\",\"compiler_form\":null,\"declaration\":\"Admission.run\",\"hint\":\"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":2,\"column\":4,\"utf16_column\":4,\"byte_offset\":24},\"end\":{\"line\":2,\"column\":7,\"utf16_column\":7,\"byte_offset\":27}},\"message\":\"Unsupported first-order monomorphic type: Type\",\"stage\":\"admission\"}]}"
  },
  {
-  "name": "admission/division",
+  "name": "admission/natural_division",
   "files": {
-   "Admission.lean": "namespace Admission\ndef run (x : UInt32) : UInt32 := x / 3\n\nend Admission\n"
+   "Admission.lean": "namespace Admission\ndef run (x : Nat) : Nat := x / 3\n\nend Admission\n"
   },
   "module": "Admission",
   "root": "Admission.run",
@@ -363,13 +363,13 @@
   "diagnostic": {
    "code": "source_audit",
    "compiler_form": null,
-   "declaration": "UInt32.div",
+   "declaration": "Nat.div",
    "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
    "location": null,
-   "message": "Source audit rejected Admission.run: [extern source dependency: UInt32.div,\n extern source dependency: UInt32.toBitVec,\n axiomatic source proof: BitVec.udiv._proof_1: #[propext],\n extern source dependency: Nat.pow,\n extern source dependency: Nat.mul,\n extern source dependency: Nat.add,\n extern source dependency: Nat.div,\n extern source dependency: Nat.sub,\n extern source dependency: Nat.pred,\n extern source dependency: Nat.decLe,\n extern source dependency: Nat.ble,\n extern source dependency: Nat.decLt,\n extern source dependency: UInt32.ofBitVec]",
+   "message": "Source audit rejected Admission.run: [extern source dependency: Nat.div,\n extern source dependency: Nat.sub,\n extern source dependency: Nat.pred,\n extern source dependency: Nat.add,\n extern source dependency: Nat.decLe,\n extern source dependency: Nat.ble,\n extern source dependency: Nat.decLt]",
    "stage": "admission"
   },
-  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"UInt32.div\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":null,\"message\":\"Source audit rejected Admission.run: [extern source dependency: UInt32.div,\\n extern source dependency: UInt32.toBitVec,\\n axiomatic source proof: BitVec.udiv._proof_1: #[propext],\\n extern source dependency: Nat.pow,\\n extern source dependency: Nat.mul,\\n extern source dependency: Nat.add,\\n extern source dependency: Nat.div,\\n extern source dependency: Nat.sub,\\n extern source dependency: Nat.pred,\\n extern source dependency: Nat.decLe,\\n extern source dependency: Nat.ble,\\n extern source dependency: Nat.decLt,\\n extern source dependency: UInt32.ofBitVec]\",\"stage\":\"admission\"}]}"
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Nat.div\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":null,\"message\":\"Source audit rejected Admission.run: [extern source dependency: Nat.div,\\n extern source dependency: Nat.sub,\\n extern source dependency: Nat.pred,\\n extern source dependency: Nat.add,\\n extern source dependency: Nat.decLe,\\n extern source dependency: Nat.ble,\\n extern source dependency: Nat.decLt]\",\"stage\":\"admission\"}]}"
  },
  {
   "name": "admission/sorry_proof",

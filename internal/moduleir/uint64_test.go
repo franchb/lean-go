@@ -57,7 +57,7 @@ func TestUInt64Registry(t *testing.T) {
 			t.Fatal(name, err)
 		}
 	}
-	for _, name := range []string{"UInt64.div", "UInt64.add._boxed", "UInt64.and", "UInt64.ADD"} {
+	for _, name := range []string{"UInt64.div._boxed", "UInt64.add._boxed", "UInt64.and", "UInt64.ADD"} {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatal("unknown primitive", name)
 		}

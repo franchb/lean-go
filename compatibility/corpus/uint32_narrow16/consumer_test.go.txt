@@ -1,0 +1,22 @@
+package compatconsumer
+
+import (
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+// Narrowing keeps the value modulo 2^16: every low halfword under several
+// high halfwords, including zero and all ones.
+func TestNarrowKeepsLowHalfword(t *testing.T) {
+	limits := x.DefaultLimits()
+	for _, high := range []uint32{0, 1, 0x8000, 0xabcd, 0xffff} {
+		for low := range uint32(1 << 16) {
+			n := high*65536 + low
+			got, err := x.RunTyped(n, limits)
+			if err != nil || uint32(got) != n%65536 {
+				t.Fatalf("narrow(%08x) = %04x, %v", n, got, err)
+			}
+		}
+	}
+}

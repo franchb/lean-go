@@ -202,6 +202,8 @@ func programFeatures(program *Object) ([]any, error) {
 						features[moduleir.FeatureWidthConversion] = true
 					case bitwiseOperations[operation]:
 						features[moduleir.FeatureBitwise] = true
+					case operation == "div" || operation == "mod":
+						features[moduleir.FeatureDivision] = true
 					}
 				}
 			}

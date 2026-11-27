@@ -23,6 +23,7 @@ from check_header_demo import verify_demo as verify_header_demo
 from check_words_demo import verify_demo as verify_words_demo
 from check_adler32_demo import verify_demo as verify_adler32_demo
 from check_normalizer_demo import verify_demo as verify_normalizer_demo
+from check_clock_demo import verify_demo as verify_clock_demo
 from check_crc16_demo import verify_demo as verify_crc16_demo
 from check_wire16_demo import verify_demo as verify_wire16_demo
 from check_release_candidate import base_environment, copy_fixture, pinned_go, run_consumer
@@ -222,7 +223,8 @@ def smoke(workspace, without_lean):
                 for name, verify in [('clamp', verify_demo), ('flags', verify_flags_demo), ('words', verify_words_demo),
                                      ('bytes', verify_bytes_demo), ('header', verify_header_demo),
                                      ('wire16', verify_wire16_demo), ('crc16', verify_crc16_demo),
-                                     ('adler32', verify_adler32_demo), ('normalizer', verify_normalizer_demo)]:
+                                     ('adler32', verify_adler32_demo), ('normalizer', verify_normalizer_demo),
+                                     ('clock', verify_clock_demo)]:
                     demo = directory / ('standalone ' + name + ' demo')
                     demo.mkdir()
                     verify(cli, demo, env)

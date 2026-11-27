@@ -21,8 +21,29 @@ def program(expr, width=32, helper=None):
 
 
 class MathematicalModelTests(unittest.TestCase):
+    def test_division_and_remainder_follow_lean_including_zero_divisors(self):
+        for width in (8, 16, 32, 64):
+            maximum = (1 << width) - 1
+            for op, a, b, expected in (
+                ("div", 7, 2, 3), ("mod", 7, 2, 1), ("div", maximum, 1, maximum),
+                ("div", maximum, maximum, 1), ("mod", maximum, maximum, 0),
+                ("div", 0, 0, 0), ("mod", 0, 0, 0), ("div", maximum, 0, 0), ("mod", maximum, 0, maximum),
+                ("div", 1, maximum, 0), ("mod", 1, maximum, 1),
+            ):
+                with self.subTest(width=width, op=op, a=a, b=b):
+                    self.assertEqual(evaluate(program(Expr(op, (A, B)), width), a, b), expected)
+            # A literal divisor of 2^width wraps to zero before dividing.
+            self.assertEqual(evaluate(program(Expr("div", (A, literal(1 << width))), width), 5, 0), 0)
+            self.assertEqual(evaluate(program(Expr("mod", (A, literal(1 << width))), width), 5, 0), 5)
+
+    def test_rendering_uses_ordinary_division_notation(self):
+        for width in (8, 16, 32, 64):
+            source = render_lean(program(Expr("mod", (Expr("div", (A, B)), literal(0))), width))
+            self.assertIn(f"((a / b) % (0 : UInt{width}))", source)
+            self.assertIn(f"def run (a b : UInt{width}) : UInt{width}", source)
+
     def test_unsigned_arithmetic_wraps_at_each_width(self):
-        for width in (32, 64):
+        for width in (8, 16, 32, 64):
             maximum = (1 << width) - 1
             for op, a, b, expected in (
                 ("add", maximum, 1, 0), ("sub", 0, 1, maximum),
@@ -32,7 +53,7 @@ class MathematicalModelTests(unittest.TestCase):
                     self.assertEqual(evaluate(program(Expr(op, (A, B)), width), a, b), expected)
 
     def test_shift_counts_are_reduced_before_mathematical_multiplication(self):
-        for width in (32, 64):
+        for width in (8, 16, 32, 64):
             expression = program(Expr("shl", (A, B)), width)
             for shift, expected in ((0, 1), (width - 1, 1 << (width - 1)),
                                     (width, 1), (width + 1, 2)):
@@ -40,7 +61,7 @@ class MathematicalModelTests(unittest.TestCase):
             self.assertEqual(evaluate(expression, 2, width - 1), 0)
 
     def test_comparisons_are_unsigned_and_feed_selected_expression(self):
-        for width in (32, 64):
+        for width in (8, 16, 32, 64):
             maximum = (1 << width) - 1
             for op, left, right, expected in (
                 ("lt", maximum, 0, 9), ("lt", 0, maximum, 7),
@@ -72,7 +93,7 @@ class MathematicalModelTests(unittest.TestCase):
 class GeneratedProgramTests(unittest.TestCase):
     def test_deterministic_bounded_varied_programs(self):
         sources = set()
-        for width in (32, 64):
+        for width in (8, 16, 32, 64):
             for seed in range(20):
                 generated = generate(seed, width)
                 self.assertEqual(generated, generate(seed, width))
@@ -81,17 +102,17 @@ class GeneratedProgramTests(unittest.TestCase):
                 for a, b in inputs(seed, width, 32):
                     self.assertTrue(0 <= evaluate(generated, a, b) < 1 << width)
                 sources.add(render_lean(generated))
-        self.assertEqual(len(sources), 40)
+        self.assertEqual(len(sources), 80)
 
     def test_depth_limits_and_argument_validation(self):
         for depth in (0, 4):
             self.assertLessEqual(complexity(generate(1, 64, depth))[0], MAX_NODES)
-        for args in ((-1, 32, 3), (True, 32, 3), (0, 16, 3), (0, 32, -1), (0, 32, 5)):
+        for args in ((-1, 32, 3), (True, 32, 3), (0, 24, 3), (0, 128, 3), (0, 32, -1), (0, 32, 5)):
             with self.subTest(args=args), self.assertRaises(ValueError):
                 generate(*args)
 
     def test_input_prefix_and_exact_count(self):
-        for width in (32, 64):
+        for width in (8, 16, 32, 64):
             pairs = inputs(123, width, 32)
             self.assertEqual(pairs, inputs(123, width, 32))
             self.assertEqual(len(pairs), 32)
@@ -99,6 +120,8 @@ class GeneratedProgramTests(unittest.TestCase):
             self.assertIn(((1 << width) - 1, 1), pairs[:4])
             self.assertIn((1, width), pairs[:8])
             self.assertIn((1, width + 1), pairs[:8])
+            self.assertIn(((1 << width) - 1, 0), pairs[:16])
+            self.assertIn((1 << (width - 1), 0), pairs[:16])
             if width == 64:
                 self.assertIn(((1 << 53) + 1, 1 << 53), pairs[:16])
             self.assertEqual(inputs(123, width, 1), [(0, 0)])
@@ -119,7 +142,7 @@ class GeneratedProgramTests(unittest.TestCase):
         self.assertNotIn("Float", source)
 
     def test_shift_rendering_uses_ordinary_notation(self):
-        for width in (32, 64):
+        for width in (8, 16, 32, 64):
             source = render_lean(program(Expr("shl", (A, B)), width))
             self.assertIn("(a <<< b)", source)
             self.assertNotIn(f"UInt{width}.shiftLeft", source)
@@ -128,7 +151,7 @@ class GeneratedProgramTests(unittest.TestCase):
 class SerializationTests(unittest.TestCase):
     def test_exact_keys_and_schema_required(self):
         valid = serialize(program(A))
-        for field, value in (("schema", "future"), ("seed", True), ("width", 8)):
+        for field, value in (("schema", "future"), ("seed", True), ("width", 7), ("width", 128)):
             data = dict(valid, **{field: value})
             with self.subTest(field=field), self.assertRaises(ValueError):
                 deserialize(data)

@@ -27,8 +27,8 @@ def parser():
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument('--seed', type=bounded_int(0, 2 ** 64 - 1), action='append',
                         help='repeatable program seed (default: 0 and 1)')
-    result.add_argument('--width', type=int, choices=(32, 64), action='append',
-                        help='repeatable unsigned width (default: both)')
+    result.add_argument('--width', type=int, choices=(8, 16, 32, 64), action='append',
+                        help='repeatable unsigned width (default: all four)')
     result.add_argument('--depth', type=bounded_int(0, 4), default=3)
     result.add_argument('--cases', type=bounded_int(1, 4096), default=32,
                         help='total input pairs per program, including boundaries')
@@ -49,7 +49,7 @@ def selected_cases(args):
         yield load_case(args.replay)
         return
     for seed in args.seed if args.seed is not None else (0, 1):
-        for width in args.width if args.width is not None else (32, 64):
+        for width in args.width if args.width is not None else (8, 16, 32, 64):
             yield generate(seed, width, args.depth), inputs(seed, width, args.cases)
 
 
