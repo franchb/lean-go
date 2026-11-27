@@ -58,6 +58,32 @@ func TestPublishPackageRefusesOrReplaces(t *testing.T) {
 	}
 }
 
+// --replace swaps a native package for a metered one and back.
+func TestReplaceAcceptsEitherMode(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "examples", "proofs", "clamp", "clamp.ir.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(t.TempDir(), "pkg")
+	for _, mode := range []string{"native", "metered", "native"} {
+		files, err := Emit(data, EmitOptions{Mode: mode})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := PublishPackage(dir, files, true); err != nil {
+			t.Fatalf("%s: %v", mode, err)
+		}
+		if got := readDir(t, dir); len(got) != len(files) || got["manifest.json"] != string(files["manifest.json"]) {
+			t.Fatalf("%s: package holds %d files", mode, len(got))
+		}
+	}
+	foreign := map[string][]byte{"native.go": []byte("package x\n"), "manifest.json": []byte(`{"schema":"lean-go-native-manifest/v1","generated_files":{"native.go":"0"}}`)}
+	os.WriteFile(filepath.Join(dir, "doc.go"), []byte("package x\n"), 0o644)
+	if err := PublishPackage(dir, foreign, true); err == nil {
+		t.Fatal("replaced a native package holding a hand-written file")
+	}
+}
+
 func TestReplaceRefusesForeignDirectories(t *testing.T) {
 	files := map[string][]byte{"api.go": []byte("package x\n"), "manifest.json": []byte(`{"schema":"lean-go-manifest/v24","generated_files":{"api.go":"0"}}`)}
 	for name, setup := range map[string]func(dir string){

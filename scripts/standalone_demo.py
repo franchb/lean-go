@@ -66,7 +66,7 @@ def verify_demo(cli, workspace, environment, source, spec, *, run, pinned_go, co
     candidate.mkdir()
     command = [str(cli), 'generate', '--source-dir', str(project / 'source'),
                '--module', spec.module, '--out', str(candidate / spec.name),
-               '--ir-output', str(candidate / (spec.name + '.ir.json'))]
+               '--ir-output', str(candidate / (spec.name + '.ir.json')), '--mode', 'metered']
     for root in spec.roots:
         command.extend(['--root', root])
     run(command, project, environment)

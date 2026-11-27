@@ -115,7 +115,7 @@ func TestExternalProjectExtractsProvesAndRunsWithGoOnly(t *testing.T) {
 	generate := func(out string) {
 		t.Helper()
 		if _, err := Generate(GenerateOptions{SourceDir: filepath.Join(project, "source"), Module: "Clamp", Roots: []string{"Clamp.clamp"},
-			Out: out, IROutput: out + ".ir.json", Cache: testCache(t)}); err != nil {
+			Out: out, IROutput: out + ".ir.json", Emit: EmitOptions{Mode: "metered"}, Cache: testCache(t)}); err != nil {
 			t.Fatal(err)
 		}
 	}

@@ -1,21 +1,30 @@
 # Native Go mode
 
-Native mode emits plain, unmetered Go from the same validated module IR as
-the default metered mode. Lean scalars become Go unsigned integers, Lean
-types become ordinary Go types, and Lean functions become ordinary Go
-functions. There are no `Limits` parameters, no resource budgets and no
-`Value`/`Input` raw API.
+Native mode is the default output of `lean-go generate` and `lean-go emit`.
+It emits plain, unmetered Go from the validated module IR. Lean scalars
+become Go unsigned integers, Lean types become ordinary Go types, and Lean
+functions become ordinary Go functions. There are no `Limits` parameters, no
+resource budgets and no `Value`/`Input` raw API.
 
 ```sh
-go run ./cmd/lean-go -in testdata/trees.ir.json -out /tmp/trees -mode native
-uv run --locked python scripts/generate.py --mode native \
-  --source-dir examples/modules --module Trees --root Trees.mirror \
-  --out /tmp/trees --ir-output /tmp/trees.ir.json
+go run ./cmd/lean-go generate --source-dir examples/modules --module Trees \
+  --root Trees.mirror --out /tmp/trees --ir-output /tmp/trees.ir.json
+go run ./cmd/lean-go emit --in testdata/trees.ir.json --out /tmp/trees-native
+go run ./cmd/lean-go emit --in testdata/trees.ir.json --out /tmp/trees-depth --native-max-depth 500
 ```
 
-`-mode metered` remains the default. The installed `lean-go generate`
-command accepts the same `--mode`. `-native-max-depth N` (Go command only)
-sets the recursion guard described below.
+Metered mode, the original output, is the opt-in for callers who need
+resource budgets on untrusted recursive input: pass `--mode metered` to
+`generate` or `emit`. Both modes start from the same IR, which does not
+depend on the mode. `--native-max-depth N` (`emit` only) sets the recursion
+guard described below.
+
+Three older entry points keep metered as their default so that existing
+callers and the tracked metered artifacts are unchanged: the legacy flag
+form `lean-go -in FILE -out DIR [-mode native]`, and the Python wrappers
+`scripts/generate.py` and the `lean-go` command of the `lean-go-tools` wheel,
+which accept `--mode native`. `lean-go regenerate` names the mode of every
+tracked artifact explicitly (see [`internal/artifacts`](../internal/artifacts)).
 
 The emitter is [`internal/nativegen`](../internal/nativegen). It reads only
 the IR's types, functions, code, API record names and `moduleir.RootNames`,
@@ -148,6 +157,29 @@ fold whose step can fail returns `(T, error)`.
 **Output.** Deterministic, gofmt-clean, `go vet`-clean, standard library only
 (`errors`), builds with `CGO_ENABLED=0`.
 
+## Proof evidence
+
+`lean-go check-proofs` binds evidence to a native package as strictly as to a
+metered one. The manifest must have the native schema, `"mode": "native"`
+and the current `generator`; its `generated_files` lists the package's Go
+files (plain lower-case non-test names), and the directory must hold exactly
+the manifest and those files, each with its recorded SHA-256. A missing,
+extra or changed file is rejected. Program, roots, Lean pin and runtime source
+hashes are checked as for metered packages. Native evidence records
+`"generated_mode": "native"`, as does each native component of a composition;
+metered evidence is unchanged. The
+[clamp example](../examples/proofs/clamp) tracks both packages:
+
+```sh
+cd examples/proofs/clamp
+lean-go generate --source-dir source --module Clamp --root Clamp.clamp \
+  --out clampnative --ir-output clamp.ir.json
+lean-go check-proofs --contract proof-contract.json \
+  --manifest clampnative/manifest.json --evidence native-proof-evidence.json
+```
+
+The three [wire-format examples](wire-formats.md) are native too.
+
 ## Differences from metered mode
 
 | | Metered | Native |
@@ -243,7 +275,7 @@ LEAN_GO_NATIVE_BENCH=. go test -count=1 -v -run TestDifferential ./internal/nati
 - `==` on recursive handles, or on values containing them, compares identity.
 - Byte folds are recognized only for roots of the exact `foldl` shape.
 - A type with no finite value is rejected rather than given an error result.
-- The proof-contract checker and the example verifiers read metered
-  manifests; they do not yet accept native manifests.
+- The Python demo verifiers (`scripts/check_*_demo.py`) reproduce the
+  tracked metered packages only.
 - Native output is tested and trusted, like metered output; there is no
   proof that the Go code implements the Lean source.
