@@ -151,18 +151,28 @@ func GeneratePackage(root, stage string, spec Package, cache *pipeline.Cache) er
 	return nil
 }
 
+// FrameComponent returns the tracked package of a checked-frame component:
+// the demo package of that name. Other tracked packages may share the base
+// name (the oracle example's models), so the lookup is by package path.
+func FrameComponent(name string) (Package, bool) {
+	want := demo(name, "").Package
+	for _, spec := range Packages {
+		if spec.Package == want {
+			return spec, true
+		}
+	}
+	return Package{}, false
+}
+
 // CheckFrame writes the composition evidence for packages generated under stage.
 func CheckFrame(root, stage, manifests string) error {
 	var pairs [][2]string
 	for _, name := range Frame.Components {
-		// A component is the demo package of that name; other tracked
-		// packages may share the base name (the oracle example's models).
-		demo := demo(name, "")
-		for _, spec := range Packages {
-			if spec.Package == demo.Package {
-				pairs = append(pairs, [2]string{name, at(manifests, spec.Package+"/manifest.json")})
-			}
+		spec, ok := FrameComponent(name)
+		if !ok {
+			return fmt.Errorf("%s: component %s is not a tracked demo package", Frame.Evidence, name)
 		}
+		pairs = append(pairs, [2]string{name, at(manifests, spec.Package+"/manifest.json")})
 	}
 	if err := os.MkdirAll(filepath.Dir(at(stage, Frame.Evidence)), 0o755); err != nil {
 		return err

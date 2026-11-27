@@ -41,3 +41,24 @@ func TestEveryPackageNamesItsMode(t *testing.T) {
 		t.Error("no native package with proof evidence is tracked")
 	}
 }
+
+// The checked frame names its components by demo name. A tracked package
+// elsewhere may share that base name (the oracle example's crc16 model), so
+// a component must resolve to the demo package and to nothing else.
+func TestFrameComponentsAreDemoPackages(t *testing.T) {
+	for _, name := range Frame.Components {
+		spec, ok := FrameComponent(name)
+		if !ok || spec.Package != "examples/proofs/"+name+"/"+name || spec.Mode != "metered" || spec.Contract == "" {
+			t.Errorf("component %s resolves to %+v", name, spec)
+		}
+	}
+	shared := 0
+	for _, spec := range Packages {
+		if spec.Name() == "crc16" {
+			shared++
+		}
+	}
+	if shared < 2 {
+		t.Error("no tracked package shares a base name with a frame component any more; this test no longer guards the lookup")
+	}
+}

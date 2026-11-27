@@ -320,11 +320,10 @@ func (d *demoRun) checkFrame() error {
 	at := func(relative string) string { return filepath.Join(repo, filepath.FromSlash(relative)) }
 	var pairs [][2]string
 	for _, name := range artifacts.Frame.Components {
-		for _, spec := range artifacts.Packages {
-			if spec.Name() == name {
-				pairs = append(pairs, [2]string{name, filepath.Join(d.work, "fresh", name, name, "manifest.json")})
-			}
+		if _, ok := artifacts.FrameComponent(name); !ok {
+			return fmt.Errorf("component %s is not a tracked demo package", name)
 		}
+		pairs = append(pairs, [2]string{name, filepath.Join(d.work, "fresh", name, name, "manifest.json")})
 	}
 	evidence := filepath.Join(d.work, "checkedframe-evidence.json")
 	for _, o := range []pipeline.CheckProofsOptions{
