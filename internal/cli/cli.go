@@ -26,6 +26,7 @@ commands:
   generate      Lean sources -> IR -> Go package, from a fresh private workspace
   emit          IR file -> Go package
   check-proofs  freshly check source proofs and bind evidence to generated Go
+  validate      translation-validate an IR file against its Lean sources
   format        check or generate a wire format from a JSON spec
   regenerate    contributor command: regenerate every tracked artifact
   doctor        check Lean, Lake and the producer cache
@@ -35,7 +36,7 @@ Run 'lean-go <command> --help' for the options of one command.
 `
 
 // Commands lists the subcommand names Main dispatches.
-var Commands = []string{"generate", "emit", "check-proofs", "format", "regenerate", "doctor", "version", "help"}
+var Commands = []string{"generate", "emit", "check-proofs", "validate", "format", "regenerate", "doctor", "version", "help"}
 
 // IsCommand reports whether name is a subcommand.
 func IsCommand(name string) bool {
@@ -62,6 +63,8 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		return emit(rest, stdout, stderr)
 	case "check-proofs":
 		return checkProofs(rest, stdout, stderr)
+	case "validate":
+		return validateCommand(rest, stdout, stderr)
 	case "format":
 		return Format(rest, stdout, stderr)
 	case "regenerate":
@@ -145,6 +148,7 @@ func generate(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, result.Warning)
 	}
 	fmt.Fprintln(stdout, result.Summary())
+	printValidation(stdout, result.Validation)
 	return 0
 }
 
@@ -167,11 +171,16 @@ func runGenerate(p *parsed) (result *pipeline.GenerateResult, err error) {
 	if !p.has("out") || !p.has("ir-output") {
 		return nil, errors.New("module generation requires explicit --out and --ir-output paths")
 	}
+	validation, err := validationFromFlags(p, pipeline.ValidateOff)
+	if err != nil {
+		return nil, err
+	}
 	return generateFunc(pipeline.GenerateOptions{
 		SourceDir: p.one("source-dir"), Module: p.one("module"), Roots: p.all("root"),
 		Out: p.one("out"), IROutput: p.one("ir-output"),
 		Emit:    pipeline.EmitOptions{Mode: p.one("mode")},
 		Replace: p.has("replace"), Cache: cacheFor(p.has("no-cache")), StrictGo: p.has("strict-go"),
+		Validation: validation,
 	})
 }
 

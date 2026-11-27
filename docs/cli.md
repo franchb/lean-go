@@ -13,11 +13,12 @@ lean-go doctor
 
 | Command | Purpose |
 | --- | --- |
-| `lean-go generate` | Lean sources → IR → Go package (`--source-dir`, `--module`, repeated `--root`, `--out`, `--ir-output`, `--mode native\|metered`, `--diagnostics text\|json`, `--replace`, `--no-cache`, `--strict-go`) |
+| `lean-go generate` | Lean sources → IR → Go package (`--source-dir`, `--module`, repeated `--root`, `--out`, `--ir-output`, `--mode native\|metered`, `--diagnostics text\|json`, `--replace`, `--no-cache`, `--strict-go`, and the [validation options](#translation-validation)) |
+| `lean-go validate` | translation-validate an existing IR file against its sources (`--source-dir`, `--module`, repeated `--root`, `--ir`, validation options) |
 | `lean-go emit` | IR file → Go package (`--in FILE --out DIR [--mode ...] [--native-max-depth N] [--replace]`) |
 | `lean-go check-proofs` | proof contracts and composition contracts, as described below |
 | `lean-go format check\|generate` | [wire formats](wire-formats.md); `lean-go-format` remains as an alias |
-| `lean-go regenerate` | contributor command: regenerate every tracked artifact and wire-format example |
+| `lean-go regenerate` | contributor command: regenerate every tracked artifact, wire-format example and validation report; `--coverage` prints the validation coverage table |
 | `lean-go doctor`, `lean-go version` | check Lean, Lake, the build toolchain and the producer cache; print the tool identity |
 
 `generate` and `emit` emit [native Go](native-mode.md) by default: plain Go
@@ -64,7 +65,9 @@ under the user cache directory (`$XDG_CACHE_HOME/lean-go/producer` or
 `~/.cache/lean-go/producer` on Linux, `~/Library/Caches/lean-go/producer` on
 macOS, `%LocalAppData%\lean-go\producer` on Windows). The key is a SHA-256 of
 the cache format, the exact `lean --version` text (release, commit and target),
-the producer's Lake library stanza and every embedded producer file. Entries
+the producer's Lake library stanza and every embedded producer file; a run
+with translation validation uses a separate entry that also contains the
+compiled validation library, keyed additionally by its files. Entries
 are built only in a producer-only workspace, never next to user sources, are
 published atomically, and are verified file by file against their recorded
 digests before use; the directory must be owned by you and closed to other
@@ -86,14 +89,81 @@ The IR `inputs` map names everything the producer consumed, without machine
 paths: `source/<path>` for each snapshotted source file,
 `producer/LeanGo/Module/<File>.lean` for each embedded producer file, and
 `tool/lean-go/pipeline`, the SHA-256 of the extraction pipeline's non-test Go
-sources (`internal/pipeline` except `proof_*.go`, plus the shared compiler
-policy), framed like the validator digest in `internal/moduleir/identity.go`.
+sources (`internal/pipeline` except `proof_*.go` and the validation runner
+`validate_*.go`, plus the shared compiler policy), framed like the validator digest in `internal/moduleir/identity.go`.
 Proof evidence `tool_inputs` records the embedded `producer/lean-toolchain`
 and `producer/LeanGo/Proofs/Check.lean` plus `tool/lean-go/pipeline` and
 `tool/lean-go/proofcheck` (the `proof_*.go` sources). The manifest already
 records the emitter (`generator_source_sha256`) and validator digests.
 Changing any of these sources changes the inventory; regenerate the tracked
 artifacts with `lean-go regenerate`.
+
+### Translation validation
+
+`generate --validate report|require` (default `off`) proves, for the exported
+program, that the IR agrees with the Lean source functions, using the
+`#lean_go_validate` command described in
+[translation-validation.md](research/translation-validation.md).
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--validate off\|report\|require` | `off` | `report` records the result and never fails because of an unproved obligation; `require` fails (stage `validation`, code `validation_failed`) after writing the report unless every function and every root is proved, and then publishes neither the package nor the IR |
+| `--validation-report FILE` | next to the IR: `X.ir.json` → `X.validation.json` | the deterministic report |
+| `--validation-diagnostics FILE` | not written | timings, heartbeat counts, full failure messages and the process attempts |
+| `--validate-memory-mb N` | 4096 | memory limit of the validation process, in MiB |
+| `--validate-heartbeats N` | 200000 | heartbeats per obligation, in thousands (Lean's `maxHeartbeats` unit and default) |
+| `--validate-timeout-ms N` | 120000 | wall-clock limit per obligation |
+| `--validate-process-timeout S` | 3600 | wall-clock limit of one validation process |
+
+`lean-go validate --source-dir DIR --module M --root R… --ir FILE` does the
+same for an IR file that already exists: it exports again in a fresh
+workspace, requires the result to be byte-identical to `FILE`, and writes the
+report (`--validate` defaults to `report` there).
+
+**How it runs.** The export is unchanged. After the complete IR has been
+computed, a second Lean process runs the validation harness in the same
+private workspace; nothing it does, including being killed, can change the IR
+or the generated Go, which are byte-identical with and without validation.
+The validation library and command do not depend on your sources and are
+compiled once into the producer cache; per extraction only the harness runs.
+Lean is started directly (not through `lake env`) with `-M <memory>`, Lean's
+own memory limit, which its runtime enforces on Linux, macOS and Windows, and
+with `Elab.async` off so that a kernel check that exceeds the limit fails in
+place. An obligation that hits a limit (the memory cap, a heartbeat or time
+budget, or the process timeout) is reported `failed` with a reason class that
+names the limit (`memory_limit`, `heartbeat_limit`, `obligation_time_limit`,
+`process_time_limit`); the process is rerun with that obligation skipped, so
+the remaining obligations still run. The default cap is deliberately low: on
+the tracked examples `DnsHeader.word1` would need more than 12 GB and
+`DnsHeader.serialize` between 5 and 6 GB, and both are reported
+`failed: memory limit` under it.
+
+**Reports.** The report (`lean-go-validation/v2`) is deterministic: two runs on
+the same inputs and budgets write the same bytes. It records the module and
+roots, the SHA-256 of the IR it validated, the compiler, the budget, the
+digests of the validation library (`producer/LeanGo/Validate*` and the runner
+`tool/lean-go/validate`), and, per function, its kind, specification, status,
+reason class, theorem name and statement and axioms; per root, its status,
+call closure and the whole-program statements. Timings and heartbeat counts go
+only to the diagnostics file (`lean-go-validation-diagnostics/v1`). Validation
+files never enter the IR `inputs` or the manifest.
+
+**What is proved.** For each proved function, the kernel-checked statement
+`Callable.Rel Eq (evalBody (Spec.env spec) prog.F) spec_F`; for each
+established root `R`, `∀ n, Callable.Rel Approx (prog.run n "R") R` and its
+explicit form: whenever the IR program returns a value for encoded arguments,
+it is the encoding of the source function's result. Only the three standard
+axioms are accepted.
+
+**What is not proved.** Termination and progress: a program that never
+returns satisfies the statement (partial correctness only). Which roots are
+exported is still the producer's choice.
+
+**What stays trusted.** The Lean kernel; the IR semantics in
+`producer/LeanGo/Validate` (that it describes what the Go printer implements);
+the JSON-to-Lean bridge; the IR-to-Go printer, the Go runtime and the Go
+compiler. The compiler's LCNF-to-IR lowering is no longer trusted for the
+functional behaviour of established roots.
 
 The Python entry points `scripts/generate.py`, `scripts/check_proofs.py` and
 `scripts/regenerate_all.py` are thin wrappers that build and run this command,

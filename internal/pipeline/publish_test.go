@@ -160,7 +160,7 @@ func TestCacheStoreVerifyAndTamper(t *testing.T) {
 			t.Fatal("a cache directory accessible to other users was used")
 		}
 	}
-	if cacheKey("Lean (version 4.36.0, x, commit a, Release)") == cacheKey("Lean (version 4.36.0, x, commit b, Release)") {
+	if cacheKey("Lean (version 4.36.0, x, commit a, Release)", false) == cacheKey("Lean (version 4.36.0, x, commit b, Release)", false) {
 		t.Fatal("the cache key ignores the compiler identity")
 	}
 }

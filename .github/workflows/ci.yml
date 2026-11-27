@@ -71,6 +71,7 @@ jobs:
       LEAN_GO_QUOTA: '1'
       LEAN_GO_PROOFS: '1'
       LEAN_GO_FORMATS: '1'
+      LEAN_GO_VALIDATE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -83,6 +83,9 @@ type GenerateOptions struct {
 	// Replace swaps an existing differing package after full success.
 	Replace bool
 	Cache   *Cache
+	// Validation, when non-nil and not off, translation-validates the export
+	// and writes its report (validate_generate.go).
+	Validation *ValidationOptions
 	// StrictGo refuses to run unless this binary was built with RequiredGo,
 	// whose go/format output the tracked artifacts use. Otherwise a binary
 	// built by another Go release continues with a warning in the result.
@@ -97,6 +100,8 @@ type GenerateResult struct {
 	IR            []byte
 	Files         map[string][]byte
 	Cache         CacheStatus
+	// Validation is the validation result when validation was requested.
+	Validation *ValidationResult
 	// Warning is a one-line note, such as a Go toolchain other than RequiredGo.
 	Warning string
 }
@@ -178,6 +183,10 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if err := validateOutputPaths(output, irOutput); err != nil {
 		return nil, err
 	}
+	validation, err := generateValidation(opts, output, irOutput)
+	if err != nil {
+		return nil, err
+	}
 	if err := ValidateName(opts.Module); err != nil {
 		return nil, err
 	}
@@ -220,7 +229,7 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	exported, err := ExportModule(ExportOptions{SourceDir: resolvedSource, Module: opts.Module, Roots: roots, Cache: opts.Cache, harness: opts.harness})
+	exported, err := ExportModule(ExportOptions{SourceDir: resolvedSource, Module: opts.Module, Roots: roots, Cache: opts.Cache, Validation: validation, harness: opts.harness})
 	if err != nil {
 		return nil, err
 	}
@@ -233,6 +242,9 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 		return nil, exportError("module producer inputs changed after export")
 	}
 	if err := VerifyInputs(opts.SourceDir, program); err != nil {
+		return nil, err
+	}
+	if err := requireValidation(validation, exported.Validation); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
@@ -248,7 +260,10 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if err := PublishFile(irOutput, exported.IR, true); err != nil {
 		return nil, staged("emission", "emission_failed", err)
 	}
-	return &GenerateResult{Out: output, IROutput: irOutput, IR: exported.IR, Files: files, Cache: exported.Cache, Warning: warning}, nil
+	if err := publishValidation(validation, exported.Validation); err != nil {
+		return nil, err
+	}
+	return &GenerateResult{Out: output, IROutput: irOutput, IR: exported.IR, Files: files, Cache: exported.Cache, Validation: exported.Validation, Warning: warning}, nil
 }
 
 // goVersion is a variable so tests can simulate another build toolchain.

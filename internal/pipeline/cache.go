@@ -19,7 +19,8 @@ import (
 // The producer cache holds Lake's build output for the embedded producer
 // modules, keyed by a digest of everything that determines it: the cache
 // format, the exact `lean --version` text (release, commit and target), the
-// fixed Lake library stanza and every embedded producer module. Entries are
+// fixed Lake library stanza and every embedded producer module (plus, for a
+// build that includes it, the translation-validation library). Entries are
 // built only in a producer-only workspace, never next to user sources, and
 // are verified against their recorded digests before use. Cached files are
 // trusted like any local build cache: anyone who can write the cache
@@ -45,7 +46,10 @@ func DefaultCacheDir() (string, error) {
 	return filepath.Join(base, "lean-go", "producer"), nil
 }
 
-func cacheKey(leanVersionText string) string {
+// cacheKey identifies one producer build. An entry that also holds the
+// translation-validation library is keyed by those files in addition; the key
+// of a build without them is unchanged by the validation files.
+func cacheKey(leanVersionText string, validation bool) string {
 	h := sha256.New()
 	frame := func(label string, data []byte) {
 		fmt.Fprintf(h, "%d:%s%d:", len(label), label, len(data))
@@ -57,7 +61,34 @@ func cacheKey(leanVersionText string) string {
 	for _, name := range producer.ModuleNames() {
 		frame(name, producer.ModuleFiles()[name])
 	}
+	if validation {
+		frame("validation", []byte(strings.Join(validationTargets, " ")))
+		files := producer.ValidationFiles()
+		for _, name := range producer.ValidationNames() {
+			frame(name, files[name])
+		}
+	}
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// producerTargets are the Lake targets of a producer build.
+func producerTargets(validation bool) []string {
+	targets := []string{"LeanGo.Module.Export"}
+	if validation {
+		targets = append(targets, validationTargets...)
+	}
+	return targets
+}
+
+// producerFiles are the embedded files a producer workspace receives.
+func producerFiles(validation bool) map[string][]byte {
+	files := producer.ModuleFiles()
+	if validation {
+		for name, data := range producer.ValidationFiles() {
+			files[name] = data
+		}
+	}
+	return files
 }
 
 // secureDirectory creates dir (and missing parents) with owner-only
@@ -247,11 +278,11 @@ const (
 // prepareProducer returns the cached producer build for this compiler,
 // building and storing it in a producer-only workspace on a miss. Any cache
 // problem degrades to an uncached build in the user workspace.
-func (c *Cache) prepareProducer(lake, leanVersionText string, compiler Compiler, env []string) (map[string][]byte, CacheStatus) {
+func (c *Cache) prepareProducer(lake, leanVersionText string, compiler Compiler, env []string, validation bool) (map[string][]byte, CacheStatus) {
 	if c == nil || c.Dir == "" {
 		return nil, CacheDisabled
 	}
-	key := cacheKey(leanVersionText)
+	key := cacheKey(leanVersionText, validation)
 	files, err := c.lookup(key)
 	if err != nil {
 		return nil, CacheSkipped
@@ -270,10 +301,10 @@ func (c *Cache) prepareProducer(lake, leanVersionText string, compiler Compiler,
 	if err := os.WriteFile(filepath.Join(workspace, "lakefile.toml"), producerLakefile, 0o600); err != nil {
 		return nil, CacheSkipped
 	}
-	if err := writeTree(workspace, producer.ModuleFiles()); err != nil {
+	if err := writeTree(workspace, producerFiles(validation)); err != nil {
 		return nil, CacheSkipped
 	}
-	if _, err := run([]string{lake, "build", "LeanGo.Module.Export"}, workspace, env); err != nil {
+	if _, err := run(append([]string{lake, "build"}, producerTargets(validation)...), workspace, env); err != nil {
 		return nil, CacheSkipped
 	}
 	files, err = readTree(filepath.Join(workspace, ".lake", "build"))
