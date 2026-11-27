@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"encoding/json"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -230,4 +231,111 @@ func TestProofGateBuildCannotReplaceCheckerToolchainOrRuntime(t *testing.T) {
 		"  IO.FS.writeBinFile path ((← IO.FS.readBinFile path).push 0)\n"
 	_, err = gateProof(t, nil, map[string]string{"GateTamper": tamper})
 	expectError(t, err, "proof workspace runtime build changed while proof modules were built")
+}
+
+// Finding 2: evidence binds only a package that a fresh export and emission
+// of the hash-bound sources reproduce byte for byte.
+
+// packageProject copies the clamp example and returns its contract path.
+func packageProject(t *testing.T) (string, string) {
+	t.Helper()
+	clampFixture(t)
+	work := t.TempDir()
+	project := filepath.Join(work, "project")
+	copyTree(t, "../../examples/proofs/clamp", project)
+	return work, filepath.Join(project, "proof-contract.json")
+}
+
+func bindEvidence(work, contract, manifest string) error {
+	_, err := CheckProofs(CheckProofsOptions{Contract: contract, Manifest: manifest, Output: filepath.Join(work, "evidence.json")})
+	return err
+}
+
+// rehash records a file's new digest in its package manifest.
+func rehash(t *testing.T, manifest, name string) {
+	t.Helper()
+	var document map[string]any
+	if err := json.Unmarshal([]byte(readText(t, manifest)), &document); err != nil {
+		t.Fatal(err)
+	}
+	obj(document["generated_files"])[name] = Digest([]byte(readText(t, filepath.Join(filepath.Dir(manifest), name))))
+	data, _ := json.MarshalIndent(document, "", "  ")
+	writeText(t, manifest, string(data)+"\n")
+}
+
+func TestProofGateBindsOnlyRebuiltPackages(t *testing.T) {
+	work, contract := packageProject(t)
+	project := filepath.Dir(contract)
+	for _, pkg := range []string{"clamp", "clampnative"} {
+		if err := bindEvidence(work, contract, filepath.Join(project, pkg, "manifest.json")); err != nil {
+			t.Fatalf("untouched %s: %v", pkg, err)
+		}
+	}
+	// Edited Go with a re-hashed manifest.
+	native := filepath.Join(project, "clampnative")
+	original := readText(t, filepath.Join(native, "functions.go"))
+	edited := strings.Replace(original, "if v1 <= v2 {", "if v1 >= v2 {", 1)
+	if edited == original {
+		t.Fatal("clamp comparison not found")
+	}
+	writeText(t, filepath.Join(native, "functions.go"), edited)
+	rehash(t, filepath.Join(native, "manifest.json"), "functions.go")
+	expectError(t, bindEvidence(work, contract, filepath.Join(native, "manifest.json")),
+		`generated file differs from a fresh emission of its IR: functions.go`)
+	// Edited IR with Go re-emitted from it: clamp returns the limit whenever it may.
+	var ir map[string]any
+	if err := json.Unmarshal([]byte(readText(t, filepath.Join(project, "clamp.ir.json"))), &ir); err != nil {
+		t.Fatal(err)
+	}
+	alts := arr(obj(obj(obj(arr(ir["functions"])[0])["body"])["next"])["alts"])
+	obj(obj(alts[0])["body"])["var"], obj(obj(alts[1])["body"])["var"] = 1.0, 2.0
+	data, _ := json.Marshal(ir)
+	for _, mode := range []string{MeteredMode, NativeMode} {
+		files, err := Emit(data, EmitOptions{Mode: mode})
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := filepath.Join(work, "edited-"+mode)
+		if err := PublishPackage(out, files, false); err != nil {
+			t.Fatal(err)
+		}
+		expectError(t, bindEvidence(work, contract, filepath.Join(out, "manifest.json")),
+			`generated IR differs from a fresh export of the contract's sources`)
+	}
+	// A native manifest bound to the metered package's Go files.
+	other := filepath.Join(work, "other-mode")
+	copyTree(t, filepath.Join(project, "clamp"), other)
+	os.Remove(filepath.Join(other, "manifest.json"))
+	var manifest map[string]any
+	json.Unmarshal([]byte(readText(t, filepath.Join(project, "clampnative", "manifest.json"))), &manifest)
+	files := map[string]any{}
+	for _, name := range generatedGo {
+		files[name] = Digest([]byte(readText(t, filepath.Join(other, name))))
+	}
+	manifest["generated_files"] = files
+	data, _ = json.MarshalIndent(manifest, "", "  ")
+	writeText(t, filepath.Join(other, "manifest.json"), string(data)+"\n")
+	if _, _, err := bindPackage(t, contract, filepath.Join(other, "manifest.json")); err != nil {
+		t.Fatalf("the self-consistent manifest should pass the manifest check: %v", err)
+	}
+	expectError(t, bindEvidence(work, contract, filepath.Join(other, "manifest.json")),
+		`generated directory inventory differs from a fresh emission`)
+}
+
+func TestProofGateRebuildsEveryCompositionComponent(t *testing.T) {
+	clampFixture(t)
+	c := newCompositionFixture(t)
+	if err := c.check("output", ""); err != nil {
+		t.Fatal(err)
+	}
+	for _, pair := range c.manifests {
+		dir := filepath.Dir(pair[1])
+		original := readText(t, filepath.Join(dir, "api.go"))
+		manifest := readText(t, pair[1])
+		writeText(t, filepath.Join(dir, "api.go"), original+"\n// edited\n")
+		rehash(t, pair[1], "api.go")
+		expectError(t, c.check("output", filepath.Join(c.root, "again.json")), `component `+pair[0]+`: generated file differs from a fresh emission of its IR: api.go`)
+		writeText(t, filepath.Join(dir, "api.go"), original)
+		writeText(t, pair[1], manifest)
+	}
 }

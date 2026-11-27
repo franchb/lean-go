@@ -67,6 +67,7 @@ sources = ["src"]
 "internal/pipeline/process.go" = "lean_go/_payload/internal/pipeline/process.go"
 "internal/pipeline/proof_check.go" = "lean_go/_payload/internal/pipeline/proof_check.go"
 "internal/pipeline/proof_contract.go" = "lean_go/_payload/internal/pipeline/proof_contract.go"
+"internal/pipeline/proof_rebuild.go" = "lean_go/_payload/internal/pipeline/proof_rebuild.go"
 "internal/pipeline/publish.go" = "lean_go/_payload/internal/pipeline/publish.go"
 "internal/pipeline/pyjson.go" = "lean_go/_payload/internal/pipeline/pyjson.go"
 "internal/pipeline/sources.go" = "lean_go/_payload/internal/pipeline/sources.go"
@@ -194,6 +195,7 @@ include = [
   "/internal/pipeline/process.go",
   "/internal/pipeline/proof_check.go",
   "/internal/pipeline/proof_contract.go",
+  "/internal/pipeline/proof_rebuild.go",
   "/internal/pipeline/publish.go",
   "/internal/pipeline/pyjson.go",
   "/internal/pipeline/sources.go",

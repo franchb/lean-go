@@ -133,9 +133,25 @@ func sampleClaims(contract *Contract) []any {
 	return out
 }
 
-// fakeProve replaces the Lean proof run; side runs before returning claims.
+// fakeRebuild replaces the Lean re-export of generated packages
+// (proof_rebuild.go; the Lean tests are in lean_proofgate_test.go).
+func fakeRebuild(t *testing.T) *int {
+	t.Helper()
+	calls := new(int)
+	old := rebuildPackage
+	rebuildPackage = func(string, *Contract, *ProjectSnapshot, string) error {
+		*calls++
+		return nil
+	}
+	t.Cleanup(func() { rebuildPackage = old })
+	return calls
+}
+
+// fakeProve replaces the Lean proof run and package rebuild; side runs before
+// returning claims.
 func fakeProve(t *testing.T, side func() error) *int {
 	t.Helper()
+	fakeRebuild(t)
 	calls := new(int)
 	old := proveClaims
 	proveClaims = func(claims [][2]string, project *ProjectSnapshot, tools *toolInputs, c Compiler) ([]any, error) {
@@ -820,6 +836,7 @@ func (c *compositionFixture) check(mode, output string) error {
 
 func noProofs(t *testing.T, side func()) *int {
 	t.Helper()
+	fakeRebuild(t)
 	calls := new(int)
 	old := proveClaims
 	proveClaims = func([][2]string, *ProjectSnapshot, *toolInputs, Compiler) ([]any, error) {

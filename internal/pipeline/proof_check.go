@@ -17,7 +17,8 @@ import (
 
 const (
 	// v3 and v4 replace v1 and v2: statements are rendered by the checker
-	// from the kernel term of the expected proposition.
+	// from the kernel term of the expected proposition, and the generated
+	// package is rebuilt from the sources before it is bound.
 	EvidenceSchema            = "lean-go-proof-evidence/v3"
 	CompositionEvidenceSchema = "lean-go-proof-evidence/v4"
 	assurance                 = "Kernel-replayed source statements; extraction and Go execution remain tested and trusted."
@@ -348,6 +349,9 @@ func Evidence(contractPath, manifestPath string) ([]byte, *Contract, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	if err := rebuildPackage(manifestPath, contract, project, mode); err != nil {
+		return nil, nil, err
+	}
 	claims, err := proveClaims(contract.Claims, project, tools, compiler)
 	if err != nil {
 		return nil, nil, err
@@ -405,7 +409,7 @@ func CompositionEvidence(c *Composition, bindings map[string]string) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	project, components, err := compositionInputs(c, bindings, compiler)
+	project, components, err := compositionInputs(c, bindings, compiler, true)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +425,7 @@ func CompositionEvidence(c *Composition, bindings map[string]string) ([]byte, er
 	if !fresh.equal(c) {
 		return nil, changed
 	}
-	again, againComponents, err := compositionInputs(fresh, bindings, compiler)
+	again, againComponents, err := compositionInputs(fresh, bindings, compiler, false)
 	if err != nil {
 		return nil, err
 	}
