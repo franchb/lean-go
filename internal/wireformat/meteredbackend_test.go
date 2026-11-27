@@ -21,7 +21,7 @@ func backendMetered(f *Format) string {
 	p("var errUnexpected = errors.New(\"unexpected value from the extracted code\")\n\n")
 
 	// Header conversion.
-	p("func toLean(h Header, l codec.Limits) (codec.Header, error) {\n\treturn codec.NewHeader(")
+	p("func toLean(h *Header, l codec.Limits) (codec.Header, error) {\n\treturn codec.NewHeader(")
 	for _, s := range f.Fields {
 		p("h.%s, ", goField(s))
 	}
@@ -33,25 +33,25 @@ func backendMetered(f *Format) string {
 	p("\treturn h, nil\n}\n\n")
 
 	// Parse.
-	p("func leanParse(raw *[HeaderSize]byte) (Header, Reason, error) {\n\tl := codec.DefaultLimits()\n")
+	p("func leanParse(raw *[HeaderSize]byte, h *Header) (Reason, error) {\n\tl := codec.DefaultLimits()\n")
 	p("\tw, err := codec.NewWire(")
 	for i := range f.Size {
 		p("raw[%d], ", i)
 	}
-	p("l)\n\tif err != nil {\n\t\treturn Header{}, 0, internal(err)\n\t}\n")
-	p("\tr, err := codec.RunParse(w, l)\n\tif err != nil {\n\t\treturn Header{}, 0, internal(err)\n\t}\n")
-	p("\tif lh, ok := r.AsOk(); ok {\n\t\th, err := fromLean(lh)\n\t\treturn h, 0, err\n\t}\n")
+	p("l)\n\tif err != nil {\n\t\treturn 0, internal(err)\n\t}\n")
+	p("\tr, err := codec.RunParse(w, l)\n\tif err != nil {\n\t\treturn 0, internal(err)\n\t}\n")
+	p("\tif lh, ok := r.AsOk(); ok {\n\t\tdecoded, err := fromLean(lh)\n\t\tif err == nil {\n\t\t\t*h = decoded\n\t\t}\n\t\treturn 0, err\n\t}\n")
 	if len(f.Parse) > 0 {
 		p("\tswitch {\n")
 		for _, c := range f.Parse {
-			p("\tcase r.Is%s():\n\t\treturn Header{}, %s, nil\n", cap1(c.Reason), goReason(c.Reason))
+			p("\tcase r.Is%s():\n\t\treturn %s, nil\n", cap1(c.Reason), goReason(c.Reason))
 		}
 		p("\t}\n")
 	}
-	p("\treturn Header{}, 0, internal(errUnexpected)\n}\n\n")
+	p("\treturn 0, internal(errUnexpected)\n}\n\n")
 
 	// Validate.
-	p("func leanValidate(h Header) (Reason, error) {\n\tl := codec.DefaultLimits()\n")
+	p("func leanValidate(h *Header) (Reason, error) {\n\tl := codec.DefaultLimits()\n")
 	p("\tlh, err := toLean(h, l)\n\tif err != nil {\n\t\treturn 0, internal(err)\n\t}\n")
 	p("\tr, err := codec.RunValidate(lh, l)\n\tif err != nil {\n\t\treturn 0, internal(err)\n\t}\n")
 	p("\tswitch {\n\tcase r.IsValid():\n\t\treturn 0, nil\n")
@@ -61,18 +61,18 @@ func backendMetered(f *Format) string {
 	p("\t}\n\treturn 0, internal(errUnexpected)\n}\n\n")
 
 	// Serialize.
-	p("func leanSerialize(h Header) ([HeaderSize]byte, error) {\n\tvar raw [HeaderSize]byte\n\tl := codec.DefaultLimits()\n")
-	p("\tlh, err := toLean(h, l)\n\tif err != nil {\n\t\treturn raw, internal(err)\n\t}\n")
-	p("\tw, err := codec.RunSerialize(lh, l)\n\tif err != nil {\n\t\treturn raw, internal(err)\n\t}\n")
+	p("func leanSerialize(dst []byte, h *Header) ([]byte, error) {\n\tvar raw [HeaderSize]byte\n\tl := codec.DefaultLimits()\n")
+	p("\tlh, err := toLean(h, l)\n\tif err != nil {\n\t\treturn dst, internal(err)\n\t}\n")
+	p("\tw, err := codec.RunSerialize(lh, l)\n\tif err != nil {\n\t\treturn dst, internal(err)\n\t}\n")
 	p("\tvar ok bool\n")
 	for i := range f.Size {
-		p("\tif raw[%d], ok = w.B%d(); !ok {\n\t\treturn [HeaderSize]byte{}, internal(errUnexpected)\n\t}\n", i, i)
+		p("\tif raw[%d], ok = w.B%d(); !ok {\n\t\treturn dst, internal(errUnexpected)\n\t}\n", i, i)
 	}
-	p("\treturn raw, nil\n}\n")
+	p("\treturn append(dst, raw[:]...), nil\n}\n")
 
 	if f.Payload != nil {
 		p(`
-func leanClassify(h Header, available uint32) (uint32, bool, error) {
+func leanClassify(h *Header, available uint32) (uint32, bool, error) {
 	l := codec.DefaultLimits()
 	lh, err := toLean(h, l)
 	if err != nil {
