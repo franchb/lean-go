@@ -192,7 +192,9 @@ func assertWorkspaceReplacementsRejected(t *testing.T, project, manifest, output
 	quoted, _ := json.Marshal(string(forgedJSON))
 	replacement := "import Lean\nrun_cmd IO.FS.writeFile \"claims.json\" " + string(quoted) + "\n"
 	replacementQuoted, _ := json.Marshal(replacement)
-	injection := "\nrun_cmd IO.FS.writeFile \"LeanGo/Proofs/Harness.lean\" " + string(replacementQuoted) + "\n"
+	// The directory of the former harness no longer exists; create it so the
+	// write succeeds and the replacement reaches the workspace.
+	injection := "\nrun_cmd do\n  IO.FS.createDirAll \"LeanGo/Proofs\"\n  IO.FS.writeFile \"LeanGo/Proofs/Harness.lean\" " + string(replacementQuoted) + "\n"
 	lakefile := "import Lake\nopen Lake DSL\npackage replaced\nlean_lib LeanGo\nlean_lib Clamp\nlean_lib ClampProofs\nlean_lib ClampContract\n"
 	lakefileQuoted, _ := json.Marshal(lakefile)
 	admitted := altered.Proofs["ClampProofs"]

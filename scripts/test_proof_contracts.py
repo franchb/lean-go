@@ -610,7 +610,10 @@ class RealProofContractTests(unittest.TestCase):
                   for name, expected in contract.claims]
         replacement = 'import Lean\nrun_cmd IO.FS.writeFile "claims.json" ' + json.dumps(json.dumps(forged)) + '\n'
         relative, admitted = altered.proofs['ClampProofs']
-        injection = '\nrun_cmd IO.FS.writeFile "LeanGo/Proofs/Harness.lean" ' + json.dumps(replacement) + '\n'
+        # The former harness directory no longer exists; create it so the write
+        # succeeds and the replacement reaches the workspace.
+        injection = ('\nrun_cmd do\n  IO.FS.createDirAll "LeanGo/Proofs"\n'
+                     '  IO.FS.writeFile "LeanGo/Proofs/Harness.lean" ' + json.dumps(replacement) + '\n')
         lakefile = 'import Lake\nopen Lake DSL\npackage replaced\nlean_lib LeanGo\nlean_lib Clamp\nlean_lib ClampProofs\nlean_lib ClampContract\n'
         scripts = [admitted + injection.encode(), original.proofs['ClampProofs'][1] +
                    ('\nrun_cmd IO.FS.writeFile "lakefile.lean" ' + json.dumps(lakefile) + '\n').encode()]
