@@ -296,3 +296,27 @@ func TestDoctorChecksExactToolsAndLakeEnvironment(t *testing.T) {
 		t.Fatal(code, stdout)
 	}
 }
+
+// A depth that is not a whole positive integer is a usage error and writes
+// nothing: "7abc" must not be read as 7, nor 0 as "the default".
+func TestEmitRejectsMalformedNativeDepth(t *testing.T) {
+	ir := filepath.Join("..", "..", "testdata", "trees.ir.json")
+	for _, depth := range []string{"0", "-3", "7abc", "2e4", "0x10", " 5", ""} {
+		out := filepath.Join(t.TempDir(), "pkg")
+		code, _, stderr := runMain("emit", "--in", ir, "--out", out, "--native-max-depth", depth)
+		if code != 2 || !strings.Contains(stderr, "--native-max-depth") {
+			t.Errorf("depth %q: exit %d, stderr %q", depth, code, stderr)
+		}
+		if _, err := os.Stat(out); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("depth %q: output was written (%v)", depth, err)
+		}
+	}
+	out := filepath.Join(t.TempDir(), "pkg")
+	if code, _, stderr := runMain("emit", "--in", ir, "--out", out, "--native-max-depth", "12345"); code != 0 {
+		t.Fatal(stderr)
+	}
+	manifest, err := os.ReadFile(filepath.Join(out, "manifest.json"))
+	if err != nil || !strings.Contains(string(manifest), `"max_depth": 12345`) {
+		t.Fatalf("manifest does not record the requested depth (%v)", err)
+	}
+}

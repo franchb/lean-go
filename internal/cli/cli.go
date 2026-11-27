@@ -203,12 +203,11 @@ func emit(args []string, stdout, stderr io.Writer) int {
 	if err == nil && (p.one("in") == "" || p.one("out") == "") {
 		err = errors.New("--in and --out are required")
 	}
+	// The whole value must be a positive integer: a prefix ("7abc") or zero,
+	// which the emitter reads as "use the default", is not what was asked.
 	depth := 0
-	if err == nil && p.has("native-max-depth") {
-		_, scanErr := fmt.Sscanf(p.one("native-max-depth"), "%d", &depth)
-		if scanErr != nil {
-			err = fmt.Errorf("invalid --native-max-depth %q", p.one("native-max-depth"))
-		}
+	if err == nil {
+		depth, err = positive(p, "native-max-depth")
 	}
 	if err != nil {
 		return usageFailure(stderr, "emit", emitSummary, emitOptions, err)
