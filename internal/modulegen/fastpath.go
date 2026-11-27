@@ -39,8 +39,10 @@ import (
 
 const fastNativePrefix = "nat"
 
-// generateOptions are test-only switches; Generate uses the zero value.
+// generateOptions select variants of the output; Generate uses the zero value.
 type generateOptions struct {
+	// stateMachine leaves the fast path out (GenerateStateMachine).
+	stateMachine bool
 	// fastSwitch adds `var fastDisabled bool`; setting it makes every
 	// fastCovers function false, so a test can run the state machine alone.
 	fastSwitch bool

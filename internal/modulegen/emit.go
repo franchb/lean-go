@@ -46,13 +46,25 @@ func Generate(p *moduleir.Program) (map[string][]byte, error) {
 	return generateWith(p, generateOptions{})
 }
 
+// GenerateStateMachine is Generate without the fast path: every root runs on
+// the explicit-stack state machine (scalar roots on the exactly metered
+// scalar entry, byte folds on their own entry), as before
+// lean-go-modulegen/v20. Differential tests use it as the metered oracle so
+// that the two sides they compare share no generated code: the fast path
+// embeds the native emitter's output. Generate is the metered output.
+func GenerateStateMachine(p *moduleir.Program) (map[string][]byte, error) {
+	return generateWith(p, generateOptions{stateMachine: true})
+}
+
 func generateWith(p *moduleir.Program, options generateOptions) (map[string][]byte, error) {
 	if err := moduleir.Validate(p); err != nil {
 		return nil, fmt.Errorf("validate module IR: %w", err)
 	}
 	g := newGenerator(p)
 	g.options = options
-	g.fast = g.planFastPath()
+	if !options.stateMachine {
+		g.fast = g.planFastPath()
+	}
 	var schema, control bytes.Buffer
 	g.emitSchema(&schema)
 	g.emitControl(&control)
