@@ -275,30 +275,57 @@ bit boundary and 20,000 random headers:
 ```sh
 go test -count=1 -run TestNativeAdapterMatchesMeteredAdapter ./internal/wireformat
 LEAN_GO_FORMATS_FUZZ=30s go test -count=1 -run TestNativeAdapterMatchesMeteredAdapter/dns ./internal/wireformat
-LEAN_GO_FORMATS_BENCH=1 go test -count=1 -v -run TestNativeAdapterMatchesMeteredAdapter/dns ./internal/wireformat
+LEAN_GO_FORMATS_BENCH=1 go test -count=1 -v -run TestNativeAdapterMatchesMeteredAdapter ./internal/wireformat
 ```
 
 A 30-second run of each DNS fuzz target found no failure: `FuzzParse`
-1,360,625 executions, `FuzzRoundTrip` 1,377,473 and
-`FuzzNativeMatchesMetered` 1,926,722.
+3,475,558 executions, `FuzzRoundTrip` 2,576,488 and
+`FuzzNativeMatchesMetered` 2,343,884.
 
-DNS `Parse` followed by `AppendSerialize` of a 12-byte header, `-cpu 1`,
+`Parse` followed by `AppendSerialize` (DNS, 12-byte header) or by
+`AppendFrame` of the parsed payload (UDP and the demo header), `-cpu 1`,
 median of five runs, Go 1.27.4, a shared 4-core Intel Xeon @ 2.10GHz (other
 work ran concurrently, so ratios mean more than absolute times).
-"Hand-written" is an `encoding/binary` codec with the same checks:
+"Hand-written" is an `encoding/binary` codec with the same checks; "before"
+is the previous release, measured in the same session (raw samples:
+[wire-format-bench.txt](research/data/wire-format-bench.txt)):
 
-| Adapter backend | Time | Allocations | / hand-written | / native |
-| --- | ---: | ---: | ---: | ---: |
-| native (this release) | 163.5 ns | 0 (0 B) | 5.1 | 1 |
-| metered (previous) | 11,808 ns | 186 (15,768 B) | 370 | 72 |
-| hand-written `encoding/binary` | 31.9 ns | 0 (0 B) | 1 | 0.20 |
+| Example | Native | Hand-written | Native / hand-written | Before | Before / hand-written | Metered |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| DNS | 106.6 ns | 31.0 ns | 3.4 | 160.4 ns | 5.1 | 10,914 ns (186 allocations) |
+| UDP | 36.5 ns | 7.7 ns | 4.7 | 42.1 ns | 5.3 | 6,109 ns (112 allocations) |
+| demo header | 19.5 ns | 8.3 ns | 2.3 | 22.8 ns | 2.7 | 4,119 ns (76 allocations) |
 
-The native adapter is about 72 times faster than the metered one and
-allocates nothing. The remaining gap to the hand-written codec is not
-metering: a CPU profile puts most of the time in building and copying the
-`Wire`, `Header` and `ParseResult` values, Lean records of 12 or more scalar
-fields that Go passes through memory field by field, around the non-inlined
-`Parse` and `Serialize`.
+Native and hand-written allocate nothing. UDP's "before" ratio uses the
+8.0 ns hand-written time of an earlier run in the same session; the
+hand-written sample of the "before" run itself was disturbed (11.1 ns).
+
+The remaining gap is not in the extracted code. A CPU profile of the DNS
+benchmark puts about 2% of the time in `extracted.Parse` and
+`extracted.Serialize` and the rest in moving values between functions.
+`Wire`, `Header` and `ParseResult` have more than four fields, so Go keeps
+them in memory rather than in registers or SSA form, and every by-value
+argument, result, receiver or assignment is a block copy. An 18-byte
+`Header` or 20-byte `ParseResult` is copied with two overlapping 16-byte
+moves; when the source was just written field by field, or by such a copy,
+the load cannot be forwarded from the store buffer and stalls for a dozen
+or so cycles. Parse alone makes about six such copies on its way from the
+`Wire` literal through `codec.Parse`, `AsOk` and back to the caller; the
+hand-written codec makes one. In UDP, whose `Wire` of eight bytes arrives in
+registers, the compiler spills the bytes and reloads pairs of them as 16-bit
+words inside `extracted.Parse`, which stalls the same way.
+
+This release removes the copies that are not forced by the public API:
+the adapter passes `Header` by pointer between `<name>.go` and `lean.go`,
+`leanParse` stores the header straight into the caller's variable,
+`leanSerialize` appends bytes to `dst` instead of returning an array that
+was stored byte by byte and reloaded in words, and native `As` methods read
+the receiver in place instead of copying it first. The copies that remain
+come from the by-value signatures of the generated roots and of `As`
+(`Parse(Wire) ParseResult`, `AsOk() (Header, bool)`); a prototype with
+pointer arguments and a pointer-returning `As` brought DNS to about 70 ns
+(2.2 times hand-written), at the cost of a less idiomatic public API that
+this release does not adopt.
 
 Repository tests in `internal/wireformat` check spec validation, that the
 tracked examples equal the generator's output, that each example passes its

@@ -39,6 +39,15 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   with generated proofs, a native extracted package and a `[]byte` Go API
   from a JSON header spec, with demo, UDP and DNS examples. See
   [docs/wire-formats.md](docs/wire-formats.md).
+- Faster native wire-format adapters: headers travel by pointer inside the
+  adapter, serialization appends straight to the destination, and native
+  `As` methods no longer copy their receiver (native emitter
+  `lean-go-nativegen/v2`). DNS parse plus serialize goes from 160.4 ns to
+  106.6 ns (5.1 to 3.4 times a hand-written `encoding/binary` codec), UDP
+  from 42.1 ns to 36.5 ns, the demo header from 22.8 ns to 19.5 ns. The
+  remaining gap comes from by-value copies of records with more than four
+  fields at the public API; see
+  [docs/wire-formats.md](docs/wire-formats.md#native-against-metered).
 
 **Install and tool**
 

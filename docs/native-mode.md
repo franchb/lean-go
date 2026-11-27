@@ -221,7 +221,9 @@ a huge tree pays for it. Use metered mode where inputs need resource limits.
   `LEAN_GO_NATIVE_FUZZ=30s go test -run TestDifferential ./internal/nativegen`.
 - **Hostile inputs.** Every generated sum and recursive type exposes no
   settable field; every zero value is the documented constructor and every
-  root accepts all-zero arguments; with `MaxDepth = 64`, chains of 64 calls
+  root accepts all-zero arguments; on constructed and zero values exactly
+  one `Is` method holds, the matching `As` returns true and every other `As`
+  returns zero values and false; with `MaxDepth = 64`, chains of 64 calls
   succeed and 65 fail with `ErrDepth`; a million-level tree yields `ErrDepth`
   rather than a stack overflow.
 - **Primitives.** Every primitive is compiled through the emitter's own
@@ -262,6 +264,26 @@ workload is within 1.1x of handwritten Go, inside the 1.5x target. The
 remaining gap to `hash/adler32` is algorithmic: the standard library defers
 the modulo over blocks of 5,552 bytes and unrolls the loop, whereas the Lean
 source reduces after every byte.
+
+The `lean-go-nativegen/v2` emitter produces byte-identical Go for all of
+these programs (its one change, `As` methods reading the receiver in place,
+touches only sums whose constructors carry fields). Re-measured back to back
+against v1 in one session, every native workload stayed within noise:
+Numbers 11.0 ns (v1 11.2), Quota reserve 1.58 ns (1.58), Tree balanced
+6,876 ns (6,898), Adler-32 108.8 µs (107.1), with the same allocations.
+
+### Records and sums
+
+Workloads dominated by records of more than four fields are further from
+hand-written Go. Go keeps such values in memory, not in registers, so every
+by-value argument, result and receiver is a block copy, and a copy of a
+value that was just written field by field stalls on store-to-load
+forwarding. The extracted code itself is cheap; the cost is at the
+boundaries of the public, by-value API. Parse plus serialize of the 12-byte
+DNS header through the generated adapter takes 106.6 ns against 31.0 ns for
+a hand-written `encoding/binary` codec (3.4 times; 5.1 times with v1); see
+[wire formats](wire-formats.md#native-against-metered) for UDP, the demo
+header and the profile.
 
 Reproduce (prints the samples; parity tests run first):
 
