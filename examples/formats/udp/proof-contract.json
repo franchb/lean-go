@@ -1,0 +1,54 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "UdpHeader",
+  "roots": [
+    "UdpHeader.classify",
+    "UdpHeader.parse",
+    "UdpHeader.serialize",
+    "UdpHeader.validate"
+  ],
+  "claims": [
+    {
+      "theorem": "UdpHeaderProofs.parse_ok_iff",
+      "expected": "UdpHeaderContract.parse_ok_iff"
+    },
+    {
+      "theorem": "UdpHeaderProofs.parse_lengthTooSmall_iff",
+      "expected": "UdpHeaderContract.parse_lengthTooSmall_iff"
+    },
+    {
+      "theorem": "UdpHeaderProofs.accepts_iff",
+      "expected": "UdpHeaderContract.accepts_iff"
+    },
+    {
+      "theorem": "UdpHeaderProofs.validate_valid_iff",
+      "expected": "UdpHeaderContract.validate_valid_iff"
+    },
+    {
+      "theorem": "UdpHeaderProofs.validate_lengthTooSmall_iff",
+      "expected": "UdpHeaderContract.validate_lengthTooSmall_iff"
+    },
+    {
+      "theorem": "UdpHeaderProofs.parse_serialize",
+      "expected": "UdpHeaderContract.parse_serialize"
+    },
+    {
+      "theorem": "UdpHeaderProofs.serialize_parse",
+      "expected": "UdpHeaderContract.serialize_parse"
+    },
+    {
+      "theorem": "UdpHeaderProofs.parse_validate",
+      "expected": "UdpHeaderContract.parse_validate"
+    },
+    {
+      "theorem": "UdpHeaderProofs.payload_need_more_iff",
+      "expected": "UdpHeaderContract.payload_need_more_iff"
+    },
+    {
+      "theorem": "UdpHeaderProofs.payload_complete_iff",
+      "expected": "UdpHeaderContract.payload_complete_iff"
+    }
+  ]
+}

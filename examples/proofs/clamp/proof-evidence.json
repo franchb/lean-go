@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -9,7 +9,7 @@
       ],
       "expected": "ClampContract.bounded",
       "name": "ClampProofs.bounded",
-      "statement": "∀ (value limit : UInt64), Clamp.clamp value limit ≤ limit"
+      "statement": "∀ (value : UInt64) (limit : UInt64), LE.le UInt64 instLEUInt64 (Clamp.clamp value limit) limit"
     },
     {
       "axioms": [
@@ -19,7 +19,7 @@
       ],
       "expected": "ClampContract.idempotent",
       "name": "ClampProofs.idempotent",
-      "statement": "∀ (value limit : UInt64), Clamp.clamp (Clamp.clamp value limit) limit = Clamp.clamp value limit"
+      "statement": "∀ (value : UInt64) (limit : UInt64), Eq UInt64 (Clamp.clamp (Clamp.clamp value limit) limit) (Clamp.clamp value limit)"
     },
     {
       "axioms": [
@@ -27,11 +27,11 @@
       ],
       "expected": "ClampContract.preserves",
       "name": "ClampProofs.preserves",
-      "statement": "∀ (value limit : UInt64), value ≤ limit → Clamp.clamp value limit = value"
+      "statement": "∀ (value : UInt64) (limit : UInt64), LE.le UInt64 instLEUInt64 value limit → Eq UInt64 (Clamp.clamp value limit) value"
     }
   ],
   "contract_sha256": "fcfe62273f3dc4e23cd5c5f87ebb0a6e8b5e464f6d148cb540bca02eb0c1990d",
-  "generated_manifest_sha256": "4ba34dba3eb5d8475b8159ff58c82253802db985cda26831c84a392d130f9aeb",
+  "generated_manifest_sha256": "7a30e35f4e06eaabb5977af4cf8580182f0787f9da39e0dd338c71acdaeecaff",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Clamp",
@@ -44,17 +44,11 @@
   "roots": [
     "Clamp.clamp"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
-    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
-    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
-    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "cfc5387c32127842ef19e63b132a097e0ae23104465e85d45c6f2dcf467f00a3",
-    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
+    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
   }
 }

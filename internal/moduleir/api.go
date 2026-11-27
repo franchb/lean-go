@@ -26,12 +26,6 @@ func checkAPIShape(value any) error {
 }
 
 func (v *validator) validateAPI(p *Program) error {
-	if !HasTypedAPI(p.Schema) {
-		if p.API != nil {
-			return fmt.Errorf("api metadata requires %s", SchemaV5)
-		}
-		return nil
-	}
 	if p.API == nil || p.API.Records == nil || len(p.API.Records) > MaxTypes {
 		return fmt.Errorf("invalid api.records map")
 	}

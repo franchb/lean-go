@@ -125,7 +125,7 @@ With the checkout CLI installed, run these commands here.
 ```sh
 lean-go generate --source-dir source --module Wire16 \
   --root Wire16.classify --root Wire16.decodeBE --root Wire16.encode --root Wire16.encodeBE --root Wire16.parse \
-  --out candidate/wire16 --ir-output candidate/wire16.ir.json
+  --out candidate/wire16 --ir-output candidate/wire16.ir.json --mode metered
 lean-go check-proofs --contract proof-contract.json \
   --manifest candidate/wire16/manifest.json --output candidate/proof-evidence.json
 lean-go check-proofs --contract proof-contract.json \
@@ -136,5 +136,5 @@ From the repository root, compare regenerated artifacts to the tracked package
 and run the Go-only deployment.
 
 ```sh
-uv run --locked python scripts/check_wire16_demo.py --cli "$PWD/.venv/bin/lean-go"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo wire16
 ```

@@ -1,37 +1,33 @@
 # Extraction diagnostics
 
-Diagnostics are included in **v0.1.0-alpha.5**, Python package `0.1.0a5`.
-Follow the [CLI installation guide](cli.md), or use a checkout of the release
-with `uv sync --locked` (refresh an editable installation with
-`uv sync --locked --reinstall-package lean-go-tools`). The pinned Python 3.15,
-Go 1.27.4 and Lean 4.36.0-rc2 toolchains remain required.
+Diagnostics are part of `lean-go generate` (since v0.1.0-alpha.5). Install the
+command as described in the [CLI installation guide](cli.md); it needs the
+pinned Lean and Lake on `PATH`.
 
 Generation prints readable errors to stderr by default, including a known LCNF
 form, the original rejection reason and a next-step hint. Select one JSON report
 with either `--diagnostics=json` or `--diagnostics json`:
 
 ```sh
-uv run --locked lean-go generate \
+lean-go generate \
   --source-dir ./source --module Example --root Example.run \
   --out ./generated/example --ir-output ./example.ir.json \
   --diagnostics=json
 ```
 
-The same option works on `scripts/generate.py` and `scripts/export_module.py`.
 Failures return a nonzero exit status and print one JSON document on stderr,
 without additional child-process logs or a second generic error. Child failure
 logs may appear inside the report's escaped `message` string. Failure produces
-no stdout. Successful generation retains its human-readable stdout summary;
-successful `export_module.py` is silent. Success does not emit a JSON report.
-Invalid argparse syntax (for example a missing flag value or an unknown option)
-still prints argparse usage text and exits with status 2. Extraction errors,
-missing toolchains, invalid source/output paths and installed-CLI preflight
-errors use the selected diagnostic format.
+no stdout. Successful generation retains its human-readable stdout summary. Success does
+not emit a JSON report. Invalid command syntax (for example a missing flag
+value or an unknown option) prints usage text and exits with status 2.
+Extraction errors, missing toolchains, invalid source/output paths and
+missing-argument errors use the selected diagnostic format.
 
 An unsupported polymorphic function can produce:
 
 ```json
-{"schema":"lean-go-diagnostics/v1","success":false,"diagnostics":[{"code":"unsupported_type","stage":"admission","message":"Unsupported first-order monomorphic type: Type","declaration":"Example.run","compiler_form":null,"location":{"path":"Example.lean","kind":"declaration","declaration":"Example.run","start":{"line":2,"column":4,"utf16_column":4,"byte_offset":22},"end":{"line":2,"column":7,"utf16_column":7,"byte_offset":25}},"hint":"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile."}]}
+{"schema":"lean-go-diagnostics/v1","success":false,"diagnostics":[{"code":"unsupported_type","compiler_form":null,"declaration":"Example.run","hint":"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.","location":{"path":"Example.lean","kind":"declaration","declaration":"Example.run","start":{"line":2,"column":4,"utf16_column":4,"byte_offset":22},"end":{"line":2,"column":7,"utf16_column":7,"byte_offset":25}},"message":"Unsupported first-order monomorphic type: Type","stage":"admission"}]}
 ```
 
 The envelope and field types are defined by the
@@ -48,13 +44,12 @@ inferred from message text or generated-name suffixes.
 | `build` | Compilation, subprocess, or producer protocol failure | `producer_failed`, `producer_protocol`, `build_failed`, `pipeline_failed` |
 | `admission` | An explicit supported-profile rejection | `source_audit`, `unsupported_type`, `unsupported_signature`, `unsupported_lcnf_value`, `unsupported_lcnf_control` |
 | `emission` | Go generation or publishing output failed | `emission_failed`, `output_failed` |
+| `validation` | `--validate require` and a function or root was not proved (the report is written first) | `validation_failed` |
 
 A compiler crash, syntax error, failed producer build, or unclassified compiler
 exception is a build failure. It must **never count as an expected admission
 rejection** in compatibility tests. Other existing invariant failures may also
 remain build failures until their deliberate rejection site supplies a code.
-The fixed audited normalizer uses the build-failure fallback; the fine-grained
-admission codes describe ordinary module extraction.
 
 Locations refer to original files relative to the source snapshot. Lean's
 imported declaration metadata supplies the name's selection range. For generated

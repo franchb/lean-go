@@ -83,6 +83,38 @@
     ]
   },
   {
+    "name": "uint16_land",
+    "module": "Example",
+    "roots": [
+      "run"
+    ]
+  },
+  {
+    "name": "uint32_narrow16",
+    "module": "Example",
+    "roots": [
+      "run"
+    ]
+  },
+  {
+    "name": "folded_numeric",
+    "module": "Example",
+    "roots": [
+      "run"
+    ]
+  },
+  {
+    "name": "division",
+    "module": "Division",
+    "roots": [
+      "Division.div8",
+      "Division.div16",
+      "Division.div32",
+      "Division.div64",
+      "Division.halves"
+    ]
+  },
+  {
     "name": "records",
     "module": "Records",
     "roots": [
@@ -153,14 +185,6 @@
     "reject": "source_audit"
   },
   {
-    "name": "folded_numeric",
-    "module": "Example",
-    "roots": [
-      "run"
-    ],
-    "reject": "source_audit"
-  },
-  {
     "name": "custom_pass",
     "module": "Example",
     "roots": [
@@ -189,21 +213,12 @@
     "reject_declaration": "withPtrEq"
   },
   {
-    "name": "uint16_land",
+    "name": "signed_division",
     "module": "Example",
     "roots": [
       "run"
     ],
     "reject": "source_audit",
-    "reject_declaration": "UInt16.land"
-  },
-  {
-    "name": "uint32_narrow16",
-    "module": "Example",
-    "roots": [
-      "run"
-    ],
-    "reject": "source_audit",
-    "reject_declaration": "UInt32.toUInt16"
+    "reject_declaration": "Int32.div"
   }
 ]

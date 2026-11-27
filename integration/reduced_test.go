@@ -10,10 +10,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
 	reduced "github.com/franchb/lean-go/generated/reduced"
+	"github.com/franchb/lean-go/internal/moduleir"
 )
 
 // Wire rows are flag, unused Count, left Count, right Count, bias Count, depth.
@@ -355,16 +357,7 @@ func TestReducedNativeReference(t *testing.T) {
 
 func generateReduced(t *testing.T, out, rootFunction string) []byte {
 	t.Helper()
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command("uv", "run", "--locked", "python", "scripts/generate.py", "--source-dir", "examples/modules", "--module", "Reduced", "--root", rootFunction, "--out", out, "--ir-output", out+".json")
-	cmd.Dir = root
-	cmd.Env = commandEnv(nil)
-	if text, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("reduced generation: %v\n%s", err, text)
-	}
+	generateWithCLI(t, "examples/modules", "Reduced", out, out+".json", rootFunction)
 	data, err := os.ReadFile(out + ".json")
 	if err != nil {
 		t.Fatal(err)
@@ -438,15 +431,16 @@ func requireReducedOwner(t *testing.T, records []reducedProvenance, owner string
 func requireReducedIR(t *testing.T, data []byte, root string, rootParams, retained []string) {
 	t.Helper()
 	var program struct {
-		Schema, Profile, Root string
-		Functions             []reducedFunction
-		Provenance            []reducedProvenance
+		Schema, Profile string
+		Roots           []string
+		Functions       []reducedFunction
+		Provenance      []reducedProvenance
 	}
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program.Schema != "lean-go-ir/v6" || program.Profile != "pure-module/v4" || program.Root != root {
-		t.Fatalf("unexpected reduced schema/profile/root: %s/%s/%s", program.Schema, program.Profile, program.Root)
+	if program.Schema != moduleir.Schema || program.Profile != moduleir.Profile || !slices.Equal(program.Roots, []string{root}) {
+		t.Fatalf("unexpected reduced schema/profile/roots: %s/%s/%v", program.Schema, program.Profile, program.Roots)
 	}
 	functions := make(map[string]reducedFunction)
 	for _, function := range program.Functions {

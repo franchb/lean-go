@@ -1,0 +1,13 @@
+{
+  "name": "header",
+  "module": "DemoHeader",
+  "description": "The four-byte version-1 demo header of examples/proofs/header.",
+  "fields": [
+    {"name": "version", "type": "uint8", "const": 1},
+    {"bitfield": "uint8", "bits": [
+      {"name": "reserved", "width": 6, "reserved": true},
+      {"name": "flags", "width": 2}
+    ]},
+    {"name": "length", "type": "uint16", "endian": "big", "payload_length": {}}
+  ]
+}

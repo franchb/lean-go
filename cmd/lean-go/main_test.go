@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,14 @@ import (
 
 	"github.com/franchb/lean-go/internal/moduleir"
 )
+
+// declare sets the exact feature list a valid program uses, as the producer does.
+func declare(p *moduleir.Program) *moduleir.Program {
+	if features, err := moduleir.UsedFeatures(p); err == nil {
+		p.Features = features
+	}
+	return p
+}
 
 func TestCompileNumericSchema(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/choice.ir.json")
@@ -20,50 +29,20 @@ func TestCompileNumericSchema(t *testing.T) {
 	if err = json.Unmarshal(data, &p); err != nil {
 		t.Fatal(err)
 	}
-	p.Schema, p.Profile, p.Module, p.Root = "lean-go-ir/v3", "pure-module/v2", "Literal", "Literal.answer"
-	p.API = nil
+	p.Module, p.Roots = "Literal", []string{"Literal.answer"}
 	p.Types = []moduleir.TypeDecl{}
-	p.Provenance = []moduleir.Provenance{{Name: p.Root, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}}
-	p.Functions = []moduleir.Function{{Name: p.Root, Params: []moduleir.Param{}, Result: "UInt32", Body: &moduleir.Code{
+	p.Provenance = []moduleir.Provenance{{Name: p.Roots[0], Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}}
+	p.Functions = []moduleir.Function{{Name: p.Roots[0], Params: []moduleir.Param{}, Result: "UInt32", Body: &moduleir.Code{
 		Op: "let", Bind: &moduleir.Param{ID: 1, Type: "UInt32"}, Value: &moduleir.Value{Kind: "uint32", Name: "4294967295", Args: []int{}},
 		Next: &moduleir.Code{Op: "return", Var: 1},
 	}}}
-	data, err = json.Marshal(p)
+	data, err = json.Marshal(declare(&p))
 	if err != nil {
 		t.Fatal(err)
 	}
 	files, err := compile(bytes.NewReader(data))
-	if err != nil || len(files) != 4 {
-		t.Fatalf("v3 dispatch: files=%d err=%v", len(files), err)
-	}
-	p.Schema, p.Profile = "lean-go-ir/v2", "pure-module/v1"
-	data, err = json.Marshal(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err = compile(bytes.NewReader(data)); err == nil {
-		t.Fatal("older profile accepted a numeric literal")
-	}
-}
-
-func TestCompileAPISchema(t *testing.T) {
-	data, err := os.ReadFile("../../testdata/choice.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var p moduleir.Program
-	if err := json.Unmarshal(data, &p); err != nil {
-		t.Fatal(err)
-	}
-	p.Schema, p.Profile = moduleir.SchemaV5, moduleir.ProfileV3
-	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
-	data, err = json.Marshal(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	files, err := compile(bytes.NewReader(data))
-	if err != nil || len(files["schema.go"]) == 0 {
-		t.Fatalf("v5 dispatch: files=%d err=%v", len(files), err)
+	if err != nil || len(files) != 5 {
+		t.Fatalf("numeric dispatch: files=%d err=%v", len(files), err)
 	}
 	p.API = nil
 	data, err = json.Marshal(p)
@@ -71,57 +50,58 @@ func TestCompileAPISchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := compile(bytes.NewReader(data)); err == nil {
-		t.Fatal("v5 dispatch accepted missing API metadata")
+		t.Fatal("dispatch accepted missing API metadata")
 	}
 }
 
 func TestCompileJoinSchema(t *testing.T) {
 	p := moduleir.Program{
-		Schema: moduleir.SchemaV4, Profile: moduleir.ProfileV3, Stage: moduleir.Stage,
-		LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit, Module: "Joins", Root: "Joins.answer",
+		Schema: moduleir.Schema, Profile: moduleir.Profile, Stage: moduleir.Stage,
+		LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit, Module: "Joins", Roots: []string{"Joins.answer"},
 		Inputs: map[string]string{"Joins.lean": strings.Repeat("0", 64)}, Types: []moduleir.TypeDecl{}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{},
+		API:        &moduleir.APIMetadata{Records: map[string][]string{}},
 		Provenance: []moduleir.Provenance{{Name: "Joins.answer", Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}},
 		Functions: []moduleir.Function{{Name: "Joins.answer", Params: []moduleir.Param{{ID: 1, Type: "UInt32"}}, Result: "UInt32", Body: &moduleir.Code{
 			Op: "join", Join: &moduleir.Join{ID: 2, Params: []moduleir.Param{}, Body: &moduleir.Code{Op: "return", Var: 1}}, Next: &moduleir.Code{Op: "jump", Target: 2, Args: []int{}},
 		}}},
 	}
-	data, err := json.Marshal(p)
+	data, err := json.Marshal(declare(&p))
 	if err != nil {
 		t.Fatal(err)
 	}
 	files, err := compile(bytes.NewReader(data))
-	if err != nil || len(files) != 4 {
-		t.Fatalf("v4 dispatch: files=%d err=%v", len(files), err)
+	if err != nil || len(files) != 5 {
+		t.Fatalf("join dispatch: files=%d err=%v", len(files), err)
 	}
-	for _, pair := range [][2]string{{moduleir.Schema, moduleir.Profile}, {moduleir.SchemaV3, moduleir.ProfileV2}, {moduleir.SchemaV4, moduleir.ProfileV2}} {
-		p.Schema, p.Profile = pair[0], pair[1]
-		data, err = json.Marshal(p)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, err := compile(bytes.NewReader(data)); err == nil {
-			t.Fatal("older/mismatched profile admitted joins", pair)
-		}
+	p.Features = []string{moduleir.FeatureUInt32}
+	data, err = json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := compile(bytes.NewReader(data)); err == nil {
+		t.Fatal("undeclared join feature accepted")
 	}
 }
 
 func TestCompileSchemaDispatch(t *testing.T) {
-	data, err := os.ReadFile("../../testdata/normalizer.ir.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	files, err := compile(bytes.NewReader(data))
-	if err != nil || len(files) != 3 {
-		t.Fatalf("v1 dispatch: files=%d err=%v", len(files), err)
-	}
 	for _, data := range [][]byte{
 		[]byte(`{"schema":"lean-go-ir/v99"}`),
-		[]byte(`{"schema":"lean-go-ir/v2","schema":"lean-go-ir/v1"}`),
-		[]byte(`{"schema":"lean-go-ir/v2"} {}`),
+		[]byte(`{"schema":"lean-go-ir/v24","schema":"lean-go-ir/v1"}`),
+		[]byte(`{"schema":"lean-go-ir/v24"} {}`),
 		bytes.Repeat([]byte(" "), (4<<20)+1),
 	} {
 		if _, err := compile(bytes.NewReader(data)); err == nil {
 			t.Fatal("invalid envelope accepted")
+		}
+	}
+	for n := 1; n < 26; n++ {
+		if n == 24 {
+			continue
+		}
+		schema := fmt.Sprintf("lean-go-ir/v%d", n)
+		_, err := compile(strings.NewReader(`{"schema":"` + schema + `","root":"Example.root"}`))
+		if err == nil || !strings.Contains(err.Error(), fmt.Sprintf("%q", schema)) || !strings.Contains(err.Error(), "regenerate") {
+			t.Fatalf("stale schema %s: %v", schema, err)
 		}
 	}
 }
@@ -155,18 +135,18 @@ func TestRunRejectsIncompleteAndMalformed(t *testing.T) {
 }
 
 func TestCompileUInt64Schema(t *testing.T) {
-	p := moduleir.Program{Schema: moduleir.SchemaV6, Profile: moduleir.ProfileV4, Stage: moduleir.Stage, LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit,
-		Module: "Wide", Root: "Wide.answer", Inputs: map[string]string{"Wide.lean": strings.Repeat("0", 64)}, Types: []moduleir.TypeDecl{}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{}, API: &moduleir.APIMetadata{Records: map[string][]string{}},
+	p := moduleir.Program{Schema: moduleir.Schema, Profile: moduleir.Profile, Stage: moduleir.Stage, LeanVersion: moduleir.LeanVersion, LeanCommit: moduleir.LeanCommit,
+		Module: "Wide", Roots: []string{"Wide.answer"}, Inputs: map[string]string{"Wide.lean": strings.Repeat("0", 64)}, Types: []moduleir.TypeDecl{}, Claims: []moduleir.Claim{}, Rewrites: []moduleir.Rewrite{}, API: &moduleir.APIMetadata{Records: map[string][]string{}},
 		Provenance: []moduleir.Provenance{{Name: "Wide.answer", Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}}},
 		Functions:  []moduleir.Function{{Name: "Wide.answer", Params: []moduleir.Param{}, Result: "UInt64", Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 1, Type: "UInt64"}, Value: &moduleir.Value{Kind: "uint64", Name: "18446744073709551615", Args: []int{}}, Next: &moduleir.Code{Op: "return", Var: 1}}}},
 	}
-	raw, err := json.Marshal(p)
+	raw, err := json.Marshal(declare(&p))
 	if err != nil {
 		t.Fatal(err)
 	}
 	files, err := compile(bytes.NewReader(raw))
 	if err != nil || len(files) != 5 || !bytes.Contains(files["api.go"], []byte("RunTyped(l Limits) (uint64, error)")) {
-		t.Fatal("v6 CLI dispatch", err)
+		t.Fatal("UInt64 CLI dispatch", err)
 	}
 	p.API = nil
 	raw, err = json.Marshal(p)
@@ -174,15 +154,6 @@ func TestCompileUInt64Schema(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err = compile(bytes.NewReader(raw)); err == nil {
-		t.Fatal("v6 accepted absent API")
-	}
-	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
-	p.Schema, p.Profile = moduleir.SchemaV5, moduleir.ProfileV3
-	raw, err = json.Marshal(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err = compile(bytes.NewReader(raw)); err == nil {
-		t.Fatal("v5 accepted UInt64 literal")
+		t.Fatal("accepted absent API")
 	}
 }

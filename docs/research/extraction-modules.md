@@ -1,5 +1,7 @@
 # Ordinary Lean modules to pure Go
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 This report records the original v2 module milestone. Later extensions added
 [UInt32 operations](extraction-uint32.md), [record adapters](extraction-records.md)
 and [local joins](extraction-joins.md). New source exports use v4; the Go backend
@@ -111,6 +113,62 @@ All seven fields must be positive and no greater than their caps in both calls.
 Import uses node/depth budgets; the other five apply to Run. `ErrMalformed`,
 `ErrLimits` and `ErrResource` distinguish input, configuration and exhaustion
 failures. Errors return an invalid handle without a usable partial result.
+
+### Metered fast path
+
+Since `lean-go-modulegen/v20`, a root is *statically bounded* when its
+reachable call graph has no recursion and every type it uses is
+non-recursive (scalars, `Bool`, records, enumerations and sums of them),
+and it is not a byte fold. For such a root the generator computes, per
+limit, the largest amount the state machine can consume on any argument,
+by an analysis that follows the state machine's accounting
+([`internal/modulegen/bound.go`](../../internal/modulegen/bound.go)): steps
+are IR nodes executed, allocations are executed literal, primitive and
+constructor bindings, slots are the root's slots plus those of every call,
+frames are the deepest call chain, and nodes, depth and output nodes follow
+from the largest value of each argument, built and result type. Each
+dimension takes the maximum over all paths.
+
+The typed entry point and `Run`/`RunRoot` of such a root run the native
+emitter's code for the same IR when the limits are valid and cover that
+bound in all seven dimensions and every argument is a well-formed value of
+its type; the result is converted back into fresh nodes. In every other
+case (limits below the bound in any dimension, invalid limits, a zero
+handle or a value of the wrong shape) the unchanged state machine runs. With
+covering limits the state machine cannot run out of any budget, so both
+paths return the same value; tests check the bound and the equivalence
+against the state machine alone on every tracked program and on random
+programs (`TestFastPathSoundAndEquivalent`). Results and errors are the
+same for every input and limit vector. Result handles are always fresh
+nodes, so a result never shares nodes with an argument, which the state
+machine may do; values compare through their accessors either way.
+
+Byte folds keep their own entry point (metered native code for scalar and
+two-`UInt32` steps, the state machine otherwise), and recursive roots run
+on the state machine. A scalar root whose bound exceeds the caps of
+`DefaultLimits` (an exponential call tree) keeps the exactly metered scalar
+entry point of earlier releases.
+
+One case is slower than before. A scalar root on the fast path no longer has
+that scalar entry point, so with limits below its bound it now runs on the
+state machine, where v19 ran metered native code. Results and errors are
+unchanged; only callers that pass limits tighter than the root's static
+worst case are affected.
+
+The fast path also changes what the older comparisons exercise. A call with
+`DefaultLimits` takes the fast path for every eligible root, so the
+integration tests that compare the tracked metered packages with native Lean
+now compare Lean with the fast path there; of the tracked metered packages
+only Trees and the normalizer, whose roots recurse, still run on the state
+machine in those tests. The state machine itself is compared with native
+Lean and with an independent model by the generated-program campaign and by
+the fixed width and byte campaigns (`go run ./cmd/lean-go-dev differential`,
+`widths` and `bytes`; CI runs all three), each through a second package
+emitted without the fast path (`modulegen.GenerateStateMachine`, channels
+`raw_state_machine` and `typed_state_machine`). Without Lean,
+`TestFastPathSoundAndEquivalent` compares the state machine with the fast
+path, and the native emitter's differential tests and the wire-format oracle
+compare it with native Go.
 
 The strict IR decoder rejects malformed Unicode, duplicate/unknown/missing/null
 fields and trailing input. Independent validation checks lexical scopes, types,

@@ -4,79 +4,15 @@ import "fmt"
 
 // RootNames returns the selected roots of an already validated program.
 // The returned slice must not be modified by callers.
-func RootNames(p *Program) []string {
-	if HasMultipleRoots(p.Schema) {
-		return p.Roots
-	}
-	return []string{p.Root}
-}
+func RootNames(p *Program) []string { return p.Roots }
 
-// HasMultipleRoots identifies schemas with an explicit roots array.
-func HasMultipleRoots(schema string) bool {
-	return schema == SchemaV7 || schema == SchemaV9 || schema == SchemaV11 || schema == SchemaV13 || schema == SchemaV15 || schema == SchemaV17 || schema == SchemaV19 || schema == SchemaV21 || schema == SchemaV23
-}
-
-// HasUInt64 identifies schemas with scalar UInt64 semantics.
-func HasUInt64(schema string) bool {
-	return schema == SchemaV6 || schema == SchemaV7 || schema == SchemaV8 || schema == SchemaV9 || schema == SchemaV10 || schema == SchemaV11 || HasUInt8(schema)
-}
-
-// HasUInt8 identifies schemas with scalar byte semantics.
-func HasUInt8(schema string) bool {
-	return schema == SchemaV12 || schema == SchemaV13 || HasUInt16(schema)
-}
-
-// HasUInt16 identifies schemas admitting the UInt16 scalar.
-func HasUInt16(schema string) bool {
-	return schema == SchemaV14 || schema == SchemaV15 || hasUInt16ToUInt32(schema)
-}
-
-func hasUInt16ToUInt32(schema string) bool {
-	return schema == SchemaV16 || schema == SchemaV17 || hasUInt16Xor(schema)
-}
-
-func hasUInt16Xor(schema string) bool {
-	return schema == SchemaV18 || schema == SchemaV19 || HasByteFolds(schema)
-}
-
-func HasByteFolds(schema string) bool {
-	return schema == SchemaV20 || schema == SchemaV21 || HasRecordByteFolds(schema)
-}
-
-// HasRecordByteFolds admits a two-UInt32 source structure as a byte-fold accumulator.
-func HasRecordByteFolds(schema string) bool { return schema == SchemaV22 || schema == SchemaV23 }
-
-// HasTypedAPI identifies schemas carrying source record metadata.
-func HasTypedAPI(schema string) bool {
-	return schema == SchemaV5 || HasUInt64(schema)
-}
-
-// programFields keeps each schema's root representation exact at the JSON
-// boundary, including rejection of an irrelevant root field with an empty value.
-func programFields(schema string) []string {
-	fields := append([]string{}, objectFields["program"]...)
-	if HasMultipleRoots(schema) {
-		for i, field := range fields {
-			if field == "root" {
-				fields[i] = "roots"
-			}
-		}
-	}
-	if HasTypedAPI(schema) {
-		fields = append(fields, "api")
-	}
-	return fields
-}
+// HasMultipleRoots reports whether a validated program selects more than one
+// root. One root keeps the Run/RunTyped API; several share RunRoot.
+func HasMultipleRoots(p *Program) bool { return len(p.Roots) > 1 }
 
 func validateRoots(p *Program) error {
-	if !HasMultipleRoots(p.Schema) {
-		if !validName(p.Root) || p.Roots != nil {
-			return fmt.Errorf("legacy profile requires one root and no roots array")
-		}
-		return nil
-	}
-	if p.Root != "" || len(p.Roots) < 2 || len(p.Roots) > MaxRoots {
-		return fmt.Errorf("multi-root profile requires 2..%d roots and no root field", MaxRoots)
+	if len(p.Roots) < 1 || len(p.Roots) > MaxRoots {
+		return fmt.Errorf("program requires 1..%d roots", MaxRoots)
 	}
 	previous := ""
 	for _, root := range p.Roots {

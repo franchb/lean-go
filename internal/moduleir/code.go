@@ -15,7 +15,8 @@ func sameStrings(a, b []string) bool {
 }
 func (v *validator) validType(typ string) bool {
 	_, ok := v.types[typ]
-	return (v.bytes && typ == "UInt8") || (v.uint16 && typ == "UInt16") || typ == "UInt32" || (v.wide && typ == "UInt64") || ok
+	_, scalar := scalarFeatures[typ]
+	return scalar || ok
 }
 func (v *validator) bind(param Param, scope map[int]string, used map[int]bool) error {
 	if err := v.addNodes(1); err != nil {
@@ -26,6 +27,7 @@ func (v *validator) bind(param Param, scope map[int]string, used map[int]bool) e
 	}
 	used[param.ID] = true
 	scope[param.ID] = param.Type
+	v.useType(param.Type)
 	return nil
 }
 func copyScope(scope map[int]string) map[int]string {

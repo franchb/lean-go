@@ -11,6 +11,8 @@ func typeName(t int) string {
 		return "UInt64"
 	case 3:
 		return "UInt8"
+	case 4:
+		return "UInt16"
 	}
 	return ""
 }
@@ -28,8 +30,11 @@ func inputShape(in *Input) (int, int, bool) {
 	if len(in.Type) > 512 || len(in.Constructor) > 512 {
 		return 0, 0, false
 	}
+	if in.Type == "UInt16" {
+		return 4, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt8 == 0 && in.UInt32 == 0 && in.UInt64 == 0
+	}
 	if in.Type == "UInt8" {
-		return 3, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt64 == 0
+		return 3, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt64 == 0 && in.UInt16 == 0
 	}
 	return inputOtherShape(in)
 }
@@ -39,11 +44,11 @@ func inputOtherShape(in *Input) (int, int, bool) {
 	}
 	switch in.Type {
 	case "UInt32":
-		return 0, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt64 == 0 && in.UInt8 == 0
+		return 0, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt64 == 0 && in.UInt8 == 0 && in.UInt16 == 0
 	case "UInt64":
-		return 2, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt8 == 0
+		return 2, 0, in.Constructor == "" && len(in.Fields) == 0 && in.UInt32 == 0 && in.UInt8 == 0 && in.UInt16 == 0
 	case "ByteQuad":
-		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 {
+		if in.UInt32 != 0 || in.UInt64 != 0 || in.UInt8 != 0 || in.UInt16 != 0 {
 			return 0, 0, false
 		}
 		switch in.Constructor {

@@ -1,5 +1,7 @@
 # UInt32 extraction
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 This report records the numeric milestone, which introduced `lean-go-ir/v3` with
 `pure-module/v2`. New exports use v4 with [local joins](extraction-joins.md);
 the numeric semantics below are unchanged. The Go backend still accepts v2 and

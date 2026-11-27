@@ -3,6 +3,7 @@ package modulegen
 import (
 	"bytes"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/franchb/lean-go/internal/moduleir"
@@ -21,33 +22,27 @@ func crcProgram(t *testing.T) *moduleir.Program {
 	return p
 }
 
-func TestRecordFoldRequiresSchemaAndSourceMetadata(t *testing.T) {
+func TestRecordFoldRequiresSourceMetadata(t *testing.T) {
 	fixture, err := os.ReadFile("../../examples/proofs/adler32/adler32.ir.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, tc := range []struct {
-		schema, profile  string
-		keepRecord, want bool
-	}{
-		{moduleir.SchemaV23, moduleir.ProfileV21, true, true},
-		{moduleir.SchemaV23, moduleir.ProfileV21, false, false},
-		{moduleir.SchemaV21, moduleir.ProfileV19, true, false},
-	} {
+	for _, keepRecord := range []bool{true, false} {
 		p, err := moduleir.Decode(bytes.NewReader(fixture))
 		if err != nil {
 			t.Fatal(err)
 		}
-		p.Schema, p.Profile = tc.schema, tc.profile
-		if !tc.keepRecord {
+		if !keepRecord {
 			delete(p.API.Records, "Adler32.State")
 		}
-		if err := moduleir.Validate(p); err != nil {
+		if err := moduleir.Validate(declare(p)); err != nil {
 			t.Fatal(err)
 		}
-		_, got := byteFoldSteps(p)["Adler32.update"]
-		if got != tc.want {
-			t.Fatalf("schema %s with record metadata %t: got slice API %t", tc.schema, tc.keepRecord, got)
+		if slices.Contains(p.Features, moduleir.FeatureRecordFold) != keepRecord {
+			t.Fatal("record_fold feature", keepRecord, p.Features)
+		}
+		if _, got := byteFoldSteps(p)["Adler32.update"]; got != keepRecord {
+			t.Fatalf("record metadata %t: got slice API %t", keepRecord, got)
 		}
 	}
 }
@@ -62,7 +57,7 @@ func TestExportedRecordStepAndFold(t *testing.T) {
 		t.Fatal(err)
 	}
 	p.Roots = []string{"Adler32.checksum", "Adler32.initial", "Adler32.step", "Adler32.update"}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +80,7 @@ func TestByteFoldWithNonNativeStep(t *testing.T) {
 			f.Body = &moduleir.Code{Op: "join", Join: &moduleir.Join{ID: 10001, Params: []moduleir.Param{}, Body: f.Body}, Next: &moduleir.Code{Op: "jump", Target: 10001, Args: []int{}}}
 		}
 	}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +109,7 @@ func TestNativeScalarBudgetParity(t *testing.T) {
 			Next: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 10002, Type: "UInt16"},
 				Value: &moduleir.Value{Kind: "primitive", Name: "UInt16.xor", Args: []int{10001, 10001}}, Next: f.Body}}
 	}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}

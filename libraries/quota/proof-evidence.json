@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -7,7 +7,7 @@
       ],
       "expected": "QuotaContract.expectedCreate",
       "name": "QuotaProofs.create_valid",
-      "statement": "∀ (capacity : UInt64), (Quota.create capacity).used ≤ (Quota.create capacity).capacity"
+      "statement": "∀ (c : UInt64), LE.le UInt64 instLEUInt64 (Quota.State.used (Quota.create c)) (Quota.State.capacity (Quota.create c))"
     },
     {
       "axioms": [
@@ -15,7 +15,7 @@
       ],
       "expected": "QuotaContract.expectedReleaseAccepted",
       "name": "QuotaProofs.release_accepted",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.release state amount).accepted = true ↔ state.used ≤ state.capacity ∧ amount ≤ state.used"
+      "statement": "∀ (s : Quota.State) (n : UInt64), Iff (Eq Bool (Quota.Outcome.accepted (Quota.release s n)) Bool.true) (And (LE.le UInt64 instLEUInt64 (Quota.State.used s) (Quota.State.capacity s)) (LE.le UInt64 instLEUInt64 n (Quota.State.used s)))"
     },
     {
       "axioms": [
@@ -24,7 +24,7 @@
       ],
       "expected": "QuotaContract.expectedReleaseExact",
       "name": "QuotaProofs.release_exact",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.release state amount).accepted = true →\n    (Quota.release state amount).state.capacity = state.capacity ∧\n      (Quota.release state amount).state.used.toNat + amount.toNat = state.used.toNat"
+      "statement": "∀ (s : Quota.State) (n : UInt64), Eq Bool (Quota.Outcome.accepted (Quota.release s n)) Bool.true → And (Eq UInt64 (Quota.State.capacity (Quota.Outcome.state (Quota.release s n))) (Quota.State.capacity s)) (Eq Nat (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (UInt64.toNat (Quota.State.used (Quota.Outcome.state (Quota.release s n)))) (UInt64.toNat n)) (UInt64.toNat (Quota.State.used s)))"
     },
     {
       "axioms": [
@@ -33,7 +33,7 @@
       ],
       "expected": "QuotaContract.expectedReleasePreserves",
       "name": "QuotaProofs.release_preserves",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  state.used ≤ state.capacity → (Quota.release state amount).state.used ≤ (Quota.release state amount).state.capacity"
+      "statement": "∀ (s : Quota.State) (n : UInt64), LE.le UInt64 instLEUInt64 (Quota.State.used s) (Quota.State.capacity s) → LE.le UInt64 instLEUInt64 (Quota.State.used (Quota.Outcome.state (Quota.release s n))) (Quota.State.capacity (Quota.Outcome.state (Quota.release s n)))"
     },
     {
       "axioms": [
@@ -41,7 +41,7 @@
       ],
       "expected": "QuotaContract.expectedReleaseRejected",
       "name": "QuotaProofs.release_rejected",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.release state amount).accepted = false → (Quota.release state amount).state = state"
+      "statement": "∀ (s : Quota.State) (n : UInt64), Eq Bool (Quota.Outcome.accepted (Quota.release s n)) Bool.false → Eq Quota.State (Quota.Outcome.state (Quota.release s n)) s"
     },
     {
       "axioms": [
@@ -50,7 +50,7 @@
       ],
       "expected": "QuotaContract.expectedRemaining",
       "name": "QuotaProofs.remaining_exact",
-      "statement": "∀ (state : Quota.State),\n  state.used ≤ state.capacity → (Quota.remaining state).toNat + state.used.toNat = state.capacity.toNat"
+      "statement": "∀ (s : Quota.State), LE.le UInt64 instLEUInt64 (Quota.State.used s) (Quota.State.capacity s) → Eq Nat (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (UInt64.toNat (Quota.remaining s)) (UInt64.toNat (Quota.State.used s))) (UInt64.toNat (Quota.State.capacity s))"
     },
     {
       "axioms": [
@@ -58,7 +58,7 @@
       ],
       "expected": "QuotaContract.expectedReserveAccepted",
       "name": "QuotaProofs.reserve_accepted",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.reserve state amount).accepted = true ↔ state.used ≤ state.capacity ∧ amount ≤ state.capacity - state.used"
+      "statement": "∀ (s : Quota.State) (n : UInt64), Iff (Eq Bool (Quota.Outcome.accepted (Quota.reserve s n)) Bool.true) (And (LE.le UInt64 instLEUInt64 (Quota.State.used s) (Quota.State.capacity s)) (LE.le UInt64 instLEUInt64 n (HSub.hSub UInt64 UInt64 UInt64 (instHSub UInt64 instSubUInt64) (Quota.State.capacity s) (Quota.State.used s))))"
     },
     {
       "axioms": [
@@ -67,7 +67,7 @@
       ],
       "expected": "QuotaContract.expectedReserveExact",
       "name": "QuotaProofs.reserve_exact",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.reserve state amount).accepted = true →\n    (Quota.reserve state amount).state.capacity = state.capacity ∧\n      (Quota.reserve state amount).state.used.toNat = state.used.toNat + amount.toNat"
+      "statement": "∀ (s : Quota.State) (n : UInt64), Eq Bool (Quota.Outcome.accepted (Quota.reserve s n)) Bool.true → And (Eq UInt64 (Quota.State.capacity (Quota.Outcome.state (Quota.reserve s n))) (Quota.State.capacity s)) (Eq Nat (UInt64.toNat (Quota.State.used (Quota.Outcome.state (Quota.reserve s n)))) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (UInt64.toNat (Quota.State.used s)) (UInt64.toNat n)))"
     },
     {
       "axioms": [
@@ -76,7 +76,7 @@
       ],
       "expected": "QuotaContract.expectedReservePreserves",
       "name": "QuotaProofs.reserve_preserves",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  state.used ≤ state.capacity → (Quota.reserve state amount).state.used ≤ (Quota.reserve state amount).state.capacity"
+      "statement": "∀ (s : Quota.State) (n : UInt64), LE.le UInt64 instLEUInt64 (Quota.State.used s) (Quota.State.capacity s) → LE.le UInt64 instLEUInt64 (Quota.State.used (Quota.Outcome.state (Quota.reserve s n))) (Quota.State.capacity (Quota.Outcome.state (Quota.reserve s n)))"
     },
     {
       "axioms": [
@@ -84,11 +84,11 @@
       ],
       "expected": "QuotaContract.expectedReserveRejected",
       "name": "QuotaProofs.reserve_rejected",
-      "statement": "∀ (state : Quota.State) (amount : UInt64),\n  (Quota.reserve state amount).accepted = false → (Quota.reserve state amount).state = state"
+      "statement": "∀ (s : Quota.State) (n : UInt64), Eq Bool (Quota.Outcome.accepted (Quota.reserve s n)) Bool.false → Eq Quota.State (Quota.Outcome.state (Quota.reserve s n)) s"
     }
   ],
   "contract_sha256": "480824820e5d9ca89b8d28fdbc62c4e01aa70dd9e4fdce548ab7eacbf918caef",
-  "generated_manifest_sha256": "77c7df1c765c1b72cc5f9e3df29cc916a1d481795cc57b356faf8164c4417c57",
+  "generated_manifest_sha256": "69a2b3d5f31f241a6aad2e1356c91a01e3c7219233633fc08ef3caa3d674e148",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Quota",
@@ -103,17 +103,11 @@
     "Quota.remaining",
     "Quota.reserve"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
-    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
-    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
-    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "cfc5387c32127842ef19e63b132a097e0ae23104465e85d45c6f2dcf467f00a3",
-    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
+    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
   }
 }

@@ -6,9 +6,7 @@ import (
 )
 
 func (v *validator) join(c *Code, f Function, scope map[int]string, joins map[int]*Join, used map[int]bool, seen map[*Code]bool, depth int) error {
-	if !v.joins {
-		return fmt.Errorf("join requires %s", ProfileV3)
-	}
+	v.use(FeatureJoin)
 	if c.Join == nil || c.Next == nil || c.Bind != nil || c.Value != nil || c.Var != 0 || c.Type != "" || c.Result != "" || c.Alts != nil || c.Target != 0 || c.Args != nil {
 		return fmt.Errorf("invalid join payload")
 	}
@@ -37,9 +35,6 @@ func (v *validator) join(c *Code, f Function, scope map[int]string, joins map[in
 }
 
 func (v *validator) jump(c *Code, scope map[int]string, joins map[int]*Join) error {
-	if !v.joins {
-		return fmt.Errorf("jump requires %s", ProfileV3)
-	}
 	if c.Target <= 0 || c.Args == nil || c.Join != nil || c.Next != nil || c.Bind != nil || c.Value != nil || c.Var != 0 || c.Type != "" || c.Result != "" || c.Alts != nil {
 		return fmt.Errorf("invalid jump payload")
 	}

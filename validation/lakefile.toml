@@ -1,0 +1,14 @@
+name = "lean_go_validate"
+version = "0.0.0"
+defaultTargets = ["Examples"]
+
+# The library itself (`LeanGo.Validate`, `LeanGo.Validate.Meta`,
+# `LeanGo.Validate.Command`) lives in the producer package, where the export
+# workspace can import it. This package holds only evidence built on top of it.
+[[require]]
+name = "lean_go_producer"
+path = "../producer"
+
+# Evidence on tracked IR; includes the axiom gate (`Examples.AxiomCheck`).
+[[lean_lib]]
+name = "Examples"

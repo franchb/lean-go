@@ -1,34 +1,35 @@
 {
-  "schema": "lean-go-manifest/v6",
-  "generator": "lean-go-modulegen/v18",
-  "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
-  "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "f251496a664cd16d564c354ec44fca9a6da485bb5e8f7bd7b6b664f6e8601724",
+  "schema": "lean-go-manifest/v24",
+  "generator": "lean-go-modulegen/v20",
+  "generator_source_sha256": "5d1a3e11ada9e3be8c90559f2c14f620ffbd9e4c6660ce121b9d2b88945e4e9d",
+  "validator_source_sha256": "d6bd18ba4e7d84e95051ce15b95d4d32d2945ace3da795f8c5ea62528e79d456",
+  "ir_sha256": "3ea4fd66dd44e76186ddfc8772857a7d1379843e56340bce8d3d5b30f998f987",
   "program": {
-    "schema": "lean-go-ir/v6",
-    "profile": "pure-module/v4",
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
     "stage": "pure-mono",
     "lean_version": "4.36.0",
     "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
     "module": "Clamp",
-    "root": "Clamp.clamp",
+    "roots": [
+      "Clamp.clamp"
+    ],
+    "features": [
+      "uint64"
+    ],
     "inputs": {
       "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
       "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
-      "producer/LeanGo/Module/Export.lean": "f5edc14f5fa343117e5733bbfeeefd15b712382ab65276305fb418c061a4fb02",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
-      "producer/LeanGo/Module/Primitives.lean": "3dbb9443255ba8d052ac5906ca890053c56bfe41df14169cf0fa3c2f5779b0fe",
+      "producer/LeanGo/Module/Primitives.lean": "fc57dc3e82c4a90f2f390a67655eaac8e96891779bc31d99bc3b0afd2925e018",
       "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
-      "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-      "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-      "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
-      "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-      "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
       "source/Clamp.lean": "86e818cb6fef89f81c399ac1375bde9984f884523a268ed72b8a963dadfcb90f",
-      "source/Clamp/Bounds.lean": "4b77e0660bb47c5806631b36b19e9c0d73b944dbb56a9bb3e246a6699a0c97c7"
+      "source/Clamp/Bounds.lean": "4b77e0660bb47c5806631b36b19e9c0d73b944dbb56a9bb3e246a6699a0c97c7",
+      "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d"
     },
     "types": [
       {
@@ -197,10 +198,10 @@
     ]
   },
   "generated_files": {
-    "api.go": "0c2c714a0ba58e878de6fbd8c59b0be330afe805507c04ab2c47d765112bdd5a",
+    "api.go": "1b201b669eb9e3803dac6d68fd318a2a9f2a7ea73377b36f8e4321cfd9875a29",
     "control.go": "3d5bdda3b51d5d24d453c5b73273a48bc5deda81eaf464cc38e8fc6a16df162a",
-    "runtime.go": "b253abb25fa2f3dd41162d0224b1586a55609d3560c242ff834da5b2c3c08b5c",
-    "schema.go": "a5d47c7379506e361e7d93466cba2e84e5c40820a988beaf83a4a75ce6802ecc"
+    "runtime.go": "779f8a12f926234dbc0b94801b48eacc1bb21565d8e70d8ac44549a49064b4da",
+    "schema.go": "472a7321ab5c59d7e06f6e1b1d1de1c47adc0fc835dcd640e483b4bf69aa3e16"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
   "primitives": [
@@ -218,8 +219,10 @@
     "entrypoint": "RunTyped",
     "types": {
       "Bool": "bool",
+      "UInt16": "uint16",
       "UInt32": "uint32",
-      "UInt64": "uint64"
+      "UInt64": "uint64",
+      "UInt8": "uint8"
     },
     "constructors": {},
     "accessors": {},

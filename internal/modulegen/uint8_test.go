@@ -9,12 +9,11 @@ import (
 
 func byteRecordProgram() *moduleir.Program {
 	p := testProgram()
-	p.Schema, p.Profile = "lean-go-ir/v12", "pure-module/v10"
 	fields := []string{"add", "sub", "mul", "left", "and", "or", "xor", "not", "right", "eq", "lt", "le", "wide", "narrow", "literal"}
 	p.API = &moduleir.APIMetadata{Records: map[string][]string{"Example.Bytes": fields}}
 	shapes := []string{"UInt8", "UInt8", "UInt8", "UInt8", "UInt8", "UInt8", "UInt8", "UInt8", "UInt8", "Bool", "Bool", "Bool", "UInt32", "UInt8", "UInt8"}
 	p.Types = append(typedRecordProgram().Types[:1], moduleir.TypeDecl{Name: "Example.Bytes", Constructors: []moduleir.Constructor{{Name: "Example.Bytes.mk", Fields: shapes}}})
-	f := moduleir.Function{Name: p.Root, Params: []moduleir.Param{{ID: 1, Type: "UInt8"}, {ID: 2, Type: "UInt8"}, {ID: 3, Type: "UInt32"}}, Result: "Example.Bytes"}
+	f := moduleir.Function{Name: p.Roots[0], Params: []moduleir.Param{{ID: 1, Type: "UInt8"}, {ID: 2, Type: "UInt8"}, {ID: 3, Type: "UInt32"}}, Result: "Example.Bytes"}
 	args := make([]int, len(fields))
 	for i := range args {
 		args[i] = i + 4
@@ -44,7 +43,7 @@ func byteRecordProgram() *moduleir.Program {
 }
 
 func TestUInt8GeneratedRawTypedSemanticsAndLimits(t *testing.T) {
-	files, err := Generate(byteRecordProgram())
+	files, err := generate(byteRecordProgram())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +55,7 @@ func TestUInt8GeneratedRawTypedSemanticsAndLimits(t *testing.T) {
 	if err = json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v12" || manifest.Generator != Version || len(manifest.Primitives) != 14 || manifest.GoAPI.Types["UInt8"] != "uint8" {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.Generator != Version || len(manifest.Primitives) != 14 || manifest.GoAPI.Types["UInt8"] != "uint8" {
 		t.Fatal(manifest)
 	}
 	if bytes.Contains(files["manifest.json"], []byte(`"byte_arrays"`)) {

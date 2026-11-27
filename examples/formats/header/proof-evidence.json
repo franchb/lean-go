@@ -1,0 +1,132 @@
+{
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.accepts_iff",
+      "name": "DemoHeaderProofs.accepts_iff",
+      "statement": "∀ (w : Wire), Iff (Exists Header (fun (h : Header) => Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h))) (And (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))) (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (OfNat.ofNat Nat 64 (instOfNatNat 64))) (OfNat.ofNat Nat 0 (instOfNatNat 0))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_ok_iff",
+      "name": "DemoHeaderProofs.parse_ok_iff",
+      "statement": "∀ (w : Wire) (h : Header), Iff (Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h)) (And (And (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))) (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (OfNat.ofNat Nat 64 (instOfNatNat 64))) (OfNat.ofNat Nat 0 (instOfNatNat 0)))) (And (Eq Nat (UInt8.toNat (Header.flags h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4)))) (Eq Nat (UInt16.toNat (Header.length h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_reservedNonzero_iff",
+      "name": "DemoHeaderProofs.parse_reservedNonzero_iff",
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (DemoHeader.parse w) ParseResult.reservedNonzero) (And (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))) (Not (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (UInt8.toNat (Wire.b1 w)) (OfNat.ofNat Nat 4 (instOfNatNat 4))) (OfNat.ofNat Nat 64 (instOfNatNat 64))) (OfNat.ofNat Nat 0 (instOfNatNat 0)))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_serialize",
+      "name": "DemoHeaderProofs.parse_serialize",
+      "statement": "∀ (h : Header), LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4)) → Eq ParseResult (DemoHeader.parse (DemoHeader.serialize h)) (ParseResult.ok h)"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_validate",
+      "name": "DemoHeaderProofs.parse_validate",
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h) → Eq Validity (DemoHeader.validate h) Validity.valid"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.parse_versionMismatch_iff",
+      "name": "DemoHeaderProofs.parse_versionMismatch_iff",
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (DemoHeader.parse w) ParseResult.versionMismatch) (Not (Eq Nat (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 1 (instOfNatNat 1))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.payload_complete_iff",
+      "name": "DemoHeaderProofs.payload_complete_iff",
+      "statement": "∀ (h : Header) (available : UInt32) (consumed : UInt32), Iff (Eq Availability (DemoHeader.classify h available) (Availability.complete consumed)) (And (LE.le Nat instLENat (UInt16.toNat (Header.length h)) (UInt32.toNat available)) (Eq Nat (UInt32.toNat consumed) (UInt16.toNat (Header.length h))))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.payload_need_more_iff",
+      "name": "DemoHeaderProofs.payload_need_more_iff",
+      "statement": "∀ (h : Header) (available : UInt32) (missing : UInt32), Iff (Eq Availability (DemoHeader.classify h available) (Availability.needMore missing)) (And (LT.lt Nat instLTNat (UInt32.toNat available) (UInt16.toNat (Header.length h))) (Eq Nat (UInt32.toNat missing) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (UInt32.toNat available))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.serialize_parse",
+      "name": "DemoHeaderProofs.serialize_parse",
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (DemoHeader.parse w) (ParseResult.ok h) → Eq Wire (DemoHeader.serialize h) w"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.validate_flagsTooWide_iff",
+      "name": "DemoHeaderProofs.validate_flagsTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DemoHeader.validate h) Validity.flagsTooWide) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DemoHeaderContract.validate_valid_iff",
+      "name": "DemoHeaderProofs.validate_valid_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DemoHeader.validate h) Validity.valid) (LT.lt Nat instLTNat (UInt8.toNat (Header.flags h)) (OfNat.ofNat Nat 4 (instOfNatNat 4)))"
+    }
+  ],
+  "contract_sha256": "9432581e947a54034710f578511fc226d38423fc3ff0b617ae942c4d5d4709be",
+  "generated_manifest_sha256": "5ca6a6e390d2f686e86e524e56b419651ccddacb74cc6bfdc376ccf9b615812b",
+  "generated_mode": "native",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "DemoHeader",
+  "project_inputs": {
+    "proof/DemoHeaderContract.lean": "6c9de9762e981e18b7416555eed0b28c479b9eea4c6d84b378a6d378c364de12",
+    "proof/DemoHeaderProofs.lean": "00934f06f32717d207d635798988b79cb7b8e27ced2ab9eebff439e1dbc47d56",
+    "source/DemoHeader.lean": "b6a9da0a0cb76f05a6880369a7fc04f9ac5aa9cda4cb883ac1eece54b55b4122"
+  },
+  "roots": [
+    "DemoHeader.classify",
+    "DemoHeader.parse",
+    "DemoHeader.serialize",
+    "DemoHeader.validate"
+  ],
+  "schema": "lean-go-proof-evidence/v3",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
+    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
+  }
+}

@@ -1,0 +1,3552 @@
+{
+  "schema": "lean-go-native-manifest/v1",
+  "mode": "native",
+  "generator": "lean-go-nativegen/v2",
+  "generator_source_sha256": "af39bad95490c5e943f468e72dbe11aaed9b3a6831edb89480aa9f21991e6b21",
+  "validator_source_sha256": "d6bd18ba4e7d84e95051ce15b95d4d32d2945ace3da795f8c5ea62528e79d456",
+  "ir_sha256": "1620d5abc4dbef5b3b7346f39d1708578d1af0a99541b720b082479ccf6cd476",
+  "max_depth": 10000,
+  "program": {
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
+    "stage": "pure-mono",
+    "lean_version": "4.36.0",
+    "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+    "module": "DnsHeader",
+    "roots": [
+      "DnsHeader.parse",
+      "DnsHeader.serialize",
+      "DnsHeader.validate"
+    ],
+    "features": [
+      "bitwise",
+      "uint16",
+      "uint32",
+      "uint8",
+      "width_conversion"
+    ],
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
+      "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
+      "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
+      "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
+      "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
+      "producer/LeanGo/Module/Primitives.lean": "fc57dc3e82c4a90f2f390a67655eaac8e96891779bc31d99bc3b0afd2925e018",
+      "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
+      "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
+      "source/DnsHeader.lean": "f9acbd13c61431440aaf2c8fae2ae634f52872221d5ff5553a2670b8cbae3ee9",
+      "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d"
+    },
+    "types": [
+      {
+        "name": "Bool",
+        "constructors": [
+          {
+            "name": "Bool.false",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Bool.true",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Header",
+        "constructors": [
+          {
+            "name": "Header.mk",
+            "tag": 0,
+            "fields": [
+              "UInt16",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt16",
+              "UInt16",
+              "UInt16",
+              "UInt16"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "ParseResult",
+        "constructors": [
+          {
+            "name": "ParseResult.ok",
+            "tag": 0,
+            "fields": [
+              "Header"
+            ]
+          },
+          {
+            "name": "ParseResult.zNonzero",
+            "tag": 1,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Validity",
+        "constructors": [
+          {
+            "name": "Validity.valid",
+            "tag": 0,
+            "fields": []
+          },
+          {
+            "name": "Validity.qrTooWide",
+            "tag": 1,
+            "fields": []
+          },
+          {
+            "name": "Validity.opcodeTooWide",
+            "tag": 2,
+            "fields": []
+          },
+          {
+            "name": "Validity.aaTooWide",
+            "tag": 3,
+            "fields": []
+          },
+          {
+            "name": "Validity.tcTooWide",
+            "tag": 4,
+            "fields": []
+          },
+          {
+            "name": "Validity.rdTooWide",
+            "tag": 5,
+            "fields": []
+          },
+          {
+            "name": "Validity.raTooWide",
+            "tag": 6,
+            "fields": []
+          },
+          {
+            "name": "Validity.rcodeTooWide",
+            "tag": 7,
+            "fields": []
+          }
+        ]
+      },
+      {
+        "name": "Wire",
+        "constructors": [
+          {
+            "name": "Wire.mk",
+            "tag": 0,
+            "fields": [
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8",
+              "UInt8"
+            ]
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "DnsHeader.be16w",
+        "dependencies": [
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt8",
+          "UInt8.toUInt32",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instMulUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getAa",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getOpcode",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getQr",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getRa",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getRcode",
+        "dependencies": [
+          "HAnd.hAnd",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getRd",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getTc",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.getZ",
+        "dependencies": [
+          "HAnd.hAnd",
+          "HShiftRight.hShiftRight",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAndOpUInt32",
+          "instHAndOfAndOp",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.parse",
+        "dependencies": [
+          "DnsHeader.be16w",
+          "DnsHeader.getAa",
+          "DnsHeader.getOpcode",
+          "DnsHeader.getQr",
+          "DnsHeader.getRa",
+          "DnsHeader.getRcode",
+          "DnsHeader.getRd",
+          "DnsHeader.getTc",
+          "DnsHeader.getZ",
+          "DnsHeader.u16",
+          "Eq",
+          "Header.mk",
+          "OfNat.ofNat",
+          "ParseResult",
+          "ParseResult.ok",
+          "ParseResult.zNonzero",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt32.toUInt8",
+          "Wire",
+          "Wire.b0",
+          "Wire.b1",
+          "Wire.b10",
+          "Wire.b11",
+          "Wire.b2",
+          "Wire.b3",
+          "Wire.b4",
+          "Wire.b5",
+          "Wire.b6",
+          "Wire.b7",
+          "Wire.b8",
+          "Wire.b9",
+          "instDecidableEqUInt32",
+          "ite"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.serialize",
+        "dependencies": [
+          "DnsHeader.word1",
+          "HShiftRight.hShiftRight",
+          "Header",
+          "Header.aa",
+          "Header.ancount",
+          "Header.arcount",
+          "Header.id",
+          "Header.nscount",
+          "Header.opcode",
+          "Header.qdcount",
+          "Header.qr",
+          "Header.ra",
+          "Header.rcode",
+          "Header.rd",
+          "Header.tc",
+          "OfNat.ofNat",
+          "UInt16",
+          "UInt16.instOfNat",
+          "UInt16.toUInt8",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt32.toUInt8",
+          "Wire.mk",
+          "instHShiftRightOfShiftRight",
+          "instShiftRightUInt16",
+          "instShiftRightUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.u16",
+        "dependencies": [
+          "HOr.hOr",
+          "HShiftLeft.hShiftLeft",
+          "OfNat.ofNat",
+          "UInt16",
+          "UInt16.instOfNat",
+          "UInt8",
+          "UInt8.toUInt16",
+          "instHOrOfOrOp",
+          "instHShiftLeftOfShiftLeft",
+          "instOrOpUInt16",
+          "instShiftLeftUInt16"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.validate",
+        "dependencies": [
+          "Header",
+          "Header.aa",
+          "Header.opcode",
+          "Header.qr",
+          "Header.ra",
+          "Header.rcode",
+          "Header.rd",
+          "Header.tc",
+          "LT.lt",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.decLt",
+          "UInt32.instOfNat",
+          "UInt8.toUInt32",
+          "Validity",
+          "Validity.aaTooWide",
+          "Validity.opcodeTooWide",
+          "Validity.qrTooWide",
+          "Validity.raTooWide",
+          "Validity.rcodeTooWide",
+          "Validity.rdTooWide",
+          "Validity.tcTooWide",
+          "Validity.valid",
+          "instLTUInt32",
+          "ite"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "DnsHeader.word1",
+        "dependencies": [
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "UInt8",
+          "UInt8.toUInt32",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instMulUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "HAdd.hAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HAnd.hAnd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HMul.hMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HOr.hOr",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftLeft.hShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HShiftRight.hShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Header",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Header.aa",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.ancount",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.arcount",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.id",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.nscount",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.opcode",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.qdcount",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.qr",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.ra",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.rcode",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.rd",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Header.tc",
+        "dependencies": [
+          "Header"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "LT.lt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "OfNat.ofNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "ParseResult",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt16.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt16.toUInt8",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.decLt",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.toUInt8",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt8.toUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt8.toUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Validity",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Wire",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b0",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b1",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b10",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b11",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b2",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b3",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b4",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b5",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b6",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b7",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b8",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Wire.b9",
+        "dependencies": [
+          "Wire"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "instAddUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instAndOpUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instDecidableEqUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAndOfAndOp",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHOrOfOrOp",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHShiftLeftOfShiftLeft",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHShiftRightOfShiftRight",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instLTUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instMulUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instOrOpUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftLeftUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftRightUInt16",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instShiftRightUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "ite",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "DnsHeader.be16w",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt8"
+          },
+          {
+            "id": 2,
+            "type": "UInt8"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt8.toUInt32",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 4,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "uint32",
+              "name": "8",
+              "args": []
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 5,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.shiftLeft",
+                "args": [
+                  3,
+                  4
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt8.toUInt32",
+                  "args": [
+                    2
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt32.add",
+                    "args": [
+                      5,
+                      6
+                    ]
+                  },
+                  "next": {
+                    "op": "return",
+                    "var": 7
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getAa",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "10",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "1",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getOpcode",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "11",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "15",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getQr",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "15",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "1",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getRa",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "7",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "1",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getRcode",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "15",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.land",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "return",
+              "var": 3
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getRd",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "8",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "1",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getTc",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "9",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "1",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.getZ",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "4",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.shiftRight",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "uint32",
+                "name": "7",
+                "args": []
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt32.land",
+                  "args": [
+                    3,
+                    4
+                  ]
+                },
+                "next": {
+                  "op": "return",
+                  "var": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.parse",
+        "params": [
+          {
+            "id": 1,
+            "type": "Wire"
+          }
+        ],
+        "result": "ParseResult",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Wire",
+          "result": "ParseResult",
+          "alts": [
+            {
+              "constructor": "Wire.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 3,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 4,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 5,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 6,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 7,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 8,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 9,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 10,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 11,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 12,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 13,
+                  "type": "UInt8"
+                }
+              ],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 14,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "call",
+                  "name": "DnsHeader.be16w",
+                  "args": [
+                    4,
+                    5
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 15,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "call",
+                    "name": "DnsHeader.getZ",
+                    "args": [
+                      14
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 16,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "uint32",
+                      "name": "0",
+                      "args": []
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 17,
+                        "type": "Bool"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.decEq",
+                        "args": [
+                          15,
+                          16
+                        ]
+                      },
+                      "next": {
+                        "op": "cases",
+                        "var": 17,
+                        "type": "Bool",
+                        "result": "ParseResult",
+                        "alts": [
+                          {
+                            "constructor": "Bool.false",
+                            "params": [],
+                            "body": {
+                              "op": "let",
+                              "bind": {
+                                "id": 18,
+                                "type": "ParseResult"
+                              },
+                              "value": {
+                                "kind": "constructor",
+                                "name": "ParseResult.zNonzero",
+                                "args": []
+                              },
+                              "next": {
+                                "op": "return",
+                                "var": 18
+                              }
+                            }
+                          },
+                          {
+                            "constructor": "Bool.true",
+                            "params": [],
+                            "body": {
+                              "op": "let",
+                              "bind": {
+                                "id": 19,
+                                "type": "UInt16"
+                              },
+                              "value": {
+                                "kind": "call",
+                                "name": "DnsHeader.u16",
+                                "args": [
+                                  2,
+                                  3
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 20,
+                                  "type": "UInt32"
+                                },
+                                "value": {
+                                  "kind": "call",
+                                  "name": "DnsHeader.getQr",
+                                  "args": [
+                                    14
+                                  ]
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 21,
+                                    "type": "UInt8"
+                                  },
+                                  "value": {
+                                    "kind": "primitive",
+                                    "name": "UInt32.toUInt8",
+                                    "args": [
+                                      20
+                                    ]
+                                  },
+                                  "next": {
+                                    "op": "let",
+                                    "bind": {
+                                      "id": 22,
+                                      "type": "UInt32"
+                                    },
+                                    "value": {
+                                      "kind": "call",
+                                      "name": "DnsHeader.getOpcode",
+                                      "args": [
+                                        14
+                                      ]
+                                    },
+                                    "next": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 23,
+                                        "type": "UInt8"
+                                      },
+                                      "value": {
+                                        "kind": "primitive",
+                                        "name": "UInt32.toUInt8",
+                                        "args": [
+                                          22
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 24,
+                                          "type": "UInt32"
+                                        },
+                                        "value": {
+                                          "kind": "call",
+                                          "name": "DnsHeader.getAa",
+                                          "args": [
+                                            14
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "let",
+                                          "bind": {
+                                            "id": 25,
+                                            "type": "UInt8"
+                                          },
+                                          "value": {
+                                            "kind": "primitive",
+                                            "name": "UInt32.toUInt8",
+                                            "args": [
+                                              24
+                                            ]
+                                          },
+                                          "next": {
+                                            "op": "let",
+                                            "bind": {
+                                              "id": 26,
+                                              "type": "UInt32"
+                                            },
+                                            "value": {
+                                              "kind": "call",
+                                              "name": "DnsHeader.getTc",
+                                              "args": [
+                                                14
+                                              ]
+                                            },
+                                            "next": {
+                                              "op": "let",
+                                              "bind": {
+                                                "id": 27,
+                                                "type": "UInt8"
+                                              },
+                                              "value": {
+                                                "kind": "primitive",
+                                                "name": "UInt32.toUInt8",
+                                                "args": [
+                                                  26
+                                                ]
+                                              },
+                                              "next": {
+                                                "op": "let",
+                                                "bind": {
+                                                  "id": 28,
+                                                  "type": "UInt32"
+                                                },
+                                                "value": {
+                                                  "kind": "call",
+                                                  "name": "DnsHeader.getRd",
+                                                  "args": [
+                                                    14
+                                                  ]
+                                                },
+                                                "next": {
+                                                  "op": "let",
+                                                  "bind": {
+                                                    "id": 29,
+                                                    "type": "UInt8"
+                                                  },
+                                                  "value": {
+                                                    "kind": "primitive",
+                                                    "name": "UInt32.toUInt8",
+                                                    "args": [
+                                                      28
+                                                    ]
+                                                  },
+                                                  "next": {
+                                                    "op": "let",
+                                                    "bind": {
+                                                      "id": 30,
+                                                      "type": "UInt32"
+                                                    },
+                                                    "value": {
+                                                      "kind": "call",
+                                                      "name": "DnsHeader.getRa",
+                                                      "args": [
+                                                        14
+                                                      ]
+                                                    },
+                                                    "next": {
+                                                      "op": "let",
+                                                      "bind": {
+                                                        "id": 31,
+                                                        "type": "UInt8"
+                                                      },
+                                                      "value": {
+                                                        "kind": "primitive",
+                                                        "name": "UInt32.toUInt8",
+                                                        "args": [
+                                                          30
+                                                        ]
+                                                      },
+                                                      "next": {
+                                                        "op": "let",
+                                                        "bind": {
+                                                          "id": 32,
+                                                          "type": "UInt32"
+                                                        },
+                                                        "value": {
+                                                          "kind": "call",
+                                                          "name": "DnsHeader.getRcode",
+                                                          "args": [
+                                                            14
+                                                          ]
+                                                        },
+                                                        "next": {
+                                                          "op": "let",
+                                                          "bind": {
+                                                            "id": 33,
+                                                            "type": "UInt8"
+                                                          },
+                                                          "value": {
+                                                            "kind": "primitive",
+                                                            "name": "UInt32.toUInt8",
+                                                            "args": [
+                                                              32
+                                                            ]
+                                                          },
+                                                          "next": {
+                                                            "op": "let",
+                                                            "bind": {
+                                                              "id": 34,
+                                                              "type": "UInt16"
+                                                            },
+                                                            "value": {
+                                                              "kind": "call",
+                                                              "name": "DnsHeader.u16",
+                                                              "args": [
+                                                                6,
+                                                                7
+                                                              ]
+                                                            },
+                                                            "next": {
+                                                              "op": "let",
+                                                              "bind": {
+                                                                "id": 35,
+                                                                "type": "UInt16"
+                                                              },
+                                                              "value": {
+                                                                "kind": "call",
+                                                                "name": "DnsHeader.u16",
+                                                                "args": [
+                                                                  8,
+                                                                  9
+                                                                ]
+                                                              },
+                                                              "next": {
+                                                                "op": "let",
+                                                                "bind": {
+                                                                  "id": 36,
+                                                                  "type": "UInt16"
+                                                                },
+                                                                "value": {
+                                                                  "kind": "call",
+                                                                  "name": "DnsHeader.u16",
+                                                                  "args": [
+                                                                    10,
+                                                                    11
+                                                                  ]
+                                                                },
+                                                                "next": {
+                                                                  "op": "let",
+                                                                  "bind": {
+                                                                    "id": 37,
+                                                                    "type": "UInt16"
+                                                                  },
+                                                                  "value": {
+                                                                    "kind": "call",
+                                                                    "name": "DnsHeader.u16",
+                                                                    "args": [
+                                                                      12,
+                                                                      13
+                                                                    ]
+                                                                  },
+                                                                  "next": {
+                                                                    "op": "let",
+                                                                    "bind": {
+                                                                      "id": 38,
+                                                                      "type": "Header"
+                                                                    },
+                                                                    "value": {
+                                                                      "kind": "constructor",
+                                                                      "name": "Header.mk",
+                                                                      "args": [
+                                                                        19,
+                                                                        21,
+                                                                        23,
+                                                                        25,
+                                                                        27,
+                                                                        29,
+                                                                        31,
+                                                                        33,
+                                                                        34,
+                                                                        35,
+                                                                        36,
+                                                                        37
+                                                                      ]
+                                                                    },
+                                                                    "next": {
+                                                                      "op": "let",
+                                                                      "bind": {
+                                                                        "id": 39,
+                                                                        "type": "ParseResult"
+                                                                      },
+                                                                      "value": {
+                                                                        "kind": "constructor",
+                                                                        "name": "ParseResult.ok",
+                                                                        "args": [
+                                                                          38
+                                                                        ]
+                                                                      },
+                                                                      "next": {
+                                                                        "op": "return",
+                                                                        "var": 39
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "DnsHeader.serialize",
+        "params": [
+          {
+            "id": 1,
+            "type": "Header"
+          }
+        ],
+        "result": "Wire",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Header",
+          "result": "Wire",
+          "alts": [
+            {
+              "constructor": "Header.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 3,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 4,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 5,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 6,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 7,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 8,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 9,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 10,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 11,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 12,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 13,
+                  "type": "UInt16"
+                }
+              ],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 14,
+                  "type": "UInt16"
+                },
+                "value": {
+                  "kind": "uint16",
+                  "name": "8",
+                  "args": []
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 15,
+                    "type": "UInt16"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt16.shiftRight",
+                    "args": [
+                      2,
+                      14
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 16,
+                      "type": "UInt8"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt16.toUInt8",
+                      "args": [
+                        15
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 17,
+                        "type": "UInt8"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt16.toUInt8",
+                        "args": [
+                          2
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 18,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "call",
+                          "name": "DnsHeader.word1",
+                          "args": [
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 19,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "uint32",
+                            "name": "8",
+                            "args": []
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 20,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.shiftRight",
+                              "args": [
+                                18,
+                                19
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 21,
+                                "type": "UInt8"
+                              },
+                              "value": {
+                                "kind": "primitive",
+                                "name": "UInt32.toUInt8",
+                                "args": [
+                                  20
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 22,
+                                  "type": "UInt8"
+                                },
+                                "value": {
+                                  "kind": "primitive",
+                                  "name": "UInt32.toUInt8",
+                                  "args": [
+                                    18
+                                  ]
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 23,
+                                    "type": "UInt16"
+                                  },
+                                  "value": {
+                                    "kind": "primitive",
+                                    "name": "UInt16.shiftRight",
+                                    "args": [
+                                      10,
+                                      14
+                                    ]
+                                  },
+                                  "next": {
+                                    "op": "let",
+                                    "bind": {
+                                      "id": 24,
+                                      "type": "UInt8"
+                                    },
+                                    "value": {
+                                      "kind": "primitive",
+                                      "name": "UInt16.toUInt8",
+                                      "args": [
+                                        23
+                                      ]
+                                    },
+                                    "next": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 25,
+                                        "type": "UInt8"
+                                      },
+                                      "value": {
+                                        "kind": "primitive",
+                                        "name": "UInt16.toUInt8",
+                                        "args": [
+                                          10
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 26,
+                                          "type": "UInt16"
+                                        },
+                                        "value": {
+                                          "kind": "primitive",
+                                          "name": "UInt16.shiftRight",
+                                          "args": [
+                                            11,
+                                            14
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "let",
+                                          "bind": {
+                                            "id": 27,
+                                            "type": "UInt8"
+                                          },
+                                          "value": {
+                                            "kind": "primitive",
+                                            "name": "UInt16.toUInt8",
+                                            "args": [
+                                              26
+                                            ]
+                                          },
+                                          "next": {
+                                            "op": "let",
+                                            "bind": {
+                                              "id": 28,
+                                              "type": "UInt8"
+                                            },
+                                            "value": {
+                                              "kind": "primitive",
+                                              "name": "UInt16.toUInt8",
+                                              "args": [
+                                                11
+                                              ]
+                                            },
+                                            "next": {
+                                              "op": "let",
+                                              "bind": {
+                                                "id": 29,
+                                                "type": "UInt16"
+                                              },
+                                              "value": {
+                                                "kind": "primitive",
+                                                "name": "UInt16.shiftRight",
+                                                "args": [
+                                                  12,
+                                                  14
+                                                ]
+                                              },
+                                              "next": {
+                                                "op": "let",
+                                                "bind": {
+                                                  "id": 30,
+                                                  "type": "UInt8"
+                                                },
+                                                "value": {
+                                                  "kind": "primitive",
+                                                  "name": "UInt16.toUInt8",
+                                                  "args": [
+                                                    29
+                                                  ]
+                                                },
+                                                "next": {
+                                                  "op": "let",
+                                                  "bind": {
+                                                    "id": 31,
+                                                    "type": "UInt8"
+                                                  },
+                                                  "value": {
+                                                    "kind": "primitive",
+                                                    "name": "UInt16.toUInt8",
+                                                    "args": [
+                                                      12
+                                                    ]
+                                                  },
+                                                  "next": {
+                                                    "op": "let",
+                                                    "bind": {
+                                                      "id": 32,
+                                                      "type": "UInt16"
+                                                    },
+                                                    "value": {
+                                                      "kind": "primitive",
+                                                      "name": "UInt16.shiftRight",
+                                                      "args": [
+                                                        13,
+                                                        14
+                                                      ]
+                                                    },
+                                                    "next": {
+                                                      "op": "let",
+                                                      "bind": {
+                                                        "id": 33,
+                                                        "type": "UInt8"
+                                                      },
+                                                      "value": {
+                                                        "kind": "primitive",
+                                                        "name": "UInt16.toUInt8",
+                                                        "args": [
+                                                          32
+                                                        ]
+                                                      },
+                                                      "next": {
+                                                        "op": "let",
+                                                        "bind": {
+                                                          "id": 34,
+                                                          "type": "UInt8"
+                                                        },
+                                                        "value": {
+                                                          "kind": "primitive",
+                                                          "name": "UInt16.toUInt8",
+                                                          "args": [
+                                                            13
+                                                          ]
+                                                        },
+                                                        "next": {
+                                                          "op": "let",
+                                                          "bind": {
+                                                            "id": 35,
+                                                            "type": "Wire"
+                                                          },
+                                                          "value": {
+                                                            "kind": "constructor",
+                                                            "name": "Wire.mk",
+                                                            "args": [
+                                                              16,
+                                                              17,
+                                                              21,
+                                                              22,
+                                                              24,
+                                                              25,
+                                                              27,
+                                                              28,
+                                                              30,
+                                                              31,
+                                                              33,
+                                                              34
+                                                            ]
+                                                          },
+                                                          "next": {
+                                                            "op": "return",
+                                                            "var": 35
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "DnsHeader.u16",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt8"
+          },
+          {
+            "id": 2,
+            "type": "UInt8"
+          }
+        ],
+        "result": "UInt16",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 3,
+            "type": "UInt16"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt8.toUInt16",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 4,
+              "type": "UInt16"
+            },
+            "value": {
+              "kind": "uint16",
+              "name": "8",
+              "args": []
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 5,
+                "type": "UInt16"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt16.shiftLeft",
+                "args": [
+                  3,
+                  4
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 6,
+                  "type": "UInt16"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt8.toUInt16",
+                  "args": [
+                    2
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 7,
+                    "type": "UInt16"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt16.lor",
+                    "args": [
+                      5,
+                      6
+                    ]
+                  },
+                  "next": {
+                    "op": "return",
+                    "var": 7
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "DnsHeader.validate",
+        "params": [
+          {
+            "id": 1,
+            "type": "Header"
+          }
+        ],
+        "result": "Validity",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Header",
+          "result": "Validity",
+          "alts": [
+            {
+              "constructor": "Header.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 3,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 4,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 5,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 6,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 7,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 8,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 9,
+                  "type": "UInt8"
+                },
+                {
+                  "id": 10,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 11,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 12,
+                  "type": "UInt16"
+                },
+                {
+                  "id": 13,
+                  "type": "UInt16"
+                }
+              ],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 14,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt8.toUInt32",
+                  "args": [
+                    3
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 15,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "uint32",
+                    "name": "2",
+                    "args": []
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 16,
+                      "type": "Bool"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.decLt",
+                      "args": [
+                        14,
+                        15
+                      ]
+                    },
+                    "next": {
+                      "op": "cases",
+                      "var": 16,
+                      "type": "Bool",
+                      "result": "Validity",
+                      "alts": [
+                        {
+                          "constructor": "Bool.false",
+                          "params": [],
+                          "body": {
+                            "op": "let",
+                            "bind": {
+                              "id": 17,
+                              "type": "Validity"
+                            },
+                            "value": {
+                              "kind": "constructor",
+                              "name": "Validity.qrTooWide",
+                              "args": []
+                            },
+                            "next": {
+                              "op": "return",
+                              "var": 17
+                            }
+                          }
+                        },
+                        {
+                          "constructor": "Bool.true",
+                          "params": [],
+                          "body": {
+                            "op": "let",
+                            "bind": {
+                              "id": 18,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt8.toUInt32",
+                              "args": [
+                                4
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 19,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "uint32",
+                                "name": "16",
+                                "args": []
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 20,
+                                  "type": "Bool"
+                                },
+                                "value": {
+                                  "kind": "primitive",
+                                  "name": "UInt32.decLt",
+                                  "args": [
+                                    18,
+                                    19
+                                  ]
+                                },
+                                "next": {
+                                  "op": "cases",
+                                  "var": 20,
+                                  "type": "Bool",
+                                  "result": "Validity",
+                                  "alts": [
+                                    {
+                                      "constructor": "Bool.false",
+                                      "params": [],
+                                      "body": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 21,
+                                          "type": "Validity"
+                                        },
+                                        "value": {
+                                          "kind": "constructor",
+                                          "name": "Validity.opcodeTooWide",
+                                          "args": []
+                                        },
+                                        "next": {
+                                          "op": "return",
+                                          "var": 21
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "constructor": "Bool.true",
+                                      "params": [],
+                                      "body": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 22,
+                                          "type": "UInt32"
+                                        },
+                                        "value": {
+                                          "kind": "primitive",
+                                          "name": "UInt8.toUInt32",
+                                          "args": [
+                                            5
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "let",
+                                          "bind": {
+                                            "id": 23,
+                                            "type": "Bool"
+                                          },
+                                          "value": {
+                                            "kind": "primitive",
+                                            "name": "UInt32.decLt",
+                                            "args": [
+                                              22,
+                                              15
+                                            ]
+                                          },
+                                          "next": {
+                                            "op": "cases",
+                                            "var": 23,
+                                            "type": "Bool",
+                                            "result": "Validity",
+                                            "alts": [
+                                              {
+                                                "constructor": "Bool.false",
+                                                "params": [],
+                                                "body": {
+                                                  "op": "let",
+                                                  "bind": {
+                                                    "id": 24,
+                                                    "type": "Validity"
+                                                  },
+                                                  "value": {
+                                                    "kind": "constructor",
+                                                    "name": "Validity.aaTooWide",
+                                                    "args": []
+                                                  },
+                                                  "next": {
+                                                    "op": "return",
+                                                    "var": 24
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "constructor": "Bool.true",
+                                                "params": [],
+                                                "body": {
+                                                  "op": "let",
+                                                  "bind": {
+                                                    "id": 25,
+                                                    "type": "UInt32"
+                                                  },
+                                                  "value": {
+                                                    "kind": "primitive",
+                                                    "name": "UInt8.toUInt32",
+                                                    "args": [
+                                                      6
+                                                    ]
+                                                  },
+                                                  "next": {
+                                                    "op": "let",
+                                                    "bind": {
+                                                      "id": 26,
+                                                      "type": "Bool"
+                                                    },
+                                                    "value": {
+                                                      "kind": "primitive",
+                                                      "name": "UInt32.decLt",
+                                                      "args": [
+                                                        25,
+                                                        15
+                                                      ]
+                                                    },
+                                                    "next": {
+                                                      "op": "cases",
+                                                      "var": 26,
+                                                      "type": "Bool",
+                                                      "result": "Validity",
+                                                      "alts": [
+                                                        {
+                                                          "constructor": "Bool.false",
+                                                          "params": [],
+                                                          "body": {
+                                                            "op": "let",
+                                                            "bind": {
+                                                              "id": 27,
+                                                              "type": "Validity"
+                                                            },
+                                                            "value": {
+                                                              "kind": "constructor",
+                                                              "name": "Validity.tcTooWide",
+                                                              "args": []
+                                                            },
+                                                            "next": {
+                                                              "op": "return",
+                                                              "var": 27
+                                                            }
+                                                          }
+                                                        },
+                                                        {
+                                                          "constructor": "Bool.true",
+                                                          "params": [],
+                                                          "body": {
+                                                            "op": "let",
+                                                            "bind": {
+                                                              "id": 28,
+                                                              "type": "UInt32"
+                                                            },
+                                                            "value": {
+                                                              "kind": "primitive",
+                                                              "name": "UInt8.toUInt32",
+                                                              "args": [
+                                                                7
+                                                              ]
+                                                            },
+                                                            "next": {
+                                                              "op": "let",
+                                                              "bind": {
+                                                                "id": 29,
+                                                                "type": "Bool"
+                                                              },
+                                                              "value": {
+                                                                "kind": "primitive",
+                                                                "name": "UInt32.decLt",
+                                                                "args": [
+                                                                  28,
+                                                                  15
+                                                                ]
+                                                              },
+                                                              "next": {
+                                                                "op": "cases",
+                                                                "var": 29,
+                                                                "type": "Bool",
+                                                                "result": "Validity",
+                                                                "alts": [
+                                                                  {
+                                                                    "constructor": "Bool.false",
+                                                                    "params": [],
+                                                                    "body": {
+                                                                      "op": "let",
+                                                                      "bind": {
+                                                                        "id": 30,
+                                                                        "type": "Validity"
+                                                                      },
+                                                                      "value": {
+                                                                        "kind": "constructor",
+                                                                        "name": "Validity.rdTooWide",
+                                                                        "args": []
+                                                                      },
+                                                                      "next": {
+                                                                        "op": "return",
+                                                                        "var": 30
+                                                                      }
+                                                                    }
+                                                                  },
+                                                                  {
+                                                                    "constructor": "Bool.true",
+                                                                    "params": [],
+                                                                    "body": {
+                                                                      "op": "let",
+                                                                      "bind": {
+                                                                        "id": 31,
+                                                                        "type": "UInt32"
+                                                                      },
+                                                                      "value": {
+                                                                        "kind": "primitive",
+                                                                        "name": "UInt8.toUInt32",
+                                                                        "args": [
+                                                                          8
+                                                                        ]
+                                                                      },
+                                                                      "next": {
+                                                                        "op": "let",
+                                                                        "bind": {
+                                                                          "id": 32,
+                                                                          "type": "Bool"
+                                                                        },
+                                                                        "value": {
+                                                                          "kind": "primitive",
+                                                                          "name": "UInt32.decLt",
+                                                                          "args": [
+                                                                            31,
+                                                                            15
+                                                                          ]
+                                                                        },
+                                                                        "next": {
+                                                                          "op": "cases",
+                                                                          "var": 32,
+                                                                          "type": "Bool",
+                                                                          "result": "Validity",
+                                                                          "alts": [
+                                                                            {
+                                                                              "constructor": "Bool.false",
+                                                                              "params": [],
+                                                                              "body": {
+                                                                                "op": "let",
+                                                                                "bind": {
+                                                                                  "id": 33,
+                                                                                  "type": "Validity"
+                                                                                },
+                                                                                "value": {
+                                                                                  "kind": "constructor",
+                                                                                  "name": "Validity.raTooWide",
+                                                                                  "args": []
+                                                                                },
+                                                                                "next": {
+                                                                                  "op": "return",
+                                                                                  "var": 33
+                                                                                }
+                                                                              }
+                                                                            },
+                                                                            {
+                                                                              "constructor": "Bool.true",
+                                                                              "params": [],
+                                                                              "body": {
+                                                                                "op": "let",
+                                                                                "bind": {
+                                                                                  "id": 34,
+                                                                                  "type": "UInt32"
+                                                                                },
+                                                                                "value": {
+                                                                                  "kind": "primitive",
+                                                                                  "name": "UInt8.toUInt32",
+                                                                                  "args": [
+                                                                                    9
+                                                                                  ]
+                                                                                },
+                                                                                "next": {
+                                                                                  "op": "let",
+                                                                                  "bind": {
+                                                                                    "id": 35,
+                                                                                    "type": "Bool"
+                                                                                  },
+                                                                                  "value": {
+                                                                                    "kind": "primitive",
+                                                                                    "name": "UInt32.decLt",
+                                                                                    "args": [
+                                                                                      34,
+                                                                                      19
+                                                                                    ]
+                                                                                  },
+                                                                                  "next": {
+                                                                                    "op": "cases",
+                                                                                    "var": 35,
+                                                                                    "type": "Bool",
+                                                                                    "result": "Validity",
+                                                                                    "alts": [
+                                                                                      {
+                                                                                        "constructor": "Bool.false",
+                                                                                        "params": [],
+                                                                                        "body": {
+                                                                                          "op": "let",
+                                                                                          "bind": {
+                                                                                            "id": 36,
+                                                                                            "type": "Validity"
+                                                                                          },
+                                                                                          "value": {
+                                                                                            "kind": "constructor",
+                                                                                            "name": "Validity.rcodeTooWide",
+                                                                                            "args": []
+                                                                                          },
+                                                                                          "next": {
+                                                                                            "op": "return",
+                                                                                            "var": 36
+                                                                                          }
+                                                                                        }
+                                                                                      },
+                                                                                      {
+                                                                                        "constructor": "Bool.true",
+                                                                                        "params": [],
+                                                                                        "body": {
+                                                                                          "op": "let",
+                                                                                          "bind": {
+                                                                                            "id": 37,
+                                                                                            "type": "Validity"
+                                                                                          },
+                                                                                          "value": {
+                                                                                            "kind": "constructor",
+                                                                                            "name": "Validity.valid",
+                                                                                            "args": []
+                                                                                          },
+                                                                                          "next": {
+                                                                                            "op": "return",
+                                                                                            "var": 37
+                                                                                          }
+                                                                                        }
+                                                                                      }
+                                                                                    ]
+                                                                                  }
+                                                                                }
+                                                                              }
+                                                                            }
+                                                                          ]
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      ]
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "DnsHeader.word1",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt8"
+          },
+          {
+            "id": 2,
+            "type": "UInt8"
+          },
+          {
+            "id": 3,
+            "type": "UInt8"
+          },
+          {
+            "id": 4,
+            "type": "UInt8"
+          },
+          {
+            "id": 5,
+            "type": "UInt8"
+          },
+          {
+            "id": 6,
+            "type": "UInt8"
+          },
+          {
+            "id": 7,
+            "type": "UInt8"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 8,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "primitive",
+            "name": "UInt8.toUInt32",
+            "args": [
+              1
+            ]
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 9,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "uint32",
+              "name": "15",
+              "args": []
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 10,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.shiftLeft",
+                "args": [
+                  8,
+                  9
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 11,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "primitive",
+                  "name": "UInt8.toUInt32",
+                  "args": [
+                    2
+                  ]
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 12,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "uint32",
+                    "name": "11",
+                    "args": []
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 13,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.shiftLeft",
+                      "args": [
+                        11,
+                        12
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 14,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.add",
+                        "args": [
+                          10,
+                          13
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 15,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "primitive",
+                          "name": "UInt8.toUInt32",
+                          "args": [
+                            3
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 16,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "uint32",
+                            "name": "10",
+                            "args": []
+                          },
+                          "next": {
+                            "op": "let",
+                            "bind": {
+                              "id": 17,
+                              "type": "UInt32"
+                            },
+                            "value": {
+                              "kind": "primitive",
+                              "name": "UInt32.shiftLeft",
+                              "args": [
+                                15,
+                                16
+                              ]
+                            },
+                            "next": {
+                              "op": "let",
+                              "bind": {
+                                "id": 18,
+                                "type": "UInt32"
+                              },
+                              "value": {
+                                "kind": "primitive",
+                                "name": "UInt32.add",
+                                "args": [
+                                  14,
+                                  17
+                                ]
+                              },
+                              "next": {
+                                "op": "let",
+                                "bind": {
+                                  "id": 19,
+                                  "type": "UInt32"
+                                },
+                                "value": {
+                                  "kind": "primitive",
+                                  "name": "UInt8.toUInt32",
+                                  "args": [
+                                    4
+                                  ]
+                                },
+                                "next": {
+                                  "op": "let",
+                                  "bind": {
+                                    "id": 20,
+                                    "type": "UInt32"
+                                  },
+                                  "value": {
+                                    "kind": "uint32",
+                                    "name": "9",
+                                    "args": []
+                                  },
+                                  "next": {
+                                    "op": "let",
+                                    "bind": {
+                                      "id": 21,
+                                      "type": "UInt32"
+                                    },
+                                    "value": {
+                                      "kind": "primitive",
+                                      "name": "UInt32.shiftLeft",
+                                      "args": [
+                                        19,
+                                        20
+                                      ]
+                                    },
+                                    "next": {
+                                      "op": "let",
+                                      "bind": {
+                                        "id": 22,
+                                        "type": "UInt32"
+                                      },
+                                      "value": {
+                                        "kind": "primitive",
+                                        "name": "UInt32.add",
+                                        "args": [
+                                          18,
+                                          21
+                                        ]
+                                      },
+                                      "next": {
+                                        "op": "let",
+                                        "bind": {
+                                          "id": 23,
+                                          "type": "UInt32"
+                                        },
+                                        "value": {
+                                          "kind": "primitive",
+                                          "name": "UInt8.toUInt32",
+                                          "args": [
+                                            5
+                                          ]
+                                        },
+                                        "next": {
+                                          "op": "let",
+                                          "bind": {
+                                            "id": 24,
+                                            "type": "UInt32"
+                                          },
+                                          "value": {
+                                            "kind": "uint32",
+                                            "name": "8",
+                                            "args": []
+                                          },
+                                          "next": {
+                                            "op": "let",
+                                            "bind": {
+                                              "id": 25,
+                                              "type": "UInt32"
+                                            },
+                                            "value": {
+                                              "kind": "primitive",
+                                              "name": "UInt32.shiftLeft",
+                                              "args": [
+                                                23,
+                                                24
+                                              ]
+                                            },
+                                            "next": {
+                                              "op": "let",
+                                              "bind": {
+                                                "id": 26,
+                                                "type": "UInt32"
+                                              },
+                                              "value": {
+                                                "kind": "primitive",
+                                                "name": "UInt32.add",
+                                                "args": [
+                                                  22,
+                                                  25
+                                                ]
+                                              },
+                                              "next": {
+                                                "op": "let",
+                                                "bind": {
+                                                  "id": 27,
+                                                  "type": "UInt32"
+                                                },
+                                                "value": {
+                                                  "kind": "primitive",
+                                                  "name": "UInt8.toUInt32",
+                                                  "args": [
+                                                    6
+                                                  ]
+                                                },
+                                                "next": {
+                                                  "op": "let",
+                                                  "bind": {
+                                                    "id": 28,
+                                                    "type": "UInt32"
+                                                  },
+                                                  "value": {
+                                                    "kind": "uint32",
+                                                    "name": "7",
+                                                    "args": []
+                                                  },
+                                                  "next": {
+                                                    "op": "let",
+                                                    "bind": {
+                                                      "id": 29,
+                                                      "type": "UInt32"
+                                                    },
+                                                    "value": {
+                                                      "kind": "primitive",
+                                                      "name": "UInt32.shiftLeft",
+                                                      "args": [
+                                                        27,
+                                                        28
+                                                      ]
+                                                    },
+                                                    "next": {
+                                                      "op": "let",
+                                                      "bind": {
+                                                        "id": 30,
+                                                        "type": "UInt32"
+                                                      },
+                                                      "value": {
+                                                        "kind": "primitive",
+                                                        "name": "UInt32.add",
+                                                        "args": [
+                                                          26,
+                                                          29
+                                                        ]
+                                                      },
+                                                      "next": {
+                                                        "op": "let",
+                                                        "bind": {
+                                                          "id": 31,
+                                                          "type": "UInt32"
+                                                        },
+                                                        "value": {
+                                                          "kind": "primitive",
+                                                          "name": "UInt8.toUInt32",
+                                                          "args": [
+                                                            7
+                                                          ]
+                                                        },
+                                                        "next": {
+                                                          "op": "let",
+                                                          "bind": {
+                                                            "id": 32,
+                                                            "type": "UInt32"
+                                                          },
+                                                          "value": {
+                                                            "kind": "primitive",
+                                                            "name": "UInt32.add",
+                                                            "args": [
+                                                              30,
+                                                              31
+                                                            ]
+                                                          },
+                                                          "next": {
+                                                            "op": "return",
+                                                            "var": 32
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "api": {
+      "records": {
+        "Header": [
+          "id",
+          "qr",
+          "opcode",
+          "aa",
+          "tc",
+          "rd",
+          "ra",
+          "rcode",
+          "qdcount",
+          "ancount",
+          "nscount",
+          "arcount"
+        ],
+        "Wire": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11"
+        ]
+      }
+    }
+  },
+  "generated_files": {
+    "functions.go": "d7c84fe9a841dd511c12d1c16a258db0439c9f14a6e8d73d9230582d5007052f",
+    "native.go": "5e842d985f0c771727bda93fc5f3f9adab03109028b0b8097921dfd0f889de69",
+    "types.go": "9ecfd30bc0b4f6a1f40731b815649ac5b11d9ed0751abdf63b84f99eba605c1e"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Native mode enforces no resource budgets other than MaxDepth.",
+  "primitives": [
+    {
+      "name": "UInt16.lor",
+      "params": [
+        "UInt16",
+        "UInt16"
+      ],
+      "result": "UInt16",
+      "semantics": "bitwise OR of 16-bit operands"
+    },
+    {
+      "name": "UInt16.shiftLeft",
+      "params": [
+        "UInt16",
+        "UInt16"
+      ],
+      "result": "UInt16",
+      "semantics": "(a * 2^(b modulo 16)) modulo 2^16"
+    },
+    {
+      "name": "UInt16.shiftRight",
+      "params": [
+        "UInt16",
+        "UInt16"
+      ],
+      "result": "UInt16",
+      "semantics": "floor(a / 2^(b modulo 16))"
+    },
+    {
+      "name": "UInt16.toUInt8",
+      "params": [
+        "UInt16"
+      ],
+      "result": "UInt8",
+      "semantics": "a modulo 2^8"
+    },
+    {
+      "name": "UInt32.add",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a + b) modulo 2^32"
+    },
+    {
+      "name": "UInt32.decEq",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a == b"
+    },
+    {
+      "name": "UInt32.decLt",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "Bool",
+      "semantics": "unsigned a \u003c b"
+    },
+    {
+      "name": "UInt32.land",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "bitwise AND of 32-bit operands"
+    },
+    {
+      "name": "UInt32.shiftLeft",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a * 2^(b modulo 32)) modulo 2^32"
+    },
+    {
+      "name": "UInt32.shiftRight",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "floor(a / 2^(b modulo 32))"
+    },
+    {
+      "name": "UInt32.toUInt8",
+      "params": [
+        "UInt32"
+      ],
+      "result": "UInt8",
+      "semantics": "a modulo 2^8"
+    },
+    {
+      "name": "UInt8.toUInt16",
+      "params": [
+        "UInt8"
+      ],
+      "result": "UInt16",
+      "semantics": "zero extension: a"
+    },
+    {
+      "name": "UInt8.toUInt32",
+      "params": [
+        "UInt8"
+      ],
+      "result": "UInt32",
+      "semantics": "zero extension: a"
+    }
+  ],
+  "go_api": {
+    "types": {
+      "Bool": {
+        "go": "bool",
+        "kind": "bool"
+      },
+      "Header": {
+        "go": "Header",
+        "kind": "record",
+        "zero": "Header.mk",
+        "fields": [
+          "Id",
+          "Qr",
+          "Opcode",
+          "Aa",
+          "Tc",
+          "Rd",
+          "Ra",
+          "Rcode",
+          "Qdcount",
+          "Ancount",
+          "Nscount",
+          "Arcount"
+        ]
+      },
+      "ParseResult": {
+        "go": "ParseResult",
+        "kind": "sum",
+        "zero": "ParseResult.ok",
+        "constructors": {
+          "ParseResult.ok": "ParseResultOk",
+          "ParseResult.zNonzero": "ParseResultZNonzero"
+        },
+        "is": {
+          "ParseResult.ok": "IsOk",
+          "ParseResult.zNonzero": "IsZNonzero"
+        },
+        "as": {
+          "ParseResult.ok": "AsOk"
+        }
+      },
+      "UInt16": {
+        "go": "uint16",
+        "kind": "scalar"
+      },
+      "UInt32": {
+        "go": "uint32",
+        "kind": "scalar"
+      },
+      "UInt64": {
+        "go": "uint64",
+        "kind": "scalar"
+      },
+      "UInt8": {
+        "go": "uint8",
+        "kind": "scalar"
+      },
+      "Validity": {
+        "go": "Validity",
+        "kind": "sum",
+        "zero": "Validity.valid",
+        "constructors": {
+          "Validity.aaTooWide": "ValidityAaTooWide",
+          "Validity.opcodeTooWide": "ValidityOpcodeTooWide",
+          "Validity.qrTooWide": "ValidityQrTooWide",
+          "Validity.raTooWide": "ValidityRaTooWide",
+          "Validity.rcodeTooWide": "ValidityRcodeTooWide",
+          "Validity.rdTooWide": "ValidityRdTooWide",
+          "Validity.tcTooWide": "ValidityTcTooWide",
+          "Validity.valid": "ValidityValid"
+        },
+        "is": {
+          "Validity.aaTooWide": "IsAaTooWide",
+          "Validity.opcodeTooWide": "IsOpcodeTooWide",
+          "Validity.qrTooWide": "IsQrTooWide",
+          "Validity.raTooWide": "IsRaTooWide",
+          "Validity.rcodeTooWide": "IsRcodeTooWide",
+          "Validity.rdTooWide": "IsRdTooWide",
+          "Validity.tcTooWide": "IsTcTooWide",
+          "Validity.valid": "IsValid"
+        },
+        "string": "String"
+      },
+      "Wire": {
+        "go": "Wire",
+        "kind": "record",
+        "zero": "Wire.mk",
+        "fields": [
+          "B0",
+          "B1",
+          "B2",
+          "B3",
+          "B4",
+          "B5",
+          "B6",
+          "B7",
+          "B8",
+          "B9",
+          "B10",
+          "B11"
+        ]
+      }
+    },
+    "functions": {
+      "DnsHeader.parse": {
+        "go": "Parse",
+        "error": false
+      },
+      "DnsHeader.serialize": {
+        "go": "Serialize",
+        "error": false
+      },
+      "DnsHeader.validate": {
+        "go": "Validate",
+        "error": false
+      }
+    }
+  }
+}

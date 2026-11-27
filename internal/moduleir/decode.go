@@ -117,7 +117,7 @@ func readJSON(d *json.Decoder, depth int, nodes *int) (any, error) {
 }
 
 var objectFields = map[string][]string{
-	"program":    {"schema", "profile", "stage", "lean_version", "lean_commit", "module", "root", "inputs", "types", "claims", "rewrites", "provenance", "functions"},
+	"program":    {"schema", "profile", "stage", "lean_version", "lean_commit", "module", "roots", "features", "inputs", "types", "claims", "rewrites", "provenance", "functions", "api"},
 	"provenance": {"name", "dependencies", "rewrites"},
 	"param":      {"id", "type"}, "constructor": {"name", "tag", "fields"}, "type": {"name", "constructors"},
 	"claim": {"name", "statement", "axioms"}, "rewrite": {"source", "target", "theorem", "axioms"},
@@ -143,11 +143,12 @@ func checkShape(value any, kind string) error {
 			return fmt.Errorf("unsupported code op %q", op)
 		}
 	}
-	fields := objectFields[kind]
 	if kind == "program" {
-		schema, _ := obj["schema"].(string)
-		fields = programFields(schema)
+		if schema, ok := obj["schema"].(string); ok && schema != Schema {
+			return unsupportedSchema(schema)
+		}
 	}
+	fields := objectFields[kind]
 	if len(obj) != len(fields) {
 		return fmt.Errorf("%s has missing or irrelevant fields", kind)
 	}
@@ -176,8 +177,11 @@ func checkShape(value any, kind string) error {
 	list := func(field, child string) error { return checkArray(obj[field], child) }
 	switch kind {
 	case "program":
-		if api, exists := obj["api"]; exists {
-			if err := checkAPIShape(api); err != nil {
+		if err := checkAPIShape(obj["api"]); err != nil {
+			return err
+		}
+		for _, field := range []string{"roots", "features"} {
+			if err := list(field, ""); err != nil {
 				return err
 			}
 		}

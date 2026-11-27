@@ -9,10 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	joins "github.com/franchb/lean-go/generated/joins"
+	"github.com/franchb/lean-go/internal/moduleir"
 )
 
 // Inputs are count, nested.count, enabled, raw, delta, flag. Native outputs
@@ -394,16 +396,7 @@ func TestJoinsNativeReference(t *testing.T) {
 
 func generateJoins(t *testing.T, out, rootFunction string) []byte {
 	t.Helper()
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command("uv", "run", "--locked", "python", "scripts/generate.py", "--source-dir", "examples/modules", "--module", "Joins", "--root", rootFunction, "--out", out, "--ir-output", out+".json")
-	cmd.Dir = root
-	cmd.Env = commandEnv(nil)
-	if text, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("join generation: %v\n%s", err, text)
-	}
+	generateWithCLI(t, "examples/modules", "Joins", out, out+".json", rootFunction)
 	data, err := os.ReadFile(out + ".json")
 	if err != nil {
 		t.Fatal(err)
@@ -419,8 +412,8 @@ func requireJoinControl(t *testing.T, data []byte, minimum, nesting int) {
 	if err := json.Unmarshal(data, &program); err != nil {
 		t.Fatal(err)
 	}
-	if program["schema"] != "lean-go-ir/v6" || program["profile"] != "pure-module/v4" {
-		t.Fatalf("unexpected join IR schema/profile: %v/%v", program["schema"], program["profile"])
+	if program["schema"] != moduleir.Schema || program["profile"] != moduleir.Profile || !slices.Contains(program["features"].([]any), any(moduleir.FeatureJoin)) {
+		t.Fatalf("unexpected join IR schema/profile/features: %v/%v/%v", program["schema"], program["profile"], program["features"])
 	}
 	joinCount, jumpCount, maxDepth := 0, 0, 0
 	var visit func(any, int)

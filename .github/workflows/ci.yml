@@ -70,6 +70,12 @@ jobs:
       LEAN_GO_DIFFERENTIAL: '1'
       LEAN_GO_QUOTA: '1'
       LEAN_GO_PROOFS: '1'
+      LEAN_GO_FORMATS: '1'
+      LEAN_GO_VALIDATE: '1'
+      # The recorded admission diagnostics (the rejections the retired Python
+      # suites asserted) and the byte comparison of every tracked artifact
+      # with a fresh in-process regeneration.
+      LEAN_GO_PARITY: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,11 +84,6 @@ jobs:
         with:
           go-version: '1.27.4'
           cache: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: '0.13.5'
-          python-version: '3.15.1'
-          enable-cache: false
       - name: Install pinned Lean release
         run: |
           archive="$RUNNER_TEMP/lean-4.36.0-linux.tar.zst"
@@ -99,24 +100,13 @@ jobs:
         run: |
           go version
           test "$(go env GOVERSION)" = go1.27.4
-          uv --version
-          test "$(uv --version | cut -d ' ' -f 2)" = 0.13.5
           lean --version
           lake --version
-          uv run --locked python - <<'PY'
-          import subprocess
-          import sys
-
-          sys.path.insert(0, 'scripts')
-          from export import DEFAULT_COMPILER
-
-          print(sys.version)
-          assert sys.version_info[:3] == (3, 15, 1)
-          DEFAULT_COMPILER.check_version(subprocess.check_output(['lean', '--version'], text=True))
-          PY
+          # Lean and Lake must be exactly the pinned release; the producer cache must be private.
+          go run ./cmd/lean-go doctor
       - name: Qualify the production compiler against the compatibility corpus
         run: |
-          uv run --locked python scripts/check_compatibility.py \
+          go run ./cmd/lean-go-dev compatibility \
             --baseline-bin "$RUNNER_TEMP/lean/bin" \
             --candidate-bin "$RUNNER_TEMP/lean/bin" \
             --artifacts "$RUNNER_TEMP/lean-go-compatibility"
@@ -135,20 +125,23 @@ jobs:
             ${{ runner.temp }}/lean-go-compatibility/**/identity.json
             ${{ runner.temp }}/lean-go-compatibility/**/adaptations.json
             ${{ runner.temp }}/lean-go-compatibility/differences/**
+      - name: Build the translation-validation library, examples and axiom gate
+        working-directory: validation
+        run: lake build
       - name: Check quota source proofs and generated binding
-        run: uv run --locked python scripts/check_quota.py
+        run: >-
+          go run ./cmd/lean-go check-proofs
+          --contract libraries/quota/proof-contract.json
+          --manifest generated/quota/manifest.json
+          --evidence libraries/quota/proof-evidence.json
       - name: Verify release-candidate proof-to-Go walkthrough
-        run: uv run --locked python scripts/check_release_candidate.py > "$RUNNER_TEMP/lean-go-candidate-receipt.json"
+        run: go run ./cmd/lean-go-dev release-candidate > "$RUNNER_TEMP/lean-go-candidate-receipt.json"
       - name: Native Lean comparison and fresh regeneration
         run: go test -count=1 -timeout=60m ./...
-      - name: Python source admission tests
-        run: |
-          printf '%s\0' scripts/test_*.py |
-            xargs -0 -n 1 -P 3 uv run --locked python
       - name: Generated-program semantic comparison
         run: |
-          uv run --locked python scripts/differential.py \
-            --seed 0 --seed 1 --width 32 --width 64 --cases 32 \
+          go run ./cmd/lean-go-dev differential \
+            --seed 0 --seed 1 --width 8 --width 16 --width 32 --width 64 --cases 32 \
             --shrink --shrink-attempts 12 \
             --artifacts "$RUNNER_TEMP/lean-go-differential"
       - name: Preserve differential evidence
@@ -174,6 +167,10 @@ jobs:
             ${{ runner.temp }}/lean-go-differential/**/consumer/*.go
             ${{ runner.temp }}/lean-go-differential/**/consumer/extracted/*.go
             ${{ runner.temp }}/lean-go-differential/**/consumer/extracted/manifest.json
+            ${{ runner.temp }}/lean-go-differential/**/consumer/native/*.go
+            ${{ runner.temp }}/lean-go-differential/**/consumer/native/manifest.json
+            ${{ runner.temp }}/lean-go-differential/**/consumer/statemachine/*.go
+            ${{ runner.temp }}/lean-go-differential/**/consumer/statemachine/manifest.json
       - name: Preserve candidate walkthrough receipt
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -1,0 +1,119 @@
+{
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.accepts_iff",
+      "name": "UdpHeaderProofs.accepts_iff",
+      "statement": "∀ (w : Wire), Iff (Exists Header (fun (h : Header) => Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h))) (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w))))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.parse_lengthTooSmall_iff",
+      "name": "UdpHeaderProofs.parse_lengthTooSmall_iff",
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (UdpHeader.parse w) ParseResult.lengthTooSmall) (Not (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.parse_ok_iff",
+      "name": "UdpHeaderProofs.parse_ok_iff",
+      "statement": "∀ (w : Wire) (h : Header), Iff (Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h)) (And (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))) (And (Eq Nat (UInt16.toNat (Header.srcPort h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b1 w)))) (And (Eq Nat (UInt16.toNat (Header.dstPort h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w)))) (And (Eq Nat (UInt16.toNat (Header.length h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))) (Eq Nat (UInt16.toNat (Header.checksum h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b6 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b7 w))))))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.parse_serialize",
+      "name": "UdpHeaderProofs.parse_serialize",
+      "statement": "∀ (h : Header), LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (UInt16.toNat (Header.length h)) → Eq ParseResult (UdpHeader.parse (UdpHeader.serialize h)) (ParseResult.ok h)"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.parse_validate",
+      "name": "UdpHeaderProofs.parse_validate",
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h) → Eq Validity (UdpHeader.validate h) Validity.valid"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.payload_complete_iff",
+      "name": "UdpHeaderProofs.payload_complete_iff",
+      "statement": "∀ (h : Header) (available : UInt32) (consumed : UInt32), Iff (Eq Availability (UdpHeader.classify h available) (Availability.complete consumed)) (And (LE.le Nat instLENat (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (UInt32.toNat available)) (Eq Nat (UInt32.toNat consumed) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8)))))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.payload_need_more_iff",
+      "name": "UdpHeaderProofs.payload_need_more_iff",
+      "statement": "∀ (h : Header) (available : UInt32) (missing : UInt32), Iff (Eq Availability (UdpHeader.classify h available) (Availability.needMore missing)) (And (LT.lt Nat instLTNat (UInt32.toNat available) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8)))) (Eq Nat (UInt32.toNat missing) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (HSub.hSub Nat Nat Nat (instHSub Nat instSubNat) (UInt16.toNat (Header.length h)) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (UInt32.toNat available))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.serialize_parse",
+      "name": "UdpHeaderProofs.serialize_parse",
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (UdpHeader.parse w) (ParseResult.ok h) → Eq Wire (UdpHeader.serialize h) w"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.validate_lengthTooSmall_iff",
+      "name": "UdpHeaderProofs.validate_lengthTooSmall_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (UdpHeader.validate h) Validity.lengthTooSmall) (Not (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (UInt16.toNat (Header.length h))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "UdpHeaderContract.validate_valid_iff",
+      "name": "UdpHeaderProofs.validate_valid_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (UdpHeader.validate h) Validity.valid) (LE.le Nat instLENat (OfNat.ofNat Nat 8 (instOfNatNat 8)) (UInt16.toNat (Header.length h)))"
+    }
+  ],
+  "contract_sha256": "82faa2267b826a1b1678e91aacce4eff221f8d45650aa856f16e27e6d3ea1add",
+  "generated_manifest_sha256": "3b4bbaa31e0d72d3a1f5c0e6c08bf14e56112d9d771b7fc68f3c416a1895b8cd",
+  "generated_mode": "native",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "UdpHeader",
+  "project_inputs": {
+    "proof/UdpHeaderContract.lean": "073743180c69532ea53c09f73b805df35aab1f1d1fae56616c62ddfcb455d81e",
+    "proof/UdpHeaderProofs.lean": "9d8946739379ba007b1eb280f75bb72857f8913b088796b8fd41e4c4a63a22e4",
+    "source/UdpHeader.lean": "5e2b60f805481fb7939fc6495be45206660eb448de0717e93b8115340616dd60"
+  },
+  "roots": [
+    "UdpHeader.classify",
+    "UdpHeader.parse",
+    "UdpHeader.serialize",
+    "UdpHeader.validate"
+  ],
+  "schema": "lean-go-proof-evidence/v3",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
+    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
+  }
+}

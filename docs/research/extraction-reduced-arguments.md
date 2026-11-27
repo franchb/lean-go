@@ -1,5 +1,7 @@
 # Compiler-generated reduced-argument helpers
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The producer supports checked `._redArg` helpers created by the pinned Lean
 compiler when it removes unused function parameters. Exported roots retain their
 complete original source signatures. Consumers remain pure Go with

@@ -1,5 +1,7 @@
 # Local helpers with captured data
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The local-helper milestone extends the ordinary module producer to directly
 called, monomorphic local functions with supported captured data. Generated
 consumers remain pure Go with `CGO_ENABLED=0`; regeneration uses the pinned Lean

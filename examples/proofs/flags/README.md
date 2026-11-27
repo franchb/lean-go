@@ -2,10 +2,10 @@
 
 This standalone Go module sets, clears, toggles and tests `UInt32` flag masks.
 Copy this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
-It has no external Go dependencies or `replace` directives. Lean, Python and
-lean-go are needed only to regenerate the package and check the source proofs.
+It has no external Go dependencies or `replace` directives. Lean and lean-go
+are needed only to regenerate the package and check the source proofs.
 
-Install the CLI from this [checkout](../../../docs/cli.md#development-checkout)
+Install the CLI from this [checkout](../../../docs/cli.md#install)
 to reproduce development artifacts. Tagged examples ship with their matching
 CLI. [Alpha.11 release notes](../../../docs/releases/v0.1.0-alpha.11.md)
 
@@ -66,7 +66,8 @@ and return `(uint32, error)`. `RunContains` has the same inputs and returns
 `(bool, error)`. The generated package exports exactly these selected typed
 roots; its shared raw entrypoint is `RunRoot`. The manifest sorts roots as
 `Flags.clear`, `Flags.contains`, `Flags.set`, `Flags.toggle` and uses
-`lean-go-manifest/v9` with the bitwise multi-root profile `pure-module/v7`.
+`lean-go-manifest/v24` with profile `pure-module/v22` and declared features
+`bitwise`, `uint32`.
 
 Every call starts fresh logical resource budgets. Invalid budgets return
 `ErrLimits`, exhausted budgets return `ErrResource`, and failed typed calls
@@ -117,12 +118,12 @@ universal proofs of Go executions.
 
 ## Regenerate and check proofs
 
-Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0** at Lean
-commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. For development,
-install this checkout's CLI, replacing the example absolute path:
+Use Go **1.27.4** and Lean/Lake **4.36.0** at Lean commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. For development, install this
+checkout's CLI from the repository root:
 
 ```sh
-uv tool install --force --python 3.15 /absolute/path/to/lean-go
+go install ./cmd/lean-go
 lean-go doctor
 ```
 
@@ -131,7 +132,7 @@ From this example directory, generate into fresh candidate paths:
 ```sh
 lean-go generate --source-dir source --module Flags \
   --root Flags.clear --root Flags.contains --root Flags.set --root Flags.toggle \
-  --out candidate/flags --ir-output candidate/flags.ir.json
+  --out candidate/flags --ir-output candidate/flags.ir.json --mode metered
 lean-go check-proofs --contract proof-contract.json \
   --manifest candidate/flags/manifest.json --output candidate/proof-evidence.json
 lean-go check-proofs --contract proof-contract.json \
@@ -147,26 +148,25 @@ describes the trust boundary and evidence binding.
 
 ## Verify the complete handoff
 
-From the same checkout or release tag used to install the CLI, capture its path
-before `uv run` adds the checkout environment to `PATH`:
+From the root of the checkout used to install the CLI:
 
 ```sh
-flags_cli=$(command -v lean-go)
-uv run --locked python scripts/check_flags_demo.py --cli "$flags_cli"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo flags
 ```
 
-In PowerShell, first use `$flags_cli = (Get-Command lean-go).Source`.
+In PowerShell, pass `--cli (Get-Command lean-go).Source`.
 
-The verifier copies the example to a fresh external workspace, regenerates all
+The check copies the example to a fresh external workspace, regenerates all
 artifacts with the installed CLI, compares every generated file, IR and evidence
-byte, and freshly validates the tracked evidence. It then deploys only `go.mod`
+byte, freshly validates the tracked evidence and requires exactly the eight
+listed claims. It then deploys only `go.mod`
 and the Go sources to another directory and runs the tests and executable with
 only Go's binary directory on `PATH`, isolated caches, disabled module downloads
-and checksum lookup, and cgo disabled.
+and checksum lookup, and cgo disabled, comparing the output with the expected
+text.
 
 Root `go test ./...` includes the same Go-only deployment on Linux and Windows.
-The current checkout's installed-CLI workflow runs fresh clamp, flags, words, bytes,
-header, wire16 and crc16 verification through both the direct wheel and a wheel rebuilt from the
-source distribution, checking all 54 source claims per wheel and that the
-installed producer payload remains unchanged. Published alpha.7 has the first
+The current checkout's installed-CLI workflow regenerates and checks all ten
+demos with a built and a module-installed binary, checking 61 source claims per
+binary and that the installed binary remains unchanged. Published alpha.7 has the first
 three demos; the alpha.8 release adds the byte codec. Current artifacts require this checkout's CLI.

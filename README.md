@@ -1,504 +1,261 @@
 # lean-go
 
-Generate pure Go from a supported subset of ordinary Lean 4.
+lean-go turns functions written in a small, first-order subset of
+[Lean 4](https://lean-lang.org/) into a standalone Go package. You write the
+logic in Lean, prove properties about it there, and ship ordinary Go that
+depends only on the standard library. It is for Go developers who want a few
+small, critical functions (a header parser, a checksum, a quota rule) to come
+with machine-checked statements about what they compute. Using a generated
+package needs only Go; generating one needs Lean as well.
 
-The module extractor accepts user-supplied ordinary Lean source within a supported
-pure, monomorphic subset and generates a standalone Go package. Generated consumers
-use only the Go standard library and run with `CGO_ENABLED=0`. Lean and Python are
-needed for regeneration, not deployment.
+## A complete example
 
-The original audited normalizer remains available as a separate v1 profile.
-Exports using existing operations retain `pure-module/v4` with v6 IR for one root,
-including UInt32 and UInt64 arithmetic, comparisons, local joins and source record
-names for typed Go APIs. Multiple roots use `pure-module/v5` with v7 IR and share
-one generated package.
-Alpha.6 adds bitwise AND, OR, XOR, complement and logical right shift for both
-widths. Emitted bitwise operations select v8/v9 IR with `pure-module/v6` or
-`pure-module/v7`; see the [bitwise report](docs/research/extraction-bitwise.md).
-Earlier v2–v7 IR retain their original restrictions and APIs.
-Published alpha.7 adds exact `UInt32.toUInt64` zero extension and
-`UInt64.toUInt32` truncation modulo 2^32. Emitted conversions select v10/v11 IR
-with `pure-module/v8` or `pure-module/v9`; see the
-[width-conversion report](docs/research/extraction-width-conversions.md).
+The [clamp example](examples/proofs/clamp) is a Lean function in
+`source/Clamp.lean`:
 
-Published **alpha.8** adds scalar `UInt8`, byte/word conversions and a
-[proved byte codec](examples/proofs/bytes). Its generator v10 uses v12/v13 IR
-for byte-enabled exports. [UInt8 extraction report](docs/research/extraction-uint8.md)
+```lean
+def clamp (value limit : UInt64) : UInt64 :=
+  Bounds.cap value limit
+```
 
-There is no fixed model hash or application name allowlist. APIs and supported
-compiler forms may change before a stable release. Start with the
-[walkthrough](docs/getting-started.md) or read the
-[alpha.15 release notes](docs/releases/v0.1.0-alpha.15.md).
-[Structured extraction diagnostics](docs/diagnostics.md) are available since
-alpha.5. Alpha.6 reports valid custom compiler rewrites as `admission` /
-`source_audit` with the source owner and location; genuine build failures retain
-their `build` stage.
-Alpha.9 defaults to **Lean 4.36.0**, commit
-`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Set
-`LEAN_GO_TOOLCHAIN=4.36.0-rc2` to generate and check evidence with the
-previously supported compiler. Each artifact records the exact compiler used.
-The [compatibility harness](docs/compiler-compatibility.md) is research tooling
-included in the Git checkout, separate from the installed CLI and wheel. Later
-compiler releases require fresh qualification and review before promotion;
-production extraction requires the exact supported version and commit.
+with its helper in `source/Clamp/Bounds.lean`:
 
-The installable CLI, recursive frame-storage reuse and standalone proved-clamp
-demo remain available alongside multi-root extraction, quota and proof contracts. The
-[proof-to-Go walkthrough](docs/release-candidate.md) checks source theorems,
-extracts fresh Go and exercises an isolated consumer.
+```lean
+def cap (value limit : UInt64) : UInt64 :=
+  if value ≤ limit then value else limit
+```
 
-For development, [install the CLI from this checkout](docs/cli.md#development-checkout).
-To install alpha.15 and reproduce its tagged examples, run
+and three theorems about it, one of which is (`proof/ClampProofs.lean`):
+
+```lean
+theorem bounded (value limit : UInt64) : Clamp.clamp value limit ≤ limit := by
+  by_cases within : value ≤ limit
+  · simp [Clamp.clamp, Clamp.Bounds.cap, within]
+  · simp [Clamp.clamp, Clamp.Bounds.cap, within]
+```
+
+From `examples/proofs/clamp`, extract the function, check the proofs against
+the generated package, and run the example's Go tests:
 
 ```sh
-uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@v0.1.0-alpha.15"
+lean-go generate --source-dir source --module Clamp --root Clamp.clamp \
+  --out clampnative --ir-output clamp.ir.json
+lean-go check-proofs --contract proof-contract.json \
+  --manifest clampnative/manifest.json --evidence native-proof-evidence.json
+go test -count=1 ./...
 ```
 
-To reproduce published alpha.7, use its
-[tagged guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md)
-and examples from that same tag.
-
-Copy the [standalone clamp module](examples/proofs/clamp) to run a complete
-example offline with Go alone, or read
-[From Lean source proofs to a Go package you can copy](docs/articles/lean-proofs-to-go.md)
-for the three claims, reproducible commands and extraction boundary.
-To regenerate the current checkout's examples and proof evidence, install the
-CLI from that same [development checkout](docs/cli.md#development-checkout).
-Published-release reproduction requires the example and CLI from the same tag.
-
-The [standalone flag-mask module](examples/proofs/flags), included in alpha.6,
-demonstrates four `UInt32` bitwise operations with eight universally quantified
-source proofs and independent Go tests over 4,752 input pairs. Its checked-in
-package runs with Go alone. Use the example and CLI from the same tag, or install
-from the same checkout when regenerating development artifacts.
-
-Alpha.7 includes a [standalone word-packing module](examples/proofs/words)
-with five scalar roots and seven universal source proofs: value-preserving
-widening, modulo narrowing, both conversion round trips, and packing/unpacking
-identities. Independent typed/raw Go checks cover 699 boundary and seeded triples.
-Words uses v11 IR/manifest and `pure-module/v9`. The alpha.8 release contains
-all four standalone demos with module generator v10, including demos whose IR
-schema stays unchanged. Pair examples and CLI from the same checkout or tag;
-published alpha.7 reproduction uses its historical artifacts and generator v9.
-
-## Use the proved byte codec
-
-The [byte codec module](examples/proofs/bytes) encodes a
-`uint32` into four byte fields and decodes them in either byte order. Its
-[Go application](examples/proofs/bytes/main.go) uses the generated `Bytes()`
-method to return a Go `[4]byte`. With the alpha.9 generator,
-`NewByteQuadFromBytes(wire, limits)` constructs the corresponding Lean record.
-Both conversions copy bytes in field declaration order. The method returns
-`ErrMalformed` for an invalid wrapper. From this checkout's root, run it offline:
-
-```sh
-(
-  cd examples/proofs/bytes
-  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
-  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
-)
-```
-
-```text
-LE(0x12345678) = [78 56 34 12] -> 0x12345678
-BE(0x12345678) = [12 34 56 78] -> 0x12345678
-```
-
-Twelve kernel-checked source claims establish both inverse directions for each
-order and all eight arithmetic byte positions. Independent raw/typed Go tests
-compare 652 cases with `encoding/binary` and check ownership, errors and resource
-budgets. The [byte codec walkthrough](docs/articles/proved-byte-codec.md) explains
-the application, proofs and fresh regeneration. The source uses a concrete
-four-field Lean record; broad generic collections remain deferred. Source proofs
-establish Lean behavior; compilation, extraction and Go execution remain tested
-and trusted.
-
-## Parse a four-byte header
-
-The [header example](examples/proofs/header) uses a Go `[4]byte` at the wire
-boundary. Version 1 permits the two low flag bits and stores a 16-bit length
-in big-endian order. For example, `[01 03 12 34]` parses to flags 3 and
-length 4,660. Nine Lean theorems specify acceptance, rejection, and round trips.
-The generated parser reports protocol errors as ordinary result variants.
-Its Go error return covers malformed values and resource limits.
-
-```sh
-(cd examples/proofs/header && CGO_ENABLED=0 go run .)
-```
-
-The [Wire16 example](examples/proofs/wire16) uses a Go `uint16` for the
-payload length. Alpha.11 adds a Lean function that reports the exact payload
-deficit or the number of bytes to consume. Thirteen source theorems cover
-the codec, header validation, round trips and payload completeness. Run the
-example with Go alone:
-
-```sh
-(cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)
-```
-
-The [frame writing walkthrough](docs/articles/wire16-frame-roundtrip.md) shows
-how to append two frames, read the first, and retry after a partial read.
-For streams, `frame.ReadFrameFrom` returns an owned payload and
-`frame.WriteFrameTo` reports how many header and payload bytes were written.
-
-## Extract a module
-
-Use Go **1.27.4**, the pinned Lean **4.36.0**, and **uv** with Python **3.15**.
-Python dependencies are managed by `uv.lock`; currently the tooling uses only the
-standard library. These commands use the current development checkout and its
-tracked artifacts. For an installed command, use the CLI from that same
-[checkout](docs/cli.md#development-checkout). From the repository root:
-
-```sh
-uv run --locked python scripts/generate.py \
-  --source-dir examples/modules --module Trees --root Trees.mirror \
-  --out generated/trees --ir-output testdata/trees.ir.json
-```
-
-Point `--source-dir` at your Lean sources and select a module and fully qualified
-root. Local imports are rebuilt from source. The command uses a fresh workspace,
-ignores project build scripts and compiled caches, and accepts supported pinned
-standard-library imports. External Lake packages are not supported. Module and root
-CLI names currently use ASCII Lean identifiers. Output package and IR paths are
-required; differing existing package contents are preserved and rejected.
-
-Supported code includes nonempty, non-parametric enums and recursive sums, pure first-order
-functions, saturated calls, exhaustive matches, and self recursion. `UInt8`,
-`UInt32` and `UInt64` support literals, addition, subtraction, multiplication,
-left shift, equality, unsigned less-than/less-or-equal comparisons, `&&&`, `|||`,
-`^^^`, `~~~` and logical right shift `>>>`. Arithmetic wraps modulo 2^8, 2^32 or
-2^64; shift counts are reduced modulo 8, 32 or 64 respectively. Ordinary `<<<`
-notation is supported. Exact casts are `UInt8.toUInt32`, `UInt32.toUInt8`,
-`UInt32.toUInt64` and `UInt64.toUInt32`; widening preserves the value and narrowing
-reduces it modulo 2^8 or 2^32 respectively.
-Alpha.10 extracts `UInt16` literals, records and
-`UInt8.toUInt16`, `UInt16.toUInt8`, `|||`, `<<<` and `>>>` on the supported
-operand types. The Go scalar is `uint16`. Widening preserves the byte value,
-narrowing keeps the low eight bits, and shifts reduce the count modulo 16.
-In alpha.10 and alpha.11, without `UInt16.toUInt32`, an executable `UInt16` selects v14 IR for one root or v15 for multiple roots
-with `pure-module/v12` or `pure-module/v13`. Alpha.10 ships generator v12. Pair the CLI and examples from the same tag when
-regenerating artifacts.
-
-Alpha.11 extracts ordinary `UInt16.toUInt32` as a
-value-preserving Go conversion. An executable use selects v16 for one root or
-v17 for multiple roots, with profiles `pure-module/v14` and `pure-module/v15`
-and generator v13. The [Wire16 demo](examples/proofs/wire16) uses it to
-classify a payload as complete or report its exact deficit. The generated
-decision serves both a Go byte-slice reader and an `io.Reader` adapter.
-The demo also writes validated frames to an `io.Writer` with `WriteFrameTo`.
-
-Alpha.15 accepts a byte fold whose accumulator is a Lean
-structure with exactly two direct `UInt32` fields. Its typed Go entrypoint
-takes the generated record and a borrowed `[]byte`, then returns an updated
-record. These exports use IR v22 for one root or v23 for multiple roots and
-generator v18. The Adler-32 example proves chunk equivalence to two natural
-number sums modulo 65521 and checks the packed checksum against Go's
-`hash/adler32`. [Adler-32 example](examples/proofs/adler32)
-
-In alpha.14, a root of the form
-`def update (state : UInt32) (xs : List UInt8) := xs.foldl step state`
-can accept a read-only Go `[]byte`. The named step takes an accumulator and
-a byte and returns the same scalar type. The producer checks the elaborated
-application and the compiler's empty and nonempty branches before lowering it.
-Single-root exports use IR v20 and multi-root exports use v21. The raw API
-represents the same input with `List.nil` and `List.cons`. The slice API charges
-the corresponding logical nodes, depth, steps, frames and slots. Long streams
-can carry their accumulator between bounded calls.
-
-In alpha.12, an executable `UInt16.xor` or ordinary `a ^^^ b`
-selects IR v18 for one root or v19 for multiple roots, with profiles
-`pure-module/v16` and `pure-module/v17`. Generator v14 emits Go's `^`
-operator on two `uint16` values. The [CRC-16/XMODEM demo](examples/proofs/crc16)
-uses this operation in a proved one-byte update that Go can apply to successive chunks.
-The [checksummed frame example](examples/proofs/checkedframe) combines Wire16 and CRC-16,
-proves frame round trips with arbitrary trailing bytes, and checks the trailer against
-an independent reference CRC.
-
-Earlier schemas keep their
-restrictions: left shift alone on UInt32/UInt64 keeps v6/v7 IR and
-`pure-module/v4` or `pure-module/v5`. Other conversions, including direct
-UInt8/UInt64 casts, division, remainder, other numeric operations and types,
-generic collections, polymorphism,
-higher-order code, mutual function recursion, effects, and unsupported compiler
-forms fail explicitly. Even ordinary Lean syntax can lower to an unsupported form.
-
-Record fields, nested reads and updates use the same API. Single-field record
-wrappers keep their source names and constructors in Go even when Lean removes
-them internally. The producer inserts checked wrapping/unwrapping steps at
-function and field boundaries; wrapping consumes the existing allocation and
-step budgets. See the [record report](docs/research/extraction-records.md) for
-examples and the supported representation rules.
-
-Results of `if` and `match` expressions can feed later arithmetic and record
-updates through nonrecursive local joins. Joins preserve captured values and
-reuse the current Go frame; declarations and jumps consume control steps but
-allocate no values or call frames. See the [join report](docs/research/extraction-joins.md).
-
-Unused arguments can be removed inside compiler-generated `._redArg` helpers
-while the exported root keeps its original source signature. The producer checks
-the compiler event and forwarding argument map, then audits each helper through
-its original source owner. See the
-[reduced-argument report](docs/research/extraction-reduced-arguments.md) for the
-supported forms and collision checks.
-
-Directly called local helpers can capture supported data, including nested records.
-The producer checks their original source types and the compiler's actual lifting
-event, including capture order. Exported roots keep their source signatures;
-internal helper parameters use checked compiler data representations. See the
-[local-helper report](docs/research/extraction-local-helpers.md) for the exact
-limits, including unsupported escaping closures and ambiguous helper reuse.
-
-The producer records original source dependencies and active compiler rewrites
-when each declaration compiles, including helpers later inlined away. User-defined
-compiler rewrites are currently rejected; the pinned `Bool.not` rewrite is audited.
-Numeric primitives and their standard-library operator support are also pinned
-and audited, including historical changes to their compiler attributes.
-Source must be trusted for Lean elaboration: this tool is not a sandbox for macros
-or initializers. The new profile makes no application correctness-theorem claim.
-See the [module report](docs/research/extraction-modules.md) for the exact limits
-and the [UInt32 report](docs/research/extraction-uint32.md) for numeric semantics
-and validation evidence. The [UInt64 report](docs/research/extraction-uint64.md)
-describes exact wide values and mixed-width validation. See also the
-[module design](docs/superpowers/specs/2026-11-11-lean-go-modules-design.md).
-
-## Typed module API
-
-New module exports include typed constructors, record getters, sum destructors and
-`RunTyped`. ADT wrappers own immutable values; `UInt8`, `UInt32`, `UInt64` and
-`Bool` use Go `uint8`, `uint32`, `uint64` and `bool`. For example, the generated tree package can be called without Lean
-names or field indexes:
+`generate` writes `clampnative/` (identical existing output is accepted;
+differing output is refused without `--replace`). `check-proofs` rebuilds the
+proofs and the package and prints `Checked 3 source theorems; evidence and generated files
+match.` The generated function (`clampnative/functions.go`) is:
 
 ```go
-import x "github.com/franchb/lean-go/generated/trees"
-
-limits := x.DefaultLimits()
-red, err := x.NewColorRed(limits)
-if err != nil { panic(err) }
-leaf, err := x.NewTreeLeaf(red, limits)
-if err != nil { panic(err) }
-result, err := x.RunTyped(leaf, limits)
-if err != nil { panic(err) }
-color, ok := result.AsLeaf()
-if !ok || !color.IsBlue() { panic("unexpected result") }
-```
-
-Records have named getters such as `count.Value()` and `state.Count()`, returning
-a typed value and a validity flag. Sums have `IsLeaf`/`AsLeaf`-style methods.
-Constructors reject invalid zero wrappers and enforce input node/depth limits.
-Typed roots enforce the same resource limits as the raw API. Generator v15 emits native
-Go arithmetic for acyclic scalar-only call trees without joins. Generated
-names are deterministic; the manifest records collision resolutions. See the
-[typed API report](docs/research/extraction-typed-api.md) for the complete contract.
-
-## Export several functions together
-
-Multi-root extraction is available starting with `v0.1.0-alpha.3`.
-
-Repeat `--root` to share types, constructors and runtime across selected functions:
-
-```sh
-uv run --locked python scripts/generate.py \
-  --source-dir examples/modules --module Counters \
-  --root Counters.initial --root Counters.advance \
-  --root Counters.read --root Counters.total \
-  --out generated/counters --ir-output testdata/counters.ir.json
-```
-
-The generated typed functions compose directly:
-
-```go
-import (
-    "fmt"
-    c "github.com/franchb/lean-go/generated/counters"
-)
-
-limits := c.DefaultLimits()
-state, err := c.RunInitial(10, 9007199254740993, true, limits)
-if err != nil { panic(err) }
-delta, err := c.NewCount(3, limits)
-if err != nil { panic(err) }
-next, err := c.RunAdvance(state, delta, limits)
-if err != nil { panic(err) }
-value, err := c.RunRead(next, limits)
-if err != nil { panic(err) }
-fmt.Println(value) // 13
-```
-
-Each call starts fresh resource budgets; `state` remains unchanged. Raw callers
-use `RunRoot("Counters.read", args, limits)`. Only selected roots are exposed.
-The manifest maps full Lean names to typed entrypoints, including collision
-suffixes. Selection order is irrelevant; duplicates and more than 64 roots fail.
-Multi-root packages have no default `Run`/`RunTyped`; single-root packages retain
-both. See [multi-root extraction](docs/research/extraction-multiroot.md).
-
-## A library with Lean-proved quota rules
-
-The `quota` package provides immutable bounded accounting: create a quota,
-reserve units, release units and read remaining capacity. Its four operations
-share generated types, and its Lean source has ten checked theorems covering
-acceptance, invariant preservation, rejection identity and exact arithmetic.
-
-```sh
-CGO_ENABLED=0 go run ./examples/quota
-uv run --locked python scripts/check_quota.py
-```
-
-The proof evidence is bound to the source and generated package hashes. These
-are proofs of the Lean rules; extraction and Go execution remain tested and
-trusted. See the [quota guide](docs/quota.md) for the Go API, checks and limits.
-This library is available starting with `v0.1.0-alpha.3`.
-
-Other libraries can use the same proof gate through a small JSON contract that
-maps named theorems to independently authored expected propositions. The checker
-supports both single-root and multi-root generated packages, rebuilds proofs
-from source, and records deterministic evidence bound to the generated bytes.
-See [reusable proof contracts](docs/proof-contracts.md) for the external-project
-workflow and its assurance boundary.
-
-## Raw module API
-
-The selected root is exposed as `Run`. Full Lean names identify values, avoiding
-Go identifier collisions between different source modules:
-
-```go
-import x "github.com/franchb/lean-go/generated/trees"
-
-limits := x.DefaultLimits()
-input := &x.Input{
-    Type: "Trees.Tree", Constructor: "Trees.Tree.leaf",
-    Fields: []*x.Input{{Type: "Trees.Color", Constructor: "Trees.Color.red"}},
+// cap2 implements the Lean function Clamp.Bounds.cap.
+func cap2(v1 uint64, v2 uint64) uint64 {
+	if v1 <= v2 {
+		return v1
+	}
+	return v2
 }
-owned, err := x.Import(input, limits)
-if err != nil { panic(err) }
-result, err := x.Run([]x.Value{owned}, limits)
-if err != nil { panic(err) }
-// result.Fields()[0].Constructor() == "Trees.Color.blue"
-```
 
-`Import` copies every input occurrence into immutable storage. Do not mutate the
-input during import; later mutation cannot affect the owned value. Cycles fail,
-and shared acyclic subtrees are copied and charged per occurrence. `Value{}` is
-invalid. `Type`, `Constructor`, `UInt32`, `UInt64`, and `Fields` inspect owned values;
-`Fields` returns a fresh slice. A scalar input uses `Type: "UInt32"` and the
-`UInt32` field, with no constructor or children; a wide scalar uses `Type: "UInt64"`
-and the `UInt64` field. Byte-enabled packages also expose `Value.UInt8()` and
-accept `Type: "UInt8"` with the `UInt8` field. Nonzero inactive scalar payloads are
-rejected.
-
-`Import` enforces the input node and depth budgets; the other five budgets apply
-to `Run`. All seven limit fields must be valid in both calls.
-`Run` checks root argument types/arity and enforces node, depth, output-node,
-allocation, step, frame, and cumulative frame-slot limits. Errors return an invalid
-value and distinguish `ErrMalformed`, `ErrLimits`, and `ErrResource`. The manifest
-records the schema, root signature, source provenance, and output hashes. Control
-flow is compiled Go code, not a deployed Lean or IR interpreter.
-
-## Check the project
-
-```sh
-uv run --locked python -m unittest discover -s scripts -p 'test_*.py'
-CGO_ENABLED=0 GOTOOLCHAIN=local go test -count=1 ./...
-CGO_ENABLED=0 GOTOOLCHAIN=local LEAN_GO_NATIVE=1 LEAN_GO_REGENERATE=1 LEAN_GO_MODULES=1 go test -count=1 ./...
-LEAN_GO_MODULES=1 uv run --locked python -m unittest discover -s scripts -p 'test_*.py'
-```
-
-The first Go command uses tracked generated packages; the opt-in gates compile
-native Lean references, rebuild both profiles, and test changed source modules.
-Generated packages can be copied into independent Go modules without producer
-files or tools. Extraction remains tested and trusted, not formally verified.
-
-To compare newly generated programs against an independent source model, native
-Lean, and raw/typed Go, run:
-
-```sh
-uv run --locked python scripts/differential.py
-```
-
-The default corpus combines two seeds, both unsigned widths and 32 input pairs
-per program. Full program artifacts support replay and bounded failure shrinking.
-See [program differential testing](docs/research/differential-testing.md) for
-the grammar, commands and evidence limits.
-
-See [generated Go performance](docs/research/generated-go-performance.md) for
-the CRC scalar benchmark, typed/raw resource-limit checks and recursive frame-slot measurements.
-
-## Run the pilot
-
-Use Go **1.27.4**, Python **3.15** managed by **uv**, and the Lean **4.36.0** toolchain named in
-[`producer/lean-toolchain`](producer/lean-toolchain). The exporter checks the
-exact Lean commit, `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. Run from the
-repository root, with these tools available on `PATH`:
-
-```sh
-CGO_ENABLED=0 GOTOOLCHAIN=local go test -count=1 ./...
-uv run --locked python scripts/generate.py
-CGO_ENABLED=0 GOTOOLCHAIN=local LEAN_GO_NATIVE=1 LEAN_GO_REGENERATE=1 go test -count=1 ./...
-```
-
-The first test command exercises the tracked generated package without running
-Lean. The final command also builds a native Lean reference and regenerates
-twice in fresh producer workspaces; those two gates are opt-in.
-
-Generation defaults to [`generated/normalizer`](generated/normalizer) and
-[`testdata/normalizer.ir.json`](testdata/normalizer.ir.json). Identical existing
-output is a no-op; differing existing output is refused and preserved. To
-inspect a changed generator, select a new output directory and a separate IR
-file with `--out DIR --ir-output FILE`; those paths must not overlap.
-
-## Consumer API
-
-Within this checkout, import `github.com/franchb/lean-go/generated/normalizer`:
-
-```go
-package main
-
-import (
-    "fmt"
-
-    n "github.com/franchb/lean-go/generated/normalizer"
-)
-
-func main() {
-    limits := n.DefaultLimits()
-    input := &n.Input{
-        Kind: n.Not,
-        Left: &n.Input{Kind: n.Literal, Value: n.False},
-    }
-    owned, err := n.Import(input, limits)
-    if err != nil {
-        panic(err)
-    }
-    result, err := n.Normalize(owned, limits)
-    if err != nil {
-        panic(err)
-    }
-    value, ok := result.Literal()
-    fmt.Println(value == n.True && ok) // true
+// Clamp is the Lean function Clamp.clamp.
+func Clamp(v1 uint64, v2 uint64) uint64 {
+	return cap2(v1, v2)
 }
 ```
 
-`Import` validates and copies each input occurrence into an immutable `Expr`.
-Do not mutate `Input` during `Import`; later input mutations cannot affect the
-owned expression. `Expr{}` is invalid. Cycles and malformed shapes are rejected;
-acyclic sharing is copied per occurrence and charged against the limits.
-`Normalize` returns `ErrMalformed`, `ErrResource`, or `ErrLimits` on failure,
-with an invalid result. See the [pilot report](docs/research/extraction-pilot.md)
-for the six enforced budgets, ownership rules, validation evidence, benchmarks,
-and remaining release gates.
+A caller imports it like any Go package (`native_test.go`; generated packages
+are named `extracted`, so import them under a name of your choice):
 
-The assurance is **proved Lean logic with tested, trusted extraction**. Lean
-checks evaluation preservation and output normal form; the adapter, lowering,
-Go emitter, host boundary, compilers, and runtimes remain trusted. There is no
-end-to-end compiler-correctness proof. Linux/amd64 tests and an isolated Go-only
-consumer passed. CI runs Go checks on Linux and Windows; the published prerelease
-record links the observed platform and exact-tag consumer results.
+```go
+native "example.com/proved-clamp/clampnative"
 
-The [approved design](docs/superpowers/specs/2026-11-11-lean-go-extraction-design.md),
-[feasibility report](docs/research/extraction-feasibility.md), and
-[pilot plan](docs/superpowers/plans/2026-11-11-lean-go-pilot.md) explain the scope,
-architecture, and evidence boundaries.
+got := native.Clamp(value, limit)
+```
+
+## What is and is not guaranteed
+
+This is not a verified compiler and does not formally verify Go programs. It
+connects a Lean function to Go through three links of different assurance:
+
+1. **Source theorems (proved, kernel-checked).** A
+   [proof contract](docs/proof-contracts.md) maps your theorems to
+   separately written expected statements. `lean-go check-proofs` builds
+   them with the pinned Lean and then, in a separate process that runs none
+   of your code, replays every declaration of your modules through the Lean
+   kernel and has the kernel decide that each theorem proves its expected
+   statement. It rejects `sorry`, `native_decide` and any axiom other than
+   `propext`, `Classical.choice` and `Quot.sound`. This holds even if the
+   proof and contract files contain hostile Lean meta code, as long as that
+   code does not tamper with files while the proofs are built: the build is
+   not sandboxed
+   ([details](docs/proof-contracts.md#what-it-does-not-guarantee)). The
+   generated package must be exactly what this lean-go produces from the
+   same sources, byte for byte, and the evidence records the digest of every
+   generated file. Changing the source, the proofs or a generated file makes
+   the evidence fail. The theorems are about the Lean function; whether they
+   say what you need is for a reviewer to decide.
+2. **Translation validation (proved, kernel-checked, partial correctness).**
+   Generation first produces an intermediate program (the *IR*, a JSON file
+   such as `clamp.ir.json`). With `--validate report` or `--validate require`,
+   or with `lean-go validate`, Lean proves for each exported function that
+   *whenever the IR program returns a value, it is the encoding of the Lean
+   function's result*. It does not prove that the IR program terminates.
+   Validation is off by default. Every tracked example has a checked-in
+   report; together they establish all 61 exported functions (95 of 95 IR
+   functions) under the default budget
+   ([coverage table](docs/research/translation-validation.md#9-coverage)).
+3. **Trusted, not proved.** The Lean kernel and toolchain; the meaning
+   given to IR programs (`producer/LeanGo/Validate`) and the JSON-to-Lean
+   bridge; the IR-to-Go printer and its runtime; the Go compiler; the
+   producer's choice of exported functions; and your Lean source, which is
+   elaborated with macros and initializers enabled. Proof and contract
+   files are not trusted for logic, but code they run during the build can
+   read and write files with your permissions. The IR-to-Go step is covered by
+   differential tests and fuzzing ([evidence](docs/native-mode.md#evidence)),
+   not by proof.
+
+So a theorem from link 1 describes what the IR returns when it returns (link
+2); that the Go code behaves like the IR is tested and trusted (link 3).
+
+## What it supports today
+
+Types: `Bool`, `UInt8`, `UInt16`, `UInt32`, `UInt64`, and your own
+inductive types without parameters: structures, enumerations and recursive
+types such as trees. Code: first-order functions, `if` and exhaustive
+`match`, self-recursion, local `let` helpers that are called directly, up
+to 64 exported functions sharing one package, and byte folds of the exact form `def f (s : T) (xs : List UInt8) := xs.foldl step s`, which
+become a loop over a Go `[]byte`.
+
+Integer operations admitted by the producer's primitive table
+([`Primitives.lean`](producer/LeanGo/Module/Primitives.lean)): each of the
+four unsigned widths has the same fourteen operations and the conversions to
+the other three widths, 68 primitives in all
+([support matrix](docs/support-matrix.md)).
+
+| Operations | On `UInt8`, `UInt16`, `UInt32` and `UInt64` |
+| --- | --- |
+| `+` `-` `*` | wrap modulo 2^n |
+| `/` `%` | total, as in Lean: `x / 0 = 0` and `x % 0 = x` |
+| `&&&` `\|\|\|` `^^^` `~~~` | bitwise |
+| `<<<` `>>>` | the count is reduced modulo the width |
+| `==` `<` `≤` | unsigned comparisons |
+| `toUInt8` … `toUInt64` | zero-extend or keep the low bits |
+
+Literals of all four widths are supported. Lean's fixed-width integers
+[wrap bit vectors](https://lean-lang.org/doc/reference/latest/Basic-Types/Fixed-Precision-Integers/);
+`+`, `-`, `*` and `<<<` wrap modulo 2^n as in
+[Go](https://go.dev/ref/spec#Integer_overflow). Go panics on an integer
+[division by zero](https://go.dev/ref/spec#Integer_operators), so the
+generated code tests the divisor first.
+
+Not supported, each rejected with a diagnostic: signed integers, `USize`
+and floating point; `Nat`, `Int`, `String`, `Array`, `Option` and
+lists other than the byte-fold input; functions as arguments; polymorphism;
+mutual recursion; `partial` and `unsafe` definitions; custom compiler
+rewrites and external Lake packages. Ordinary-looking Lean can still compile to
+a form the producer rejects; [diagnostics](docs/diagnostics.md) say where.
+
+## Two output modes
+
+- **Native** (default): plain Go types and functions, as above. Every Go
+  value of a generated type is a valid Lean value; functions return an error
+  only on recursive call chains deeper than a fixed `MaxDepth`. There are no
+  limits on memory or time.
+- **Metered** (`--mode metered`): the same IR compiled to an explicit-stack
+  state machine over boxed values, with seven resource budgets per call.
+  Choose it when the package processes untrusted recursive input and must
+  bound its work. A root without recursion runs native code instead when
+  the limits cover its statically computed worst case, with the same
+  results and errors ([metered fast path](docs/research/extraction-modules.md#metered-fast-path)).
+
+Measured in [native mode, Benchmarks](docs/native-mode.md#benchmarks): every
+native workload is within 1.1x of a hand-written Go transliteration of the
+same Lean source. Metered mode was 7.1 to 285 times slower than native; with
+the fast path, Numbers and Quota measure 15 to 145 times slower (Numbers
+372 ns against 1,305 ns without it, Quota reserve 172 ns against 397 ns, in
+one binary on an idle machine), while recursive Trees and the byte folds
+stay 6 to 12 times slower.
+A better algorithm still wins: `hash/adler32` takes 30.9 µs on 64 KiB
+against 114.8 µs for the native Adler-32, whose Lean source reduces after
+every byte. Record-heavy code is further off: for the DNS header, native
+parse plus serialize takes 106.6 ns against 31.0 ns for a hand-written
+`encoding/binary` codec, about 3.4 times slower (UDP 4.7, the demo header
+2.3), and metered takes 3,162 ns with the fast path (11,230 ns without it,
+in the same binary). The native gap is Go copying 12-field structs
+through memory at the by-value API boundaries, not the extracted code
+([wire formats](docs/wire-formats.md#native-against-metered)).
+
+## Wire formats
+
+`lean-go format generate -spec spec.json -out DIR` turns a JSON description
+of a fixed-size binary header into the Lean parser and serializer, a proof
+contract with generated proofs (exact acceptance conditions and both round
+trips), the extracted native package, a `[]byte` Go API built not to panic
+or retain the caller's slices, and generated property and fuzz tests that
+check it. The
+[DNS message header](examples/formats/dns) follows
+[RFC 1035 section 4.1.1](https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1);
+the [UDP header](examples/formats/udp) follows
+[RFC 768](https://www.rfc-editor.org/rfc/rfc768). See
+[wire formats](docs/wire-formats.md) for the spec format and its limits.
+
+## Models as test oracles
+
+You do not have to ship the extracted code to benefit from it. The
+[oracle example](examples/oracle) keeps the generated native packages of
+the proved Adler-32 and CRC-16 sources as reference models and tests
+hand-optimized Go against them: seeded and random chunked inputs, an
+exhaustive pass over every CRC register, two fuzz targets, and three
+deliberately wrong variants that the harness must catch and shrink. The
+fast code is what you would deploy; the model says what it must compute.
+See [models as test oracles](docs/oracle-testing.md).
+
+## Install
+
+To use a generated package you need only Go (the project pins and tests Go
+1.27.4); generated code imports nothing outside the standard library and
+builds with `CGO_ENABLED=0`.
+
+To generate, you also need Lean 4.36.0 at commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`, with `lean` and `lake` on
+`PATH` (see [installing Lean](https://lean-lang.org/install/);
+`producer/lean-toolchain` names the toolchain for
+[elan](https://github.com/leanprover/elan)). The Lean side of the tool is
+embedded in the binary. From a checkout:
+
+```sh
+go install ./cmd/lean-go
+lean-go doctor
+```
+
+`lean-go doctor` checks the build's Go release, the exact Lean and Lake
+versions, and the producer cache. The compiled producer is cached; with a
+warm cache the clamp extraction above took 3.6 s here. The commands are `generate`, `emit`, `check-proofs`,
+`validate`, `format`, `regenerate`, `doctor` and `version`; see the
+[CLI guide](docs/cli.md).
+
+Contributors need nothing else: the tests and the developer harnesses
+(`go run ./cmd/lean-go-dev`) are Go. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Status
+
+This is an alpha. The IR and manifest schemas, the generated Go API, the
+supported Lean subset and the command-line options may change between
+prereleases, and IR and manifests from earlier versions are rejected; pin a
+commit and regenerate the package, IR and proof evidence together. Release
+history is in [CHANGELOG.md](CHANGELOG.md).
+
+Next: [getting started](docs/getting-started.md) (extract your own module),
+the [CLI guide](docs/cli.md), [native mode](docs/native-mode.md),
+[proof contracts](docs/proof-contracts.md), [wire formats](docs/wire-formats.md),
+[models as test oracles](docs/oracle-testing.md),
+[diagnostics](docs/diagnostics.md), the [quota library](docs/quota.md) and
+[translation validation](docs/research/translation-validation.md) (semantics,
+proof method, coverage).
 
 Maintainer: [franchb](https://github.com/franchb) · hello@franchb.com
 
-License: [Apache 2.0](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for the
-pinned tools and validation workflow.
+License: [Apache 2.0](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for
+the tools and the checks to run before sending a change.

@@ -4,7 +4,7 @@ package extracted
 // apiNode checks an immutable handle without traversing or copying its children.
 func apiNode(n *node, typ int) bool { return n != nil && n.typ == typ && n.size != 0 && n.depth != 0 }
 func apiMatches(v Value, typ, tag, arity int) bool {
-	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0
+	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0 && v.n.scalar8 == 0 && v.n.scalar16 == 0
 }
 
 // apiMake owns the immediate field slice and shares immutable children. Cached
@@ -30,7 +30,7 @@ func apiMake(typ, tag int, fields []*node, l Limits) (Value, error) {
 
 func apiUInt32Node(value uint32) *node { return &node{typ: 0, scalar: value, size: 1, depth: 1} }
 func apiReadUInt32(n *node) (uint32, bool) {
-	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 {
+	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar, true
@@ -38,10 +38,26 @@ func apiReadUInt32(n *node) (uint32, bool) {
 
 func apiUInt64Node(value uint64) *node { return &node{typ: 3, scalar64: value, size: 1, depth: 1} }
 func apiReadUInt64(n *node) (uint64, bool) {
-	if !apiNode(n, 3) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 {
+	if !apiNode(n, 3) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar64, true
+}
+
+func apiUInt8Node(value uint8) *node { return &node{typ: 4, scalar8: value, size: 1, depth: 1} }
+func apiReadUInt8(n *node) (uint8, bool) {
+	if !apiNode(n, 4) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
+		return 0, false
+	}
+	return n.scalar8, true
+}
+
+func apiUInt16Node(value uint16) *node { return &node{typ: 5, scalar16: value, size: 1, depth: 1} }
+func apiReadUInt16(n *node) (uint16, bool) {
+	if !apiNode(n, 5) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
+		return 0, false
+	}
+	return n.scalar16, true
 }
 
 func apiBoolNode(value bool) *node {
@@ -52,7 +68,7 @@ func apiBoolNode(value bool) *node {
 	return &node{typ: 1, tag: tag, size: 1, depth: 1}
 }
 func apiReadBool(n *node) (bool, bool) {
-	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
+	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
 		return false, false
 	}
 	return n.tag == 1, true
@@ -199,8 +215,138 @@ func (v Results) Mixed() (uint64, bool) {
 	return value, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natResults is the Lean structure Wide.Results, built by Wide.Results.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natResults struct {
+	Sum        uint64
+	Difference uint64
+	Product    uint64
+	Shifted    uint64
+	Equal      bool
+	Less       bool
+	LessEq     bool
+	Twice      uint64
+	Zero       uint64
+	Maximum    uint64
+	Wrapped    uint64
+	Above53    uint64
+	Mixed      uint64
+}
+
+// natCompute implements the Lean function Wide.compute.
+func natCompute(v1 uint64, v2 uint64) natResults {
+	return natResults{Sum: v1 + v2, Difference: v1 - v2, Product: v1 * v2, Shifted: v1 << (v2 & 63), Equal: v1 == v2, Less: v1 < v2, LessEq: v1 <= v2, Twice: v1 << 1, Zero: uint64(0), Maximum: uint64(18446744073709551615), Wrapped: uint64(1), Above53: uint64(9007199254740993), Mixed: natScalar(v1, v2)}
+}
+
+// natScalar implements the Lean function Wide.scalar.
+func natScalar(v1 uint64, v2 uint64) uint64 {
+	return (v1 + uint64(1)) * (v2 - uint64(1))
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putBool(v bool) *node {
+	n := a.next()
+	n.typ, n.size, n.depth = 1, 1, 1
+	if v {
+		n.tag = 1
+	}
+	return n
+}
+func (a *fastArena) putUInt64(v uint64) *node {
+	n := a.next()
+	n.typ, n.scalar64, n.size, n.depth = 3, v, 1, 1
+	return n
+}
+
+// fastPut2 builds the nodes of x in a.
+func fastPut2(a *fastArena, x natResults) *node {
+	n := a.next()
+	n.typ, n.tag = 2, 0
+	f := a.take(13)
+	f[0] = a.putUInt64(x.Sum)
+	f[1] = a.putUInt64(x.Difference)
+	f[2] = a.putUInt64(x.Product)
+	f[3] = a.putUInt64(x.Shifted)
+	f[4] = a.putBool(x.Equal)
+	f[5] = a.putBool(x.Less)
+	f[6] = a.putBool(x.LessEq)
+	f[7] = a.putUInt64(x.Twice)
+	f[8] = a.putUInt64(x.Zero)
+	f[9] = a.putUInt64(x.Maximum)
+	f[10] = a.putUInt64(x.Wrapped)
+	f[11] = a.putUInt64(x.Above53)
+	f[12] = a.putUInt64(x.Mixed)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab2 holds the 14 nodes of a Wide.Results value.
+type fastSlab2 struct {
+	nodes  [14]node
+	fields [13]*node
+}
+
+// fastOut2 converts x into fresh nodes.
+func fastOut2(x natResults) *node {
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut2(&a, x)
+}
+
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Wide.compute in every dimension.
+func fastCovers0(l Limits) bool {
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 14 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 17 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 20 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 22 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers0(l) {
+		return nil, false
+	}
+	x0, ok := apiReadUInt64(args[0])
+	if !ok {
+		return nil, false
+	}
+	x1, ok := apiReadUInt64(args[1])
+	if !ok {
+		return nil, false
+	}
+	return fastOut2(natCompute(x0, x1)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 uint64, a1 uint64, l Limits) (Results, error) {
+	if fastCovers0(l) {
+		x0 := a0
+		x1 := a1
+		return Results{v: Value{fastOut2(natCompute(x0, x1))}}, nil
+	}
 	out, err := Run([]Value{{n: apiUInt64Node(a0)}, {n: apiUInt64Node(a1)}}, l)
 	if err != nil {
 		return Results{}, err

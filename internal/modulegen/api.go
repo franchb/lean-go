@@ -15,15 +15,11 @@ type apiScalar struct {
 }
 
 func apiScalars(p *moduleir.Program) map[string]apiScalar {
-	scalars := map[string]apiScalar{"UInt32": {"uint32", "0", "apiUInt32Node", "apiReadUInt32"}}
-	if moduleir.HasUInt64(p.Schema) {
-		scalars["UInt64"] = apiScalar{"uint64", "0", "apiUInt64Node", "apiReadUInt64"}
-	}
-	if moduleir.HasUInt8(p.Schema) {
-		scalars["UInt8"] = apiScalar{"uint8", "0", "apiUInt8Node", "apiReadUInt8"}
-	}
-	if moduleir.HasUInt16(p.Schema) {
-		scalars["UInt16"] = apiScalar{"uint16", "0", "apiUInt16Node", "apiReadUInt16"}
+	scalars := map[string]apiScalar{
+		"UInt8":  {"uint8", "0", "apiUInt8Node", "apiReadUInt8"},
+		"UInt16": {"uint16", "0", "apiUInt16Node", "apiReadUInt16"},
+		"UInt32": {"uint32", "0", "apiUInt32Node", "apiReadUInt32"},
+		"UInt64": {"uint64", "0", "apiUInt64Node", "apiReadUInt64"},
 	}
 	for _, typ := range p.Types {
 		if canonicalAPIBool(typ) {
@@ -63,17 +59,7 @@ func (g *generator) emitAPI() ([]byte, error) {
 	if _, ok := e.scalars["Bool"]; ok {
 		typ := g.types["Bool"]
 		fmt.Fprintf(w, "func apiBoolNode(value bool)*node{tag:=0;if value{tag=1};return &node{typ:%d,tag:tag,size:1,depth:1}}\n", typ)
-		inactive := ""
-		if moduleir.HasUInt64(g.program.Schema) {
-			inactive = "||n.scalar64!=0"
-		}
-		if moduleir.HasUInt8(g.program.Schema) {
-			inactive += "||n.scalar8!=0"
-		}
-		if moduleir.HasUInt16(g.program.Schema) {
-			inactive += "||n.scalar16!=0"
-		}
-		fmt.Fprintf(w, "func apiReadBool(n *node)(bool,bool){if !apiNode(n,%d)||len(n.fields)!=0||n.scalar!=0%s||n.size!=1||n.depth!=1||(n.tag!=0&&n.tag!=1){return false,false};return n.tag==1,true}\n", typ, inactive)
+		fmt.Fprintf(w, "func apiReadBool(n *node)(bool,bool){if !apiNode(n,%d)||len(n.fields)!=0||n.scalar!=0||n.scalar64!=0||n.scalar8!=0||n.scalar16!=0||n.size!=1||n.depth!=1||(n.tag!=0&&n.tag!=1){return false,false};return n.tag==1,true}\n", typ)
 	}
 	for _, typ := range g.program.Types {
 		if _, scalar := e.scalars[typ.Name]; scalar {
@@ -192,17 +178,23 @@ func (e *apiEmitter) destructor(w *bytes.Buffer, typ moduleir.TypeDecl, ctor mod
 	fmt.Fprintf(w, "return %s,true}\n", strings.Join(values, ","))
 }
 
+// run writes the typed entry point of a root: it invokes Run or RunRoot,
+// after the native call of the fast path when the root is eligible.
 func (e *apiEmitter) run(w *bytes.Buffer, name string) {
 	root := e.g.functions[name].decl
 	fields := make([]string, len(root.Params))
 	for i, param := range root.Params {
 		fields[i] = param.Type
 	}
-	if moduleir.HasMultipleRoots(e.g.program.Schema) {
+	prelude, how := "", "and its existing limits."
+	if e.g.fast.eligible(name) {
+		prelude, how = e.fastPrelude(name), "and its existing limits, or natively\n// when the limits cover the root's static worst case."
+	}
+	if moduleir.HasMultipleRoots(e.g.program) {
 		entry := e.names.Entrypoints[name]
-		fmt.Fprintf(w, "// %s invokes its selected Lean root through RunRoot and its existing limits.\nfunc %s(%sl Limits)(%s,error){out,err:=RunRoot(%q,[]Value{", entry, entry, e.parameters(fields), e.names.Types[root.Result], name)
+		fmt.Fprintf(w, "// %s invokes its selected Lean root through RunRoot %s\nfunc %s(%sl Limits)(%s,error){\n%sout,err:=RunRoot(%q,[]Value{", entry, how, entry, e.parameters(fields), e.names.Types[root.Result], prelude, name)
 	} else {
-		fmt.Fprintf(w, "// RunTyped invokes the selected Lean root through Run and its existing limits.\nfunc RunTyped(%sl Limits)(%s,error){out,err:=Run([]Value{", e.parameters(fields), e.names.Types[root.Result])
+		fmt.Fprintf(w, "// RunTyped invokes the selected Lean root through Run %s\nfunc RunTyped(%sl Limits)(%s,error){\n%sout,err:=Run([]Value{", how, e.parameters(fields), e.names.Types[root.Result], prelude)
 	}
 	for i, field := range fields {
 		fmt.Fprintf(w, "{n:%s},", e.node(field, fmt.Sprintf("a%d", i)))

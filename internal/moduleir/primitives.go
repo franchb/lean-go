@@ -15,65 +15,45 @@ type Primitive struct {
 	Semantics string   `json:"semantics"`
 }
 
+// scalarBits are the admitted unsigned widths. Each width has the same
+// fourteen operations and one conversion to every other width.
+var scalarBits = map[string]int{"UInt8": 8, "UInt16": 16, "UInt32": 32, "UInt64": 64}
+
 // LookupPrimitive returns a fresh signature, so callers cannot mutate the catalog.
+// The names are exactly those of the producer's numericPrimitives table.
 func LookupPrimitive(name string) (Primitive, bool) {
-	switch name {
-	case "UInt8.toUInt16":
-		return Primitive{name, []string{"UInt8"}, "UInt16", "zero extension: a"}, true
-	case "UInt16.toUInt32":
-		return Primitive{name, []string{"UInt16"}, "UInt32", "zero extension: a"}, true
-	case "UInt16.toUInt8":
-		return Primitive{name, []string{"UInt16"}, "UInt8", "a modulo 2^8"}, true
-	case "UInt16.lor":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "bitwise OR of 16-bit operands"}, true
-	case "UInt16.xor":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "bitwise XOR of 16-bit operands"}, true
-	case "UInt16.shiftLeft":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "(a * 2^(b modulo 16)) modulo 2^16"}, true
-	case "UInt16.shiftRight":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "floor(a / 2^(b modulo 16))"}, true
-	case "UInt8.toUInt32":
-		return Primitive{name, []string{"UInt8"}, "UInt32", "zero extension: a"}, true
-	case "UInt32.toUInt8":
-		return Primitive{name, []string{"UInt32"}, "UInt8", "a modulo 2^8"}, true
-	case "UInt32.toUInt64":
-		return Primitive{name, []string{"UInt32"}, "UInt64", "zero extension: a"}, true
-	case "UInt64.toUInt32":
-		return Primitive{name, []string{"UInt64"}, "UInt32", "a modulo 2^32"}, true
-	}
 	width, operation, ok := strings.Cut(name, ".")
-	if !ok || (width != "UInt8" && width != "UInt32" && width != "UInt64") {
+	bits, scalar := scalarBits[width]
+	if !ok || !scalar {
 		return Primitive{}, false
 	}
-	bits := "32"
-	if width == "UInt8" {
-		bits = "8"
-	}
-	if width == "UInt64" {
-		bits = "64"
-	}
+	n := strconv.Itoa(bits)
 	result, semantics := width, ""
 	params := []string{width, width}
 	switch operation {
 	case "add":
-		semantics = "(a + b) modulo 2^" + bits
+		semantics = "(a + b) modulo 2^" + n
 	case "sub":
-		semantics = "(a - b) modulo 2^" + bits
+		semantics = "(a - b) modulo 2^" + n
 	case "mul":
-		semantics = "(a * b) modulo 2^" + bits
+		semantics = "(a * b) modulo 2^" + n
+	case "div":
+		semantics = "floor(a / b), and 0 when b = 0"
+	case "mod":
+		semantics = "a modulo b, and a when b = 0"
 	case "shiftLeft":
-		semantics = "(a * 2^(b modulo " + bits + ")) modulo 2^" + bits
+		semantics = "(a * 2^(b modulo " + n + ")) modulo 2^" + n
 	case "land":
-		semantics = "bitwise AND of " + bits + "-bit operands"
+		semantics = "bitwise AND of " + n + "-bit operands"
 	case "lor":
-		semantics = "bitwise OR of " + bits + "-bit operands"
+		semantics = "bitwise OR of " + n + "-bit operands"
 	case "xor":
-		semantics = "bitwise XOR of " + bits + "-bit operands"
+		semantics = "bitwise XOR of " + n + "-bit operands"
 	case "complement":
 		params = []string{width}
-		semantics = "(2^" + bits + " - 1) - a"
+		semantics = "(2^" + n + " - 1) - a"
 	case "shiftRight":
-		semantics = "floor(a / 2^(b modulo " + bits + "))"
+		semantics = "floor(a / 2^(b modulo " + n + "))"
 	case "decEq":
 		result, semantics = "Bool", "unsigned a == b"
 	case "decLt":
@@ -81,72 +61,38 @@ func LookupPrimitive(name string) (Primitive, bool) {
 	case "decLe":
 		result, semantics = "Bool", "unsigned a <= b"
 	default:
-		return Primitive{}, false
+		target, conversion := strings.CutPrefix(operation, "to")
+		targetBits, known := scalarBits[target]
+		if !conversion || !known || target == width {
+			return Primitive{}, false
+		}
+		params, result, semantics = []string{width}, target, "zero extension: a"
+		if targetBits < bits {
+			semantics = "a modulo 2^" + strconv.Itoa(targetBits)
+		}
 	}
 	return Primitive{name, params, result, semantics}, true
 }
 
-func isBitwisePrimitive(name string) bool {
-	switch name {
-	case "UInt32.land", "UInt32.lor", "UInt32.xor", "UInt32.complement", "UInt32.shiftRight",
-		"UInt64.land", "UInt64.lor", "UInt64.xor", "UInt64.complement", "UInt64.shiftRight":
-		return true
-	}
-	return false
+func unsupportedSchema(schema string) error {
+	return fmt.Errorf("unsupported module IR schema %q; regenerate it with the current lean-go tool (%s)", schema, Schema)
 }
 
-func validProfile(schema, profile string) bool {
-	switch schema {
-	case Schema:
-		return profile == Profile
-	case SchemaV3:
-		return profile == ProfileV2
-	case SchemaV4, SchemaV5:
-		return profile == ProfileV3
-	case SchemaV6:
-		return profile == ProfileV4
-	case SchemaV7:
-		return profile == ProfileV5
-	case SchemaV8:
-		return profile == ProfileV6
-	case SchemaV9:
-		return profile == ProfileV7
-	case SchemaV10:
-		return profile == ProfileV8
-	case SchemaV11:
-		return profile == ProfileV9
-	case SchemaV12:
-		return profile == ProfileV10
-	case SchemaV13:
-		return profile == ProfileV11
-	case SchemaV14:
-		return profile == ProfileV12
-	case SchemaV15:
-		return profile == ProfileV13
-	case SchemaV16:
-		return profile == ProfileV14
-	case SchemaV17:
-		return profile == ProfileV15
-	case SchemaV18:
-		return profile == ProfileV16
-	case SchemaV22:
-		return profile == ProfileV20
-	case SchemaV23:
-		return profile == ProfileV21
-	case SchemaV20:
-		return profile == ProfileV18
-	case SchemaV21:
-		return profile == ProfileV19
-	case SchemaV19:
-		return profile == ProfileV17
-	default:
-		return false
+// checkIdentity accepts only the current schema and profile. Earlier module IR
+// versions are not migrated: they must be regenerated with the current tool.
+func checkIdentity(schema, profile string) error {
+	if schema != Schema {
+		return unsupportedSchema(schema)
 	}
+	if profile != Profile {
+		return fmt.Errorf("unsupported module IR profile %q; regenerate it with the current lean-go tool (%s)", profile, Profile)
+	}
+	return nil
 }
 
 func (v *validator) validateNumericTypes() error {
 	constructors, exists := v.types["Bool"]
-	if !v.numeric || !exists {
+	if !exists {
 		return nil
 	}
 	if len(constructors) != 2 {
@@ -162,63 +108,24 @@ func (v *validator) validateNumericTypes() error {
 }
 
 func (v *validator) numericValue(value *Value) ([]string, string, error) {
-	if !v.numeric {
-		return nil, "", fmt.Errorf("value kind %q requires %s", value.Kind, ProfileV2)
-	}
-	if value.Kind == "uint8" {
-		if !v.bytes {
-			return nil, "", fmt.Errorf("UInt8 literals require %s or %s", ProfileV10, ProfileV11)
-		}
+	switch value.Kind {
+	case "uint8":
 		return nil, "UInt8", validateLiteral(value.Name, 8, 3)
-	}
-	if value.Kind == "uint16" {
-		if !v.uint16 {
-			return nil, "", fmt.Errorf("UInt16 literals require %s or %s", ProfileV12, ProfileV13)
-		}
+	case "uint16":
 		return nil, "UInt16", validateLiteral(value.Name, 16, 5)
-	}
-	if value.Kind == "uint32" {
+	case "uint32":
 		return nil, "UInt32", validateLiteral(value.Name, 32, 10)
-	}
-	if value.Kind == "uint64" {
-		if !v.wide {
-			return nil, "", fmt.Errorf("UInt64 literals require %s", ProfileV4)
-		}
+	case "uint64":
 		return nil, "UInt64", validateLiteral(value.Name, 64, 20)
 	}
-	return v.primitiveValue(value.Name)
-}
-
-// primitiveValue checks capability admission before type/argument validation.
-func (v *validator) primitiveValue(name string) ([]string, string, error) {
-	primitive, ok := LookupPrimitive(name)
+	primitive, ok := LookupPrimitive(value.Name)
 	if !ok {
-		return nil, "", fmt.Errorf("unknown primitive %s", name)
-	}
-	if name == "UInt16.xor" && !v.uint16Xor {
-		return nil, "", fmt.Errorf("UInt16.xor requires %s or %s", ProfileV16, ProfileV17)
-	}
-	if name == "UInt16.toUInt32" && !v.uint16ToUInt32 {
-		return nil, "", fmt.Errorf("UInt16.toUInt32 requires %s or %s", ProfileV14, ProfileV15)
-	}
-	if (primitive.Params[0] == "UInt16" || primitive.Result == "UInt16") && !v.uint16 {
-		return nil, "", fmt.Errorf("UInt16 primitives require %s or %s", ProfileV12, ProfileV13)
-	}
-	if (primitive.Params[0] == "UInt8" || primitive.Result == "UInt8") && !v.bytes {
-		return nil, "", fmt.Errorf("UInt8 primitives require %s or %s", ProfileV10, ProfileV11)
-	}
-	if (name == "UInt32.toUInt64" || name == "UInt64.toUInt32") && !v.conversions {
-		return nil, "", fmt.Errorf("width conversions require %s or %s", ProfileV8, ProfileV9)
-	}
-	if primitive.Params[0] == "UInt64" && !v.wide {
-		return nil, "", fmt.Errorf("UInt64 primitives require %s", ProfileV4)
-	}
-	if isBitwisePrimitive(name) && !v.bitwise {
-		return nil, "", fmt.Errorf("bitwise primitives require %s or %s", ProfileV6, ProfileV7)
+		return nil, "", fmt.Errorf("unknown primitive %s", value.Name)
 	}
 	if !v.validType(primitive.Result) {
 		return nil, "", fmt.Errorf("missing primitive result type %s", primitive.Result)
 	}
+	v.usePrimitive(primitive)
 	return primitive.Params, primitive.Result, nil
 }
 

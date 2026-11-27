@@ -1,5 +1,7 @@
 # UInt32 and UInt64 width conversions
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The alpha.7 candidate (`0.1.0a7`) admits exactly two new unary runtime leaves.
 The earlier alpha.6 CLI retains its earlier capability set.
 

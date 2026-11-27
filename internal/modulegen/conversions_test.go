@@ -9,10 +9,8 @@ import (
 
 func TestWidthConversionGeneratedPayloads(t *testing.T) {
 	p := testProgram()
-	p.Schema, p.Profile = moduleir.SchemaV11, moduleir.ProfileV9
-	p.Root, p.Roots = "", []string{"Example.narrow", "Example.widen"}
+	p.Roots = []string{"Example.narrow", "Example.widen"}
 	p.Types = []moduleir.TypeDecl{}
-	p.API = &moduleir.APIMetadata{Records: map[string][]string{}}
 	p.Functions = nil
 	p.Provenance = nil
 	for i, name := range p.Roots {
@@ -23,7 +21,7 @@ func TestWidthConversionGeneratedPayloads(t *testing.T) {
 		p.Functions = append(p.Functions, moduleir.Function{Name: name, Params: []moduleir.Param{{ID: 1, Type: operand}}, Result: result, Body: &moduleir.Code{Op: "let", Bind: &moduleir.Param{ID: 2, Type: result}, Value: &moduleir.Value{Kind: "primitive", Name: primitive, Args: []int{1}}, Next: &moduleir.Code{Op: "return", Var: 2}}})
 		p.Provenance = append(p.Provenance, moduleir.Provenance{Name: name, Dependencies: []string{}, Rewrites: []moduleir.Rewrite{}})
 	}
-	files, err := Generate(p)
+	files, err := generate(p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +37,7 @@ func TestWidthConversionGeneratedPayloads(t *testing.T) {
 	if err := json.Unmarshal(files["manifest.json"], &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Schema != "lean-go-manifest/v11" || manifest.Generator != Version || len(manifest.Primitives) != 2 {
+	if manifest.Schema != moduleir.ManifestSchema || manifest.Generator != Version || len(manifest.Primitives) != 2 {
 		t.Fatal(manifest)
 	}
 	runGenerated(t, files, `package extracted

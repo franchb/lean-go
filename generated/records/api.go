@@ -4,7 +4,7 @@ package extracted
 // apiNode checks an immutable handle without traversing or copying its children.
 func apiNode(n *node, typ int) bool { return n != nil && n.typ == typ && n.size != 0 && n.depth != 0 }
 func apiMatches(v Value, typ, tag, arity int) bool {
-	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0
+	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0 && v.n.scalar8 == 0 && v.n.scalar16 == 0
 }
 
 // apiMake owns the immediate field slice and shares immutable children. Cached
@@ -30,7 +30,7 @@ func apiMake(typ, tag int, fields []*node, l Limits) (Value, error) {
 
 func apiUInt32Node(value uint32) *node { return &node{typ: 0, scalar: value, size: 1, depth: 1} }
 func apiReadUInt32(n *node) (uint32, bool) {
-	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 {
+	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar, true
@@ -38,10 +38,26 @@ func apiReadUInt32(n *node) (uint32, bool) {
 
 func apiUInt64Node(value uint64) *node { return &node{typ: 6, scalar64: value, size: 1, depth: 1} }
 func apiReadUInt64(n *node) (uint64, bool) {
-	if !apiNode(n, 6) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 {
+	if !apiNode(n, 6) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar64, true
+}
+
+func apiUInt8Node(value uint8) *node { return &node{typ: 7, scalar8: value, size: 1, depth: 1} }
+func apiReadUInt8(n *node) (uint8, bool) {
+	if !apiNode(n, 7) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
+		return 0, false
+	}
+	return n.scalar8, true
+}
+
+func apiUInt16Node(value uint16) *node { return &node{typ: 8, scalar16: value, size: 1, depth: 1} }
+func apiReadUInt16(n *node) (uint16, bool) {
+	if !apiNode(n, 8) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
+		return 0, false
+	}
+	return n.scalar16, true
 }
 
 func apiBoolNode(value bool) *node {
@@ -52,7 +68,7 @@ func apiBoolNode(value bool) *node {
 	return &node{typ: 1, tag: tag, size: 1, depth: 1}
 }
 func apiReadBool(n *node) (bool, bool) {
-	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
+	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
 		return false, false
 	}
 	return n.tag == 1, true
@@ -172,8 +188,311 @@ func (v State) Raw() (uint32, bool) {
 	return value, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natCount is the Lean structure Records.Count, built by Records.Count.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natCount struct {
+	Value uint32
+}
+
+// natEnabled is the Lean structure Records.Enabled, built by Records.Enabled.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natEnabled struct {
+	Value bool
+}
+
+// natNested is the Lean structure Records.Nested, built by Records.Nested.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natNested struct {
+	Count natCount
+}
+
+// natState is the Lean structure Records.State, built by Records.State.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natState struct {
+	Count   natCount
+	Nested  natNested
+	Enabled natEnabled
+	Raw     uint32
+}
+
+// natAddCount implements the Lean function Records.addCount.
+func natAddCount(v1 natCount, v3 natCount) natCount {
+	return natCount{Value: v1.Value + v3.Value}
+}
+
+// natFlip implements the Lean function Records.flip.
+func natFlip(v1 natEnabled) natEnabled {
+	if v1.Value {
+		return natEnabled{Value: false}
+	}
+	return natEnabled{Value: true}
+}
+
+// natUpdate implements the Lean function Records.update.
+func natUpdate(v1 natState, v2 natCount) natState {
+	v14 := natAddCount(natCount{Value: v1.Count.Value}, natCount{Value: v2.Value})
+	v18 := natAddCount(natCount{Value: v1.Nested.Count.Value}, natCount{Value: v1.Count.Value})
+	v21 := natFlip(natEnabled{Value: v1.Enabled.Value})
+	return natState{Count: natCount{Value: v14.Value}, Nested: natNested{Count: natCount{Value: v18.Value}}, Enabled: natEnabled{Value: v21.Value}, Raw: v1.Raw + v2.Value}
+}
+
+// fastIn2 converts a well-formed Records.Count node; false means fall back.
+func fastIn2(n *node) (natCount, bool) {
+	if n == nil || n.typ != 2 || n.size == 0 || n.depth == 0 || n.size > 2 || n.depth > 2 {
+		return natCount{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natCount{}, false
+		}
+		a0, ok := apiReadUInt32(n.fields[0])
+		if !ok {
+			return natCount{}, false
+		}
+		return natCount{Value: a0}, true
+	}
+	return natCount{}, false
+}
+
+// fastIn4 converts a well-formed Records.Nested node; false means fall back.
+func fastIn4(n *node) (natNested, bool) {
+	if n == nil || n.typ != 4 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 3 {
+		return natNested{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natNested{}, false
+		}
+		a0, ok := fastIn2(n.fields[0])
+		if !ok {
+			return natNested{}, false
+		}
+		return natNested{Count: a0}, true
+	}
+	return natNested{}, false
+}
+
+// fastIn3 converts a well-formed Records.Enabled node; false means fall back.
+func fastIn3(n *node) (natEnabled, bool) {
+	if n == nil || n.typ != 3 || n.size == 0 || n.depth == 0 || n.size > 2 || n.depth > 2 {
+		return natEnabled{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natEnabled{}, false
+		}
+		a0, ok := apiReadBool(n.fields[0])
+		if !ok {
+			return natEnabled{}, false
+		}
+		return natEnabled{Value: a0}, true
+	}
+	return natEnabled{}, false
+}
+
+// fastIn5 converts a well-formed Records.State node; false means fall back.
+func fastIn5(n *node) (natState, bool) {
+	if n == nil || n.typ != 5 || n.size == 0 || n.depth == 0 || n.size > 9 || n.depth > 4 {
+		return natState{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 4 {
+			return natState{}, false
+		}
+		a0, ok := fastIn2(n.fields[0])
+		if !ok {
+			return natState{}, false
+		}
+		a1, ok := fastIn4(n.fields[1])
+		if !ok {
+			return natState{}, false
+		}
+		a2, ok := fastIn3(n.fields[2])
+		if !ok {
+			return natState{}, false
+		}
+		a3, ok := apiReadUInt32(n.fields[3])
+		if !ok {
+			return natState{}, false
+		}
+		return natState{Count: a0, Nested: a1, Enabled: a2, Raw: a3}, true
+	}
+	return natState{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putBool(v bool) *node {
+	n := a.next()
+	n.typ, n.size, n.depth = 1, 1, 1
+	if v {
+		n.tag = 1
+	}
+	return n
+}
+func (a *fastArena) putUInt32(v uint32) *node {
+	n := a.next()
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
+	return n
+}
+
+// fastPut2 builds the nodes of x in a.
+func fastPut2(a *fastArena, x natCount) *node {
+	n := a.next()
+	n.typ, n.tag = 2, 0
+	f := a.take(1)
+	f[0] = a.putUInt32(x.Value)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab2 holds the 2 nodes of a Records.Count value.
+type fastSlab2 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
+// fastOut2 converts x into fresh nodes.
+func fastOut2(x natCount) *node {
+	s := new(fastSlab2)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut2(&a, x)
+}
+
+// fastPut4 builds the nodes of x in a.
+func fastPut4(a *fastArena, x natNested) *node {
+	n := a.next()
+	n.typ, n.tag = 4, 0
+	f := a.take(1)
+	f[0] = fastPut2(a, x.Count)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab4 holds the 3 nodes of a Records.Nested value.
+type fastSlab4 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
+// fastOut4 converts x into fresh nodes.
+func fastOut4(x natNested) *node {
+	s := new(fastSlab4)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut4(&a, x)
+}
+
+// fastPut3 builds the nodes of x in a.
+func fastPut3(a *fastArena, x natEnabled) *node {
+	n := a.next()
+	n.typ, n.tag = 3, 0
+	f := a.take(1)
+	f[0] = a.putBool(x.Value)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab3 holds the 2 nodes of a Records.Enabled value.
+type fastSlab3 struct {
+	nodes  [2]node
+	fields [1]*node
+}
+
+// fastOut3 converts x into fresh nodes.
+func fastOut3(x natEnabled) *node {
+	s := new(fastSlab3)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut3(&a, x)
+}
+
+// fastPut5 builds the nodes of x in a.
+func fastPut5(a *fastArena, x natState) *node {
+	n := a.next()
+	n.typ, n.tag = 5, 0
+	f := a.take(4)
+	f[0] = fastPut2(a, x.Count)
+	f[1] = fastPut4(a, x.Nested)
+	f[2] = fastPut3(a, x.Enabled)
+	f[3] = a.putUInt32(x.Raw)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab5 holds the 9 nodes of a Records.State value.
+type fastSlab5 struct {
+	nodes  [9]node
+	fields [8]*node
+}
+
+// fastOut5 converts x into fresh nodes.
+func fastOut5(x natState) *node {
+	s := new(fastSlab5)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut5(&a, x)
+}
+
+// fastCovers2 reports whether l is valid and covers the static worst case of
+// Records.update in every dimension.
+func fastCovers2(l Limits) bool {
+	return 11 <= l.MaxNodes && l.MaxNodes <= 65536 && 4 <= l.MaxDepth && l.MaxDepth <= 4096 && 9 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 17 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 39 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 46 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers2(l) {
+		return nil, false
+	}
+	x0, ok := fastIn5(args[0])
+	if !ok {
+		return nil, false
+	}
+	x1, ok := fastIn2(args[1])
+	if !ok {
+		return nil, false
+	}
+	return fastOut5(natUpdate(x0, x1)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 State, a1 Count, l Limits) (State, error) {
+	if fastCovers2(l) {
+		x0, ok0 := fastIn5(a0.v.n)
+		x1, ok1 := fastIn2(a1.v.n)
+		if ok0 && ok1 {
+			return State{v: Value{fastOut5(natUpdate(x0, x1))}}, nil
+		}
+	}
 	out, err := Run([]Value{{n: a0.v.n}, {n: a1.v.n}}, l)
 	if err != nil {
 		return State{}, err

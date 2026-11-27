@@ -1,5 +1,5 @@
 {
-  "assurance": "Kernel-checked source statements; extraction and Go execution remain tested and trusted.",
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
   "claims": [
     {
       "axioms": [
@@ -8,7 +8,7 @@
       ],
       "expected": "WordsContract.high_pack",
       "name": "WordsProofs.high_pack",
-      "statement": "∀ (hi lo : UInt32), Words.high (Words.pack hi lo) = hi"
+      "statement": "∀ (hi : UInt32) (lo : UInt32), Eq UInt32 (Words.high (Words.pack hi lo)) hi"
     },
     {
       "axioms": [
@@ -17,13 +17,13 @@
       ],
       "expected": "WordsContract.low_pack",
       "name": "WordsProofs.low_pack",
-      "statement": "∀ (hi lo : UInt32), Words.low (Words.pack hi lo) = lo"
+      "statement": "∀ (hi : UInt32) (lo : UInt32), Eq UInt32 (Words.low (Words.pack hi lo)) lo"
     },
     {
       "axioms": [],
       "expected": "WordsContract.narrow_truncates",
       "name": "WordsProofs.narrow_truncates",
-      "statement": "∀ (word : UInt64), (Words.narrow word).toNat = word.toNat % 2 ^ 32"
+      "statement": "∀ (word : UInt64), Eq Nat (UInt32.toNat (Words.narrow word)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (UInt64.toNat word) (HPow.hPow Nat Nat Nat (instHPow Nat Nat (instPowNat Nat instNatPowNat)) (OfNat.ofNat Nat 2 (instOfNatNat 2)) (OfNat.ofNat Nat 32 (instOfNatNat 32))))"
     },
     {
       "axioms": [
@@ -31,7 +31,7 @@
       ],
       "expected": "WordsContract.narrow_widen",
       "name": "WordsProofs.narrow_widen",
-      "statement": "∀ (word : UInt32), Words.narrow (Words.widen word) = word"
+      "statement": "∀ (word : UInt32), Eq UInt32 (Words.narrow (Words.widen word)) word"
     },
     {
       "axioms": [
@@ -40,7 +40,7 @@
       ],
       "expected": "WordsContract.pack_unpack",
       "name": "WordsProofs.pack_unpack",
-      "statement": "∀ (word : UInt64), Words.pack (Words.high word) (Words.low word) = word"
+      "statement": "∀ (word : UInt64), Eq UInt64 (Words.pack (Words.high word) (Words.low word)) word"
     },
     {
       "axioms": [
@@ -48,17 +48,17 @@
       ],
       "expected": "WordsContract.widen_narrow",
       "name": "WordsProofs.widen_narrow",
-      "statement": "∀ (word : UInt64), Words.widen (Words.narrow word) = word % 4294967296"
+      "statement": "∀ (word : UInt64), Eq UInt64 (Words.widen (Words.narrow word)) (HMod.hMod UInt64 UInt64 UInt64 (instHMod UInt64 instModUInt64) word (OfNat.ofNat UInt64 4294967296 (UInt64.instOfNat 4294967296)))"
     },
     {
       "axioms": [],
       "expected": "WordsContract.widen_preserves",
       "name": "WordsProofs.widen_preserves",
-      "statement": "∀ (word : UInt32), (Words.widen word).toNat = word.toNat"
+      "statement": "∀ (word : UInt32), Eq Nat (UInt64.toNat (Words.widen word)) (UInt32.toNat word)"
     }
   ],
   "contract_sha256": "8494cf05df9c4fac542270b442b7cba0c8ea286686420174f3c54c72a9cf52e0",
-  "generated_manifest_sha256": "6f8903454639397b28e93ac6628d43de2495b2e4e1ad864eda2acc23d74187f1",
+  "generated_manifest_sha256": "34cf7eeb69959c6e09c3c38e9b80f6345ccac67fae31567dbf166ee5990cac81",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Words",
@@ -74,17 +74,11 @@
     "Words.pack",
     "Words.widen"
   ],
-  "schema": "lean-go-proof-evidence/v1",
+  "schema": "lean-go-proof-evidence/v3",
   "tool_inputs": {
-    "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "scripts/check_proofs.py": "238d240002fd5f7390273a658fe7826569cc0b92ebd9180f467c34b47eb0731c",
-    "scripts/composition_contract.py": "0dd5148c94ec44ebcf962fc2fa6b55d1dd2d4af74ecd95c3fc184d8ea8d7b1f8",
-    "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-    "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-    "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
-    "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-    "scripts/proof_contract.py": "cfc5387c32127842ef19e63b132a097e0ae23104465e85d45c6f2dcf467f00a3",
-    "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b"
+    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
+    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
   }
 }

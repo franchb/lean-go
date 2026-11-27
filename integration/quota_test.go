@@ -202,19 +202,9 @@ func TestQuotaRegeneration(t *testing.T) {
 	if os.Getenv("LEAN_GO_REGENERATE") != "1" {
 		t.Skip("set LEAN_GO_REGENERATE=1 for quota regeneration")
 	}
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	dir := t.TempDir()
 	out, ir := filepath.Join(dir, "quota"), filepath.Join(dir, "quota.ir.json")
-	args := []string{"run", "--locked", "python", "scripts/generate.py", "--source-dir", "libraries/quota/source", "--module", "Quota",
-		"--root", "Quota.reserve", "--root", "Quota.remaining", "--root", "Quota.release", "--root", "Quota.create", "--out", out, "--ir-output", ir}
-	cmd := exec.Command("uv", args...)
-	cmd.Dir, cmd.Env = root, commandEnv(nil)
-	if log, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("regeneration: %v\n%s", err, log)
-	}
+	generateWithCLI(t, "libraries/quota/source", "Quota", out, ir, "Quota.reserve", "Quota.remaining", "Quota.release", "Quota.create")
 	actual, err := os.ReadFile(ir)
 	if err != nil {
 		t.Fatal(err)

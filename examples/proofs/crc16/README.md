@@ -46,15 +46,14 @@ check bytes, empty input and chunk splits. [Specification](proof/Crc16Contract.l
 
 ## Reproduce the evidence
 
-Use the CLI built from this checkout. The byte and chunk roots use generator v18 and v21 multi-root IR. From the repository root, with Go 1.27.4 and
+Use the CLI built from this checkout. The byte and chunk roots use generator v20 and `lean-go-ir/v24`. From the repository root, with Go 1.27.4 and
 Lean 4.36.0 available, run
 
 ```sh
-uv sync --locked --reinstall-package lean-go-tools
-uv run --locked python scripts/check_crc16_demo.py --cli "$PWD/.venv/bin/lean-go"
+go run ./cmd/lean-go-dev installed-cli --demo crc16
 ```
 
-The verifier regenerates the package, IR and proof evidence, checks their
+The check builds the checkout's lean-go, regenerates the package, IR and proof evidence, checks their
 bytes against the tracked files, rechecks both theorems and then runs the
 consumer with cgo disabled and only Go on its executable path. The compiler
 compatibility workflow repeats generation and both theorem checks on Lean

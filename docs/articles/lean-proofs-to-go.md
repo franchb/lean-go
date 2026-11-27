@@ -1,5 +1,7 @@
 # From Lean source proofs to a Go package you can copy
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 A small function is enough to show the whole handoff: write ordinary Lean code,
 state its requirements independently, check the proofs, generate Go, and call
 that Go from an application with no Lean runtime. The
@@ -97,8 +99,8 @@ lean-go check-proofs --contract proof-contract.json --manifest clamp/manifest.js
 
 Generation compiles snapshotted source in a fresh producer workspace, validates
 the supported compiler representation, and emits a Go package plus manifest.
-It records IR in `clamp.ir.json`. The manifest identifies profile
-`pure-module/v4`, IR `lean-go-ir/v6`, and generator `lean-go-modulegen/v8`, with
+It records IR in `clamp.ir.json`. The manifest identifies the module profile,
+IR schema and generator of that release, with
 hashes of the generator, validator, source inputs and generated files. The pinned
 Lean identity is commit `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, not merely a
 matching version string.

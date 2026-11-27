@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"go/format"
 	"sort"
-	"strings"
 
 	"github.com/franchb/lean-go/internal/moduleir"
 )
@@ -18,7 +17,7 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v18"
+const Version = "lean-go-modulegen/v20"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -36,16 +35,36 @@ type generator struct {
 	types        map[string]int
 	constructors map[string]constructor
 	functions    map[string]*function
+	options      generateOptions
+	fast         *fastPlan // nil when no root takes the fast path
 }
 type constructor struct{ typ, tag int }
 
 // Generate validates the supplied IR before emitting any output. Source identity
 // metadata is not authentication; use the source producer for Lean admission.
 func Generate(p *moduleir.Program) (map[string][]byte, error) {
+	return generateWith(p, generateOptions{})
+}
+
+// GenerateStateMachine is Generate without the fast path: every root runs on
+// the explicit-stack state machine (scalar roots on the exactly metered
+// scalar entry, byte folds on their own entry), as before
+// lean-go-modulegen/v20. Differential tests use it as the metered oracle so
+// that the two sides they compare share no generated code: the fast path
+// embeds the native emitter's output. Generate is the metered output.
+func GenerateStateMachine(p *moduleir.Program) (map[string][]byte, error) {
+	return generateWith(p, generateOptions{stateMachine: true})
+}
+
+func generateWith(p *moduleir.Program, options generateOptions) (map[string][]byte, error) {
 	if err := moduleir.Validate(p); err != nil {
 		return nil, fmt.Errorf("validate module IR: %w", err)
 	}
 	g := newGenerator(p)
+	g.options = options
+	if !options.stateMachine {
+		g.fast = g.planFastPath()
+	}
 	var schema, control bytes.Buffer
 	g.emitSchema(&schema)
 	g.emitControl(&control)
@@ -53,15 +72,12 @@ func Generate(p *moduleir.Program) (map[string][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	files := map[string][]byte{"runtime.go": runtime, "schema.go": schema.Bytes(), "control.go": control.Bytes()}
-	if moduleir.HasTypedAPI(p.Schema) {
-		g.api = newGoAPI(p)
-		api, err := g.emitAPI()
-		if err != nil {
-			return nil, err
-		}
-		files["api.go"] = api
+	g.api = newGoAPI(p)
+	api, err := g.emitAPI()
+	if err != nil {
+		return nil, err
 	}
+	files := map[string][]byte{"runtime.go": runtime, "schema.go": schema.Bytes(), "control.go": control.Bytes(), "api.go": api}
 	for name, data := range files {
 		formatted, err := format.Source(data)
 		if err != nil {
@@ -84,15 +100,10 @@ func newGenerator(p *moduleir.Program) *generator {
 			g.constructors[c.Name] = constructor{i + 1, c.Tag}
 		}
 	}
-	if moduleir.HasUInt64(p.Schema) {
-		g.types["UInt64"] = len(p.Types) + 1
-	}
-	if moduleir.HasUInt8(p.Schema) {
-		g.types["UInt8"] = len(p.Types) + 2
-	}
-	if moduleir.HasUInt16(p.Schema) {
-		g.types["UInt16"] = len(p.Types) + 3
-	}
+	// Every package has the same four scalar runtime types after source types.
+	g.types["UInt64"] = len(p.Types) + 1
+	g.types["UInt8"] = len(p.Types) + 2
+	g.types["UInt16"] = len(p.Types) + 3
 	for i, d := range p.Functions {
 		f := &function{decl: d, id: i, states: map[*moduleir.Code]int{}, slots: map[int]int{}, joins: map[int]*moduleir.Join{}}
 		for _, param := range d.Params {
@@ -141,14 +152,8 @@ func (g *generator) emitSchema(w *bytes.Buffer) {
 	for _, t := range g.program.Types {
 		fmt.Fprintf(w, "case %d:return %q\n", g.types[t.Name], t.Name)
 	}
-	if moduleir.HasUInt64(g.program.Schema) {
-		fmt.Fprintf(w, "case %d:return %q\n", g.types["UInt64"], "UInt64")
-	}
-	if moduleir.HasUInt8(g.program.Schema) {
-		fmt.Fprintf(w, "case %d:return %q\n", g.types["UInt8"], "UInt8")
-	}
-	if moduleir.HasUInt16(g.program.Schema) {
-		fmt.Fprintf(w, "case %d:return %q\n", g.types["UInt16"], "UInt16")
+	for _, scalar := range []string{"UInt64", "UInt8", "UInt16"} {
+		fmt.Fprintf(w, "case %d:return %q\n", g.types[scalar], scalar)
 	}
 	w.WriteString("};return \"\"}\n")
 	w.WriteString("func constructorName(t,tag int)string{switch t{\n")
@@ -180,35 +185,14 @@ func (g *generator) emitSchema(w *bytes.Buffer) {
 	g.emitRootMetadata(w)
 }
 func (g *generator) emitInputShape(w *bytes.Buffer) {
-	wide := moduleir.HasUInt64(g.program.Schema)
-	inactive32, inactiveADT, inactive64 := "", "", ""
-	if wide {
-		inactive32 = "&&in.UInt64==0"
-		inactiveADT = "||in.UInt64!=0"
-	}
-	shapeName := "inputShape"
-	if moduleir.HasUInt8(g.program.Schema) {
-		inactive32 += "&&in.UInt8==0"
-		inactive64 = "&&in.UInt8==0"
-		inactiveADT += "||in.UInt8!=0"
-		w.WriteString("func inputShape(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};")
-		inactive8 := ""
-		if moduleir.HasUInt16(g.program.Schema) {
-			inactive8 = "&&in.UInt16==0"
-			inactive32 += inactive8
-			inactive64 += inactive8
-			inactiveADT += "||in.UInt16!=0"
-			fmt.Fprintf(w, "if in.Type==\"UInt16\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt8==0&&in.UInt32==0&&in.UInt64==0};", g.types["UInt16"])
-		}
-		fmt.Fprintf(w, "if in.Type==\"UInt8\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt32==0&&in.UInt64==0%s};return inputOtherShape(in)}\n", g.types["UInt8"], inactive8)
-		shapeName = "inputOtherShape"
-	}
-	fmt.Fprintf(w, "func %s(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};switch in.Type{case \"UInt32\":return 0,0,in.Constructor==\"\"&&len(in.Fields)==0%s\n", shapeName, inactive32)
-	if wide {
-		fmt.Fprintf(w, "case \"UInt64\":return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt32==0%s\n", g.types["UInt64"], inactive64)
-	}
+	// Each scalar accepts only its own payload; ADTs require all payloads zero.
+	w.WriteString("func inputShape(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};")
+	fmt.Fprintf(w, "if in.Type==\"UInt16\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt8==0&&in.UInt32==0&&in.UInt64==0};", g.types["UInt16"])
+	fmt.Fprintf(w, "if in.Type==\"UInt8\"{return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt32==0&&in.UInt64==0&&in.UInt16==0};return inputOtherShape(in)}\n", g.types["UInt8"])
+	w.WriteString("func inputOtherShape(in *Input)(int,int,bool){if len(in.Type)>512||len(in.Constructor)>512{return 0,0,false};switch in.Type{case \"UInt32\":return 0,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt64==0&&in.UInt8==0&&in.UInt16==0\n")
+	fmt.Fprintf(w, "case \"UInt64\":return %d,0,in.Constructor==\"\"&&len(in.Fields)==0&&in.UInt32==0&&in.UInt8==0&&in.UInt16==0\n", g.types["UInt64"])
 	for _, t := range g.program.Types {
-		fmt.Fprintf(w, "case %q:if in.UInt32!=0%s{return 0,0,false};switch in.Constructor{\n", t.Name, inactiveADT)
+		fmt.Fprintf(w, "case %q:if in.UInt32!=0||in.UInt64!=0||in.UInt8!=0||in.UInt16!=0{return 0,0,false};switch in.Constructor{\n", t.Name)
 		for _, c := range t.Constructors {
 			fmt.Fprintf(w, "case %q:return %d,%d,len(in.Fields)==%d\n", c.Name, g.types[t.Name], c.Tag, len(c.Fields))
 		}
@@ -300,27 +284,19 @@ func (g *generator) manifest(files map[string][]byte) ([]byte, error) {
 		constructors[n] = [2]int{c.typ, c.tag}
 	}
 	manifest := struct {
-		Schema          string                `json:"schema"`
-		Generator       string                `json:"generator"`
-		GeneratorSource string                `json:"generator_source_sha256"`
-		ValidatorSource string                `json:"validator_source_sha256"`
-		IR              string                `json:"ir_sha256"`
-		Program         *moduleir.Program     `json:"program"`
-		Functions       map[string]int        `json:"function_ids"`
-		Constructors    map[string][2]int     `json:"constructor_ids"`
-		Files           map[string]string     `json:"generated_files"`
-		Evidence        string                `json:"evidence"`
-		Primitives      *[]moduleir.Primitive `json:"primitives,omitempty"`
-		GoAPI           *goAPI                `json:"go_api,omitempty"`
-	}{Schema: strings.Replace(g.program.Schema, "lean-go-ir/", "lean-go-manifest/", 1), Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately."}
-	// Every validated module schema uses the corresponding manifest version.
-	if g.program.Schema != moduleir.Schema {
-		primitives := g.primitiveCatalog()
-		manifest.Primitives = &primitives
-	}
-	if moduleir.HasTypedAPI(g.program.Schema) {
-		manifest.GoAPI = g.api
-	}
+		Schema          string               `json:"schema"`
+		Generator       string               `json:"generator"`
+		GeneratorSource string               `json:"generator_source_sha256"`
+		ValidatorSource string               `json:"validator_source_sha256"`
+		IR              string               `json:"ir_sha256"`
+		Program         *moduleir.Program    `json:"program"`
+		Functions       map[string]int       `json:"function_ids"`
+		Constructors    map[string][2]int    `json:"constructor_ids"`
+		Files           map[string]string    `json:"generated_files"`
+		Evidence        string               `json:"evidence"`
+		Primitives      []moduleir.Primitive `json:"primitives"`
+		GoAPI           *goAPI               `json:"go_api"`
+	}{Schema: moduleir.ManifestSchema, Generator: Version, GeneratorSource: SourceDigest(), ValidatorSource: moduleir.SourceDigest(), IR: digest(canonical), Program: g.program, Functions: functions, Constructors: constructors, Files: hashes, Evidence: "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.", Primitives: g.primitiveCatalog(), GoAPI: g.api}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return nil, err

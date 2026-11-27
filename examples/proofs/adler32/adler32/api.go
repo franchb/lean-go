@@ -140,6 +140,135 @@ func (v List_UInt8) AsCons() (uint8, List_UInt8, bool) {
 	return a0, a1, true
 }
 
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natState is the Lean structure Adler32.State, built by Adler32.State.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natState struct {
+	Low  uint32
+	High uint32
+}
+
+// natChecksum implements the Lean function Adler32.checksum.
+func natChecksum(v1 natState) uint32 {
+	return (v1.High << 16) | v1.Low
+}
+
+// natInitial implements the Lean function Adler32.initial.
+func natInitial() natState {
+	return natState{Low: uint32(1), High: uint32(0)}
+}
+
+// fastIn1 converts a well-formed Adler32.State node; false means fall back.
+func fastIn1(n *node) (natState, bool) {
+	if n == nil || n.typ != 1 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 2 {
+		return natState{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 2 {
+			return natState{}, false
+		}
+		a0, ok := apiReadUInt32(n.fields[0])
+		if !ok {
+			return natState{}, false
+		}
+		a1, ok := apiReadUInt32(n.fields[1])
+		if !ok {
+			return natState{}, false
+		}
+		return natState{Low: a0, High: a1}, true
+	}
+	return natState{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putUInt32(v uint32) *node {
+	n := a.next()
+	n.typ, n.scalar, n.size, n.depth = 0, v, 1, 1
+	return n
+}
+
+// fastPut1 builds the nodes of x in a.
+func fastPut1(a *fastArena, x natState) *node {
+	n := a.next()
+	n.typ, n.tag = 1, 0
+	f := a.take(2)
+	f[0] = a.putUInt32(x.Low)
+	f[1] = a.putUInt32(x.High)
+	n.fields = f
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab1 holds the 3 nodes of a Adler32.State value.
+type fastSlab1 struct {
+	nodes  [3]node
+	fields [2]*node
+}
+
+// fastOut1 converts x into fresh nodes.
+func fastOut1(x natState) *node {
+	s := new(fastSlab1)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut1(&a, x)
+}
+
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Adler32.checksum in every dimension.
+func fastCovers0(l Limits) bool {
+	return 3 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 3 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 5 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 6 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Adler32.initial in every dimension.
+func fastCovers1(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 2 <= l.MaxDepth && l.MaxDepth <= 4096 && 3 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 3 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 4 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 3 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root with function id entry natively when it is eligible,
+// l covers its bound and every argument converts.
+func fastRun(entry int, args []*node, l Limits) (*node, bool) {
+	switch entry {
+	case 0:
+		if !fastCovers0(l) {
+			return nil, false
+		}
+		x0, ok := fastIn1(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt32Node(natChecksum(x0)), true
+	case 1:
+		if !fastCovers1(l) {
+			return nil, false
+		}
+		return fastOut1(natInitial()), true
+	}
+	return nil, false
+}
+
 // scalarWork charges the same IR steps and logical scalar allocations as execute.
 func (b *budget) scalarWork(steps, allocations uint64) bool {
 	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
@@ -150,8 +279,15 @@ func (b *budget) scalarWork(steps, allocations uint64) bool {
 	return true
 }
 
-// RunChecksum invokes its selected Lean root through RunRoot and its existing limits.
+// RunChecksum invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunChecksum(a0 State, l Limits) (uint32, error) {
+	if fastCovers0(l) {
+		x0, ok0 := fastIn1(a0.v.n)
+		if ok0 {
+			return natChecksum(x0), nil
+		}
+	}
 	out, err := RunRoot("Adler32.checksum", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return 0, err
@@ -163,8 +299,12 @@ func RunChecksum(a0 State, l Limits) (uint32, error) {
 	return value, nil
 }
 
-// RunInitial invokes its selected Lean root through RunRoot and its existing limits.
+// RunInitial invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunInitial(l Limits) (State, error) {
+	if fastCovers1(l) {
+		return State{v: Value{fastOut1(natInitial())}}, nil
+	}
 	out, err := RunRoot("Adler32.initial", []Value{}, l)
 	if err != nil {
 		return State{}, err

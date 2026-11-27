@@ -1,0 +1,58 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "DemoHeader",
+  "roots": [
+    "DemoHeader.classify",
+    "DemoHeader.parse",
+    "DemoHeader.serialize",
+    "DemoHeader.validate"
+  ],
+  "claims": [
+    {
+      "theorem": "DemoHeaderProofs.parse_ok_iff",
+      "expected": "DemoHeaderContract.parse_ok_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.parse_versionMismatch_iff",
+      "expected": "DemoHeaderContract.parse_versionMismatch_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.parse_reservedNonzero_iff",
+      "expected": "DemoHeaderContract.parse_reservedNonzero_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.accepts_iff",
+      "expected": "DemoHeaderContract.accepts_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.validate_valid_iff",
+      "expected": "DemoHeaderContract.validate_valid_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.validate_flagsTooWide_iff",
+      "expected": "DemoHeaderContract.validate_flagsTooWide_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.parse_serialize",
+      "expected": "DemoHeaderContract.parse_serialize"
+    },
+    {
+      "theorem": "DemoHeaderProofs.serialize_parse",
+      "expected": "DemoHeaderContract.serialize_parse"
+    },
+    {
+      "theorem": "DemoHeaderProofs.parse_validate",
+      "expected": "DemoHeaderContract.parse_validate"
+    },
+    {
+      "theorem": "DemoHeaderProofs.payload_need_more_iff",
+      "expected": "DemoHeaderContract.payload_need_more_iff"
+    },
+    {
+      "theorem": "DemoHeaderProofs.payload_complete_iff",
+      "expected": "DemoHeaderContract.payload_complete_iff"
+    }
+  ]
+}

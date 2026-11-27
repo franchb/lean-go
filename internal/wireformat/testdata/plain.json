@@ -1,0 +1,7 @@
+{
+  "name": "plain",
+  "description": "No constraints at all: every 4-byte string is accepted and every value is valid.",
+  "fields": [
+    {"name": "value", "type": "uint32", "endian": "little"}
+  ]
+}

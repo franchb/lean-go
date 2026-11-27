@@ -7,7 +7,6 @@ import (
 	"github.com/franchb/lean-go/internal/moduleir"
 )
 
-// The same runtime templates retain the earlier profiles' source shape.
 func (g *generator) renderTemplate(name string) ([]byte, error) {
 	source, err := templates.ReadFile("templates/" + name)
 	if err != nil {
@@ -17,22 +16,20 @@ func (g *generator) renderTemplate(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Every package has the full scalar runtime. Only the root count still
+	// selects between the Run and RunRoot entrypoint shapes.
 	data := struct {
-		Wide       bool
-		Bytes      bool
-		UInt16     bool
 		UInt8Type  int
 		UInt16Type int
 		UInt64Type int
 		MultiRoot  bool
+		Fast       bool
 	}{
-		Wide:       moduleir.HasUInt64(g.program.Schema),
-		Bytes:      moduleir.HasUInt8(g.program.Schema),
-		UInt16:     moduleir.HasUInt16(g.program.Schema),
 		UInt8Type:  g.types["UInt8"],
 		UInt16Type: g.types["UInt16"],
 		UInt64Type: g.types["UInt64"],
-		MultiRoot:  moduleir.HasMultipleRoots(g.program.Schema),
+		MultiRoot:  moduleir.HasMultipleRoots(g.program),
+		Fast:       g.fast != nil,
 	}
 	var out bytes.Buffer
 	if err := parsed.Execute(&out, data); err != nil {

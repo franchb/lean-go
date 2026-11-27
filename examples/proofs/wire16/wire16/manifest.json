@@ -1,12 +1,12 @@
 {
-  "schema": "lean-go-manifest/v17",
-  "generator": "lean-go-modulegen/v18",
-  "generator_source_sha256": "2f86ed3d68c5fc502c35cfc2f718c41c4e52145d356aca5a0d64bb36ccbb9976",
-  "validator_source_sha256": "e81a96c8f13521c82a46dc918d2624916753c8ed1b6b714bf8faba82119997cc",
-  "ir_sha256": "631c85c2da02f610c102e98940e000af5b1414af08f08f21dad3620f2b3e9790",
+  "schema": "lean-go-manifest/v24",
+  "generator": "lean-go-modulegen/v20",
+  "generator_source_sha256": "5d1a3e11ada9e3be8c90559f2c14f620ffbd9e4c6660ce121b9d2b88945e4e9d",
+  "validator_source_sha256": "d6bd18ba4e7d84e95051ce15b95d4d32d2945ace3da795f8c5ea62528e79d456",
+  "ir_sha256": "1e2ef293fd87574ea0b9cefc79f9f2d719e91bc1d4302d729a07a75164871fc4",
   "program": {
-    "schema": "lean-go-ir/v17",
-    "profile": "pure-module/v15",
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
     "stage": "pure-mono",
     "lean_version": "4.36.0",
     "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
@@ -18,22 +18,25 @@
       "Wire16.encodeBE",
       "Wire16.parse"
     ],
+    "features": [
+      "bitwise",
+      "uint16",
+      "uint32",
+      "uint8",
+      "width_conversion"
+    ],
     "inputs": {
       "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
       "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
-      "producer/LeanGo/Module/Export.lean": "f5edc14f5fa343117e5733bbfeeefd15b712382ab65276305fb418c061a4fb02",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
       "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
       "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
       "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
-      "producer/LeanGo/Module/Primitives.lean": "3dbb9443255ba8d052ac5906ca890053c56bfe41df14169cf0fa3c2f5779b0fe",
+      "producer/LeanGo/Module/Primitives.lean": "fc57dc3e82c4a90f2f390a67655eaac8e96891779bc31d99bc3b0afd2925e018",
       "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
-      "scripts/diagnostics.py": "2783a301ec1dfa5aed18e44551de990f7b309270fa9ec28ecfe002a8f9b6e101",
-      "scripts/export.py": "af3a3a3fb306c512bfc1baf89fa661baf546a70de4e544ef2acdb3baf8a76a8f",
-      "scripts/export_module.py": "3dd7fd78ce001444cb3e55895987fafc73f8090cfcc0749be51dc85ee590e779",
-      "scripts/module_diagnostics.py": "55f34e073f61c5927b1058899e01ff611592830ad927e0d3de502942f0a021d4",
-      "scripts/source_locations.py": "9c23b37d1520be51e0109f26fe47f2171256ee3c14367f766c19a8884003150b",
-      "source/Wire16.lean": "8be7b9483b947fb9f7daf92986312659e5aa4bdbf37fac3a9454a817dec6eef4"
+      "source/Wire16.lean": "8be7b9483b947fb9f7daf92986312659e5aa4bdbf37fac3a9454a817dec6eef4",
+      "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d"
     },
     "types": [
       {
@@ -1260,9 +1263,9 @@
     ]
   },
   "generated_files": {
-    "api.go": "92a82cbad9349e24fbc52548a1053fd25dab65920928b2c154bae507a1122256",
+    "api.go": "038d2be4a43cf82443f0e48eec0239c803c6c8e3c086e459f09381c24923a635",
     "control.go": "4e4543ced1070a084419efbe6f08aa9b46f72636dd5a9d3adf76591a2c0e09bb",
-    "runtime.go": "44bbc7953117b3e07297bf8600f3c226e161fd48aac8f8408ec0e5b405c86569",
+    "runtime.go": "be94582273daaa7e3d45f2f426535ce75c3d793d24b1df1b53fc21abd8228fc5",
     "schema.go": "04da85983af8ee69fb756f008fadabaf1af69474e0b616b2b6662133ec09571b"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",

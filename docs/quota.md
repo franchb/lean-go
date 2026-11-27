@@ -2,8 +2,8 @@
 
 `github.com/franchb/lean-go/quota` is an immutable counter with a fixed `uint64`
 capacity. It is available starting with `v0.1.0-alpha.3`. Consumers need Go 1.27.4
-and can build with `CGO_ENABLED=0`. They do not need Lean, Python, a C compiler or
-a native library.
+and can build with `CGO_ENABLED=0`. They do not need Lean, a C compiler or a
+native library.
 
 ```go
 import "github.com/franchb/lean-go/quota"
@@ -70,18 +70,20 @@ Quota uses the shared [proof-contract workflow](proof-contracts.md). Its
 [contract](../libraries/quota/proof-contract.json) maps the theorems to raw
 [expected propositions](../libraries/quota/proof/QuotaContract.lean), maintained
 separately from the proofs. The checker rebuilds the exact runtime and proof sources in a fresh,
-dependency-free project using the selected Lean compiler. It compares each theorem's type with an
-independently written expected proposition and collects its axiom dependencies.
+dependency-free project using the selected Lean compiler. In a separate process that imports none of
+those modules, it replays their declarations through the kernel, has the kernel check each theorem
+against an independently written expected proposition, and collects its axiom dependencies.
 Only `propext`, `Classical.choice` and `Quot.sound` are allowed; current proofs use
 only `propext` and `Quot.sound`. Admitted proofs, custom axioms and compiler-trust
 axioms are rejected. No project build scripts or precompiled local proofs are
 reused.
 
 [Proof evidence](../libraries/quota/proof-evidence.json) uses the shared
-`lean-go-proof-evidence/v1` schema. It records exact theorem statements, expected
+`lean-go-proof-evidence/v3` schema. It records the checked theorem statements, expected
 definition names, axiom lists, Lean identity, contract/source/proof/checker hashes and the
 generated manifest hash. Checking also verifies the selected roots, runtime
-source hash and hashes of the four generated Go files. The normal module IR
+source hash and hashes of the four generated Go files, and that exporting and
+emitting the sources again reproduces the package byte for byte. The normal module IR
 does not acquire application theorem claims; this is separate source evidence.
 
 The Lean kernel checks the source statements. The pinned Lean compiler, module
@@ -91,11 +93,14 @@ preserves semantics. Source elaboration is trusted, as for other module exports.
 
 ## Reproduce the checks
 
-Use the repository's pinned Lean, Go 1.27.4, and Python 3.15 through `uv`:
+Use the repository's pinned Lean and Go 1.27.4, from the repository root:
 
 ```sh
-uv run --locked python scripts/check_quota.py
-LEAN_GO_QUOTA=1 uv run --locked python scripts/test_quota_proofs.py
+go run ./cmd/lean-go check-proofs \
+  --contract libraries/quota/proof-contract.json \
+  --manifest generated/quota/manifest.json \
+  --evidence libraries/quota/proof-evidence.json
+CGO_ENABLED=0 LEAN_GO_QUOTA=1 go test -count=1 -p 1 -run Quota ./internal/pipeline
 CGO_ENABLED=0 go test -count=1 ./quota
 CGO_ENABLED=0 LEAN_GO_NATIVE=1 LEAN_GO_REGENERATE=1 \
   go test -count=1 -run '^TestQuota' ./integration
@@ -113,15 +118,21 @@ Benchmarks report time and allocation costs without machine-dependent thresholds
 To generate a fresh candidate package and matching evidence in a new directory:
 
 ```sh
-uv run --locked python scripts/generate.py \
+go run ./cmd/lean-go generate \
   --source-dir libraries/quota/source --module Quota \
   --root Quota.create --root Quota.reserve \
   --root Quota.release --root Quota.remaining \
-  --out /tmp/quota-candidate --ir-output /tmp/quota-candidate.ir.json
-uv run --locked python scripts/check_quota.py \
+  --out /tmp/quota-candidate --ir-output /tmp/quota-candidate.ir.json \
+  --mode metered
+go run ./cmd/lean-go check-proofs \
+  --contract libraries/quota/proof-contract.json \
   --manifest /tmp/quota-candidate/manifest.json \
   --output /tmp/quota-candidate-proof-evidence.json
 ```
+
+`--mode metered` gives the package layout of the tracked `generated/quota`;
+without it, `generate` writes a native package, which `check-proofs` binds as
+well.
 
 Review source, proof, generated-code and evidence changes together. Existing
 differing output is protected; use fresh candidate paths for a changed program.

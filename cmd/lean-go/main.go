@@ -1,5 +1,8 @@
-// Command lean-go compiles validated extraction IR into a standalone Go package.
-// It validates IR metadata, not the current producer source snapshots.
+// Command lean-go generates pure Go from a supported subset of ordinary Lean 4.
+// Its subcommands are implemented by internal/cli on top of internal/pipeline;
+// see docs/cli.md. The legacy flag form compiles validated extraction IR into
+// a standalone Go package; it validates IR metadata, not the current producer
+// source snapshots.
 package main
 
 import (
@@ -10,43 +13,55 @@ import (
 	"io"
 	"os"
 
-	"github.com/franchb/lean-go/internal/gogen"
-	"github.com/franchb/lean-go/internal/ir"
+	"github.com/franchb/lean-go/internal/cli"
 	"github.com/franchb/lean-go/internal/modulegen"
 	"github.com/franchb/lean-go/internal/moduleir"
+	"github.com/franchb/lean-go/internal/nativegen"
+	"github.com/franchb/lean-go/internal/pipeline"
 )
 
 func run(args []string) error {
 	flags := flag.NewFlagSet("lean-go", flag.ContinueOnError)
 	input := flags.String("in", "", "input extraction IR JSON file")
 	output := flags.String("out", "", "output Go package directory (existing output must be identical)")
+	mode := flags.String("mode", "metered", "Go emission mode for module IR: metered or native")
+	maxDepth := flags.Int("native-max-depth", 0, "native mode: nested calls allowed along a recursive call chain (0 selects the default)")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if *input == "" || *output == "" || flags.NArg() != 0 {
-		return fmt.Errorf("usage: lean-go -in FILE -out DIR")
+		return fmt.Errorf("usage: lean-go -in FILE -out DIR [-mode metered|native]")
+	}
+	if *mode != "metered" && *mode != "native" {
+		return fmt.Errorf("unknown mode %q: use metered or native", *mode)
+	}
+	if *maxDepth != 0 && *mode != "native" {
+		return fmt.Errorf("-native-max-depth requires -mode native")
 	}
 	f, err := os.Open(*input)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	files, err := compile(f)
+	files, err := compileMode(f, *mode, *maxDepth)
 	if err != nil {
 		return err
 	}
-	return gogen.Publish(*output, files)
+	return pipeline.PublishPackage(*output, files, false)
 }
 
 // The envelope selects a decoder only. That decoder revalidates every original
 // byte, including duplicate keys and schema, before anything can be published.
-func compile(r io.Reader) (map[string][]byte, error) {
-	data, err := io.ReadAll(io.LimitReader(r, ir.MaxBytes+1))
+func compile(r io.Reader) (map[string][]byte, error) { return compileMode(r, "metered", 0) }
+
+// compileMode emits module IR as metered or native Go.
+func compileMode(r io.Reader, mode string, maxDepth int) (map[string][]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(r, moduleir.MaxBytes+1))
 	if err != nil {
 		return nil, err
 	}
-	if len(data) > ir.MaxBytes {
-		return nil, fmt.Errorf("IR exceeds %d bytes", ir.MaxBytes)
+	if len(data) > moduleir.MaxBytes {
+		return nil, fmt.Errorf("IR exceeds %d bytes", moduleir.MaxBytes)
 	}
 	var envelope struct {
 		Schema string `json:"schema"`
@@ -55,23 +70,26 @@ func compile(r io.Reader) (map[string][]byte, error) {
 		return nil, fmt.Errorf("IR envelope: %w", err)
 	}
 	switch envelope.Schema {
-	case ir.Schema:
-		program, err := ir.Decode(bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		return gogen.Generate(program)
-	case moduleir.Schema, moduleir.SchemaV3, moduleir.SchemaV4, moduleir.SchemaV5, moduleir.SchemaV6, moduleir.SchemaV7, moduleir.SchemaV8, moduleir.SchemaV9, moduleir.SchemaV10, moduleir.SchemaV11, moduleir.SchemaV12, moduleir.SchemaV13, moduleir.SchemaV14, moduleir.SchemaV15, moduleir.SchemaV16, moduleir.SchemaV17, moduleir.SchemaV18, moduleir.SchemaV19, moduleir.SchemaV20, moduleir.SchemaV21, moduleir.SchemaV22, moduleir.SchemaV23:
+	case moduleir.Schema:
 		program, err := moduleir.Decode(bytes.NewReader(data))
 		if err != nil {
 			return nil, err
 		}
+		if mode == "native" {
+			return nativegen.Generate(program, nativegen.Options{MaxDepth: maxDepth})
+		}
 		return modulegen.Generate(program)
 	default:
-		return nil, fmt.Errorf("unsupported IR schema %q", envelope.Schema)
+		return nil, fmt.Errorf("unsupported IR schema %q; regenerate the IR with the current lean-go tool (module schema %s)", envelope.Schema, moduleir.Schema)
 	}
 }
 func main() {
+	// Subcommands (generate, emit, check-proofs, format, regenerate, doctor,
+	// version) run in-process; the original flag form "-in FILE -out DIR"
+	// remains for existing callers.
+	if len(os.Args) > 1 && cli.IsCommand(os.Args[1]) || len(os.Args) == 1 {
+		os.Exit(cli.Main(os.Args[1:], os.Stdout, os.Stderr))
+	}
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "lean-go:", err)
 		os.Exit(1)

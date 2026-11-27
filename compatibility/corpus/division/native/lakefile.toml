@@ -1,0 +1,9 @@
+name = "division_reference"
+version = "0.0.0"
+
+[[lean_lib]]
+name = "Division"
+
+[[lean_exe]]
+name = "reference"
+root = "Reference"

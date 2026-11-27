@@ -57,6 +57,12 @@ func (e *apiEmitter) nativeEligibility(records bool) func(string) bool {
 	return visit
 }
 
+// scalarRoots returns the byte-fold steps that run as metered native code
+// and the scalar roots that keep the metered scalar entry. A scalar root
+// keeps it only when it is off the fast path, which happens when its static
+// bound exceeds the caps of DefaultLimits (an exponential call tree):
+// exact metering still lets the inputs that stay within the limits run
+// natively.
 func (e *apiEmitter) scalarRoots() map[string]bool {
 	scalar := e.nativeEligibility(false)
 	record := e.nativeEligibility(true)
@@ -65,7 +71,7 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 		if step := e.names.ByteFolds[name]; step != "" && (scalar(step) || e.records[e.g.functions[name].decl.Result] != "" && record(step)) {
 			roots[step] = true
 		}
-		if scalar(name) {
+		if scalar(name) && !e.g.fast.eligible(name) {
 			roots[name] = true
 		}
 	}
@@ -74,6 +80,7 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 
 func (e *apiEmitter) emitEntrypoints(w *bytes.Buffer) {
 	roots := e.scalarRoots()
+	e.emitFast(w)
 	if len(roots) != 0 {
 		w.WriteString(`// scalarWork charges the same IR steps and logical scalar allocations as execute.
 func (b *budget) scalarWork(steps, allocations uint64) bool {
@@ -92,7 +99,7 @@ func (b *budget) scalarWork(steps, allocations uint64) bool {
 				e.emitScalarFunction(w, callee, emitted)
 			}
 			e.byteFoldEntry(w, e.g.functions[root], callee, roots[step])
-		} else if roots[root] && e.records[e.g.functions[root].decl.Result] == "" {
+		} else if roots[root] && !e.g.fast.eligible(root) && e.records[e.g.functions[root].decl.Result] == "" {
 			e.emitScalarFunction(w, e.g.functions[root], emitted)
 			e.scalarEntry(w, root)
 		} else {
@@ -160,7 +167,14 @@ func (e *apiEmitter) emitScalarBlock(w *bytes.Buffer, first *moduleir.Code, used
 	}
 	fmt.Fprintf(w, "if !b.scalarWork(%d,%d){return %s,ErrResource}\n", allocations+1, allocations, zero)
 	for bind := first; bind != c; bind = bind.Next {
-		if used[bind.Bind.ID] {
+		if !used[bind.Bind.ID] {
+			continue
+		}
+		if value := bind.Value; value.Kind == "primitive" && division(value.Name) {
+			dst := fmt.Sprintf("v%d", bind.Bind.ID)
+			left, right := fmt.Sprintf("v%d", value.Args[0]), fmt.Sprintf("v%d", value.Args[1])
+			w.WriteString(divisionStatement(value.Name, dst, left, right, true, e.scalars[bind.Bind.Type].GoType) + "\n")
+		} else {
 			fmt.Fprintf(w, "v%d := %s\n", bind.Bind.ID, e.scalarExpression(bind))
 		}
 	}
@@ -226,7 +240,7 @@ func (e *apiEmitter) scalarExpression(c *moduleir.Code) string {
 func (e *apiEmitter) scalarEntry(w *bytes.Buffer, name string) {
 	f := e.g.functions[name]
 	entry := e.names.Entrypoint
-	if moduleir.HasMultipleRoots(e.g.program.Schema) {
+	if moduleir.HasMultipleRoots(e.g.program) {
 		entry = e.names.Entrypoints[name]
 	}
 	fields := make([]string, len(f.decl.Params))

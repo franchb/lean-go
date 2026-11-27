@@ -1,0 +1,152 @@
+{
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.accepts_iff",
+      "name": "DnsHeaderProofs.accepts_iff",
+      "statement": "∀ (w : Wire), Iff (Exists Header (fun (h : Header) => Eq ParseResult (DnsHeader.parse w) (ParseResult.ok h))) (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (OfNat.ofNat Nat 0 (instOfNatNat 0)))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_ok_iff",
+      "name": "DnsHeaderProofs.parse_ok_iff",
+      "statement": "∀ (w : Wire) (h : Header), Iff (Eq ParseResult (DnsHeader.parse w) (ParseResult.ok h)) (And (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (OfNat.ofNat Nat 0 (instOfNatNat 0))) (And (Eq Nat (UInt16.toNat (Header.id h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b0 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b1 w)))) (And (Eq Nat (UInt8.toNat (Header.qr h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 32768 (instOfNatNat 32768))) (OfNat.ofNat Nat 2 (instOfNatNat 2)))) (And (Eq Nat (UInt8.toNat (Header.opcode h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 2048 (instOfNatNat 2048))) (OfNat.ofNat Nat 16 (instOfNatNat 16)))) (And (Eq Nat (UInt8.toNat (Header.aa h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 1024 (instOfNatNat 1024))) (OfNat.ofNat Nat 2 (instOfNatNat 2)))) (And (Eq Nat (UInt8.toNat (Header.tc h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 512 (instOfNatNat 512))) (OfNat.ofNat Nat 2 (instOfNatNat 2)))) (And (Eq Nat (UInt8.toNat (Header.rd h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (OfNat.ofNat Nat 2 (instOfNatNat 2)))) (And (Eq Nat (UInt8.toNat (Header.ra h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 128 (instOfNatNat 128))) (OfNat.ofNat Nat 2 (instOfNatNat 2)))) (And (Eq Nat (UInt8.toNat (Header.rcode h)) (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 16 (instOfNatNat 16)))) (And (Eq Nat (UInt16.toNat (Header.qdcount h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b4 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b5 w)))) (And (Eq Nat (UInt16.toNat (Header.ancount h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b6 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b7 w)))) (And (Eq Nat (UInt16.toNat (Header.nscount h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b8 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b9 w)))) (Eq Nat (UInt16.toNat (Header.arcount h)) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b10 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b11 w))))))))))))))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_serialize",
+      "name": "DnsHeaderProofs.parse_serialize",
+      "statement": "∀ (h : Header), And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.tc h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.rd h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.ra h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (LT.lt Nat instLTNat (UInt8.toNat (Header.rcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16)))))))) → Eq ParseResult (DnsHeader.parse (DnsHeader.serialize h)) (ParseResult.ok h)"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_validate",
+      "name": "DnsHeaderProofs.parse_validate",
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (DnsHeader.parse w) (ParseResult.ok h) → Eq Validity (DnsHeader.validate h) Validity.valid"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.parse_zNonzero_iff",
+      "name": "DnsHeaderProofs.parse_zNonzero_iff",
+      "statement": "∀ (w : Wire), Iff (Eq ParseResult (DnsHeader.parse w) ParseResult.zNonzero) (Not (Eq Nat (HMod.hMod Nat Nat Nat (instHMod Nat Nat.instMod) (HDiv.hDiv Nat Nat Nat (instHDiv Nat Nat.instDiv) (HAdd.hAdd Nat Nat Nat (instHAdd Nat instAddNat) (HMul.hMul Nat Nat Nat (instHMul Nat instMulNat) (UInt8.toNat (Wire.b2 w)) (OfNat.ofNat Nat 256 (instOfNatNat 256))) (UInt8.toNat (Wire.b3 w))) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (OfNat.ofNat Nat 8 (instOfNatNat 8))) (OfNat.ofNat Nat 0 (instOfNatNat 0))))"
+    },
+    {
+      "axioms": [
+        "Classical.choice",
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.serialize_parse",
+      "name": "DnsHeaderProofs.serialize_parse",
+      "statement": "∀ (w : Wire) (h : Header), Eq ParseResult (DnsHeader.parse w) (ParseResult.ok h) → Eq Wire (DnsHeader.serialize h) w"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_aaTooWide_iff",
+      "name": "DnsHeaderProofs.validate_aaTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.aaTooWide) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_opcodeTooWide_iff",
+      "name": "DnsHeaderProofs.validate_opcodeTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.opcodeTooWide) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16)))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_qrTooWide_iff",
+      "name": "DnsHeaderProofs.validate_qrTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.qrTooWide) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_raTooWide_iff",
+      "name": "DnsHeaderProofs.validate_raTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.raTooWide) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.tc h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.rd h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.ra h)) (OfNat.ofNat Nat 2 (instOfNatNat 2)))))))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_rcodeTooWide_iff",
+      "name": "DnsHeaderProofs.validate_rcodeTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.rcodeTooWide) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.tc h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.rd h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.ra h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.rcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))))))))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_rdTooWide_iff",
+      "name": "DnsHeaderProofs.validate_rdTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.rdTooWide) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.tc h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.rd h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))))))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_tcTooWide_iff",
+      "name": "DnsHeaderProofs.validate_tcTooWide_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.tcTooWide) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (Not (LT.lt Nat instLTNat (UInt8.toNat (Header.tc h)) (OfNat.ofNat Nat 2 (instOfNatNat 2)))))))"
+    },
+    {
+      "axioms": [
+        "propext"
+      ],
+      "expected": "DnsHeaderContract.validate_valid_iff",
+      "name": "DnsHeaderProofs.validate_valid_iff",
+      "statement": "∀ (h : Header), Iff (Eq Validity (DnsHeader.validate h) Validity.valid) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.qr h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.opcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.aa h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.tc h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.rd h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (And (LT.lt Nat instLTNat (UInt8.toNat (Header.ra h)) (OfNat.ofNat Nat 2 (instOfNatNat 2))) (LT.lt Nat instLTNat (UInt8.toNat (Header.rcode h)) (OfNat.ofNat Nat 16 (instOfNatNat 16)))))))))"
+    }
+  ],
+  "contract_sha256": "25adc30918931d502cf146d7eb9b33e1c2660f8592f843810db53813fa205807",
+  "generated_manifest_sha256": "a3450a8490f32185ffc85bc7c1baa0ce139c091c02a5ada166cb742eb92fdf20",
+  "generated_mode": "native",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "DnsHeader",
+  "project_inputs": {
+    "proof/DnsHeaderContract.lean": "9180b0c8040b0d79bdd796cb439926ffc23dd740b68091c642690a6e5c4cbeaf",
+    "proof/DnsHeaderProofs.lean": "a1eef18a77b4206e634f27a9be88c070a4f0e971d5aecedaeed9fe8fd53ac149",
+    "source/DnsHeader.lean": "f9acbd13c61431440aaf2c8fae2ae634f52872221d5ff5553a2670b8cbae3ee9"
+  },
+  "roots": [
+    "DnsHeader.parse",
+    "DnsHeader.serialize",
+    "DnsHeader.validate"
+  ],
+  "schema": "lean-go-proof-evidence/v3",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
+    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
+  }
+}

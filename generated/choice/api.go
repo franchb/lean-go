@@ -4,7 +4,7 @@ package extracted
 // apiNode checks an immutable handle without traversing or copying its children.
 func apiNode(n *node, typ int) bool { return n != nil && n.typ == typ && n.size != 0 && n.depth != 0 }
 func apiMatches(v Value, typ, tag, arity int) bool {
-	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0
+	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0 && v.n.scalar8 == 0 && v.n.scalar16 == 0
 }
 
 // apiMake owns the immediate field slice and shares immutable children. Cached
@@ -30,7 +30,7 @@ func apiMake(typ, tag int, fields []*node, l Limits) (Value, error) {
 
 func apiUInt32Node(value uint32) *node { return &node{typ: 0, scalar: value, size: 1, depth: 1} }
 func apiReadUInt32(n *node) (uint32, bool) {
-	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 {
+	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar, true
@@ -38,10 +38,26 @@ func apiReadUInt32(n *node) (uint32, bool) {
 
 func apiUInt64Node(value uint64) *node { return &node{typ: 2, scalar64: value, size: 1, depth: 1} }
 func apiReadUInt64(n *node) (uint64, bool) {
-	if !apiNode(n, 2) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 {
+	if !apiNode(n, 2) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar64, true
+}
+
+func apiUInt8Node(value uint8) *node { return &node{typ: 3, scalar8: value, size: 1, depth: 1} }
+func apiReadUInt8(n *node) (uint8, bool) {
+	if !apiNode(n, 3) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
+		return 0, false
+	}
+	return n.scalar8, true
+}
+
+func apiUInt16Node(value uint16) *node { return &node{typ: 4, scalar16: value, size: 1, depth: 1} }
+func apiReadUInt16(n *node) (uint16, bool) {
+	if !apiNode(n, 4) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
+		return 0, false
+	}
+	return n.scalar16, true
 }
 
 // Signal is an immutable value; its zero value is invalid.
@@ -75,8 +91,128 @@ func NewSignalGo(l Limits) (Signal, error) {
 func (v Signal) IsGo() bool { return apiMatches(v.v, 1, 2, 0) }
 func (v Signal) AsGo() bool { return apiMatches(v.v, 1, 2, 0) }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natSignal is the Lean inductive type Choice.Signal. The zero value is Choice.Signal.stop.
+type natSignal struct {
+	tag uint8
+}
+
+// natRotate implements the Lean function Choice.rotate.
+func natRotate(v1 natSignal) natSignal {
+	switch v1.tag {
+	case 0: // Choice.Signal.stop
+		return natSignal{tag: 1}
+	case 1: // Choice.Signal.wait
+		return natSignal{tag: 2}
+	default: // Choice.Signal.go
+		return natSignal{}
+	}
+}
+
+// fastIn1 converts a well-formed Choice.Signal node; false means fall back.
+func fastIn1(n *node) (natSignal, bool) {
+	if n == nil || n.typ != 1 || n.size == 0 || n.depth == 0 || n.size > 1 || n.depth > 1 {
+		return natSignal{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 0 {
+			return natSignal{}, false
+		}
+		return natSignal{}, true
+	case 1:
+		if len(n.fields) != 0 {
+			return natSignal{}, false
+		}
+		return natSignal{tag: 1}, true
+	case 2:
+		if len(n.fields) != 0 {
+			return natSignal{}, false
+		}
+		return natSignal{tag: 2}, true
+	}
+	return natSignal{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+
+// fastPut1 builds the nodes of x in a.
+func fastPut1(a *fastArena, x natSignal) *node {
+	n := a.next()
+	switch x.tag {
+	case 0:
+		n.typ, n.tag = 1, 0
+	case 1:
+		n.typ, n.tag = 1, 1
+	default:
+		n.typ, n.tag = 1, 2
+	}
+	fastMeasure(n)
+	return n
+}
+
+// fastSlab1 holds the 1 nodes of a Choice.Signal value.
+type fastSlab1 struct {
+	nodes  [1]node
+	fields [0]*node
+}
+
+// fastOut1 converts x into fresh nodes.
+func fastOut1(x natSignal) *node {
+	s := new(fastSlab1)
+	a := fastArena{nodes: s.nodes[:], fields: s.fields[:]}
+	return fastPut1(&a, x)
+}
+
+// fastCovers0 reports whether l is valid and covers the static worst case of
+// Choice.rotate in every dimension.
+func fastCovers0(l Limits) bool {
+	return 1 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 3 <= l.MaxSteps && l.MaxSteps <= 4194304 && 1 <= l.MaxFrames && l.MaxFrames <= 8192 && 4 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers0(l) {
+		return nil, false
+	}
+	x0, ok := fastIn1(args[0])
+	if !ok {
+		return nil, false
+	}
+	return fastOut1(natRotate(x0)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 Signal, l Limits) (Signal, error) {
+	if fastCovers0(l) {
+		x0, ok0 := fastIn1(a0.v.n)
+		if ok0 {
+			return Signal{v: Value{fastOut1(natRotate(x0))}}, nil
+		}
+	}
 	out, err := Run([]Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return Signal{}, err

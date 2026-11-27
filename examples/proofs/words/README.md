@@ -5,7 +5,7 @@ two 32-bit words into one 64-bit word, and reads its high and low halves. Copy
 this directory anywhere and run it with Go **1.27.4** and `CGO_ENABLED=0`.
 It has no external Go dependencies or `replace` directives.
 
-Install the CLI from this [checkout](../../../docs/cli.md#development-checkout)
+Install the CLI from this [checkout](../../../docs/cli.md#install)
 to reproduce development artifacts. Tagged examples ship with their matching
 CLI. [Alpha.11 release notes](../../../docs/releases/v0.1.0-alpha.11.md)
 
@@ -74,9 +74,9 @@ fmt.Printf("%08x\n", high) // 80000001
 
 Each function takes `Limits` as its last argument and returns `(result, error)`.
 Raw callers use `RunRoot` with the corresponding `Words.*` name and immutable
-`Value` arguments. The five selected roots share `lean-go-ir/v11`,
-`lean-go-manifest/v11`, profile `pure-module/v9` and generator
-`lean-go-modulegen/v15` in this checkout. Only those roots are exported; proof helpers are absent
+`Value` arguments. The five selected roots share `lean-go-ir/v24`,
+`lean-go-manifest/v24`, profile `pure-module/v22` and generator
+`lean-go-modulegen/v20` in this checkout. Only those roots are exported; proof helpers are absent
 from the runtime package.
 
 Every call starts fresh logical budgets. `widen`, `narrow` and `low` need one
@@ -134,12 +134,12 @@ These are finite extraction checks, distinct from the universal Lean proofs.
 
 ## Regenerate and verify the handoff
 
-Use Python **3.15** through uv, Go **1.27.4** and Lean/Lake **4.36.0** at
-commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. For development,
-install this checkout's CLI, replacing the example absolute path:
+Use Go **1.27.4** and Lean/Lake **4.36.0** at commit
+`611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`. For development, install this
+checkout's CLI from the repository root:
 
 ```sh
-uv tool install --force --python 3.15 /absolute/path/to/lean-go
+go install ./cmd/lean-go
 lean-go doctor
 ```
 
@@ -148,7 +148,7 @@ From the Words example directory, generate into fresh candidate paths:
 ```sh
 lean-go generate --source-dir source --module Words \
   --root Words.high --root Words.low --root Words.narrow --root Words.pack --root Words.widen \
-  --out candidate/words --ir-output candidate/words.ir.json
+  --out candidate/words --ir-output candidate/words.ir.json --mode metered
 lean-go check-proofs --contract proof-contract.json \
   --manifest candidate/words/manifest.json --output candidate/proof-evidence.json
 lean-go check-proofs --contract proof-contract.json \
@@ -161,22 +161,23 @@ preserved. Never hand-edit generated Go, hashes, IR or evidence. See the
 [proof-contract guide](../../../docs/proof-contracts.md) for evidence binding.
 
 From the repository root, verify the complete copied example with that installed
-CLI. Capture its path before `uv run` adjusts `PATH`:
+CLI:
 
 ```sh
-words_cli=$(command -v lean-go)
-uv run --locked python scripts/check_words_demo.py --cli "$words_cli"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo words
 ```
 
-In PowerShell, first use `$words_cli = (Get-Command lean-go).Source`.
+In PowerShell, pass `--cli (Get-Command lean-go).Source`.
 
-The verifier regenerates the IR, package, manifest and evidence in a fresh
-external workspace, compares exact bytes, and freshly checks the tracked evidence.
+The check regenerates the IR, package, manifest and evidence in a fresh
+external workspace, compares exact bytes, freshly checks the tracked evidence and requires exactly
+the seven listed claims.
 It then deploys only `go.mod` and Go sources, hides producer tools and C compilers
 from `PATH`, disables module/checksum downloads and cgo, and runs both tests and
-the executable with isolated caches. Root `go test ./...` includes the same
-Go-only copy check. Current installed-CLI CI runs clamp, flags, words, bytes, header, wire16 and crc16
-through both the direct wheel and a wheel rebuilt from the source distribution
-on Linux and Windows, checking 54 source claims per wheel. Published alpha.7's
+the executable with isolated caches, comparing the output with the expected
+text. Root `go test ./...` includes the same
+Go-only copy check. Current installed-CLI CI runs all ten demos with a built and a
+module-installed binary on Linux and Windows, checking 61 source claims per
+binary. Published alpha.7's
 exact-tag workflow covers its three demos; local checkout checks do not validate
 the published tag's artifact hashes.

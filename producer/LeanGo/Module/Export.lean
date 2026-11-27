@@ -590,9 +590,7 @@ def exportProgramRoots (moduleName : String) (requested : Array Name) : CoreM Js
     let .arr original := exportedTypes | throwError "Invalid type inventory"
     exportedTypes := .arr (sortByName (original.push listType))
   let api ← exportAPI exportedTypes
-  let selection := if roots.size == 1 then ("root", str roots[0]!.toString)
-    else ("roots", toJson (roots.map Name.toString))
-  return obj [("module", str moduleName), selection,
+  return obj [("module", str moduleName), ("roots", toJson (roots.map Name.toString)),
     ("types", exportedTypes), ("api", api), ("functions", .arr (sortByName functions)),
     ("claims", .arr #[]), ("rewrites", rewrites), ("provenance", provenance)]
 

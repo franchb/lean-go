@@ -1,0 +1,868 @@
+[
+ {
+  "name": "admission/custom_compiler_pass",
+  "files": {
+   "Admission.lean": "namespace Admission\nopen Lean.Compiler.LCNF\n@[cpass] meta def noOpPass : PassInstaller where\n  phase := .base\n  install passes := pure passes\ndef run (b : Bool) : Bool := b\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": null,
+   "hint": "Remove custom compiler passes from the source environment.",
+   "location": null,
+   "message": "custom compiler passes unsupported: [Admission.noOpPass]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":null,\"hint\":\"Remove custom compiler passes from the source environment.\",\"location\":null,\"message\":\"custom compiler passes unsupported: [Admission.noOpPass]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/late_compiler_pass",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef run (b : Bool) : Bool := b\nopen Lean.Compiler.LCNF\n@[cpass] meta def noOpPass : PassInstaller where\n  phase := .base\n  install passes := pure passes\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": null,
+   "hint": "Remove custom compiler passes from the source environment.",
+   "location": null,
+   "message": "custom compiler passes unsupported: [Admission.noOpPass]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":null,\"hint\":\"Remove custom compiler passes from the source environment.\",\"location\":null,\"message\":\"custom compiler passes unsupported: [Admission.noOpPass]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/extern",
+  "files": {
+   "Admission.lean": "namespace Admission\n@[extern \"lean_go_untrusted\"] opaque impl : Bool → Bool\ndef run (x : Bool) : Bool := impl x\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.impl",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.impl",
+    "start": {
+     "line": 2,
+     "column": 37,
+     "utf16_column": 37,
+     "byte_offset": 57
+    },
+    "end": {
+     "line": 2,
+     "column": 41,
+     "utf16_column": 41,
+     "byte_offset": 61
+    }
+   },
+   "message": "Source audit rejected Admission.run: [extern source dependency: Admission.impl]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.impl\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.impl\",\"start\":{\"line\":2,\"column\":37,\"utf16_column\":37,\"byte_offset\":57},\"end\":{\"line\":2,\"column\":41,\"utf16_column\":41,\"byte_offset\":61}},\"message\":\"Source audit rejected Admission.run: [extern source dependency: Admission.impl]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/late_extern",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef run (x : Bool) : Bool := x\nattribute [extern \"lean_go_untrusted\"] run\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.run",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.run",
+    "start": {
+     "line": 2,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 24
+    },
+    "end": {
+     "line": 2,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 27
+    }
+   },
+   "message": "extern source dependency: Admission.run",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.run\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":2,\"column\":4,\"utf16_column\":4,\"byte_offset\":24},\"end\":{\"line\":2,\"column\":7,\"utf16_column\":7,\"byte_offset\":27}},\"message\":\"extern source dependency: Admission.run\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/implemented_by",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef impl (_ : Bool) : Bool := false\n@[implemented_by impl] def original (_ : Bool) : Bool := true\ndef run (x : Bool) : Bool := original x\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.original",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.original",
+    "start": {
+     "line": 3,
+     "column": 27,
+     "utf16_column": 27,
+     "byte_offset": 83
+    },
+    "end": {
+     "line": 3,
+     "column": 35,
+     "utf16_column": 35,
+     "byte_offset": 91
+    }
+   },
+   "message": "Source audit rejected Admission.run: [implemented_by source dependency: Admission.original]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.original\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.original\",\"start\":{\"line\":3,\"column\":27,\"utf16_column\":27,\"byte_offset\":83},\"end\":{\"line\":3,\"column\":35,\"utf16_column\":35,\"byte_offset\":91}},\"message\":\"Source audit rejected Admission.run: [implemented_by source dependency: Admission.original]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/late_implemented_by",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef replacement (_ : Bool) : Bool := false\ndef run (x : Bool) : Bool := x\nattribute [implemented_by replacement] run\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.run",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.run",
+    "start": {
+     "line": 3,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 67
+    },
+    "end": {
+     "line": 3,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 70
+    }
+   },
+   "message": "implemented_by source dependency: Admission.run",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.run\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":3,\"column\":4,\"utf16_column\":4,\"byte_offset\":67},\"end\":{\"line\":3,\"column\":7,\"utf16_column\":7,\"byte_offset\":70}},\"message\":\"implemented_by source dependency: Admission.run\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/late_csimp",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef run (x : Bool) : Bool := x\ndef replacement (_ : Bool) : Bool := false\ntheorem forged : run = replacement := by sorry\nattribute [csimp] forged\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": "csimp",
+   "declaration": "Admission.run",
+   "hint": "Remove the custom csimp rewrite from the selected root's dependency closure.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.run",
+    "start": {
+     "line": 2,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 24
+    },
+    "end": {
+     "line": 2,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 27
+    }
+   },
+   "message": "Unsupported historical compiler rewrite: Admission.run -> Admission.replacement via Admission.forged",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":\"csimp\",\"declaration\":\"Admission.run\",\"hint\":\"Remove the custom csimp rewrite from the selected root's dependency closure.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":2,\"column\":4,\"utf16_column\":4,\"byte_offset\":24},\"end\":{\"line\":2,\"column\":7,\"utf16_column\":7,\"byte_offset\":27}},\"message\":\"Unsupported historical compiler rewrite: Admission.run -> Admission.replacement via Admission.forged\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/unsafe",
+  "files": {
+   "Admission.lean": "namespace Admission\nunsafe def run (_ : Bool) : Bool := true\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.run",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.run",
+    "start": {
+     "line": 2,
+     "column": 11,
+     "utf16_column": 11,
+     "byte_offset": 31
+    },
+    "end": {
+     "line": 2,
+     "column": 14,
+     "utf16_column": 14,
+     "byte_offset": 34
+    }
+   },
+   "message": "Source audit rejected Admission.run: [unsafe source dependency: Admission.run]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.run\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":2,\"column\":11,\"utf16_column\":11,\"byte_offset\":31},\"end\":{\"line\":2,\"column\":14,\"utf16_column\":14,\"byte_offset\":34}},\"message\":\"Source audit rejected Admission.run: [unsafe source dependency: Admission.run]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/partial",
+  "files": {
+   "Admission.lean": "namespace Admission\npartial def run (x : Bool) : Bool := run x\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.run",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.run",
+    "start": {
+     "line": 2,
+     "column": 12,
+     "utf16_column": 12,
+     "byte_offset": 32
+    },
+    "end": {
+     "line": 2,
+     "column": 15,
+     "utf16_column": 15,
+     "byte_offset": 35
+    }
+   },
+   "message": "Unverified recursive implementation override: Admission.run",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.run\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":2,\"column\":12,\"utf16_column\":12,\"byte_offset\":32},\"end\":{\"line\":2,\"column\":15,\"utf16_column\":15,\"byte_offset\":35}},\"message\":\"Unverified recursive implementation override: Admission.run\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/recursive_override",
+  "files": {
+   "Admission.lean": "namespace Admission\n@[noinline] def f (_ : Bool) : Bool := true\npartial def f._unsafe_rec (b : Bool) : Bool :=\n  match b with | true => false | false => f._unsafe_rec true\ndef run (b : Bool) : Bool := f b\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.f",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.f",
+    "start": {
+     "line": 2,
+     "column": 16,
+     "utf16_column": 16,
+     "byte_offset": 36
+    },
+    "end": {
+     "line": 2,
+     "column": 17,
+     "utf16_column": 17,
+     "byte_offset": 37
+    }
+   },
+   "message": "Unverified recursive implementation override: Admission.f",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.f\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.f\",\"start\":{\"line\":2,\"column\":16,\"utf16_column\":16,\"byte_offset\":36},\"end\":{\"line\":2,\"column\":17,\"utf16_column\":17,\"byte_offset\":37}},\"message\":\"Unverified recursive implementation override: Admission.f\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/polymorphic",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef run {α : Type} (x : α) : α := x\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "unsupported_type",
+   "compiler_form": null,
+   "declaration": "Admission.run",
+   "hint": "Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.run",
+    "start": {
+     "line": 2,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 24
+    },
+    "end": {
+     "line": 2,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 27
+    }
+   },
+   "message": "Unsupported first-order monomorphic type: Type",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_type\",\"compiler_form\":null,\"declaration\":\"Admission.run\",\"hint\":\"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.run\",\"start\":{\"line\":2,\"column\":4,\"utf16_column\":4,\"byte_offset\":24},\"end\":{\"line\":2,\"column\":7,\"utf16_column\":7,\"byte_offset\":27}},\"message\":\"Unsupported first-order monomorphic type: Type\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/natural_division",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef run (x : Nat) : Nat := x / 3\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Nat.div",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": null,
+   "message": "Source audit rejected Admission.run: [extern source dependency: Nat.div,\n extern source dependency: Nat.sub,\n extern source dependency: Nat.pred,\n extern source dependency: Nat.add,\n extern source dependency: Nat.decLe,\n extern source dependency: Nat.ble,\n extern source dependency: Nat.decLt]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Nat.div\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":null,\"message\":\"Source audit rejected Admission.run: [extern source dependency: Nat.div,\\n extern source dependency: Nat.sub,\\n extern source dependency: Nat.pred,\\n extern source dependency: Nat.add,\\n extern source dependency: Nat.decLe,\\n extern source dependency: Nat.ble,\\n extern source dependency: Nat.decLt]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/sorry_proof",
+  "files": {
+   "Admission.lean": "namespace Admission\ntheorem forged : False := by sorry\ndef run (_ : Bool) : Bool := False.elim forged\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "Admission.forged",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.forged",
+    "start": {
+     "line": 2,
+     "column": 8,
+     "utf16_column": 8,
+     "byte_offset": 28
+    },
+    "end": {
+     "line": 2,
+     "column": 14,
+     "utf16_column": 14,
+     "byte_offset": 34
+    }
+   },
+   "message": "Source audit rejected Admission.run: [axiomatic source proof: Admission.forged: #[sorryAx]]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"Admission.forged\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.forged\",\"start\":{\"line\":2,\"column\":8,\"utf16_column\":8,\"byte_offset\":28},\"end\":{\"line\":2,\"column\":14,\"utf16_column\":14,\"byte_offset\":34}},\"message\":\"Source audit rejected Admission.run: [axiomatic source proof: Admission.forged: #[sorryAx]]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/local_csimp",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef original (_ : Bool) : Bool := true\ndef replacement (_ : Bool) : Bool := false\ntheorem forged : original = replacement := by sorry\nsection\nattribute [local csimp] forged\n@[noinline] def run (x : Bool) : Bool := original x\nend\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": "csimp",
+   "declaration": "Admission.original",
+   "hint": "Remove the custom csimp rewrite from the selected root's dependency closure.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.original",
+    "start": {
+     "line": 2,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 24
+    },
+    "end": {
+     "line": 2,
+     "column": 12,
+     "utf16_column": 12,
+     "byte_offset": 32
+    }
+   },
+   "message": "Unsupported historical compiler rewrite: Admission.original -> Admission.replacement via Admission.forged",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":\"csimp\",\"declaration\":\"Admission.original\",\"hint\":\"Remove the custom csimp rewrite from the selected root's dependency closure.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.original\",\"start\":{\"line\":2,\"column\":4,\"utf16_column\":4,\"byte_offset\":24},\"end\":{\"line\":2,\"column\":12,\"utf16_column\":12,\"byte_offset\":32}},\"message\":\"Unsupported historical compiler rewrite: Admission.original -> Admission.replacement via Admission.forged\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "admission/scoped_csimp",
+  "files": {
+   "Admission.lean": "namespace Admission\ndef original (_ : Bool) : Bool := true\ndef replacement (_ : Bool) : Bool := false\ntheorem forged : original = replacement := by sorry\nnamespace RewriteScope\nattribute [scoped csimp] forged\nend RewriteScope\nopen scoped RewriteScope\n@[noinline] def run (x : Bool) : Bool := original x\n\nend Admission\n"
+  },
+  "module": "Admission",
+  "root": "Admission.run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": "csimp",
+   "declaration": "Admission.original",
+   "hint": "Remove the custom csimp rewrite from the selected root's dependency closure.",
+   "location": {
+    "path": "Admission.lean",
+    "kind": "declaration",
+    "declaration": "Admission.original",
+    "start": {
+     "line": 2,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 24
+    },
+    "end": {
+     "line": 2,
+     "column": 12,
+     "utf16_column": 12,
+     "byte_offset": 32
+    }
+   },
+   "message": "Unsupported historical compiler rewrite: Admission.original -> Admission.replacement via Admission.forged",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":\"csimp\",\"declaration\":\"Admission.original\",\"hint\":\"Remove the custom csimp rewrite from the selected root's dependency closure.\",\"location\":{\"path\":\"Admission.lean\",\"kind\":\"declaration\",\"declaration\":\"Admission.original\",\"start\":{\"line\":2,\"column\":4,\"utf16_column\":4,\"byte_offset\":24},\"end\":{\"line\":2,\"column\":12,\"utf16_column\":12,\"byte_offset\":32}},\"message\":\"Unsupported historical compiler rewrite: Admission.original -> Admission.replacement via Admission.forged\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/imported_foreign_dependency",
+  "files": {
+   "Helper.lean": "module\r\npublic section\r\n@[extern \"lean_go_untrusted\"] opaque foreign : UInt32 → UInt32\r\n",
+   "Example.lean": "module\npublic import Helper\npublic def run (x : UInt32) : UInt32 := foreign x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": null,
+   "declaration": "foreign",
+   "hint": "Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.",
+   "location": {
+    "path": "Helper.lean",
+    "kind": "declaration",
+    "declaration": "foreign",
+    "start": {
+     "line": 3,
+     "column": 37,
+     "utf16_column": 37,
+     "byte_offset": 61
+    },
+    "end": {
+     "line": 3,
+     "column": 44,
+     "utf16_column": 44,
+     "byte_offset": 68
+    }
+   },
+   "message": "Source audit rejected run: [extern source dependency: foreign, axiom source dependency: foreign]",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":null,\"declaration\":\"foreign\",\"hint\":\"Remove the unsupported source dependency or select a root whose dependency closure stays within the admitted pure profile.\",\"location\":{\"path\":\"Helper.lean\",\"kind\":\"declaration\",\"declaration\":\"foreign\",\"start\":{\"line\":3,\"column\":37,\"utf16_column\":37,\"byte_offset\":61},\"end\":{\"line\":3,\"column\":44,\"utf16_column\":44,\"byte_offset\":68}},\"message\":\"Source audit rejected run: [extern source dependency: foreign, axiom source dependency: foreign]\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/custom_csimp",
+  "files": {
+   "Example.lean": "@[noinline] def original (x : UInt32) : UInt32 := x + 1\n@[noinline] def replacement (x : UInt32) : UInt32 := original x\ntheorem replacement_eq : original = replacement := rfl\nattribute [csimp] replacement_eq\ndef run (x : UInt32) : UInt32 := original x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "source_audit",
+   "compiler_form": "csimp",
+   "declaration": "original",
+   "hint": "Remove the custom csimp rewrite from the selected root's dependency closure.",
+   "location": {
+    "path": "Example.lean",
+    "kind": "declaration",
+    "declaration": "original",
+    "start": {
+     "line": 1,
+     "column": 16,
+     "utf16_column": 16,
+     "byte_offset": 16
+    },
+    "end": {
+     "line": 1,
+     "column": 24,
+     "utf16_column": 24,
+     "byte_offset": 24
+    }
+   },
+   "message": "Unsupported historical compiler rewrite: original -> replacement via replacement_eq",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"source_audit\",\"compiler_form\":\"csimp\",\"declaration\":\"original\",\"hint\":\"Remove the custom csimp rewrite from the selected root's dependency closure.\",\"location\":{\"path\":\"Example.lean\",\"kind\":\"declaration\",\"declaration\":\"original\",\"start\":{\"line\":1,\"column\":16,\"utf16_column\":16,\"byte_offset\":16},\"end\":{\"line\":1,\"column\":24,\"utf16_column\":24,\"byte_offset\":24}},\"message\":\"Unsupported historical compiler rewrite: original -> replacement via replacement_eq\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/malformed_custom_csimp",
+  "files": {
+   "Example.lean": "@[noinline] def original (x : UInt32) : UInt32 := x + 1\n@[noinline] def replacement (x : UInt32) : UInt32 := original x\ntheorem replacement_eq : original = replacement := rfl\nattribute [csimp] replacement_eq\ndef run (x : UInt32) : UInt32 := original x\ndef broken : UInt32 := )\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "producer_failed",
+   "stage": "build",
+   "message": "producer process failed (1): error: build failed\n✔ [2/22] Built LeanGo.Module.Diagnostics (2.4s)\n✔ [4/22] Built LeanGo.Module.Reduced (3.4s)\n✔ [6/22] Built LeanGo.Module.Records (2.6s)\n✔ [8/22] Built LeanGo.Module.Primitives (5.4s)\n✔ [10/22] Built LeanGo.Module.LocalSource (1.7s)\n✔ [12/22] Built LeanGo.Module.Local (2.3s)\n✔ [14/22] Built LeanGo.Module.LocalObserve (2.7s)\n✔ [16/22] Built LeanGo.Module.Audit (3.6s)\n✖ [18/22] Building Example (3.7s)\ntrace: .> LEAN_PATH=/tmp/lean-go-module-36bqw8bg/.lake/build/lib/lean /opt/lean/bin/lean /tmp/lean-go-module-36bqw8bg/Example.lean -o /tmp/lean-go-module-36bqw8bg/.lake/build/lib/lean/Example.olean -i /tmp/lean-go-module-36bqw8bg/.lake/build/lib/lean/Example.ilean -c /tmp/lean-go-module-36bqw8bg/.lake/build/ir/Example.c --setup /tmp/lean-go-module-36bqw8bg/.lake/build/ir/Example.setup.json --json\nerror: Example.lean:9:22: unexpected token ')'; expected term\n✔ [21/22] Built LeanGo.Module.Export (8.3s)\nSome required targets logged failures:\n- Example",
+   "declaration": null,
+   "compiler_form": null,
+   "location": {
+    "path": "Example.lean",
+    "kind": "compiler",
+    "declaration": null,
+    "start": {
+     "line": 6,
+     "column": 22,
+     "utf16_column": 22,
+     "byte_offset": 274
+    },
+    "end": {
+     "line": 6,
+     "column": 22,
+     "utf16_column": 22,
+     "byte_offset": 274
+    }
+   },
+   "hint": "Check the Lean build error and the pinned toolchain; this is not an admission rejection."
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"producer_failed\",\"stage\":\"build\",\"message\":\"producer process failed (1): error: build failed\\n✔ [2/22] Built LeanGo.Module.Diagnostics (2.4s)\\n✔ [4/22] Built LeanGo.Module.Reduced (3.4s)\\n✔ [6/22] Built LeanGo.Module.Records (2.6s)\\n✔ [8/22] Built LeanGo.Module.Primitives (5.4s)\\n✔ [10/22] Built LeanGo.Module.LocalSource (1.7s)\\n✔ [12/22] Built LeanGo.Module.Local (2.3s)\\n✔ [14/22] Built LeanGo.Module.LocalObserve (2.7s)\\n✔ [16/22] Built LeanGo.Module.Audit (3.6s)\\n✖ [18/22] Building Example (3.7s)\\ntrace: .> LEAN_PATH=/tmp/lean-go-module-36bqw8bg/.lake/build/lib/lean /opt/lean/bin/lean /tmp/lean-go-module-36bqw8bg/Example.lean -o /tmp/lean-go-module-36bqw8bg/.lake/build/lib/lean/Example.olean -i /tmp/lean-go-module-36bqw8bg/.lake/build/lib/lean/Example.ilean -c /tmp/lean-go-module-36bqw8bg/.lake/build/ir/Example.c --setup /tmp/lean-go-module-36bqw8bg/.lake/build/ir/Example.setup.json --json\\nerror: Example.lean:9:22: unexpected token ')'; expected term\\n✔ [21/22] Built LeanGo.Module.Export (8.3s)\\nSome required targets logged failures:\\n- Example\",\"declaration\":null,\"compiler_form\":null,\"location\":{\"path\":\"Example.lean\",\"kind\":\"compiler\",\"declaration\":null,\"start\":{\"line\":6,\"column\":22,\"utf16_column\":22,\"byte_offset\":274},\"end\":{\"line\":6,\"column\":22,\"utf16_column\":22,\"byte_offset\":274}},\"hint\":\"Check the Lean build error and the pinned toolchain; this is not an admission rejection.\"}]}"
+ },
+ {
+  "name": "diagnostics/rewrite_witness_integrity",
+  "files": {
+   "Example.lean": "def run (x : UInt32) : UInt32 := x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": "import LeanGo.Module.Export\nimport Example\nopen Lean LeanGo.Module\nrun_cmd Lean.Elab.Command.liftCoreM do\n  withEnv (← mkEmptyEnvironment) do\n    addDecl <| .axiomDecl { name := ``Bool.not_eq_internalNot, levelParams := [], type := .sort .zero, isUnsafe := false }\n    discard <| reportAdmission <| rewriteJson { source := ``Bool.not, target := ``Bool.Internal.not, theoremName := ``Bool.not_eq_internalNot }\n",
+  "diagnostic": {
+   "code": "producer_failed",
+   "stage": "build",
+   "message": "producer process failed (1): \nLeanGo/Module/Harness.lean:4:0: error: Compiler rewrite witness is not a theorem",
+   "declaration": null,
+   "compiler_form": null,
+   "location": null,
+   "hint": "Check the Lean build error and the pinned toolchain; this is not an admission rejection."
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"producer_failed\",\"stage\":\"build\",\"message\":\"producer process failed (1): \\nLeanGo/Module/Harness.lean:4:0: error: Compiler rewrite witness is not a theorem\",\"declaration\":null,\"compiler_form\":null,\"location\":null,\"hint\":\"Check the Lean build error and the pinned toolchain; this is not an admission rejection.\"}]}"
+ },
+ {
+  "name": "diagnostics/polymorphic_signature",
+  "files": {
+   "Example.lean": "def run {α : Type} (x : α) : α := x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "unsupported_type",
+   "compiler_form": null,
+   "declaration": "run",
+   "hint": "Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.",
+   "location": {
+    "path": "Example.lean",
+    "kind": "declaration",
+    "declaration": "run",
+    "start": {
+     "line": 1,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 4
+    },
+    "end": {
+     "line": 1,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 7
+    }
+   },
+   "message": "Unsupported first-order monomorphic type: Type",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_type\",\"compiler_form\":null,\"declaration\":\"run\",\"hint\":\"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.\",\"location\":{\"path\":\"Example.lean\",\"kind\":\"declaration\",\"declaration\":\"run\",\"start\":{\"line\":1,\"column\":4,\"utf16_column\":4,\"byte_offset\":4},\"end\":{\"line\":1,\"column\":7,\"utf16_column\":7,\"byte_offset\":7}},\"message\":\"Unsupported first-order monomorphic type: Type\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/constructor_field",
+  "files": {
+   "Example.lean": "inductive Choice where\n  | number (x : UInt32)\n  | fn (f : UInt32 → UInt32)\ndef run (x : Choice) : Choice := x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "unsupported_type",
+   "compiler_form": null,
+   "declaration": "Choice.fn",
+   "hint": "Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.",
+   "location": {
+    "path": "Example.lean",
+    "kind": "declaration",
+    "declaration": "Choice.fn",
+    "start": {
+     "line": 3,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 51
+    },
+    "end": {
+     "line": 3,
+     "column": 6,
+     "utf16_column": 6,
+     "byte_offset": 53
+    }
+   },
+   "message": "Unsupported first-order monomorphic type: UInt32 → UInt32",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_type\",\"compiler_form\":null,\"declaration\":\"Choice.fn\",\"hint\":\"Use a concrete first-order data type; polymorphism and function-valued types are outside this profile.\",\"location\":{\"path\":\"Example.lean\",\"kind\":\"declaration\",\"declaration\":\"Choice.fn\",\"start\":{\"line\":3,\"column\":4,\"utf16_column\":4,\"byte_offset\":51},\"end\":{\"line\":3,\"column\":6,\"utf16_column\":6,\"byte_offset\":53}},\"message\":\"Unsupported first-order monomorphic type: UInt32 → UInt32\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/syntax_paren",
+  "files": {
+   "Example.lean": "def run (x : UInt32) : UInt32 := )\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "producer_failed",
+   "stage": "build",
+   "message": "producer process failed (1): error: build failed\n✔ [2/22] Built LeanGo.Module.Diagnostics (2.5s)\n✔ [4/22] Built LeanGo.Module.Reduced (3.7s)\n✔ [6/22] Built LeanGo.Module.Records (3.4s)\n✔ [8/22] Built LeanGo.Module.Primitives (6.2s)\n✔ [10/22] Built LeanGo.Module.LocalSource (1.7s)\n✔ [12/22] Built LeanGo.Module.Local (2.5s)\n✔ [14/22] Built LeanGo.Module.LocalObserve (2.7s)\n✔ [16/22] Built LeanGo.Module.Audit (3.2s)\n✖ [18/22] Building Example (3.4s)\ntrace: .> LEAN_PATH=/tmp/lean-go-module-nvxcdfh7/.lake/build/lib/lean /opt/lean/bin/lean /tmp/lean-go-module-nvxcdfh7/Example.lean -o /tmp/lean-go-module-nvxcdfh7/.lake/build/lib/lean/Example.olean -i /tmp/lean-go-module-nvxcdfh7/.lake/build/lib/lean/Example.ilean -c /tmp/lean-go-module-nvxcdfh7/.lake/build/ir/Example.c --setup /tmp/lean-go-module-nvxcdfh7/.lake/build/ir/Example.setup.json --json\nerror: Example.lean:4:32: unexpected token ')'; expected term\n✔ [21/22] Built LeanGo.Module.Export (8.4s)\nSome required targets logged failures:\n- Example",
+   "declaration": null,
+   "compiler_form": null,
+   "location": {
+    "path": "Example.lean",
+    "kind": "compiler",
+    "declaration": null,
+    "start": {
+     "line": 1,
+     "column": 32,
+     "utf16_column": 32,
+     "byte_offset": 32
+    },
+    "end": {
+     "line": 1,
+     "column": 32,
+     "utf16_column": 32,
+     "byte_offset": 32
+    }
+   },
+   "hint": "Check the Lean build error and the pinned toolchain; this is not an admission rejection."
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"producer_failed\",\"stage\":\"build\",\"message\":\"producer process failed (1): error: build failed\\n✔ [2/22] Built LeanGo.Module.Diagnostics (2.5s)\\n✔ [4/22] Built LeanGo.Module.Reduced (3.7s)\\n✔ [6/22] Built LeanGo.Module.Records (3.4s)\\n✔ [8/22] Built LeanGo.Module.Primitives (6.2s)\\n✔ [10/22] Built LeanGo.Module.LocalSource (1.7s)\\n✔ [12/22] Built LeanGo.Module.Local (2.5s)\\n✔ [14/22] Built LeanGo.Module.LocalObserve (2.7s)\\n✔ [16/22] Built LeanGo.Module.Audit (3.2s)\\n✖ [18/22] Building Example (3.4s)\\ntrace: .> LEAN_PATH=/tmp/lean-go-module-nvxcdfh7/.lake/build/lib/lean /opt/lean/bin/lean /tmp/lean-go-module-nvxcdfh7/Example.lean -o /tmp/lean-go-module-nvxcdfh7/.lake/build/lib/lean/Example.olean -i /tmp/lean-go-module-nvxcdfh7/.lake/build/lib/lean/Example.ilean -c /tmp/lean-go-module-nvxcdfh7/.lake/build/ir/Example.c --setup /tmp/lean-go-module-nvxcdfh7/.lake/build/ir/Example.setup.json --json\\nerror: Example.lean:4:32: unexpected token ')'; expected term\\n✔ [21/22] Built LeanGo.Module.Export (8.4s)\\nSome required targets logged failures:\\n- Example\",\"declaration\":null,\"compiler_form\":null,\"location\":{\"path\":\"Example.lean\",\"kind\":\"compiler\",\"declaration\":null,\"start\":{\"line\":1,\"column\":32,\"utf16_column\":32,\"byte_offset\":32},\"end\":{\"line\":1,\"column\":32,\"utf16_column\":32,\"byte_offset\":32}},\"hint\":\"Check the Lean build error and the pinned toolchain; this is not an admission rejection.\"}]}"
+ },
+ {
+  "name": "diagnostics/syntax_missing",
+  "files": {
+   "Example.lean": "def run (x : UInt32) : UInt32 := missing\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": null,
+  "diagnostic": {
+   "code": "producer_failed",
+   "stage": "build",
+   "message": "producer process failed (1): error: build failed\n✔ [2/22] Built LeanGo.Module.Diagnostics (2.6s)\n✔ [4/22] Built LeanGo.Module.Reduced (4.8s)\n✔ [6/22] Built LeanGo.Module.Primitives (6.1s)\n✔ [8/22] Built LeanGo.Module.Records (3.7s)\n✔ [10/22] Built LeanGo.Module.LocalSource (1.6s)\n✔ [12/22] Built LeanGo.Module.Local (3.4s)\n✔ [14/22] Built LeanGo.Module.LocalObserve (2.8s)\n✔ [16/22] Built LeanGo.Module.Audit (3.6s)\n✖ [18/22] Building Example (3.8s)\ntrace: .> LEAN_PATH=/tmp/lean-go-module-fpb22i8t/.lake/build/lib/lean /opt/lean/bin/lean /tmp/lean-go-module-fpb22i8t/Example.lean -o /tmp/lean-go-module-fpb22i8t/.lake/build/lib/lean/Example.olean -i /tmp/lean-go-module-fpb22i8t/.lake/build/lib/lean/Example.ilean -c /tmp/lean-go-module-fpb22i8t/.lake/build/ir/Example.c --setup /tmp/lean-go-module-fpb22i8t/.lake/build/ir/Example.setup.json --json\nerror: Example.lean:4:33: Unknown identifier `missing`\n✔ [21/22] Built LeanGo.Module.Export (8.9s)\nSome required targets logged failures:\n- Example",
+   "declaration": null,
+   "compiler_form": null,
+   "location": {
+    "path": "Example.lean",
+    "kind": "compiler",
+    "declaration": null,
+    "start": {
+     "line": 1,
+     "column": 33,
+     "utf16_column": 33,
+     "byte_offset": 33
+    },
+    "end": {
+     "line": 1,
+     "column": 33,
+     "utf16_column": 33,
+     "byte_offset": 33
+    }
+   },
+   "hint": "Check the Lean build error and the pinned toolchain; this is not an admission rejection."
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"producer_failed\",\"stage\":\"build\",\"message\":\"producer process failed (1): error: build failed\\n✔ [2/22] Built LeanGo.Module.Diagnostics (2.6s)\\n✔ [4/22] Built LeanGo.Module.Reduced (4.8s)\\n✔ [6/22] Built LeanGo.Module.Primitives (6.1s)\\n✔ [8/22] Built LeanGo.Module.Records (3.7s)\\n✔ [10/22] Built LeanGo.Module.LocalSource (1.6s)\\n✔ [12/22] Built LeanGo.Module.Local (3.4s)\\n✔ [14/22] Built LeanGo.Module.LocalObserve (2.8s)\\n✔ [16/22] Built LeanGo.Module.Audit (3.6s)\\n✖ [18/22] Building Example (3.8s)\\ntrace: .> LEAN_PATH=/tmp/lean-go-module-fpb22i8t/.lake/build/lib/lean /opt/lean/bin/lean /tmp/lean-go-module-fpb22i8t/Example.lean -o /tmp/lean-go-module-fpb22i8t/.lake/build/lib/lean/Example.olean -i /tmp/lean-go-module-fpb22i8t/.lake/build/lib/lean/Example.ilean -c /tmp/lean-go-module-fpb22i8t/.lake/build/ir/Example.c --setup /tmp/lean-go-module-fpb22i8t/.lake/build/ir/Example.setup.json --json\\nerror: Example.lean:4:33: Unknown identifier `missing`\\n✔ [21/22] Built LeanGo.Module.Export (8.9s)\\nSome required targets logged failures:\\n- Example\",\"declaration\":null,\"compiler_form\":null,\"location\":{\"path\":\"Example.lean\",\"kind\":\"compiler\",\"declaration\":null,\"start\":{\"line\":1,\"column\":33,\"utf16_column\":33,\"byte_offset\":33},\"end\":{\"line\":1,\"column\":33,\"utf16_column\":33,\"byte_offset\":33}},\"hint\":\"Check the Lean build error and the pinned toolchain; this is not an admission rejection.\"}]}"
+ },
+ {
+  "name": "diagnostics/encoder_control",
+  "files": {
+   "Example.lean": "def run (x : UInt32) : UInt32 := x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": "import LeanGo.Module.Export\nimport Example\nopen Lean LeanGo.Module Lean.Compiler.LCNF\nrun_cmd Lean.Elab.Command.liftCoreM do\n  discard <| reportAdmission <| withDeclaration `run do\n    let (result, _) ← (encode (.unreach (.const ``UInt32 [])) [] [] \"UInt32\").run {}\n    return result\n",
+  "diagnostic": {
+   "code": "unsupported_lcnf_control",
+   "compiler_form": "LCNF.Code.unreach",
+   "declaration": "run",
+   "hint": "Use first-order calls, exhaustive matches and local joins; retained closures are outside this profile.",
+   "location": {
+    "path": "Example.lean",
+    "kind": "declaration",
+    "declaration": "run",
+    "start": {
+     "line": 1,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 4
+    },
+    "end": {
+     "line": 1,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 7
+    }
+   },
+   "message": "Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_lcnf_control\",\"compiler_form\":\"LCNF.Code.unreach\",\"declaration\":\"run\",\"hint\":\"Use first-order calls, exhaustive matches and local joins; retained closures are outside this profile.\",\"location\":{\"path\":\"Example.lean\",\"kind\":\"declaration\",\"declaration\":\"run\",\"start\":{\"line\":1,\"column\":4,\"utf16_column\":4,\"byte_offset\":4},\"end\":{\"line\":1,\"column\":7,\"utf16_column\":7,\"byte_offset\":7}},\"message\":\"Unsupported control flow (only return, let, exhaustive cases and local joins are admitted)\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/encoder_value",
+  "files": {
+   "Example.lean": "def run (x : UInt32) : UInt32 := x\n"
+  },
+  "module": "Example",
+  "root": "run",
+  "harness": "import LeanGo.Module.Export\nimport Example\nopen Lean LeanGo.Module Lean.Compiler.LCNF\nrun_cmd Lean.Elab.Command.liftCoreM do\n  discard <| reportAdmission <| withDeclaration `run do\n    let (result, _) ← (encode (.let { fvarId := ⟨`x⟩, binderName := `x, type := .const ``UInt32 [], value := .erased } (.return ⟨`x⟩)) [] [] \"UInt32\").run {}\n    return result\n",
+  "diagnostic": {
+   "code": "unsupported_lcnf_value",
+   "compiler_form": "LCNF.LetValue.erased",
+   "declaration": "run",
+   "hint": "Use UInt8/UInt16/UInt32/UInt64 literals, admitted primitive calls, first-order functions or constructors.",
+   "location": {
+    "path": "Example.lean",
+    "kind": "declaration",
+    "declaration": "run",
+    "start": {
+     "line": 1,
+     "column": 4,
+     "utf16_column": 4,
+     "byte_offset": 4
+    },
+    "end": {
+     "line": 1,
+     "column": 7,
+     "utf16_column": 7,
+     "byte_offset": 7
+    }
+   },
+   "message": "Unsupported let value (only UInt8/UInt16/UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_lcnf_value\",\"compiler_form\":\"LCNF.LetValue.erased\",\"declaration\":\"run\",\"hint\":\"Use UInt8/UInt16/UInt32/UInt64 literals, admitted primitive calls, first-order functions or constructors.\",\"location\":{\"path\":\"Example.lean\",\"kind\":\"declaration\",\"declaration\":\"run\",\"start\":{\"line\":1,\"column\":4,\"utf16_column\":4,\"byte_offset\":4},\"end\":{\"line\":1,\"column\":7,\"utf16_column\":7,\"byte_offset\":7}},\"message\":\"Unsupported let value (only UInt8/UInt16/UInt32/UInt64 literals, primitive calls, functions and constructors are admitted)\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/generated_helper_owner",
+  "files": {
+   "Local.lean": "namespace Local\n@[noinline] def add (x y : UInt32) : UInt32 := x + y\n@[noinline] def run (bias x y : UInt32) : UInt32 :=\n  let bump := fun (a : UInt32) =>\n    let value := add a bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    value\n  add (bump x) (bump y)\nend Local\n"
+  },
+  "module": "Local",
+  "root": "Local.run",
+  "harness": "import LeanGo.Module.Export\nimport Local\nopen Lean LeanGo.Module\nrun_cmd Lean.Elab.Command.liftCoreM do\n  discard <| reportAdmission <| withDeclaration `Local.run._lam_0 do\n    reject \"unsupported_lcnf_control\" \"Use first-order calls.\" m!\"test encoder rejection\"\n",
+  "diagnostic": {
+   "code": "unsupported_lcnf_control",
+   "compiler_form": null,
+   "declaration": "Local.run._lam_0",
+   "hint": "Use first-order calls.",
+   "location": {
+    "path": "Local.lean",
+    "kind": "source_owner",
+    "declaration": "Local.run",
+    "start": {
+     "line": 3,
+     "column": 16,
+     "utf16_column": 16,
+     "byte_offset": 85
+    },
+    "end": {
+     "line": 3,
+     "column": 19,
+     "utf16_column": 19,
+     "byte_offset": 88
+    }
+   },
+   "message": "test encoder rejection",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_lcnf_control\",\"compiler_form\":null,\"declaration\":\"Local.run._lam_0\",\"hint\":\"Use first-order calls.\",\"location\":{\"path\":\"Local.lean\",\"kind\":\"source_owner\",\"declaration\":\"Local.run\",\"start\":{\"line\":3,\"column\":16,\"utf16_column\":16,\"byte_offset\":85},\"end\":{\"line\":3,\"column\":19,\"utf16_column\":19,\"byte_offset\":88}},\"message\":\"test encoder rejection\",\"stage\":\"admission\"}]}"
+ },
+ {
+  "name": "diagnostics/generated_helper_unknown",
+  "files": {
+   "Local.lean": "namespace Local\n@[noinline] def add (x y : UInt32) : UInt32 := x + y\n@[noinline] def run (bias x y : UInt32) : UInt32 :=\n  let bump := fun (a : UInt32) =>\n    let value := add a bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    let value := add value bias\n    value\n  add (bump x) (bump y)\nend Local\n"
+  },
+  "module": "Local",
+  "root": "Local.run",
+  "harness": "import LeanGo.Module.Export\nimport Local\nopen Lean LeanGo.Module\nrun_cmd Lean.Elab.Command.liftCoreM do\n  discard <| reportAdmission <| withDeclaration `Unknown.run._lam_0 do\n    reject \"unsupported_lcnf_control\" \"Use first-order calls.\" m!\"test encoder rejection\"\n",
+  "diagnostic": {
+   "code": "unsupported_lcnf_control",
+   "compiler_form": null,
+   "declaration": "Unknown.run._lam_0",
+   "hint": "Use first-order calls.",
+   "location": null,
+   "message": "test encoder rejection",
+   "stage": "admission"
+  },
+  "report": "{\"schema\":\"lean-go-diagnostics/v1\",\"success\":false,\"diagnostics\":[{\"code\":\"unsupported_lcnf_control\",\"compiler_form\":null,\"declaration\":\"Unknown.run._lam_0\",\"hint\":\"Use first-order calls.\",\"location\":null,\"message\":\"test encoder rejection\",\"stage\":\"admission\"}]}"
+ }
+]

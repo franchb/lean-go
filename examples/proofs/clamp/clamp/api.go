@@ -4,7 +4,7 @@ package extracted
 // apiNode checks an immutable handle without traversing or copying its children.
 func apiNode(n *node, typ int) bool { return n != nil && n.typ == typ && n.size != 0 && n.depth != 0 }
 func apiMatches(v Value, typ, tag, arity int) bool {
-	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0
+	return apiNode(v.n, typ) && v.n.tag == tag && len(v.n.fields) == arity && v.n.scalar == 0 && v.n.scalar64 == 0 && v.n.scalar8 == 0 && v.n.scalar16 == 0
 }
 
 // apiMake owns the immediate field slice and shares immutable children. Cached
@@ -30,7 +30,7 @@ func apiMake(typ, tag int, fields []*node, l Limits) (Value, error) {
 
 func apiUInt32Node(value uint32) *node { return &node{typ: 0, scalar: value, size: 1, depth: 1} }
 func apiReadUInt32(n *node) (uint32, bool) {
-	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 {
+	if !apiNode(n, 0) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar, true
@@ -38,10 +38,26 @@ func apiReadUInt32(n *node) (uint32, bool) {
 
 func apiUInt64Node(value uint64) *node { return &node{typ: 2, scalar64: value, size: 1, depth: 1} }
 func apiReadUInt64(n *node) (uint64, bool) {
-	if !apiNode(n, 2) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 {
+	if !apiNode(n, 2) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar8 != 0 || n.scalar16 != 0 {
 		return 0, false
 	}
 	return n.scalar64, true
+}
+
+func apiUInt8Node(value uint8) *node { return &node{typ: 3, scalar8: value, size: 1, depth: 1} }
+func apiReadUInt8(n *node) (uint8, bool) {
+	if !apiNode(n, 3) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar != 0 || n.scalar64 != 0 || n.scalar16 != 0 {
+		return 0, false
+	}
+	return n.scalar8, true
+}
+
+func apiUInt16Node(value uint16) *node { return &node{typ: 4, scalar16: value, size: 1, depth: 1} }
+func apiReadUInt16(n *node) (uint16, bool) {
+	if !apiNode(n, 4) || n.tag != 0 || len(n.fields) != 0 || n.size != 1 || n.depth != 1 || n.scalar8 != 0 || n.scalar != 0 || n.scalar64 != 0 {
+		return 0, false
+	}
+	return n.scalar16, true
 }
 
 func apiBoolNode(value bool) *node {
@@ -52,65 +68,65 @@ func apiBoolNode(value bool) *node {
 	return &node{typ: 1, tag: tag, size: 1, depth: 1}
 }
 func apiReadBool(n *node) (bool, bool) {
-	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
+	if !apiNode(n, 1) || len(n.fields) != 0 || n.scalar != 0 || n.scalar64 != 0 || n.scalar8 != 0 || n.scalar16 != 0 || n.size != 1 || n.depth != 1 || (n.tag != 0 && n.tag != 1) {
 		return false, false
 	}
 	return n.tag == 1, true
 }
 
-// scalarWork charges the same IR steps and logical scalar allocations as execute.
-func (b *budget) scalarWork(steps, allocations uint64) bool {
-	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
-		return false
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natCap implements the Lean function Clamp.Bounds.cap.
+func natCap(v1 uint64, v2 uint64) uint64 {
+	if v1 <= v2 {
+		return v1
 	}
-	b.steps += steps
-	b.allocations += allocations
-	return true
+	return v2
 }
-func scalarFunc0(b *budget, depth int, v1 uint64, v2 uint64) (uint64, error) {
-	if err := b.enter(3, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(2, 1) {
-		return 0, ErrResource
-	}
-	v3 := v1 <= v2
-	if v3 {
-		if !b.scalarWork(1, 0) {
-			return 0, ErrResource
-		}
-		return v1, nil
-	}
-	if !b.scalarWork(1, 0) {
-		return 0, ErrResource
-	}
-	return v2, nil
+
+// natClamp implements the Lean function Clamp.clamp.
+func natClamp(v1 uint64, v2 uint64) uint64 {
+	return natCap(v1, v2)
 }
-func scalarFunc1(b *budget, depth int, v1 uint64, v2 uint64) (uint64, error) {
-	if err := b.enter(3, depth); err != nil {
-		return 0, err
+
+// fastCovers1 reports whether l is valid and covers the static worst case of
+// Clamp.clamp in every dimension.
+func fastCovers1(l Limits) bool {
+	return 2 <= l.MaxNodes && l.MaxNodes <= 65536 && 1 <= l.MaxDepth && l.MaxDepth <= 4096 && 1 <= l.MaxOutputNodes && l.MaxOutputNodes <= 131072 && 1 <= l.MaxAllocations && l.MaxAllocations <= 65536 && 5 <= l.MaxSteps && l.MaxSteps <= 4194304 && 2 <= l.MaxFrames && l.MaxFrames <= 8192 && 6 <= l.MaxSlots && l.MaxSlots <= 1048576
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers1(l) {
+		return nil, false
 	}
-	if !b.scalarWork(1, 0) {
-		return 0, ErrResource
+	x0, ok := apiReadUInt64(args[0])
+	if !ok {
+		return nil, false
 	}
-	v3, err := scalarFunc0(b, depth+1, v1, v2)
+	x1, ok := apiReadUInt64(args[1])
+	if !ok {
+		return nil, false
+	}
+	return apiUInt64Node(natClamp(x0, x1)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
+func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
+	if fastCovers1(l) {
+		x0 := a0
+		x1 := a1
+		return natClamp(x0, x1), nil
+	}
+	out, err := Run([]Value{{n: apiUInt64Node(a0)}, {n: apiUInt64Node(a1)}}, l)
 	if err != nil {
 		return 0, err
 	}
-	if !b.scalarWork(1, 0) {
-		return 0, ErrResource
+	value, ok := apiReadUInt64(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	return v3, nil
-}
-
-// RunTyped runs the scalar root with native Go values and the public resource limits.
-func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
-	if err := checkLimits(l); err != nil {
-		return 0, err
-	}
-	if l.MaxNodes < 2 {
-		return 0, ErrResource
-	}
-	b := budget{limits: l}
-	return scalarFunc1(&b, 0, a0, a1)
+	return value, nil
 }

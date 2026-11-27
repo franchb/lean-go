@@ -1,0 +1,71 @@
+package compatconsumer
+
+import (
+	"encoding/binary"
+	"os"
+	"testing"
+
+	x "compatconsumer/extracted"
+)
+
+var samples = []uint64{0, 1, 2, 3, 7, 8, 255, 256, 65535, 65536, 1 << 31, 1<<32 - 1, 1 << 63, 1<<64 - 1}
+
+// lean is Lean's definition, independent of Go's panicking zero divisor.
+func lean(a, b uint64) (uint64, uint64) {
+	if b == 0 {
+		return 0, a
+	}
+	return a / b, a % b
+}
+
+func check[T any](t *testing.T, label string, got T, ok bool, err error, want uint64, native uint64, value func(T) uint64) {
+	t.Helper()
+	if err != nil || !ok || value(got) != want || want != native {
+		t.Fatalf("%s: generated %d, native %d, Go %d, ok %v, err %v", label, value(got), native, want, ok, err)
+	}
+}
+
+func TestDivisionAgainstNativeLean(t *testing.T) {
+	oracle, err := os.ReadFile("oracle.bin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := 8 * len(samples) * (8*len(samples) + 2); len(oracle) != want {
+		t.Fatalf("native output has %d bytes, want %d", len(oracle), want)
+	}
+	next := func() uint64 { n := binary.BigEndian.Uint64(oracle); oracle = oracle[8:]; return n }
+	l := x.DefaultLimits()
+	for _, a := range samples {
+		for _, b := range samples {
+			r8, err := x.RunDiv8(uint8(a), uint8(b), l)
+			q, r := lean(uint64(uint8(a)), uint64(uint8(b)))
+			v, ok := r8.Quotient()
+			check(t, "div8", v, ok, err, q, next(), func(v uint8) uint64 { return uint64(v) })
+			v, ok = r8.Remainder()
+			check(t, "mod8", v, ok, err, r, next(), func(v uint8) uint64 { return uint64(v) })
+			r16, err := x.RunDiv16(uint16(a), uint16(b), l)
+			q, r = lean(uint64(uint16(a)), uint64(uint16(b)))
+			w, ok := r16.Quotient()
+			check(t, "div16", w, ok, err, q, next(), func(v uint16) uint64 { return uint64(v) })
+			w, ok = r16.Remainder()
+			check(t, "mod16", w, ok, err, r, next(), func(v uint16) uint64 { return uint64(v) })
+			r32, err := x.RunDiv32(uint32(a), uint32(b), l)
+			q, r = lean(uint64(uint32(a)), uint64(uint32(b)))
+			d, ok := r32.Quotient()
+			check(t, "div32", d, ok, err, q, next(), func(v uint32) uint64 { return uint64(v) })
+			d, ok = r32.Remainder()
+			check(t, "mod32", d, ok, err, r, next(), func(v uint32) uint64 { return uint64(v) })
+			r64, err := x.RunDiv64(a, b, l)
+			q, r = lean(a, b)
+			o, ok := r64.Quotient()
+			check(t, "div64", o, ok, err, q, next(), func(v uint64) uint64 { return v })
+			o, ok = r64.Remainder()
+			check(t, "mod64", o, ok, err, r, next(), func(v uint64) uint64 { return v })
+		}
+		h, err := x.RunHalves(uint32(a), l)
+		d, ok := h.Quotient()
+		check(t, "halves quotient", d, ok, err, uint64(uint32(a))>>16, next(), func(v uint32) uint64 { return uint64(v) })
+		d, ok = h.Remainder()
+		check(t, "halves remainder", d, ok, err, uint64(uint32(a))&0xffff, next(), func(v uint32) uint64 { return uint64(v) })
+	}
+}
