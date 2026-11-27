@@ -73,7 +73,7 @@ func TestHelpSaysThisIsNotTheInstalledCommand(t *testing.T) {
 	if code := run([]string{"--help"}, &stdout, &stderr); code != 0 || !strings.Contains(stdout.String(), "not part of the\nlean-go command users install") {
 		t.Fatalf("exit %d: %s", code, stdout.String())
 	}
-	for _, command := range []string{"differential", "widths", "bytes", "compatibility", "demos"} {
+	for _, command := range []string{"differential", "widths", "bytes", "compatibility", "demos", "installed-cli", "release-candidate"} {
 		stderr.Reset()
 		if code := run([]string{command, "-h"}, &stdout, &stderr); code != 0 || !strings.Contains(stderr.String(), "not part of the installed lean-go command") {
 			t.Errorf("%s: exit %d: %s", command, code, stderr.String())
