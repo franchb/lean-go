@@ -1,5 +1,7 @@
 # Multi-root extraction
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 Several ordinary Lean functions can be extracted into one Go package. Their
 dependency closures are combined, with one copy of each nominal type, constructor,
 helper function and runtime. This lets Go consumers compose typed functions without

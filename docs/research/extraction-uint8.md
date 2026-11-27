@@ -1,5 +1,7 @@
 # Scalar UInt8 extraction and the proved byte codec
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The [alpha.8 candidate](../releases/v0.1.0-alpha.8.md), Python package `0.1.0a8`,
 adds scalar `UInt8`, exact UInt8/UInt32 casts and the
 [proved byte codec](../../examples/proofs/bytes) to the pure monomorphic module

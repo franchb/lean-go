@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// Shared helpers for the tests ported from the Python suites in scripts/.
+// Shared helpers for the tests ported from the retired Python suites in scripts/.
 
 var (
 	sharedCacheOnce sync.Once
@@ -19,6 +19,11 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	if os.Getenv(helperProcess) == "1" {
+		fmt.Print("compiler stdout")
+		fmt.Fprint(os.Stderr, "precise compiler stderr")
+		os.Exit(9)
+	}
 	code := m.Run()
 	if sharedCacheDir != "" {
 		os.RemoveAll(sharedCacheDir)

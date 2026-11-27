@@ -2,10 +2,11 @@ package pipeline
 
 import "testing"
 
-// Lean-gated (LEAN_GO_MODULES=1) port of scripts/test_module_admission.py:
+// Lean-gated (LEAN_GO_MODULES=1) port of the retired scripts/test_module_admission.py:
 // every rejected runtime boundary preserves existing output and is never an
-// elaboration failure. TestAdmissionDiagnosticsMatchPythonPipeline checks the
-// same programs' complete reports against the Python pipeline.
+// elaboration failure. TestAdmissionDiagnosticsMatchRecordedPythonReports checks the
+// same programs' complete reports against those recorded from the retired
+// Python pipeline.
 
 func TestRejectedRuntimeBoundariesPreserveOutput(t *testing.T) {
 	requireModules(t)

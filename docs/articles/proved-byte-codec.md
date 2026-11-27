@@ -1,5 +1,7 @@
 # A proved four-byte codec you can run in Go
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 A four-byte field in a file or network protocol needs an exact byte order and a
 reliable round trip. This example defines that small library in ordinary Lean,
 proves twelve source properties and generates a Go package with an independent

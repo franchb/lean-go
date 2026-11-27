@@ -1,5 +1,7 @@
 # Branch results through local joins
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 The module producer supports results from ordinary Lean `if` and `match`
 expressions that feed later arithmetic, function calls and record updates.
 New exports use `lean-go-ir/v4` / `pure-module/v3`. The backend still accepts

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Ported from scripts/test_width_campaign.py and scripts/test_byte_campaign.py.
+// Ported from the retired scripts/test_width_campaign.py and scripts/test_byte_campaign.py.
 
 func TestWidthBoundaryOracleAndSampleContract(t *testing.T) {
 	if got := WidthModel(Row{4294967295, 4294967295, 18446744073709551615}); !reflect.DeepEqual(got,

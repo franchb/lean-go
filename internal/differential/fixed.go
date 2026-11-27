@@ -16,8 +16,8 @@ import (
 // A fixed campaign compares one tracked corpus source on fixed samples:
 // native Lean, the metered Go package's raw and typed APIs and an
 // independent arithmetic model, plus the smallest resource budgets that
-// succeed. The width and byte campaigns replace check_width_conversions.py
-// and check_bytes.py.
+// succeed. The width and byte campaigns replaced the retired Python scripts
+// check_width_conversions.py and check_bytes.py.
 
 // Row is one sample: two narrow operands and one word.
 type Row [3]uint64

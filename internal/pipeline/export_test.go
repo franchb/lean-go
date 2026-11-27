@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-// Ported from scripts/test_export_module.py, the module half of
+// Ported from the retired scripts/test_export_module.py, the module half of
 // scripts/test_generate.py and the unit half of scripts/test_multiroot.py.
 
 // fakeLean stands in for Lean and Lake. It records every command.

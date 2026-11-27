@@ -15,7 +15,7 @@ import (
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Ported from scripts/test_cli.py (command boundary), the script-boundary
+// Ported from the retired scripts/test_cli.py (command boundary), the script-boundary
 // cases of scripts/test_diagnostics.py and the mode cases of
 // scripts/test_native_mode.py.
 

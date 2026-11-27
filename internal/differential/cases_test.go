@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// Ported from scripts/test_differential.py (CaseTests, ReductionTests,
+// Ported from the retired scripts/test_differential.py (CaseTests, ReductionTests,
 // CampaignTests). The compiled fault-injection test is in lean_test.go.
 
 func addition(width int) Program {

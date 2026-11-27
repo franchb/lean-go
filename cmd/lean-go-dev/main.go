@@ -18,6 +18,7 @@ import (
 
 	"github.com/franchb/lean-go/internal/compatibility"
 	"github.com/franchb/lean-go/internal/differential"
+	"github.com/franchb/lean-go/internal/smoke"
 )
 
 const usage = `usage: go run ./cmd/lean-go-dev <command> [options]
@@ -26,11 +27,14 @@ Developer harnesses of a lean-go checkout. This command is not part of the
 lean-go command users install.
 
 commands:
-  differential   generate, compare, shrink and replay small Lean programs
-  widths         fixed mixed-width conversion campaign
-  bytes          fixed UInt8 campaign
-  compatibility  compare a candidate Lean with the production baseline
-  demos          regenerate and run every proof demo with one Lean installation
+  differential       generate, compare, shrink and replay small Lean programs
+  widths             fixed mixed-width conversion campaign
+  bytes              fixed UInt8 campaign
+  compatibility      compare a candidate Lean with the production baseline
+  demos              regenerate and run every proof demo with one Lean installation
+  installed-cli      build and install lean-go, then run it outside the checkout on
+                     copies of the proof demos
+  release-candidate  source-proof-to-Go walkthrough; prints a JSON receipt
 
 Run 'go run ./cmd/lean-go-dev <command> -h' for the options of one command.
 `
@@ -54,6 +58,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return compatibilityCommand(args[1:], stdout, stderr)
 	case "demos":
 		return demosCommand(args[1:], stdout, stderr)
+	case "installed-cli":
+		return installedCommand(args[1:], stdout, stderr)
+	case "release-candidate":
+		return releaseCommand(args[1:], stdout, stderr)
 	}
 	fmt.Fprintf(stderr, "lean-go-dev: unknown command %q\n%s", args[0], usage)
 	return 2
@@ -261,6 +269,71 @@ func demosCommand(args []string, stdout, stderr io.Writer) int {
 	}
 	if err != nil {
 		fmt.Fprintf(stderr, "Compiler demo verification failed: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func installedCommand(args []string, stdout, stderr io.Writer) int {
+	flags := newFlags("installed-cli", "Build lean-go with go build, install it with go install from a module archive of the\n"+
+		"tracked files (as go install of a release tag does), or take an installed binary;\n"+
+		"then run each binary from a read-only directory outside the checkout: help and\n"+
+		"version without tools, doctor's missing-tool report, generate and check-proofs on a\n"+
+		"copied clamp project through relative paths with spaces, a Go-only consumer, and\n"+
+		"every standalone proof demo and the checked frame regenerated and compared byte\n"+
+		"for byte with the tracked artifacts.", stderr)
+	o := smoke.InstallOptions{Stdout: stdout}
+	flags.StringVar(&o.CLI, "cli", "", "an installed lean-go binary to check instead of building one")
+	flags.StringVar(&o.ExpectTag, "expect-tag", "", "release tag the --cli binary must report (vMAJOR.MINOR.PATCH-alpha.N)")
+	flags.BoolVar(&o.WithoutLean, "without-lean", false, "check the binaries, help and missing-tool errors only")
+	flags.Func("demo", "check only this demo (repeatable; checkedframe is the frame composition); skips the clamp producer workflow", func(name string) error {
+		o.Demos = append(o.Demos, name)
+		return smoke.CheckDemoNames([]string{name})
+	})
+	repoValue := repoFlag(flags)
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
+	if flags.NArg() != 0 || (o.ExpectTag != "" && o.CLI == "") {
+		fmt.Fprintln(stderr, "lean-go-dev installed-cli: unexpected arguments, or --expect-tag without --cli")
+		return 2
+	}
+	repo, err := repository(*repoValue)
+	if err == nil {
+		o.Repo = repo
+		err = smoke.InstalledCLI(o)
+	}
+	if err != nil {
+		fmt.Fprintf(stderr, "installed CLI check failed: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
+func releaseCommand(args []string, stdout, stderr io.Writer) int {
+	flags := newFlags("release-candidate", "Copy the clamp proof demo into a temporary external project, generate fresh Go,\n"+
+		"check and verify its source claims and run a Go-only consumer against an\n"+
+		"independent model; print a JSON receipt. A failed stage prints no receipt.", stderr)
+	repoValue := repoFlag(flags)
+	if err := flags.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return 0
+		}
+		return 2
+	}
+	if flags.NArg() != 0 {
+		fmt.Fprintf(stderr, "lean-go-dev release-candidate: unexpected arguments %v\n", flags.Args())
+		return 2
+	}
+	repo, err := repository(*repoValue)
+	if err == nil {
+		err = smoke.Walkthrough(repo, stdout)
+	}
+	if err != nil {
+		fmt.Fprintf(stderr, "release walkthrough failed: %v\n", err)
 		return 1
 	}
 	return 0

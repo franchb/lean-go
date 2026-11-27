@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) port of scripts/test_local_admission.py.
+// Lean-gated (LEAN_GO_MODULES=1) port of the retired scripts/test_local_admission.py.
 
 const localAdd = "@[noinline] def add (x y : UInt32) : UInt32 := x + y\n"
 

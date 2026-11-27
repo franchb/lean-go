@@ -4,7 +4,7 @@ This directory is a complete Go module. Copy it anywhere, then build and run it
 with Go **1.27.4**. It has no external Go dependencies, `replace` directives, or
 runtime dependency on the lean-go repository. The checked-in package was generated
 from ordinary Lean source through the `lean-go` CLI of this checkout; see the
-[development installation guide](../../../docs/cli.md#development-checkout).
+[development installation guide](../../../docs/cli.md#install).
 
 It is the smallest example of unsigned division and remainder: `Clock.split`
 turns a number of seconds into hours, minutes and seconds with `/` and `%` on
@@ -68,26 +68,25 @@ exercise the extraction boundary; they are not proofs for all Go executions.
 
 ## Regenerate and check proofs
 
-With the CLI of this checkout, Python **3.15**, Go **1.27.4** and Lean/Lake
+With the CLI of this checkout (`go install ./cmd/lean-go`), Go **1.27.4** and Lean/Lake
 **4.36.0** (commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`), run from this
 directory:
 
 ```sh
 lean-go doctor
-lean-go generate --source-dir source --module Clock --root Clock.join --root Clock.split --out clock --ir-output clock.ir.json
+lean-go generate --source-dir source --module Clock --root Clock.join --root Clock.split --out clock --ir-output clock.ir.json --mode metered
 lean-go check-proofs --contract proof-contract.json --manifest clock/manifest.json --output proof-evidence.json
 lean-go check-proofs --contract proof-contract.json --manifest clock/manifest.json --evidence proof-evidence.json
 ```
 
 The generator refuses differing existing output: after changing source or tools,
 generate into new paths and compare. Never edit generated Go by hand. To verify
-the complete handoff from the lean-go checkout:
+the complete handoff, from the root of the lean-go checkout:
 
 ```sh
-clock_cli=$(command -v lean-go)
-uv run --locked python scripts/check_clock_demo.py --cli "$clock_cli"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo clock
 ```
 
-The verifier regenerates every artifact into a fresh directory, compares the
+The check regenerates every artifact into a fresh directory, compares the
 bytes, rechecks all three proofs and runs the copied tests and executable with
-Go alone.
+Go alone, comparing the output with the expected text.

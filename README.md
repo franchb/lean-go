@@ -236,9 +236,8 @@ warm cache the clamp extraction above took 3.6 s here. The commands are `generat
 `validate`, `format`, `regenerate`, `doctor` and `version`; see the
 [CLI guide](docs/cli.md).
 
-Contributors additionally need Python 3.15 through
-[uv](https://docs.astral.sh/uv/): part of the test suite and some
-verification scripts are still Python. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributors need nothing else: the tests and the developer harnesses
+(`go run ./cmd/lean-go-dev`) are Go. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Status
 

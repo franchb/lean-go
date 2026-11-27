@@ -46,19 +46,18 @@ malformed records and resource limits.
 
 ## Reproduce the evidence
 
-Use Python 3.15, Lean/Lake 4.36.0 and Go 1.27.4. From the repository root,
-install the checkout CLI, activate its environment, and enter the example.
+Use Lean/Lake 4.36.0 and Go 1.27.4. From the repository root, install the
+checkout CLI and enter the example.
 
 ```sh
-uv sync --locked --reinstall-package lean-go-tools
-. .venv/bin/activate
+go install ./cmd/lean-go
 cd examples/proofs/header
 ```
 
 ```sh
 lean-go generate --source-dir source --module HeaderCodec \
   --root HeaderCodec.encode --root HeaderCodec.parse \
-  --out candidate/header --ir-output candidate/header.ir.json
+  --out candidate/header --ir-output candidate/header.ir.json --mode metered
 lean-go check-proofs --contract proof-contract.json \
   --manifest candidate/header/manifest.json --output candidate/proof-evidence.json
 lean-go check-proofs --contract proof-contract.json \
@@ -66,11 +65,11 @@ lean-go check-proofs --contract proof-contract.json \
 ```
 
 From the repository root, the following command compares the regenerated package
-and evidence with the tracked bytes and runs a Go-only copy with downloads
-disabled.
+and evidence with the tracked bytes, checks the nine listed claims and runs a
+Go-only copy with downloads disabled.
 
 ```sh
-uv run --locked python scripts/check_header_demo.py --cli "$PWD/.venv/bin/lean-go"
+go run ./cmd/lean-go-dev installed-cli --cli "$(command -v lean-go)" --demo header
 ```
 
 The [CLI guide](../../../docs/cli.md) lists the supported producer identities.

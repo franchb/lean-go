@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Expected bytes were produced by CPython's json module with the same options.
+// Expected bytes were recorded from CPython's json module with the same options, which wrote the tracked artifacts of the retired Python pipeline.
 func TestPythonCompatibleEncodings(t *testing.T) {
 	input := "{\"b\":[1,{}],\"a\":\"x\\\"\\\\\\n\\t\\u0001\x7f é ✓  \",\"c\":[],\"big\":9007199254740993,\"n\":null,\"t\":true,\"z\":-0}"
 	value, err := ParseJSON([]byte(input))
@@ -76,7 +76,7 @@ func TestInstrumentationAndPositions(t *testing.T) {
 	if !strings.Contains(string(mapping.Instrumented), "public import Helper\npublic meta import LeanGo.Module.Audit\n") {
 		t.Fatalf("instrumented:\n%s", mapping.Instrumented)
 	}
-	// Expected values come from scripts/source_locations.py.
+	// Expected values were recorded from the retired scripts/source_locations.py.
 	for _, c := range []struct {
 		line, column int64
 		want         string

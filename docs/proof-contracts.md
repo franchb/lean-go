@@ -110,10 +110,10 @@ Lean modules must have distinct names and share the selected compiler pin.
 The 256-file and 8 MiB bounds apply to the combined project.
 
 The checked-frame contract combines Wire16 and CRC-16. From the repository
-root, use the CLI installed from this checkout:
+root, with this checkout's CLI:
 
 ```sh
-uv run --locked lean-go check-proofs \
+go run ./cmd/lean-go check-proofs \
   --contract examples/proofs/checkedframe-contract.json \
   --component-manifest wire16 examples/proofs/wire16/wire16/manifest.json \
   --component-manifest crc16 examples/proofs/crc16/crc16/manifest.json \
@@ -144,32 +144,19 @@ lean-go check-proofs \
 ```
 
 This generates a native package; add `--mode metered` to `generate` for a
-metered one. The checker binds either.
-
-The Python wrappers below do the same and generate a metered package unless
-given `--mode native`. Run these commands from the lean-go checkout, using Go
-1.27.4, pinned Lean 4.36.0 and Python 3.15 through `uv`. Use the same checkout to regenerate artifacts and
-proof evidence; when using an installed CLI, install it from that
-[development checkout](cli.md#development-checkout). Reproducing a published
-release requires that release's examples and CLI together.
-Replace `/path/to/my-library` with your project:
+metered one. The checker binds either. To verify existing evidence instead of
+writing it:
 
 ```sh
-uv run --locked python scripts/generate.py \
-  --source-dir /path/to/my-library/source \
-  --module Library --root Library.clamp \
-  --out /tmp/library-generated --ir-output /tmp/library.ir.json
-
-uv run --locked python scripts/check_proofs.py \
-  --contract /path/to/my-library/proof-contract.json \
-  --manifest /tmp/library-generated/manifest.json \
-  --output /path/to/my-library/proof-evidence.json
-
-uv run --locked python scripts/check_proofs.py \
+lean-go check-proofs \
   --contract /path/to/my-library/proof-contract.json \
   --manifest /tmp/library-generated/manifest.json \
   --evidence /path/to/my-library/proof-evidence.json
 ```
+
+Use the same lean-go checkout or release to regenerate artifacts and proof
+evidence; reproducing a published release requires that release's examples
+and CLI together ([installation](cli.md#install)).
 
 Choose exactly one of `--output` and `--evidence`. Both freshly compile and check
 the source proofs. `--output` publishes freshly checked evidence atomically;
@@ -177,8 +164,8 @@ the source proofs. `--output` publishes freshly checked evidence atomically;
 preserve existing output. Evidence cannot overwrite inputs or live inside the
 generated package. Use fresh candidate paths when changing extracted source.
 
-Tooling is loaded from the lean-go checkout; your project does not need copies
-of checker scripts or Lean checking infrastructure. The
+The checker is embedded in the lean-go binary; your project does not need
+copies of checker sources or Lean checking infrastructure. The
 [standalone clamp example](../examples/proofs/clamp) is a complete
 single-root project with an imported local runtime module, generated package and
 independent Go tests. The [article](articles/lean-proofs-to-go.md) explains its
@@ -193,21 +180,23 @@ lean-go check-proofs --contract proof-contract.json \
   --manifest clampnative/manifest.json --evidence native-proof-evidence.json
 ```
 
-Quota demonstrates
-multiple roots and keeps its existing command:
+Quota demonstrates multiple roots; from the repository root:
 
 ```sh
-uv run --locked python scripts/check_quota.py
+go run ./cmd/lean-go check-proofs \
+  --contract libraries/quota/proof-contract.json \
+  --manifest generated/quota/manifest.json \
+  --evidence libraries/quota/proof-evidence.json
 ```
 
 Go consumers use only generated code and the standard library with
-`CGO_ENABLED=0`. Lean and Python are needed to regenerate/check evidence, not to
+`CGO_ENABLED=0`. Lean is needed to regenerate and check evidence, not to
 deploy the Go package.
 
 The [standalone flag-mask example](../examples/proofs/flags) selects four
 `UInt32` bitwise roots and checks eight universal laws against independent expected
-propositions. It includes full-width Go regression tests and a fresh installed-CLI
-verifier. Pair its tagged example and CLI for release reproduction, or install
+propositions. It includes full-width Go regression tests and is regenerated and checked by
+the installed-CLI check. Pair its tagged example and CLI for release reproduction, or install
 the CLI from the same checkout for development artifacts.
 
 The alpha.7 [Words example](../examples/proofs/words) selects five scalar
@@ -381,13 +370,13 @@ exactly what this lean-go generates from the hash-bound runtime sources.
 ## Contributor checks
 
 ```sh
-LEAN_GO_PROOFS=1 uv run --locked python scripts/test_proof_contracts.py
-LEAN_GO_QUOTA=1 uv run --locked python scripts/test_quota_proofs.py
-uv run --locked python scripts/check_quota.py
+LEAN_GO_PROOFS=1 LEAN_GO_QUOTA=1 go test -count=1 -p 1 ./internal/pipeline
 CGO_ENABLED=0 go test -count=1 ./...
+go run ./cmd/lean-go-dev installed-cli
 ```
 
-The proof-contract suite checks malformed contracts, paths, snapshots, manifest
+The proof-contract tests (`internal/pipeline/proof_contract_test.go`, and with
+Lean `lean_proofs_test.go`) check malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The Lean-gated attack tests in
 `internal/pipeline/lean_proofgate_test.go` (`LEAN_GO_PROOFS=1 go test -p 1
@@ -398,8 +387,10 @@ forged unification hint, initializers, delaborators and a user-declared
 claims through skipped `unsafe` and `partial` constants, unapproved axioms,
 the module system, build-time writes to the checker, toolchain and runtime
 `.olean` paths, and edited, re-emitted, other-mode and composition
-packages. The quota suite retains its
-library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16, crc16, adler32, normalizer and clock regenerate artifacts with an installed CLI,
-check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all ten through both the direct and sdist-rebuilt wheels, freshly checking 61
-source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).
+packages. The quota tests (`lean_quota_test.go`) retain the library-specific
+source and theorem regression checks and recheck the tracked quota evidence.
+The installed-CLI check regenerates clamp, flags, words, bytes, header, wire16,
+crc16, adler32, normalizer and clock with a built and a module-installed
+binary, checks exact evidence against an independent claim inventory and
+deploys only Go sources, freshly checking 61 source claims per binary; see the
+[CLI guide](cli.md#verify-an-installation).

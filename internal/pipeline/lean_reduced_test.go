@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) port of scripts/test_reduced_admission.py.
+// Lean-gated (LEAN_GO_MODULES=1) port of the retired scripts/test_reduced_admission.py.
 
 const reducedAdd = "@[noinline] def add (x y : UInt32) : UInt32 := x + y\n"
 const reducedWork = `  let selected := if flag then x else y

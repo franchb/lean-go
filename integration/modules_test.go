@@ -225,10 +225,6 @@ func TestModuleRegeneration(t *testing.T) {
 	if os.Getenv("LEAN_GO_MODULES") != "1" {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh module producer builds")
 	}
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	dir := t.TempDir()
 	for _, example := range []struct{ name, module, root string }{{"trees", "Trees", "Trees.mirror"}, {"choice", "Choice.Transform", "Choice.rotate"}} {
 		t.Run(example.name, func(t *testing.T) {
@@ -236,12 +232,7 @@ func TestModuleRegeneration(t *testing.T) {
 			for i := range 2 {
 				out := filepath.Join(dir, fmt.Sprintf("%s%d", example.name, i))
 				irPath := out + ".json"
-				cmd := exec.Command("uv", "run", "--locked", "python", "scripts/generate.py", "--source-dir", "examples/modules", "--module", example.module, "--root", example.root, "--out", out, "--ir-output", irPath)
-				cmd.Dir = root
-				cmd.Env = commandEnv(nil)
-				if text, err := cmd.CombinedOutput(); err != nil {
-					t.Fatalf("generate: %v\n%s", err, text)
-				}
+				generateWithCLI(t, "examples/modules", example.module, out, irPath, example.root)
 				data, err := os.ReadFile(irPath)
 				if err != nil {
 					t.Fatal(err)
@@ -260,13 +251,9 @@ func TestChangedModuleAndScalarRoot(t *testing.T) {
 	if os.Getenv("LEAN_GO_MODULES") != "1" {
 		t.Skip("set LEAN_GO_MODULES=1 for changed-source extraction")
 	}
-	root, err := filepath.Abs("..")
-	if err != nil {
-		t.Fatal(err)
-	}
 	dir := t.TempDir()
 	sources := filepath.Join(dir, "source")
-	if err = os.Mkdir(sources, 0700); err != nil {
+	if err := os.Mkdir(sources, 0700); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile("../examples/modules/Trees.lean")
@@ -300,18 +287,13 @@ got,ok:=out.UInt32();if !ok||got!=n{t.Fatal("scalar changed")}
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			out := filepath.Join(dir, tc.name)
-			cmd := exec.Command("uv", "run", "--locked", "python", "scripts/generate.py", "--source-dir", sources, "--module", "Renamed", "--root", tc.fn, "--out", out, "--ir-output", out+".json")
-			cmd.Dir = root
-			cmd.Env = commandEnv(nil)
-			if text, err := cmd.CombinedOutput(); err != nil {
-				t.Fatalf("changed generation: %v\n%s", err, text)
-			}
+			generateWithCLI(t, sources, "Renamed", out, out+".json", tc.fn)
 			for name, body := range map[string]string{"go.mod": "module changedconsumer\n\ngo 1.27.4\n", "source_test.go": tc.test} {
 				if err := os.WriteFile(filepath.Join(out, name), []byte(body), 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			cmd = exec.Command(goBinary(), "test", "-count=1", ".")
+			cmd := exec.Command(goBinary(), "test", "-count=1", ".")
 			cmd.Dir = out
 			cmd.Env = commandEnv(map[string]string{"PATH": filepath.Dir(goBinary())})
 			if text, err := cmd.CombinedOutput(); err != nil {

@@ -1,5 +1,7 @@
 # From Lean source proofs to a Go package you can copy
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 A small function is enough to show the whole handoff: write ordinary Lean code,
 state its requirements independently, check the proofs, generate Go, and call
 that Go from an application with no Lean runtime. The

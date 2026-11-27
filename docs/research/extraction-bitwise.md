@@ -1,5 +1,7 @@
 # Bitwise extraction
 
+> This note predates the Go command: its Python commands (`uv`, `scripts/*.py`, the `lean-go-tools` wheel) no longer exist. For the current commands see [docs/cli.md](../cli.md).
+
 Alpha.6 adds exact bitwise operations on `UInt32` and `UInt64`.
 It retains alpha.5's production compiler pin: Lean 4.36.0-rc2, commit
 `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a`, with Go 1.27.4 and Python 3.15.

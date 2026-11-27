@@ -1,6 +1,2 @@
-/scripts/__pycache__/
 /producer/.lake/
-/.venv/
 /.differential/
-__pycache__/
-*.pyc
