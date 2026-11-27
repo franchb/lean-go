@@ -147,8 +147,193 @@ func (v Nested) Count() (Count, bool) {
 	return value, true
 }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natConfig is the Lean structure Local.Config, built by Local.Config.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natConfig struct {
+	Bias    natNested
+	Enabled bool
+}
+
+// natCount is the Lean structure Local.Count, built by Local.Count.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natCount struct {
+	Value uint32
+}
+
+// natNested is the Lean structure Local.Nested, built by Local.Nested.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natNested struct {
+	Count natCount
+}
+
+// natAdd implements the Lean function Local.add.
+func natAdd(v1 uint32, v2 uint32) uint32 {
+	return v1 + v2
+}
+
+// natRun implements the Lean function Local.run.
+func natRun(v1 natConfig, v2 natCount, v4 natCount) natCount {
+	return natCount{Value: natAdd(natX_lam_0(v1, v2.Value), natX_lam_0(v1, v4.Value))}
+}
+
+// natX_lam_0 implements the Lean function Local.run._lam_0.
+func natX_lam_0(v1 natConfig, v2 uint32) uint32 {
+	var v4 uint32
+	{
+		if v1.Enabled {
+			v4 = v1.Bias.Count.Value
+			goto j3
+		}
+		v4 = v2
+		goto j3
+	}
+j3:
+	return natAdd(natAdd(natAdd(natAdd(natAdd(natAdd(natAdd(natAdd(v2, v4), v4), v4), v4), v4), v4), v4), v4)
+}
+
+// fastIn3 converts a well-formed Local.Count node; false means fall back.
+func fastIn3(n *node) (natCount, bool) {
+	if n == nil || n.typ != 3 || n.size == 0 || n.depth == 0 || n.size > 2 || n.depth > 2 {
+		return natCount{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natCount{}, false
+		}
+		a0, ok := apiReadUInt32(n.fields[0])
+		if !ok {
+			return natCount{}, false
+		}
+		return natCount{Value: a0}, true
+	}
+	return natCount{}, false
+}
+
+// fastIn4 converts a well-formed Local.Nested node; false means fall back.
+func fastIn4(n *node) (natNested, bool) {
+	if n == nil || n.typ != 4 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 3 {
+		return natNested{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 1 {
+			return natNested{}, false
+		}
+		a0, ok := fastIn3(n.fields[0])
+		if !ok {
+			return natNested{}, false
+		}
+		return natNested{Count: a0}, true
+	}
+	return natNested{}, false
+}
+
+// fastIn2 converts a well-formed Local.Config node; false means fall back.
+func fastIn2(n *node) (natConfig, bool) {
+	if n == nil || n.typ != 2 || n.size == 0 || n.depth == 0 || n.size > 5 || n.depth > 4 {
+		return natConfig{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 2 {
+			return natConfig{}, false
+		}
+		a0, ok := fastIn4(n.fields[0])
+		if !ok {
+			return natConfig{}, false
+		}
+		a1, ok := apiReadBool(n.fields[1])
+		if !ok {
+			return natConfig{}, false
+		}
+		return natConfig{Bias: a0, Enabled: a1}, true
+	}
+	return natConfig{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated together. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putUInt32(v uint32) *node {
+	n := a.next()
+	*n = node{typ: 0, scalar: v, size: 1, depth: 1}
+	return n
+}
+
+// fastPut3 builds the nodes of x in a.
+func fastPut3(a *fastArena, x natCount) *node {
+	n := a.next()
+	f := a.take(1)
+	f[0] = a.putUInt32(x.Value)
+	*n = node{typ: 3, tag: 0, fields: f}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut3 converts x into fresh nodes.
+func fastOut3(x natCount) *node {
+	s := uint64(2)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut3(&a, x)
+}
+
+// fastCovers1 reports whether valid limits l cover the static worst case of Local.run.
+func fastCovers1(l Limits) bool {
+	return l.MaxNodes >= 9 && l.MaxDepth >= 4 && l.MaxOutputNodes >= 2 && l.MaxAllocations >= 18 && l.MaxSteps >= 71 && l.MaxFrames >= 3 && l.MaxSlots >= 90
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers1(l) {
+		return nil, false
+	}
+	x0, ok := fastIn2(args[0])
+	if !ok {
+		return nil, false
+	}
+	x1, ok := fastIn3(args[1])
+	if !ok {
+		return nil, false
+	}
+	x2, ok := fastIn3(args[2])
+	if !ok {
+		return nil, false
+	}
+	return fastOut3(natRun(x0, x1, x2)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 Config, a1 Count, a2 Count, l Limits) (Count, error) {
+	if checkLimits(l) == nil && fastCovers1(l) {
+		x0, ok0 := fastIn2(a0.v.n)
+		x1, ok1 := fastIn3(a1.v.n)
+		x2, ok2 := fastIn3(a2.v.n)
+		if ok0 && ok1 && ok2 {
+			return Count{v: Value{fastOut3(natRun(x0, x1, x2))}}, nil
+		}
+	}
 	out, err := Run([]Value{{n: a0.v.n}, {n: a1.v.n}, {n: a2.v.n}}, l)
 	if err != nil {
 		return Count{}, err

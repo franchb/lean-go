@@ -319,8 +319,443 @@ func NewParseResultReservedFlags(l Limits) (ParseResult, error) {
 func (v ParseResult) IsReservedFlags() bool { return apiMatches(v.v, 7, 2, 0) }
 func (v ParseResult) AsReservedFlags() bool { return apiMatches(v.v, 7, 2, 0) }
 
-// RunClassify invokes its selected Lean root through RunRoot and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natAvailability is the Lean inductive type Availability. The zero value is Availability.needMore (zero UInt32).
+type natAvailability struct {
+	tag  uint8
+	f0_0 uint32
+	f1_0 uint32
+}
+
+// natBytePair is the Lean structure BytePair, built by BytePair.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natBytePair struct {
+	Hi uint8
+	Lo uint8
+}
+
+// natByteQuad is the Lean structure ByteQuad, built by ByteQuad.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natByteQuad struct {
+	B0 uint8
+	B1 uint8
+	B2 uint8
+	B3 uint8
+}
+
+// natEncodeResult is the Lean inductive type EncodeResult. The zero value is EncodeResult.encoded (zero ByteQuad).
+type natEncodeResult struct {
+	tag  uint8
+	f0_0 natByteQuad
+}
+
+// natHeader is the Lean structure Header, built by Header.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natHeader struct {
+	Flags  uint8
+	Length uint16
+}
+
+// natParseResult is the Lean inductive type ParseResult. The zero value is ParseResult.parsed (zero Header).
+type natParseResult struct {
+	tag  uint8
+	f0_0 natHeader
+}
+
+// natClassify implements the Lean function Wire16.classify.
+func natClassify(v1 natHeader, v2 uint32) natAvailability {
+	v5 := uint32(v1.Length)
+	if v2 < v5 {
+		return natAvailability{f0_0: v5 - v2}
+	}
+	return natAvailability{tag: 1, f1_0: v5}
+}
+
+// natDecodeBE implements the Lean function Wire16.decodeBE.
+func natDecodeBE(v1 natBytePair) uint16 {
+	return (uint16(v1.Hi) << 8) | uint16(v1.Lo)
+}
+
+// natEncode implements the Lean function Wire16.encode.
+func natEncode(v1 natHeader) natEncodeResult {
+	if v1.Flags < uint8(4) {
+		v7 := natEncodeBE(v1.Length)
+		return natEncodeResult{f0_0: natByteQuad{B0: uint8(1), B1: v1.Flags, B2: v7.Hi, B3: v7.Lo}}
+	}
+	return natEncodeResult{tag: 1}
+}
+
+// natEncodeBE implements the Lean function Wire16.encodeBE.
+func natEncodeBE(v1 uint16) natBytePair {
+	return natBytePair{Hi: uint8(v1 >> 8), Lo: uint8(v1)}
+}
+
+// natParse implements the Lean function Wire16.parse.
+func natParse(v1 natByteQuad) natParseResult {
+	if v1.B0 == uint8(1) {
+		if v1.B1 < uint8(4) {
+			return natParseResult{f0_0: natHeader{Flags: v1.B1, Length: natDecodeBE(natBytePair{Hi: v1.B2, Lo: v1.B3})}}
+		}
+		return natParseResult{tag: 2}
+	}
+	return natParseResult{tag: 1}
+}
+
+// fastIn6 converts a well-formed Header node; false means fall back.
+func fastIn6(n *node) (natHeader, bool) {
+	if n == nil || n.typ != 6 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 2 {
+		return natHeader{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 2 {
+			return natHeader{}, false
+		}
+		a0, ok := apiReadUInt8(n.fields[0])
+		if !ok {
+			return natHeader{}, false
+		}
+		a1, ok := apiReadUInt16(n.fields[1])
+		if !ok {
+			return natHeader{}, false
+		}
+		return natHeader{Flags: a0, Length: a1}, true
+	}
+	return natHeader{}, false
+}
+
+// fastIn3 converts a well-formed BytePair node; false means fall back.
+func fastIn3(n *node) (natBytePair, bool) {
+	if n == nil || n.typ != 3 || n.size == 0 || n.depth == 0 || n.size > 3 || n.depth > 2 {
+		return natBytePair{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 2 {
+			return natBytePair{}, false
+		}
+		a0, ok := apiReadUInt8(n.fields[0])
+		if !ok {
+			return natBytePair{}, false
+		}
+		a1, ok := apiReadUInt8(n.fields[1])
+		if !ok {
+			return natBytePair{}, false
+		}
+		return natBytePair{Hi: a0, Lo: a1}, true
+	}
+	return natBytePair{}, false
+}
+
+// fastIn4 converts a well-formed ByteQuad node; false means fall back.
+func fastIn4(n *node) (natByteQuad, bool) {
+	if n == nil || n.typ != 4 || n.size == 0 || n.depth == 0 || n.size > 5 || n.depth > 2 {
+		return natByteQuad{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 4 {
+			return natByteQuad{}, false
+		}
+		a0, ok := apiReadUInt8(n.fields[0])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		a1, ok := apiReadUInt8(n.fields[1])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		a2, ok := apiReadUInt8(n.fields[2])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		a3, ok := apiReadUInt8(n.fields[3])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		return natByteQuad{B0: a0, B1: a1, B2: a2, B3: a3}, true
+	}
+	return natByteQuad{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated together. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putUInt8(v uint8) *node {
+	n := a.next()
+	*n = node{typ: 9, scalar8: v, size: 1, depth: 1}
+	return n
+}
+func (a *fastArena) putUInt16(v uint16) *node {
+	n := a.next()
+	*n = node{typ: 10, scalar16: v, size: 1, depth: 1}
+	return n
+}
+func (a *fastArena) putUInt32(v uint32) *node {
+	n := a.next()
+	*n = node{typ: 0, scalar: v, size: 1, depth: 1}
+	return n
+}
+
+// fastPut1 builds the nodes of x in a.
+func fastPut1(a *fastArena, x natAvailability) *node {
+	n := a.next()
+	switch x.tag {
+	case 0:
+		f := a.take(1)
+		f[0] = a.putUInt32(x.f0_0)
+		*n = node{typ: 1, tag: 0, fields: f}
+	default:
+		f := a.take(1)
+		f[0] = a.putUInt32(x.f1_0)
+		*n = node{typ: 1, tag: 1, fields: f}
+	}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut1 converts x into fresh nodes.
+func fastOut1(x natAvailability) *node {
+	s := uint64(2)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut1(&a, x)
+}
+
+// fastPut4 builds the nodes of x in a.
+func fastPut4(a *fastArena, x natByteQuad) *node {
+	n := a.next()
+	f := a.take(4)
+	f[0] = a.putUInt8(x.B0)
+	f[1] = a.putUInt8(x.B1)
+	f[2] = a.putUInt8(x.B2)
+	f[3] = a.putUInt8(x.B3)
+	*n = node{typ: 4, tag: 0, fields: f}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut4 converts x into fresh nodes.
+func fastOut4(x natByteQuad) *node {
+	s := uint64(5)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut4(&a, x)
+}
+
+// fastSize5 counts the nodes of x as a EncodeResult value.
+func fastSize5(x natEncodeResult) uint64 {
+	switch x.tag {
+	case 0:
+		return 1 + 5
+	default:
+		return 1
+	}
+}
+
+// fastPut5 builds the nodes of x in a.
+func fastPut5(a *fastArena, x natEncodeResult) *node {
+	n := a.next()
+	switch x.tag {
+	case 0:
+		f := a.take(1)
+		f[0] = fastPut4(a, x.f0_0)
+		*n = node{typ: 5, tag: 0, fields: f}
+	default:
+		*n = node{typ: 5, tag: 1}
+	}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut5 converts x into fresh nodes.
+func fastOut5(x natEncodeResult) *node {
+	s := uint64(fastSize5(x))
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut5(&a, x)
+}
+
+// fastPut3 builds the nodes of x in a.
+func fastPut3(a *fastArena, x natBytePair) *node {
+	n := a.next()
+	f := a.take(2)
+	f[0] = a.putUInt8(x.Hi)
+	f[1] = a.putUInt8(x.Lo)
+	*n = node{typ: 3, tag: 0, fields: f}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut3 converts x into fresh nodes.
+func fastOut3(x natBytePair) *node {
+	s := uint64(3)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut3(&a, x)
+}
+
+// fastPut6 builds the nodes of x in a.
+func fastPut6(a *fastArena, x natHeader) *node {
+	n := a.next()
+	f := a.take(2)
+	f[0] = a.putUInt8(x.Flags)
+	f[1] = a.putUInt16(x.Length)
+	*n = node{typ: 6, tag: 0, fields: f}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut6 converts x into fresh nodes.
+func fastOut6(x natHeader) *node {
+	s := uint64(3)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut6(&a, x)
+}
+
+// fastSize7 counts the nodes of x as a ParseResult value.
+func fastSize7(x natParseResult) uint64 {
+	switch x.tag {
+	case 0:
+		return 1 + 3
+	case 1:
+		return 1
+	default:
+		return 1
+	}
+}
+
+// fastPut7 builds the nodes of x in a.
+func fastPut7(a *fastArena, x natParseResult) *node {
+	n := a.next()
+	switch x.tag {
+	case 0:
+		f := a.take(1)
+		f[0] = fastPut6(a, x.f0_0)
+		*n = node{typ: 7, tag: 0, fields: f}
+	case 1:
+		*n = node{typ: 7, tag: 1}
+	default:
+		*n = node{typ: 7, tag: 2}
+	}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut7 converts x into fresh nodes.
+func fastOut7(x natParseResult) *node {
+	s := uint64(fastSize7(x))
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut7(&a, x)
+}
+
+// fastCovers0 reports whether valid limits l cover the static worst case of Wire16.classify.
+func fastCovers0(l Limits) bool {
+	return l.MaxNodes >= 4 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 2 && l.MaxAllocations >= 4 && l.MaxSteps >= 7 && l.MaxFrames >= 1 && l.MaxSlots >= 9
+}
+
+// fastCovers1 reports whether valid limits l cover the static worst case of Wire16.decodeBE.
+func fastCovers1(l Limits) bool {
+	return l.MaxNodes >= 3 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 5 && l.MaxSteps >= 7 && l.MaxFrames >= 1 && l.MaxSlots >= 8
+}
+
+// fastCovers2 reports whether valid limits l cover the static worst case of Wire16.encode.
+func fastCovers2(l Limits) bool {
+	return l.MaxNodes >= 3 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 6 && l.MaxAllocations >= 10 && l.MaxSteps >= 16 && l.MaxFrames >= 2 && l.MaxSlots >= 18
+}
+
+// fastCovers3 reports whether valid limits l cover the static worst case of Wire16.encodeBE.
+func fastCovers3(l Limits) bool {
+	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 3 && l.MaxAllocations >= 5 && l.MaxSteps >= 6 && l.MaxFrames >= 1 && l.MaxSlots >= 6
+}
+
+// fastCovers4 reports whether valid limits l cover the static worst case of Wire16.parse.
+func fastCovers4(l Limits) bool {
+	return l.MaxNodes >= 5 && l.MaxDepth >= 3 && l.MaxOutputNodes >= 4 && l.MaxAllocations >= 12 && l.MaxSteps >= 19 && l.MaxFrames >= 2 && l.MaxSlots >= 23
+}
+
+// fastRun runs the root with function id entry natively when it is eligible,
+// l covers its bound and every argument converts.
+func fastRun(entry int, args []*node, l Limits) (*node, bool) {
+	switch entry {
+	case 0:
+		if !fastCovers0(l) {
+			return nil, false
+		}
+		x0, ok := fastIn6(args[0])
+		if !ok {
+			return nil, false
+		}
+		x1, ok := apiReadUInt32(args[1])
+		if !ok {
+			return nil, false
+		}
+		return fastOut1(natClassify(x0, x1)), true
+	case 1:
+		if !fastCovers1(l) {
+			return nil, false
+		}
+		x0, ok := fastIn3(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt16Node(natDecodeBE(x0)), true
+	case 2:
+		if !fastCovers2(l) {
+			return nil, false
+		}
+		x0, ok := fastIn6(args[0])
+		if !ok {
+			return nil, false
+		}
+		return fastOut5(natEncode(x0)), true
+	case 3:
+		if !fastCovers3(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt16(args[0])
+		if !ok {
+			return nil, false
+		}
+		return fastOut3(natEncodeBE(x0)), true
+	case 4:
+		if !fastCovers4(l) {
+			return nil, false
+		}
+		x0, ok := fastIn4(args[0])
+		if !ok {
+			return nil, false
+		}
+		return fastOut7(natParse(x0)), true
+	}
+	return nil, false
+}
+
+// RunClassify invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunClassify(a0 Header, a1 uint32, l Limits) (Availability, error) {
+	if checkLimits(l) == nil && fastCovers0(l) {
+		x0, ok0 := fastIn6(a0.v.n)
+		x1 := a1
+		if ok0 {
+			return Availability{v: Value{fastOut1(natClassify(x0, x1))}}, nil
+		}
+	}
 	out, err := RunRoot("Wire16.classify", []Value{{n: a0.v.n}, {n: apiUInt32Node(a1)}}, l)
 	if err != nil {
 		return Availability{}, err
@@ -332,8 +767,15 @@ func RunClassify(a0 Header, a1 uint32, l Limits) (Availability, error) {
 	return value, nil
 }
 
-// RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits.
+// RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunDecodeBE(a0 BytePair, l Limits) (uint16, error) {
+	if checkLimits(l) == nil && fastCovers1(l) {
+		x0, ok0 := fastIn3(a0.v.n)
+		if ok0 {
+			return natDecodeBE(x0), nil
+		}
+	}
 	out, err := RunRoot("Wire16.decodeBE", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return 0, err
@@ -345,8 +787,15 @@ func RunDecodeBE(a0 BytePair, l Limits) (uint16, error) {
 	return value, nil
 }
 
-// RunEncode invokes its selected Lean root through RunRoot and its existing limits.
+// RunEncode invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunEncode(a0 Header, l Limits) (EncodeResult, error) {
+	if checkLimits(l) == nil && fastCovers2(l) {
+		x0, ok0 := fastIn6(a0.v.n)
+		if ok0 {
+			return EncodeResult{v: Value{fastOut5(natEncode(x0))}}, nil
+		}
+	}
 	out, err := RunRoot("Wire16.encode", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return EncodeResult{}, err
@@ -358,8 +807,13 @@ func RunEncode(a0 Header, l Limits) (EncodeResult, error) {
 	return value, nil
 }
 
-// RunEncodeBE invokes its selected Lean root through RunRoot and its existing limits.
+// RunEncodeBE invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunEncodeBE(a0 uint16, l Limits) (BytePair, error) {
+	if checkLimits(l) == nil && fastCovers3(l) {
+		x0 := a0
+		return BytePair{v: Value{fastOut3(natEncodeBE(x0))}}, nil
+	}
 	out, err := RunRoot("Wire16.encodeBE", []Value{{n: apiUInt16Node(a0)}}, l)
 	if err != nil {
 		return BytePair{}, err
@@ -371,8 +825,15 @@ func RunEncodeBE(a0 uint16, l Limits) (BytePair, error) {
 	return value, nil
 }
 
-// RunParse invokes its selected Lean root through RunRoot and its existing limits.
+// RunParse invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunParse(a0 ByteQuad, l Limits) (ParseResult, error) {
+	if checkLimits(l) == nil && fastCovers4(l) {
+		x0, ok0 := fastIn4(a0.v.n)
+		if ok0 {
+			return ParseResult{v: Value{fastOut7(natParse(x0))}}, nil
+		}
+	}
 	out, err := RunRoot("Wire16.parse", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return ParseResult{}, err

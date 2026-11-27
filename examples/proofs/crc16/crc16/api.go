@@ -109,6 +109,49 @@ func (v List_UInt8) AsCons() (uint8, List_UInt8, bool) {
 	return a0, a1, true
 }
 
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natStep implements the Lean function Crc16.step.
+func natStep(v1 uint16) uint16 {
+	v3 := v1 << 1
+	if uint32(v1) < uint32(32768) {
+		return v3
+	}
+	return v3 ^ uint16(4129)
+}
+
+// natUpdateByte implements the Lean function Crc16.updateByte.
+func natUpdateByte(v1 uint16, v2 uint8) uint16 {
+	return natStep(natStep(natStep(natStep(natStep(natStep(natStep(natStep(v1 ^ (uint16(v2) << 8)))))))))
+}
+
+// fastCovers2 reports whether valid limits l cover the static worst case of Crc16.updateByte.
+func fastCovers2(l Limits) bool {
+	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 60 && l.MaxSteps >= 85 && l.MaxFrames >= 2 && l.MaxSlots >= 78
+}
+
+// fastRun runs the root with function id entry natively when it is eligible,
+// l covers its bound and every argument converts.
+func fastRun(entry int, args []*node, l Limits) (*node, bool) {
+	switch entry {
+	case 2:
+		if !fastCovers2(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt16(args[0])
+		if !ok {
+			return nil, false
+		}
+		x1, ok := apiReadUInt8(args[1])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt16Node(natUpdateByte(x0, x1)), true
+	}
+	return nil, false
+}
+
 // scalarWork charges the same IR steps and logical scalar allocations as execute.
 func (b *budget) scalarWork(steps, allocations uint64) bool {
 	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
@@ -244,14 +287,21 @@ func RunUpdate(state uint16, data []byte, l Limits) (uint16, error) {
 	return state, nil
 }
 
-// RunUpdateByte runs the scalar root with native Go values and the public resource limits.
+// RunUpdateByte invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunUpdateByte(a0 uint16, a1 uint8, l Limits) (uint16, error) {
-	if err := checkLimits(l); err != nil {
+	if checkLimits(l) == nil && fastCovers2(l) {
+		x0 := a0
+		x1 := a1
+		return natUpdateByte(x0, x1), nil
+	}
+	out, err := RunRoot("Crc16.updateByte", []Value{{n: apiUInt16Node(a0)}, {n: apiUInt8Node(a1)}}, l)
+	if err != nil {
 		return 0, err
 	}
-	if l.MaxNodes < 2 {
-		return 0, ErrResource
+	value, ok := apiReadUInt16(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	b := budget{limits: l}
-	return scalarFunc2(&b, 0, a0, a1)
+	return value, nil
 }

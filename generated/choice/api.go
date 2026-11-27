@@ -91,8 +91,120 @@ func NewSignalGo(l Limits) (Signal, error) {
 func (v Signal) IsGo() bool { return apiMatches(v.v, 1, 2, 0) }
 func (v Signal) AsGo() bool { return apiMatches(v.v, 1, 2, 0) }
 
-// RunTyped invokes the selected Lean root through Run and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natSignal is the Lean inductive type Choice.Signal. The zero value is Choice.Signal.stop.
+type natSignal struct {
+	tag uint8
+}
+
+// natRotate implements the Lean function Choice.rotate.
+func natRotate(v1 natSignal) natSignal {
+	switch v1.tag {
+	case 0: // Choice.Signal.stop
+		return natSignal{tag: 1}
+	case 1: // Choice.Signal.wait
+		return natSignal{tag: 2}
+	default: // Choice.Signal.go
+		return natSignal{}
+	}
+}
+
+// fastIn1 converts a well-formed Choice.Signal node; false means fall back.
+func fastIn1(n *node) (natSignal, bool) {
+	if n == nil || n.typ != 1 || n.size == 0 || n.depth == 0 || n.size > 1 || n.depth > 1 {
+		return natSignal{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 0 {
+			return natSignal{}, false
+		}
+		return natSignal{}, true
+	case 1:
+		if len(n.fields) != 0 {
+			return natSignal{}, false
+		}
+		return natSignal{tag: 1}, true
+	case 2:
+		if len(n.fields) != 0 {
+			return natSignal{}, false
+		}
+		return natSignal{tag: 2}, true
+	}
+	return natSignal{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated together. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+
+// fastPut1 builds the nodes of x in a.
+func fastPut1(a *fastArena, x natSignal) *node {
+	n := a.next()
+	switch x.tag {
+	case 0:
+		*n = node{typ: 1, tag: 0}
+	case 1:
+		*n = node{typ: 1, tag: 1}
+	default:
+		*n = node{typ: 1, tag: 2}
+	}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut1 converts x into fresh nodes.
+func fastOut1(x natSignal) *node {
+	s := uint64(1)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut1(&a, x)
+}
+
+// fastCovers0 reports whether valid limits l cover the static worst case of Choice.rotate.
+func fastCovers0(l Limits) bool {
+	return l.MaxNodes >= 1 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 3 && l.MaxFrames >= 1 && l.MaxSlots >= 4
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers0(l) {
+		return nil, false
+	}
+	x0, ok := fastIn1(args[0])
+	if !ok {
+		return nil, false
+	}
+	return fastOut1(natRotate(x0)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunTyped(a0 Signal, l Limits) (Signal, error) {
+	if checkLimits(l) == nil && fastCovers0(l) {
+		x0, ok0 := fastIn1(a0.v.n)
+		if ok0 {
+			return Signal{v: Value{fastOut1(natRotate(x0))}}, nil
+		}
+	}
 	out, err := Run([]Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return Signal{}, err

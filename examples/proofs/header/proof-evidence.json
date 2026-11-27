@@ -83,7 +83,7 @@
     }
   ],
   "contract_sha256": "e387d4f017a64c954b3fab2b8b4262a167f4d00b50bd52f3b94cdbdab0c5e513",
-  "generated_manifest_sha256": "3287f1979c7f2c60b37f419a63084076f082a564be6f3e4139f620130265b6da",
+  "generated_manifest_sha256": "894e4af040d4053ff790dceff8ff48d17f1039b9fbfaf006e7bb22e8f5f996ff",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "HeaderCodec",

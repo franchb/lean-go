@@ -74,59 +74,58 @@ func apiReadBool(n *node) (bool, bool) {
 	return n.tag == 1, true
 }
 
-// scalarWork charges the same IR steps and logical scalar allocations as execute.
-func (b *budget) scalarWork(steps, allocations uint64) bool {
-	if steps > b.limits.MaxSteps-b.steps || allocations > b.limits.MaxAllocations-b.allocations {
-		return false
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natCap implements the Lean function Clamp.Bounds.cap.
+func natCap(v1 uint64, v2 uint64) uint64 {
+	if v1 <= v2 {
+		return v1
 	}
-	b.steps += steps
-	b.allocations += allocations
-	return true
+	return v2
 }
-func scalarFunc0(b *budget, depth int, v1 uint64, v2 uint64) (uint64, error) {
-	if err := b.enter(3, depth); err != nil {
-		return 0, err
-	}
-	if !b.scalarWork(2, 1) {
-		return 0, ErrResource
-	}
-	v3 := v1 <= v2
-	if v3 {
-		if !b.scalarWork(1, 0) {
-			return 0, ErrResource
-		}
-		return v1, nil
-	}
-	if !b.scalarWork(1, 0) {
-		return 0, ErrResource
-	}
-	return v2, nil
+
+// natClamp implements the Lean function Clamp.clamp.
+func natClamp(v1 uint64, v2 uint64) uint64 {
+	return natCap(v1, v2)
 }
-func scalarFunc1(b *budget, depth int, v1 uint64, v2 uint64) (uint64, error) {
-	if err := b.enter(3, depth); err != nil {
-		return 0, err
+
+// fastCovers1 reports whether valid limits l cover the static worst case of Clamp.clamp.
+func fastCovers1(l Limits) bool {
+	return l.MaxNodes >= 2 && l.MaxDepth >= 1 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 1 && l.MaxSteps >= 5 && l.MaxFrames >= 2 && l.MaxSlots >= 6
+}
+
+// fastRun runs the root natively when l covers its bound and every argument converts.
+func fastRun(args []*node, l Limits) (*node, bool) {
+	if !fastCovers1(l) {
+		return nil, false
 	}
-	if !b.scalarWork(1, 0) {
-		return 0, ErrResource
+	x0, ok := apiReadUInt64(args[0])
+	if !ok {
+		return nil, false
 	}
-	v3, err := scalarFunc0(b, depth+1, v1, v2)
+	x1, ok := apiReadUInt64(args[1])
+	if !ok {
+		return nil, false
+	}
+	return apiUInt64Node(natClamp(x0, x1)), true
+}
+
+// RunTyped invokes the selected Lean root through Run and its existing limits, or natively
+// when the limits cover the root's static worst case.
+func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
+	if checkLimits(l) == nil && fastCovers1(l) {
+		x0 := a0
+		x1 := a1
+		return natClamp(x0, x1), nil
+	}
+	out, err := Run([]Value{{n: apiUInt64Node(a0)}, {n: apiUInt64Node(a1)}}, l)
 	if err != nil {
 		return 0, err
 	}
-	if !b.scalarWork(1, 0) {
-		return 0, ErrResource
+	value, ok := apiReadUInt64(out.n)
+	if !ok {
+		return 0, ErrMalformed
 	}
-	return v3, nil
-}
-
-// RunTyped runs the scalar root with native Go values and the public resource limits.
-func RunTyped(a0 uint64, a1 uint64, l Limits) (uint64, error) {
-	if err := checkLimits(l); err != nil {
-		return 0, err
-	}
-	if l.MaxNodes < 2 {
-		return 0, ErrResource
-	}
-	b := budget{limits: l}
-	return scalarFunc1(&b, 0, a0, a1)
+	return value, nil
 }

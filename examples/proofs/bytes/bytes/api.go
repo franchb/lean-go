@@ -132,8 +132,188 @@ func (v ByteQuad) Bytes() ([4]byte, error) {
 	return data, nil
 }
 
-// RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits.
+// Fast path: native Go for statically bounded roots, used only when the
+// limits cover the root's static worst case. See internal/modulegen/fastpath.go.
+
+// natByteQuad is the Lean structure ByteQuad, built by ByteQuad.mk.
+// Every value, including the zero value, is a valid Lean value.
+type natByteQuad struct {
+	B0 uint8
+	B1 uint8
+	B2 uint8
+	B3 uint8
+}
+
+// natDecodeBE implements the Lean function ByteCodec.decodeBE.
+func natDecodeBE(v1 natByteQuad) uint32 {
+	return (((uint32(v1.B0) << 24) | (uint32(v1.B1) << 16)) | (uint32(v1.B2) << 8)) | uint32(v1.B3)
+}
+
+// natDecodeLE implements the Lean function ByteCodec.decodeLE.
+func natDecodeLE(v1 natByteQuad) uint32 {
+	return (((uint32(v1.B3) << 24) | (uint32(v1.B2) << 16)) | (uint32(v1.B1) << 8)) | uint32(v1.B0)
+}
+
+// natEncodeBE implements the Lean function ByteCodec.encodeBE.
+func natEncodeBE(v1 uint32) natByteQuad {
+	return natByteQuad{B0: uint8(v1 >> 24), B1: uint8(v1 >> 16), B2: uint8(v1 >> 8), B3: uint8(v1)}
+}
+
+// natEncodeLE implements the Lean function ByteCodec.encodeLE.
+func natEncodeLE(v1 uint32) natByteQuad {
+	return natByteQuad{B0: uint8(v1), B1: uint8(v1 >> 8), B2: uint8(v1 >> 16), B3: uint8(v1 >> 24)}
+}
+
+// fastIn1 converts a well-formed ByteQuad node; false means fall back.
+func fastIn1(n *node) (natByteQuad, bool) {
+	if n == nil || n.typ != 1 || n.size == 0 || n.depth == 0 || n.size > 5 || n.depth > 2 {
+		return natByteQuad{}, false
+	}
+	switch n.tag {
+	case 0:
+		if len(n.fields) != 4 {
+			return natByteQuad{}, false
+		}
+		a0, ok := apiReadUInt8(n.fields[0])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		a1, ok := apiReadUInt8(n.fields[1])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		a2, ok := apiReadUInt8(n.fields[2])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		a3, ok := apiReadUInt8(n.fields[3])
+		if !ok {
+			return natByteQuad{}, false
+		}
+		return natByteQuad{B0: a0, B1: a1, B2: a2, B3: a3}, true
+	}
+	return natByteQuad{}, false
+}
+
+// fastArena hands out the nodes and field slots of one converted result,
+// allocated together. Nodes are immutable once built, as everywhere else.
+type fastArena struct {
+	nodes  []node
+	fields []*node
+}
+
+func (a *fastArena) next() *node        { n := &a.nodes[0]; a.nodes = a.nodes[1:]; return n }
+func (a *fastArena) take(k int) []*node { f := a.fields[:k:k]; a.fields = a.fields[k:]; return f }
+
+// fastMeasure sets the cached size and depth exactly as measure computes them.
+func fastMeasure(n *node) {
+	n.size, n.depth = 1, 1
+	for _, c := range n.fields {
+		n.size += c.size
+		if c.depth >= n.depth {
+			n.depth = c.depth + 1
+		}
+	}
+}
+func (a *fastArena) putUInt8(v uint8) *node {
+	n := a.next()
+	*n = node{typ: 3, scalar8: v, size: 1, depth: 1}
+	return n
+}
+
+// fastPut1 builds the nodes of x in a.
+func fastPut1(a *fastArena, x natByteQuad) *node {
+	n := a.next()
+	f := a.take(4)
+	f[0] = a.putUInt8(x.B0)
+	f[1] = a.putUInt8(x.B1)
+	f[2] = a.putUInt8(x.B2)
+	f[3] = a.putUInt8(x.B3)
+	*n = node{typ: 1, tag: 0, fields: f}
+	fastMeasure(n)
+	return n
+}
+
+// fastOut1 converts x into fresh nodes.
+func fastOut1(x natByteQuad) *node {
+	s := uint64(5)
+	a := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}
+	return fastPut1(&a, x)
+}
+
+// fastCovers0 reports whether valid limits l cover the static worst case of ByteCodec.decodeBE.
+func fastCovers0(l Limits) bool {
+	return l.MaxNodes >= 5 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 13 && l.MaxSteps >= 15 && l.MaxFrames >= 1 && l.MaxSlots >= 18
+}
+
+// fastCovers1 reports whether valid limits l cover the static worst case of ByteCodec.decodeLE.
+func fastCovers1(l Limits) bool {
+	return l.MaxNodes >= 5 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 1 && l.MaxAllocations >= 13 && l.MaxSteps >= 15 && l.MaxFrames >= 1 && l.MaxSlots >= 18
+}
+
+// fastCovers2 reports whether valid limits l cover the static worst case of ByteCodec.encodeBE.
+func fastCovers2(l Limits) bool {
+	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 11 && l.MaxSteps >= 12 && l.MaxFrames >= 1 && l.MaxSlots >= 12
+}
+
+// fastCovers3 reports whether valid limits l cover the static worst case of ByteCodec.encodeLE.
+func fastCovers3(l Limits) bool {
+	return l.MaxNodes >= 1 && l.MaxDepth >= 2 && l.MaxOutputNodes >= 5 && l.MaxAllocations >= 11 && l.MaxSteps >= 12 && l.MaxFrames >= 1 && l.MaxSlots >= 12
+}
+
+// fastRun runs the root with function id entry natively when it is eligible,
+// l covers its bound and every argument converts.
+func fastRun(entry int, args []*node, l Limits) (*node, bool) {
+	switch entry {
+	case 0:
+		if !fastCovers0(l) {
+			return nil, false
+		}
+		x0, ok := fastIn1(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt32Node(natDecodeBE(x0)), true
+	case 1:
+		if !fastCovers1(l) {
+			return nil, false
+		}
+		x0, ok := fastIn1(args[0])
+		if !ok {
+			return nil, false
+		}
+		return apiUInt32Node(natDecodeLE(x0)), true
+	case 2:
+		if !fastCovers2(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt32(args[0])
+		if !ok {
+			return nil, false
+		}
+		return fastOut1(natEncodeBE(x0)), true
+	case 3:
+		if !fastCovers3(l) {
+			return nil, false
+		}
+		x0, ok := apiReadUInt32(args[0])
+		if !ok {
+			return nil, false
+		}
+		return fastOut1(natEncodeLE(x0)), true
+	}
+	return nil, false
+}
+
+// RunDecodeBE invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunDecodeBE(a0 ByteQuad, l Limits) (uint32, error) {
+	if checkLimits(l) == nil && fastCovers0(l) {
+		x0, ok0 := fastIn1(a0.v.n)
+		if ok0 {
+			return natDecodeBE(x0), nil
+		}
+	}
 	out, err := RunRoot("ByteCodec.decodeBE", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return 0, err
@@ -145,8 +325,15 @@ func RunDecodeBE(a0 ByteQuad, l Limits) (uint32, error) {
 	return value, nil
 }
 
-// RunDecodeLE invokes its selected Lean root through RunRoot and its existing limits.
+// RunDecodeLE invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunDecodeLE(a0 ByteQuad, l Limits) (uint32, error) {
+	if checkLimits(l) == nil && fastCovers1(l) {
+		x0, ok0 := fastIn1(a0.v.n)
+		if ok0 {
+			return natDecodeLE(x0), nil
+		}
+	}
 	out, err := RunRoot("ByteCodec.decodeLE", []Value{{n: a0.v.n}}, l)
 	if err != nil {
 		return 0, err
@@ -158,8 +345,13 @@ func RunDecodeLE(a0 ByteQuad, l Limits) (uint32, error) {
 	return value, nil
 }
 
-// RunEncodeBE invokes its selected Lean root through RunRoot and its existing limits.
+// RunEncodeBE invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunEncodeBE(a0 uint32, l Limits) (ByteQuad, error) {
+	if checkLimits(l) == nil && fastCovers2(l) {
+		x0 := a0
+		return ByteQuad{v: Value{fastOut1(natEncodeBE(x0))}}, nil
+	}
 	out, err := RunRoot("ByteCodec.encodeBE", []Value{{n: apiUInt32Node(a0)}}, l)
 	if err != nil {
 		return ByteQuad{}, err
@@ -171,8 +363,13 @@ func RunEncodeBE(a0 uint32, l Limits) (ByteQuad, error) {
 	return value, nil
 }
 
-// RunEncodeLE invokes its selected Lean root through RunRoot and its existing limits.
+// RunEncodeLE invokes its selected Lean root through RunRoot and its existing limits, or natively
+// when the limits cover the root's static worst case.
 func RunEncodeLE(a0 uint32, l Limits) (ByteQuad, error) {
+	if checkLimits(l) == nil && fastCovers3(l) {
+		x0 := a0
+		return ByteQuad{v: Value{fastOut1(natEncodeLE(x0))}}, nil
+	}
 	out, err := RunRoot("ByteCodec.encodeLE", []Value{{n: apiUInt32Node(a0)}}, l)
 	if err != nil {
 		return ByteQuad{}, err

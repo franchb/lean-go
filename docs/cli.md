@@ -257,7 +257,7 @@ the installed producer keeps its exact version and commit checks.
 The [Words example](../examples/proofs/words), introduced in alpha.7, uses exact
 `UInt32.toUInt64` and `UInt64.toUInt32` conversions, five roots and seven source
 claims. This checkout's regenerated Words, clamp and flags artifacts use
-`lean-go-ir/v24`, `pure-module/v22` and `lean-go-modulegen/v19`. Their manifests
+`lean-go-ir/v24`, `pure-module/v22` and `lean-go-modulegen/v20`. Their manifests
 and proof evidence require this checkout's CLI.
 The [byte codec](../examples/proofs/bytes) additionally requires the
 alpha.8 UInt8 capability for its four roots.
