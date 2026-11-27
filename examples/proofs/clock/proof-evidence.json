@@ -1,0 +1,53 @@
+{
+  "assurance": "Kernel-replayed source statements; extraction and Go execution remain tested and trusted.",
+  "claims": [
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClockContract.minutesBelow60",
+      "name": "ClockProofs.minutesBelow60",
+      "statement": "∀ (total : UInt32), LT.lt UInt32 instLTUInt32 (Clock.Hms.minutes (Clock.split total)) (OfNat.ofNat UInt32 60 (UInt32.instOfNat 60))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClockContract.recombines",
+      "name": "ClockProofs.recombines",
+      "statement": "∀ (total : UInt32), Eq UInt32 (Clock.join (Clock.split total)) total"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "ClockContract.secondsBelow60",
+      "name": "ClockProofs.secondsBelow60",
+      "statement": "∀ (total : UInt32), LT.lt UInt32 instLTUInt32 (Clock.Hms.seconds (Clock.split total)) (OfNat.ofNat UInt32 60 (UInt32.instOfNat 60))"
+    }
+  ],
+  "contract_sha256": "6299cfc4c79b02173f3df5bd6e482f15b28577333d537dbfcf7809f362d2bcde",
+  "generated_manifest_sha256": "495ba796a5432515707ff74ac6f0fa2027dcd5a4921b0429bf6085c267f6ddd0",
+  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+  "lean_version": "4.36.0",
+  "module": "Clock",
+  "project_inputs": {
+    "proof/ClockContract.lean": "61a3962ed902075022756d712f6df3cb99d3c1c59b0ae4a6ad7302721a92bd1d",
+    "proof/ClockProofs.lean": "85e8e9a4ac3e758b03749aa0f9d6a19b9581f6ae22957141b952828d50935783",
+    "source/Clock.lean": "debdd6358fa71278c827c1be9f4e5c1a488d356bf1f67e4718d52b7513d94385"
+  },
+  "roots": [
+    "Clock.join",
+    "Clock.split"
+  ],
+  "schema": "lean-go-proof-evidence/v3",
+  "tool_inputs": {
+    "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
+    "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
+    "tool/lean-go/pipeline": "c7f4d266945fe318ea6e37a5b007ef9bd3a358533fbe5439bae63fa39070b75f",
+    "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
+  }
+}

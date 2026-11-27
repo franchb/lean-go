@@ -1,0 +1,514 @@
+{
+  "schema": "lean-go-manifest/v24",
+  "generator": "lean-go-modulegen/v20",
+  "generator_source_sha256": "5d1a3e11ada9e3be8c90559f2c14f620ffbd9e4c6660ce121b9d2b88945e4e9d",
+  "validator_source_sha256": "d6bd18ba4e7d84e95051ce15b95d4d32d2945ace3da795f8c5ea62528e79d456",
+  "ir_sha256": "20959f8bfdc0c5a0955a5bd66d94b2eecf83b3a78033283069ea3bbfd20cd7e4",
+  "program": {
+    "schema": "lean-go-ir/v24",
+    "profile": "pure-module/v22",
+    "stage": "pure-mono",
+    "lean_version": "4.36.0",
+    "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+    "module": "Clock",
+    "roots": [
+      "Clock.join",
+      "Clock.split"
+    ],
+    "features": [
+      "division",
+      "uint32"
+    ],
+    "inputs": {
+      "producer/LeanGo/Module/Audit.lean": "5f4fa0a55452f23d95e39cce0a9f3754969cc5af110b2b2b1ca6cb08e4e82191",
+      "producer/LeanGo/Module/Diagnostics.lean": "f0c088bc2d62384fcaaf89c371e15d36d2cb974c37b4f87415e9529a27e689e7",
+      "producer/LeanGo/Module/Export.lean": "1c0115ad628b459c007fcafa75d23efb0ced5110755850d854329381dd3b913e",
+      "producer/LeanGo/Module/Local.lean": "d6627c4d0914845b1b0a0d4649dddae2a26de3a227a6191102fcd3fc238a5e41",
+      "producer/LeanGo/Module/LocalObserve.lean": "e4de5b26e9771e848eb1cd511b0a8b0ba649eb8caddee38b7f66e4a1c6ff193b",
+      "producer/LeanGo/Module/LocalSource.lean": "e9b972aefa251c13302cd57841f0eb8dc0c4a70b7d8b188b46cf6e9ebd78c092",
+      "producer/LeanGo/Module/Primitives.lean": "fc57dc3e82c4a90f2f390a67655eaac8e96891779bc31d99bc3b0afd2925e018",
+      "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
+      "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
+      "source/Clock.lean": "debdd6358fa71278c827c1be9f4e5c1a488d356bf1f67e4718d52b7513d94385",
+      "tool/lean-go/pipeline": "c7f4d266945fe318ea6e37a5b007ef9bd3a358533fbe5439bae63fa39070b75f"
+    },
+    "types": [
+      {
+        "name": "Clock.Hms",
+        "constructors": [
+          {
+            "name": "Clock.Hms.mk",
+            "tag": 0,
+            "fields": [
+              "UInt32",
+              "UInt32",
+              "UInt32"
+            ]
+          }
+        ]
+      }
+    ],
+    "claims": [],
+    "rewrites": [],
+    "provenance": [
+      {
+        "name": "Clock.Hms",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "Clock.Hms.hours",
+        "dependencies": [
+          "Clock.Hms"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Clock.Hms.minutes",
+        "dependencies": [
+          "Clock.Hms"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Clock.Hms.seconds",
+        "dependencies": [
+          "Clock.Hms"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Clock.join",
+        "dependencies": [
+          "Clock.Hms",
+          "Clock.Hms.hours",
+          "Clock.Hms.minutes",
+          "Clock.Hms.seconds",
+          "HAdd.hAdd",
+          "HMul.hMul",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instAddUInt32",
+          "instHAdd",
+          "instHMul",
+          "instMulUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "Clock.split",
+        "dependencies": [
+          "Clock.Hms.mk",
+          "HDiv.hDiv",
+          "HMod.hMod",
+          "OfNat.ofNat",
+          "UInt32",
+          "UInt32.instOfNat",
+          "instDivUInt32",
+          "instHDiv",
+          "instHMod",
+          "instModUInt32"
+        ],
+        "rewrites": []
+      },
+      {
+        "name": "HAdd.hAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HDiv.hDiv",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HMod.hMod",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "HMul.hMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "OfNat.ofNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "UInt32.instOfNat",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instAddUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instDivUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHAdd",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHDiv",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHMod",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instHMul",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instModUInt32",
+        "dependencies": [],
+        "rewrites": []
+      },
+      {
+        "name": "instMulUInt32",
+        "dependencies": [],
+        "rewrites": []
+      }
+    ],
+    "functions": [
+      {
+        "name": "Clock.join",
+        "params": [
+          {
+            "id": 1,
+            "type": "Clock.Hms"
+          }
+        ],
+        "result": "UInt32",
+        "body": {
+          "op": "cases",
+          "var": 1,
+          "type": "Clock.Hms",
+          "result": "UInt32",
+          "alts": [
+            {
+              "constructor": "Clock.Hms.mk",
+              "params": [
+                {
+                  "id": 2,
+                  "type": "UInt32"
+                },
+                {
+                  "id": 3,
+                  "type": "UInt32"
+                },
+                {
+                  "id": 4,
+                  "type": "UInt32"
+                }
+              ],
+              "body": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "uint32",
+                  "name": "3600",
+                  "args": []
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt32.mul",
+                    "args": [
+                      2,
+                      5
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 7,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "uint32",
+                      "name": "60",
+                      "args": []
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "UInt32"
+                      },
+                      "value": {
+                        "kind": "primitive",
+                        "name": "UInt32.mul",
+                        "args": [
+                          3,
+                          7
+                        ]
+                      },
+                      "next": {
+                        "op": "let",
+                        "bind": {
+                          "id": 9,
+                          "type": "UInt32"
+                        },
+                        "value": {
+                          "kind": "primitive",
+                          "name": "UInt32.add",
+                          "args": [
+                            6,
+                            8
+                          ]
+                        },
+                        "next": {
+                          "op": "let",
+                          "bind": {
+                            "id": 10,
+                            "type": "UInt32"
+                          },
+                          "value": {
+                            "kind": "primitive",
+                            "name": "UInt32.add",
+                            "args": [
+                              9,
+                              4
+                            ]
+                          },
+                          "next": {
+                            "op": "return",
+                            "var": 10
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "Clock.split",
+        "params": [
+          {
+            "id": 1,
+            "type": "UInt32"
+          }
+        ],
+        "result": "Clock.Hms",
+        "body": {
+          "op": "let",
+          "bind": {
+            "id": 2,
+            "type": "UInt32"
+          },
+          "value": {
+            "kind": "uint32",
+            "name": "3600",
+            "args": []
+          },
+          "next": {
+            "op": "let",
+            "bind": {
+              "id": 3,
+              "type": "UInt32"
+            },
+            "value": {
+              "kind": "primitive",
+              "name": "UInt32.div",
+              "args": [
+                1,
+                2
+              ]
+            },
+            "next": {
+              "op": "let",
+              "bind": {
+                "id": 4,
+                "type": "UInt32"
+              },
+              "value": {
+                "kind": "primitive",
+                "name": "UInt32.mod",
+                "args": [
+                  1,
+                  2
+                ]
+              },
+              "next": {
+                "op": "let",
+                "bind": {
+                  "id": 5,
+                  "type": "UInt32"
+                },
+                "value": {
+                  "kind": "uint32",
+                  "name": "60",
+                  "args": []
+                },
+                "next": {
+                  "op": "let",
+                  "bind": {
+                    "id": 6,
+                    "type": "UInt32"
+                  },
+                  "value": {
+                    "kind": "primitive",
+                    "name": "UInt32.div",
+                    "args": [
+                      4,
+                      5
+                    ]
+                  },
+                  "next": {
+                    "op": "let",
+                    "bind": {
+                      "id": 7,
+                      "type": "UInt32"
+                    },
+                    "value": {
+                      "kind": "primitive",
+                      "name": "UInt32.mod",
+                      "args": [
+                        1,
+                        5
+                      ]
+                    },
+                    "next": {
+                      "op": "let",
+                      "bind": {
+                        "id": 8,
+                        "type": "Clock.Hms"
+                      },
+                      "value": {
+                        "kind": "constructor",
+                        "name": "Clock.Hms.mk",
+                        "args": [
+                          3,
+                          6,
+                          7
+                        ]
+                      },
+                      "next": {
+                        "op": "return",
+                        "var": 8
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "api": {
+      "records": {
+        "Clock.Hms": [
+          "hours",
+          "minutes",
+          "seconds"
+        ]
+      }
+    }
+  },
+  "function_ids": {
+    "Clock.join": 0,
+    "Clock.split": 1
+  },
+  "constructor_ids": {
+    "Clock.Hms.mk": [
+      1,
+      0
+    ]
+  },
+  "generated_files": {
+    "api.go": "eaa2e912d5e1860dc06fec40595c294f6d5b24c1f1313303e6b1fd2d3b856dee",
+    "control.go": "442e3bc306e2119b0506c2b57d69bbb7333b5daa01ecfeaf384dfdbb2b140242",
+    "runtime.go": "be94582273daaa7e3d45f2f426535ce75c3d793d24b1df1b53fc21abd8228fc5",
+    "schema.go": "6e7e435d0ed4d4a85e6c0fb54226fe1dc88ee074dacd30709e1ab2ab410ff912"
+  },
+  "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Target execution must be tested separately.",
+  "primitives": [
+    {
+      "name": "UInt32.add",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a + b) modulo 2^32"
+    },
+    {
+      "name": "UInt32.div",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "floor(a / b), and 0 when b = 0"
+    },
+    {
+      "name": "UInt32.mod",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "a modulo b, and a when b = 0"
+    },
+    {
+      "name": "UInt32.mul",
+      "params": [
+        "UInt32",
+        "UInt32"
+      ],
+      "result": "UInt32",
+      "semantics": "(a * b) modulo 2^32"
+    }
+  ],
+  "go_api": {
+    "entrypoints": {
+      "Clock.join": "RunJoin",
+      "Clock.split": "RunSplit"
+    },
+    "types": {
+      "Clock.Hms": "Hms",
+      "UInt16": "uint16",
+      "UInt32": "uint32",
+      "UInt64": "uint64",
+      "UInt8": "uint8"
+    },
+    "constructors": {
+      "Clock.Hms.mk": "NewHms"
+    },
+    "accessors": {
+      "Clock.Hms": {
+        "hours": "Hours",
+        "minutes": "Minutes",
+        "seconds": "Seconds"
+      }
+    },
+    "destructors": {}
+  }
+}
