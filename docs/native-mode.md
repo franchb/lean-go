@@ -209,7 +209,13 @@ a huge tree pays for it. Use metered mode where inputs need resource limits.
   data; the metered side is chunked. Variants with every constructor list
   reversed (zero constructors away from tag 0, and `List UInt8` as an exported
   recursive type) and with deliberately colliding names run through the same
-  comparison.
+  comparison. The metered side of the comparison is generated without the
+  [metered fast path](research/extraction-modules.md#metered-fast-path)
+  (`modulegen.GenerateStateMachine`): the fast path runs this emitter's own
+  code, so only the state machine is independent of the native side. The
+  default metered output is generated next to it and benchmarked as
+  "Metered"; for Numbers and Quota the benchmarks also report the state
+  machine as "MeteredStateMachine".
 - **Independent checks.** Native Adler-32 agrees with `hash/adler32`,
   including arbitrary chunking up to 1 MiB, allocates nothing, and leaves its
   input unchanged. Native CRC-16/XMODEM agrees with an independent

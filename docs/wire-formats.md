@@ -261,12 +261,19 @@ The generated `<name>_gen_test.go` checks, without Lean:
 ### Native against metered
 
 Until this release the adapters ran on the metered extraction. A repository
-test, without Lean, builds each example twice in one temporary module: the
+test, without Lean, builds each example in one temporary module: the
 adapter over the tracked IR emitted in native mode, and the same adapter
-with the previous metered backend over the same IR emitted in metered mode
-(`internal/wireformat/meteredbackend_test.go`, kept only as this oracle). It
-compares `Parse` (header, consumed count, payload, error text, input left
-unchanged) on every length up to two bytes past the header, all-zero and
+with the previous metered backend
+(`internal/wireformat/meteredbackend_test.go`, kept only as this oracle)
+twice over the same IR, once emitted by the metered generator without its
+[fast path](research/extraction-modules.md#metered-fast-path)
+(`modulegen.GenerateStateMachine`, the oracle) and once as `--mode metered`
+emits it. The oracle leaves the fast path out because the fast path runs the
+native emitter's own code for every root of these examples, so only the
+state machine is independent of the native side; the default metered
+adapter is compared and benchmarked as well. The test compares the native
+adapter with both: `Parse` (header, consumed count, payload, error text,
+input left unchanged) on every length up to two bytes past the header, all-zero and
 all-ones inputs with every single bit flipped, 20,000 random inputs and
 20,000 valid encodings followed by random bytes; and `Validate`,
 `AppendSerialize`, `PayloadLength` and `AppendFrame` on every field at every
