@@ -158,8 +158,11 @@ native workload is within 1.1x of a hand-written Go transliteration of the
 same Lean source, and metered mode is 7.1 to 285 times slower than native.
 A better algorithm still wins: `hash/adler32` takes 30.9 µs on 64 KiB
 against 114.8 µs for the native Adler-32, whose Lean source reduces after
-every byte. For the DNS header, native parse plus serialize takes 163.5 ns against 31.9 ns for a hand-written
-`encoding/binary` codec, about 5 times slower, and metered takes 11,808 ns
+every byte. Record-heavy code is further off: for the DNS header, native
+parse plus serialize takes 106.6 ns against 31.0 ns for a hand-written
+`encoding/binary` codec, about 3.4 times slower (UDP 4.7, the demo header
+2.3), and metered takes 10,914 ns. The gap is Go copying 12-field structs
+through memory at the by-value API boundaries, not the extracted code
 ([wire formats](docs/wire-formats.md#native-against-metered)).
 
 ## Wire formats

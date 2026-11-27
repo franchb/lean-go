@@ -22,11 +22,10 @@ func (v Availability) IsNeedMore() bool {
 
 // AsNeedMore returns the fields of a Availability.needMore value and true, or zero values and false.
 func (v Availability) AsNeedMore() (uint32, bool) {
-	n := v
-	if n.tag != 0 {
+	if v.tag != 0 {
 		return 0, false
 	}
-	return n.f0_0, true
+	return v.f0_0, true
 }
 
 // AvailabilityComplete returns the Lean value Availability.complete a0.
@@ -41,11 +40,10 @@ func (v Availability) IsComplete() bool {
 
 // AsComplete returns the fields of a Availability.complete value and true, or zero values and false.
 func (v Availability) AsComplete() (uint32, bool) {
-	n := v
-	if n.tag != 1 {
+	if v.tag != 1 {
 		return 0, false
 	}
-	return n.f1_0, true
+	return v.f1_0, true
 }
 
 // Header is the Lean structure Header, built by Header.mk.
@@ -74,11 +72,10 @@ func (v ParseResult) IsOk() bool {
 
 // AsOk returns the fields of a ParseResult.ok value and true, or zero values and false.
 func (v ParseResult) AsOk() (Header, bool) {
-	n := v
-	if n.tag != 0 {
+	if v.tag != 0 {
 		return Header{}, false
 	}
-	return n.f0_0, true
+	return v.f0_0, true
 }
 
 // ParseResultVersionMismatch returns the Lean value ParseResult.versionMismatch.

@@ -235,6 +235,13 @@ func internal(err error) error { return fmt.Errorf("%%w: %%v", ErrInternal, err)
 // Validate reports whether h can be serialized: every field fits its width
 // and satisfies its declared constraints. It returns nil or an *Error.
 func Validate(h Header) error {
+	return validate(&h)
+}
+
+// validate is Validate on a header passed by pointer. Header is copied in
+// memory whenever it is passed by value, so the adapter passes it by pointer
+// internally.
+func validate(h *Header) error {
 	reason, err := leanValidate(h)
 	if err != nil {
 		return err
@@ -248,14 +255,10 @@ func Validate(h Header) error {
 // AppendSerialize appends the encoding of h to dst. On error it returns dst
 // unchanged, without writing to its spare capacity.
 func AppendSerialize(dst []byte, h Header) ([]byte, error) {
-	if err := Validate(h); err != nil {
+	if err := validate(&h); err != nil {
 		return dst, err
 	}
-	raw, err := leanSerialize(h)
-	if err != nil {
-		return dst, err
-	}
-	return append(dst, raw[:]...), nil
+	return leanSerialize(dst, &h)
 }
 `, f.Name, f.Name, payloadTrunc(f), f.Name)
 	if f.Payload == nil {
@@ -271,7 +274,8 @@ func Parse(data []byte) (Header, int, error) {
 	}
 	var raw [HeaderSize]byte
 	copy(raw[:], data)
-	h, reason, err := leanParse(&raw)
+	var h Header
+	reason, err := leanParse(&raw, &h)
 	if err != nil {
 		return Header{}, 0, err
 	}
@@ -298,7 +302,8 @@ func Parse(data []byte) (Header, int, []byte, error) {
 	}
 	var raw [HeaderSize]byte
 	copy(raw[:], data)
-	h, reason, err := leanParse(&raw)
+	var h Header
+	reason, err := leanParse(&raw, &h)
 	if err != nil {
 		return Header{}, 0, nil, err
 	}
@@ -309,7 +314,7 @@ func Parse(data []byte) (Header, int, []byte, error) {
 	if rest := len(data) - HeaderSize; uint64(rest) < uint64(available) {
 		available = uint32(rest)
 	}
-	count, complete, err := leanClassify(h, available)
+	count, complete, err := leanClassify(&h, available)
 	if err != nil {
 		return Header{}, 0, nil, err
 	}
@@ -326,7 +331,7 @@ func Parse(data []byte) (Header, int, []byte, error) {
 // PayloadLength returns the payload byte count h declares.
 func PayloadLength(h Header) (uint32, error) {
 	// With nothing available the decision reports the whole declared count.
-	count, _, err := leanClassify(h, 0)
+	count, _, err := leanClassify(&h, 0)
 	return count, err
 }
 
@@ -334,17 +339,20 @@ func PayloadLength(h Header) (uint32, error) {
 // length field of h must already describe payload. payload may overlap dst.
 // On error it returns dst unchanged, without writing to its spare capacity.
 func AppendFrame(dst []byte, h Header, payload []byte) ([]byte, error) {
-	if err := Validate(h); err != nil {
+	if err := validate(&h); err != nil {
 		return dst, err
 	}
-	want, err := PayloadLength(h)
+	want, _, err := leanClassify(&h, 0)
 	if err != nil {
 		return dst, err
 	}
 	if uint64(len(payload)) != uint64(want) {
 		return dst, &Error{Reason: ReasonPayloadLengthMismatch}
 	}
-	raw, err := leanSerialize(h)
+	// The header is encoded before anything is written: payload may occupy
+	// the bytes it will use.
+	var buf [HeaderSize]byte
+	raw, err := leanSerialize(buf[:0], &h)
 	if err != nil {
 		return dst, err
 	}
@@ -352,7 +360,7 @@ func AppendFrame(dst []byte, h Header, payload []byte) ([]byte, error) {
 	dst = slices.Grow(dst, len(raw)+len(payload))[:start+len(raw)+len(payload)]
 	// Move the payload first: it may occupy the bytes the header will use.
 	copy(dst[start+len(raw):], payload)
-	copy(dst[start:], raw[:])
+	copy(dst[start:], raw)
 	return dst, nil
 }
 `)

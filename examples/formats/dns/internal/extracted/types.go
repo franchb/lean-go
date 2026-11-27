@@ -38,11 +38,10 @@ func (v ParseResult) IsOk() bool {
 
 // AsOk returns the fields of a ParseResult.ok value and true, or zero values and false.
 func (v ParseResult) AsOk() (Header, bool) {
-	n := v
-	if n.tag != 0 {
+	if v.tag != 0 {
 		return Header{}, false
 	}
-	return n.f0_0, true
+	return v.f0_0, true
 }
 
 // ParseResultZNonzero returns the Lean value ParseResult.zNonzero.

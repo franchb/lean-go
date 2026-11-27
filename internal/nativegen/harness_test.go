@@ -450,6 +450,61 @@ func (d *driver) emitHostile(types []moduleir.TypeDecl) {
 		d.printf("if !(%s{}).%s() {\nt.Fatal(\"zero %s is not %s\")\n}\n}\n", d.natType(typ.Name), api.Is[api.Zero], typ.Name, api.Zero)
 	}
 	d.printf("}\n")
+	d.emitDestructors(types)
+}
+
+// emitDestructors checks the Is and As methods of every sum and recursive
+// type on constructed values and on the zero value: exactly one Is method
+// holds, the matching As method returns the fields and true, and every other
+// As method returns zero values and false.
+func (d *driver) emitDestructors(types []moduleir.TypeDecl) {
+	d.printf("\nfunc TestHostileDestructors(t *testing.T) {\nr := rand.New(rand.NewSource(7))\n_ = r\n")
+	for _, typ := range types {
+		api := d.nat.Types[typ.Name]
+		if api.Kind == "record" {
+			continue
+		}
+		check := func(value string, built int) {
+			d.printf("{\nv := %s\n", value)
+			for k, c := range typ.Constructors {
+				want := "true"
+				if built >= 0 && k != built {
+					want = "false"
+				}
+				if built < 0 {
+					want = fmt.Sprint(c.Name == api.Zero)
+				}
+				d.printf("if v.%s() != %s {\nt.Fatalf(\"%%v: %s() is not %s\", v)\n}\n", api.Is[c.Name], want, api.Is[c.Name], want)
+				if len(c.Fields) == 0 {
+					continue
+				}
+				vars := names("a", len(c.Fields))
+				d.printf("{\n%s, ok := v.%s()\nif ok != %s {\nt.Fatalf(\"%%v: %s() reports %%v\", v, ok)\n}\n", strings.Join(vars, ", "), api.As[c.Name], want, api.As[c.Name])
+				if want == "false" {
+					for j, field := range c.Fields {
+						d.printf("if a%d != (%s) {\nt.Fatalf(\"%%v: %s() field %d is not zero\", v)\n}\n", j, d.zero(field), api.As[c.Name], j)
+					}
+				} else {
+					for j := range c.Fields {
+						d.printf("_ = a%d\n", j)
+					}
+				}
+				d.printf("}\n")
+			}
+			d.printf("}\n")
+		}
+		check(d.natType(typ.Name)+"{}", -1)
+		for k, c := range typ.Constructors {
+			var args []string
+			for _, field := range c.Fields {
+				args = append(args, d.gen(field, "2"))
+			}
+			d.printf("for range 20 {\n")
+			check(fmt.Sprintf("nat.%s(%s)", api.Constructors[c.Name], strings.Join(args, ", ")), k)
+			d.printf("}\n")
+		}
+	}
+	d.printf("}\n")
 }
 
 // harnessModule generates metered and native packages plus a driver for each

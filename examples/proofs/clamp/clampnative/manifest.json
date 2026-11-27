@@ -1,8 +1,8 @@
 {
   "schema": "lean-go-native-manifest/v1",
   "mode": "native",
-  "generator": "lean-go-nativegen/v1",
-  "generator_source_sha256": "244e709c07ae3cab30ea6d1a2c203ddf2c7d4349aa854a678fc98ca1a94c732b",
+  "generator": "lean-go-nativegen/v2",
+  "generator_source_sha256": "7e71b5aeb7f83cd91828885f6bc8a95169e8052fbc87223d6d7d28714a6ad0ac",
   "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
   "ir_sha256": "b4748ec62ea656c4966b6ad859375ce1cba644c34cf04ca8468c30946a1fc012",
   "max_depth": 10000,

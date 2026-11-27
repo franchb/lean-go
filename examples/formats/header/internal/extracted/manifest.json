@@ -1,8 +1,8 @@
 {
   "schema": "lean-go-native-manifest/v1",
   "mode": "native",
-  "generator": "lean-go-nativegen/v1",
-  "generator_source_sha256": "244e709c07ae3cab30ea6d1a2c203ddf2c7d4349aa854a678fc98ca1a94c732b",
+  "generator": "lean-go-nativegen/v2",
+  "generator_source_sha256": "7e71b5aeb7f83cd91828885f6bc8a95169e8052fbc87223d6d7d28714a6ad0ac",
   "validator_source_sha256": "cc338df7ed095c810dd0f466b9f7c6feca74e0eeb6f35af07d4c2e4742c3129d",
   "ir_sha256": "997037496b39cfb1cccd84964b932821e37d4c1049a35f043dcc5e0e88ba217f",
   "max_depth": 10000,
@@ -1398,7 +1398,7 @@
   "generated_files": {
     "functions.go": "04baaf06947f7fcb06fac1db06d56f4af035382258f43fb9db9ba87e5d181533",
     "native.go": "dbdf70048fd6df71852bc5956617f4c01aacb4211b2c89915ea8ebd3e48db792",
-    "types.go": "a4134963f8152bd03b57e6babac13c42e4247961b89cff02de341be39ae05964"
+    "types.go": "4793075652495f6725ee7bb56a44042bf85d14f00451e0535d248f839449ae74"
   },
   "evidence": "Tested/trusted extraction; not an end-to-end proof of Go correctness. Native mode enforces no resource budgets other than MaxDepth.",
   "primitives": [

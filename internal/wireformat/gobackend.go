@@ -14,10 +14,20 @@ import (
 //
 // The adapter needs exactly four functions from a backend:
 //
-//	leanParse(raw *[HeaderSize]byte) (Header, Reason, error)
-//	leanValidate(h Header) (Reason, error)
-//	leanSerialize(h Header) ([HeaderSize]byte, error)
-//	leanClassify(h Header, available uint32) (count uint32, complete bool, err error)
+//	leanParse(raw *[HeaderSize]byte, h *Header) (Reason, error)
+//	leanValidate(h *Header) (Reason, error)
+//	leanSerialize(dst []byte, h *Header) ([]byte, error)
+//	leanClassify(h *Header, available uint32) (count uint32, complete bool, err error)
+//
+// leanParse sets *h only when it returns no reason and no error;
+// leanSerialize appends exactly HeaderSize bytes, or on error returns dst
+// unchanged without writing to its spare capacity.
+//
+// Headers travel by pointer inside the adapter. Header has more fields than
+// Go keeps in registers, so every by-value pass or return is a memory copy,
+// and a copy that reads a header just written field by field cannot be
+// forwarded from the store buffer and stalls; these copies, not the
+// extracted code, dominated the cost of Parse and AppendSerialize.
 //
 // The native functions cannot fail; the error results remain for an
 // unexpected constructor, which checkNativeAPI and the generated tests rule
@@ -33,11 +43,11 @@ func backendNative(f *Format) string {
 	p("var errUnexpected = errors.New(\"unexpected value from the extracted code\")\n\n")
 
 	// Header and the extracted Header have the same fields, names, types and
-	// order, so they convert directly; a mismatch fails to compile.
-	p("func toLean(h Header) codec.Header { return codec.Header(h) }\n\n")
-	p("func fromLean(lh codec.Header) Header { return Header(lh) }\n\n")
+	// order, so they and pointers to them convert directly; a mismatch fails
+	// to compile.
+	p("func toLean(h *Header) codec.Header { return codec.Header(*h) }\n\n")
 
-	p("func leanParse(raw *[HeaderSize]byte) (Header, Reason, error) {\n\tr := codec.Parse(codec.Wire{")
+	p("func leanParse(raw *[HeaderSize]byte, h *Header) (Reason, error) {\n\tr := codec.Parse(codec.Wire{")
 	for i := range f.Size {
 		if i > 0 {
 			p(", ")
@@ -45,35 +55,37 @@ func backendNative(f *Format) string {
 		p("B%d: raw[%d]", i, i)
 	}
 	p("})\n")
-	p("\tif lh, ok := r.AsOk(); ok {\n\t\treturn fromLean(lh), 0, nil\n\t}\n")
+	// Assigning AsOk's result through the converted pointer stores the
+	// header once, straight into the caller's variable.
+	p("\tvar ok bool\n\tif *(*codec.Header)(h), ok = r.AsOk(); ok {\n\t\treturn 0, nil\n\t}\n")
 	if len(f.Parse) > 0 {
 		p("\tswitch {\n")
 		for _, c := range f.Parse {
-			p("\tcase r.Is%s():\n\t\treturn Header{}, %s, nil\n", cap1(c.Reason), goReason(c.Reason))
+			p("\tcase r.Is%s():\n\t\treturn %s, nil\n", cap1(c.Reason), goReason(c.Reason))
 		}
 		p("\t}\n")
 	}
-	p("\treturn Header{}, 0, internal(errUnexpected)\n}\n\n")
+	p("\treturn 0, internal(errUnexpected)\n}\n\n")
 
-	p("func leanValidate(h Header) (Reason, error) {\n\tr := codec.Validate(toLean(h))\n")
+	p("func leanValidate(h *Header) (Reason, error) {\n\tr := codec.Validate(toLean(h))\n")
 	p("\tswitch {\n\tcase r.IsValid():\n\t\treturn 0, nil\n")
 	for _, c := range f.Valid {
 		p("\tcase r.Is%s():\n\t\treturn %s, nil\n", cap1(c.Reason), goReason(c.Reason))
 	}
 	p("\t}\n\treturn 0, internal(errUnexpected)\n}\n\n")
 
-	p("func leanSerialize(h Header) ([HeaderSize]byte, error) {\n\tw := codec.Serialize(toLean(h))\n\treturn [HeaderSize]byte{")
+	// Appending the bytes one by one writes them straight into dst; an
+	// intermediate [HeaderSize]byte would be stored byte by byte and then
+	// reloaded in words, which stalls.
+	p("func leanSerialize(dst []byte, h *Header) ([]byte, error) {\n\tw := codec.Serialize(toLean(h))\n\treturn append(dst")
 	for i := range f.Size {
-		if i > 0 {
-			p(", ")
-		}
-		p("w.B%d", i)
+		p(", w.B%d", i)
 	}
-	p("}, nil\n}\n")
+	p("), nil\n}\n")
 
 	if f.Payload != nil {
 		p(`
-func leanClassify(h Header, available uint32) (uint32, bool, error) {
+func leanClassify(h *Header, available uint32) (uint32, bool, error) {
 	r := codec.Classify(toLean(h), available)
 	if n, ok := r.AsComplete(); ok {
 		return n, true, nil

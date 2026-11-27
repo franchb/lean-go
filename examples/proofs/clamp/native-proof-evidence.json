@@ -31,7 +31,7 @@
     }
   ],
   "contract_sha256": "fcfe62273f3dc4e23cd5c5f87ebb0a6e8b5e464f6d148cb540bca02eb0c1990d",
-  "generated_manifest_sha256": "c20d151b2f1ce4ba821f45bb25d7558a188208c1573fb96d7e060e9fb9462a5d",
+  "generated_manifest_sha256": "67f7039f5cb26fee150a4a3707f13a90905155e30284ca4f70aa068a53b549cc",
   "generated_mode": "native",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",

@@ -150,12 +150,20 @@ func (m *model) emitAPI(w *bytes.Buffer, info *typeInfo, value string) {
 		if len(c.Fields) == 0 {
 			continue
 		}
+		// A boxed value binds its node once. A sum reads the receiver in
+		// place: copying it first would move every field of every
+		// constructor, which for a sum carrying a record of more than four
+		// fields is a memory-to-memory copy Go does not remove.
+		n, bindNode := "v", ""
+		if info.kind == kindBoxed {
+			n, bindNode = "n", "n := "+value+"\n"
+		}
 		fields := make([]string, len(c.Fields))
 		for j := range c.Fields {
-			fields[j] = "n." + info.fields[i][j]
+			fields[j] = n + "." + info.fields[i][j]
 		}
-		fmt.Fprintf(w, "\n// %s returns the fields of a %s value and true, or zero values and false.\nfunc (v %s) %s() (%s) {\nn := %s\nif n.tag != %d {\nreturn %s\n}\nreturn %s, true\n}\n",
-			info.asMethods[i], c.Name, info.goName, info.asMethods[i], m.results(c.Fields), value, info.tags[i], m.zeros(c.Fields), strings.Join(fields, ", "))
+		fmt.Fprintf(w, "\n// %s returns the fields of a %s value and true, or zero values and false.\nfunc (v %s) %s() (%s) {\n%sif %s.tag != %d {\nreturn %s\n}\nreturn %s, true\n}\n",
+			info.asMethods[i], c.Name, info.goName, info.asMethods[i], m.results(c.Fields), bindNode, n, info.tags[i], m.zeros(c.Fields), strings.Join(fields, ", "))
 	}
 	if info.stringer != "" {
 		fmt.Fprintf(w, "\n// %s returns the full Lean constructor name.\nfunc (v %s) %s() string {\nswitch v.tag {\n", info.stringer, info.goName, info.stringer)
