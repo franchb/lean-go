@@ -30,7 +30,24 @@ type InstallOptions struct {
 	// WithoutLean checks the binaries, their help and the missing-tool
 	// errors only.
 	WithoutLean bool
-	Stdout      io.Writer
+	// Demos, when not empty, restricts the Lean checks to these demos
+	// (FrameDemo selects the checked frame) and skips the clamp producer
+	// workflow.
+	Demos  []string
+	Stdout io.Writer
+}
+
+// FrameDemo names the checked-frame composition among the demos.
+const FrameDemo = "checkedframe"
+
+// CheckDemoNames rejects names that are not demos.
+func CheckDemoNames(names []string) error {
+	for _, name := range names {
+		if name != FrameDemo && !slices.ContainsFunc(proofdemos.All, func(d proofdemos.Demo) bool { return d.Name == name }) {
+			return fmt.Errorf("unknown demo %q", name)
+		}
+	}
+	return nil
 }
 
 // SmokeVersion is the module version the local proxy serves.
@@ -178,9 +195,11 @@ func checkBinary(o InstallOptions, binary, label string, index int, goPath strin
 	}
 	summary := "producer checks explicitly skipped"
 	if !o.WithoutLean {
-		count, err := producerWorkflow(o.Repo, installed, directory, goPath, env, index == 0)
-		if err != nil {
-			return err
+		count := 0
+		if len(o.Demos) == 0 {
+			if count, err = producerWorkflow(o.Repo, installed, directory, goPath, env, index == 0); err != nil {
+				return err
+			}
 		}
 		copied := filepath.Join(directory, "checkout copy")
 		demos := filepath.Join(copied, filepath.FromSlash(demosDir))
@@ -188,16 +207,30 @@ func checkBinary(o InstallOptions, binary, label string, index int, goPath strin
 			return err
 		}
 		checker := newDemoChecker(copied, goPath, env, o.Stdout)
+		checked := 0
 		for _, demo := range proofdemos.All {
+			if len(o.Demos) != 0 && !slices.Contains(o.Demos, demo.Name) {
+				continue
+			}
 			demoWorkspace := filepath.Join(directory, "standalone "+demo.Name+" demo")
 			if err := checker.verifyDemo(installed, demoWorkspace, demo); err != nil {
 				return err
 			}
+			checked++
 		}
-		if err := checker.verifyFrame(installed, demos, directory); err != nil {
-			return err
+		frame := len(o.Demos) == 0 || slices.Contains(o.Demos, FrameDemo)
+		if frame {
+			if err := checker.verifyFrame(installed, demos, directory); err != nil {
+				return err
+			}
 		}
-		summary = fmt.Sprintf("%d Go-only consumer cases, %d standalone demos and the checked frame passed", count, len(proofdemos.All))
+		summary = fmt.Sprintf("%d standalone demos passed", checked)
+		if frame {
+			summary += " and the checked frame passed"
+		}
+		if len(o.Demos) == 0 {
+			summary = fmt.Sprintf("%d Go-only consumer cases, %s", count, summary)
+		}
 	}
 	after, err := os.ReadFile(installed)
 	if err != nil {

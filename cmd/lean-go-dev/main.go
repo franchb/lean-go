@@ -286,6 +286,10 @@ func installedCommand(args []string, stdout, stderr io.Writer) int {
 	flags.StringVar(&o.CLI, "cli", "", "an installed lean-go binary to check instead of building one")
 	flags.StringVar(&o.ExpectTag, "expect-tag", "", "release tag the --cli binary must report (vMAJOR.MINOR.PATCH-alpha.N)")
 	flags.BoolVar(&o.WithoutLean, "without-lean", false, "check the binaries, help and missing-tool errors only")
+	flags.Func("demo", "check only this demo (repeatable; checkedframe is the frame composition); skips the clamp producer workflow", func(name string) error {
+		o.Demos = append(o.Demos, name)
+		return smoke.CheckDemoNames([]string{name})
+	})
 	repoValue := repoFlag(flags)
 	if err := flags.Parse(args); err != nil {
 		if errors.Is(err, flag.ErrHelp) {

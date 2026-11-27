@@ -480,3 +480,12 @@ func TestInstalledCLIWithoutLean(t *testing.T) {
 		t.Fatal(stdout.String())
 	}
 }
+
+func TestDemoNamesAreChecked(t *testing.T) {
+	if err := CheckDemoNames([]string{"clamp", "clock", FrameDemo}); err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckDemoNames([]string{"nope"}); err == nil {
+		t.Fatal("an unknown demo was accepted")
+	}
+}
