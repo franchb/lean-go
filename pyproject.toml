@@ -49,10 +49,12 @@ sources = ["src"]
 "internal/leanversion/identity.go" = "lean_go/_payload/internal/leanversion/identity.go"
 "producer/embed.go" = "lean_go/_payload/producer/embed.go"
 "internal/artifacts/artifacts.go" = "lean_go/_payload/internal/artifacts/artifacts.go"
+"internal/artifacts/validation.go" = "lean_go/_payload/internal/artifacts/validation.go"
 "internal/cli/args.go" = "lean_go/_payload/internal/cli/args.go"
 "internal/cli/cli.go" = "lean_go/_payload/internal/cli/cli.go"
 "internal/cli/doctor.go" = "lean_go/_payload/internal/cli/doctor.go"
 "internal/cli/regenerate.go" = "lean_go/_payload/internal/cli/regenerate.go"
+"internal/cli/validate.go" = "lean_go/_payload/internal/cli/validate.go"
 "internal/pipeline/cache.go" = "lean_go/_payload/internal/pipeline/cache.go"
 "internal/pipeline/cache_other.go" = "lean_go/_payload/internal/pipeline/cache_other.go"
 "internal/pipeline/cache_unix.go" = "lean_go/_payload/internal/pipeline/cache_unix.go"
@@ -68,6 +70,10 @@ sources = ["src"]
 "internal/pipeline/publish.go" = "lean_go/_payload/internal/pipeline/publish.go"
 "internal/pipeline/pyjson.go" = "lean_go/_payload/internal/pipeline/pyjson.go"
 "internal/pipeline/sources.go" = "lean_go/_payload/internal/pipeline/sources.go"
+"internal/pipeline/validate_generate.go" = "lean_go/_payload/internal/pipeline/validate_generate.go"
+"internal/pipeline/validate_options.go" = "lean_go/_payload/internal/pipeline/validate_options.go"
+"internal/pipeline/validate_report.go" = "lean_go/_payload/internal/pipeline/validate_report.go"
+"internal/pipeline/validate_run.go" = "lean_go/_payload/internal/pipeline/validate_run.go"
 "internal/wireformat/formula.go" = "lean_go/_payload/internal/wireformat/formula.go"
 "internal/wireformat/generate.go" = "lean_go/_payload/internal/wireformat/generate.go"
 "internal/wireformat/goadapter.go" = "lean_go/_payload/internal/wireformat/goadapter.go"
@@ -170,10 +176,12 @@ include = [
   "/internal/leanversion/identity.go",
   "/producer/embed.go",
   "/internal/artifacts/artifacts.go",
+  "/internal/artifacts/validation.go",
   "/internal/cli/args.go",
   "/internal/cli/cli.go",
   "/internal/cli/doctor.go",
   "/internal/cli/regenerate.go",
+  "/internal/cli/validate.go",
   "/internal/pipeline/cache.go",
   "/internal/pipeline/cache_other.go",
   "/internal/pipeline/cache_unix.go",
@@ -189,6 +197,10 @@ include = [
   "/internal/pipeline/publish.go",
   "/internal/pipeline/pyjson.go",
   "/internal/pipeline/sources.go",
+  "/internal/pipeline/validate_generate.go",
+  "/internal/pipeline/validate_options.go",
+  "/internal/pipeline/validate_report.go",
+  "/internal/pipeline/validate_run.go",
   "/internal/wireformat/formula.go",
   "/internal/wireformat/generate.go",
   "/internal/wireformat/goadapter.go",

@@ -51,6 +51,7 @@ inferred from message text or generated-name suffixes.
 | `build` | Compilation, subprocess, or producer protocol failure | `producer_failed`, `producer_protocol`, `build_failed`, `pipeline_failed` |
 | `admission` | An explicit supported-profile rejection | `source_audit`, `unsupported_type`, `unsupported_signature`, `unsupported_lcnf_value`, `unsupported_lcnf_control` |
 | `emission` | Go generation or publishing output failed | `emission_failed`, `output_failed` |
+| `validation` | `--validate require` and a function or root was not proved (the report is written first) | `validation_failed` |
 
 A compiler crash, syntax error, failed producer build, or unclassified compiler
 exception is a build failure. It must **never count as an expected admission

@@ -2,9 +2,12 @@
 
 Status: library and producer-side command (`#lean_go_validate`) in
 [`producer/LeanGo/Validate/`](../../producer/LeanGo/Validate); evidence in
-[`validation/`](../../validation); runner `scripts/validate_module.py`, coverage
-`scripts/validation_coverage.py`. Not yet wired into the `lean-go` CLI (§11
-says how).
+[`validation/`](../../validation). Wired into the Go CLI:
+`lean-go generate --validate report|require` and `lean-go validate`
+([cli.md](../cli.md#translation-validation)), runner
+`internal/pipeline/validate_*.go` (§11). Every tracked module program has a
+tracked, deterministic report next to its IR (§9), written by
+`lean-go regenerate`. The Python runner and coverage script are gone.
 
 Today extraction is *tested and trusted*: the producer pattern-matches the
 compiler's mono LCNF, audits it, and emits JSON IR that the Go printer turns
@@ -34,8 +37,8 @@ validation/                                  Lake package requiring ../producer;
   Examples/*.lean, Examples/IR, Examples/Src   hand-written examples on copies of tracked IR
   Examples/Command.lean, Examples/Producer/    the command run inside the build (Local)
   Examples/AxiomCheck.lean                     axiom gate over LeanGo.Validate.* and Examples.*
-scripts/validate_module.py                   export + validation in one fresh workspace
-scripts/validation_coverage.py               the command over every tracked program
+internal/pipeline/validate_*.go              Go runner: harness, limits, skip-and-rerun, report split
+internal/artifacts/validation.go             tracked reports of every program, coverage table
 ```
 
 There is one copy of the library. Object-level files are `module` files with
@@ -50,13 +53,12 @@ gate and an in-build run of the command). Clean build of library, producer
 modules the command needs, examples and gate: about 3 minutes of wall time on
 the shared machine; incremental rebuilds of the examples take under a minute.
 
-The producer workspace is assembled from an explicit list of producer files
-(`export_module.PRODUCER_INPUTS`; in Go, the `producer/embed.go` glob
-`LeanGo/Module/*.lean` plus `LeanGo/Proofs/Check.lean`). The validation files
-are **not** in that list and not matched by that glob, so the inputs hashed
-into every existing manifest are unchanged; a run that requests validation
-copies them in additionally (`validate_module.VALIDATION_INPUTS`) and hashes
-them into the validation report, never into the IR's `inputs`.
+The producer workspace is assembled from the `producer/embed.go` glob
+`LeanGo/Module/*.lean` (plus `LeanGo/Proofs/Check.lean` for the proof
+checker). The validation files are embedded separately
+(`producer.ValidationFiles()`), so the inputs hashed into every manifest are
+unchanged; a run that requests validation stages them additionally and hashes
+them into the validation report (`library`), never into the IR's `inputs`.
 
 ## 2. Value domain and IR embedding
 
@@ -248,40 +250,46 @@ in the same environment, after the export command. Steps:
 sources cannot import the library either, so no user-supplied `Encode`
 instance can interfere).
 
-### Report (`validation.json`, schema `lean-go-validation/v1`)
+### Report
+
+The command writes its raw report (`validation.json` in the workspace, with
+timings and heartbeat counts). The Go runner splits it into two files:
 
 ```jsonc
+// X.validation.json, schema lean-go-validation/v2: deterministic, tracked
 {
-  "schema": "lean-go-validation/v1",          // added by the runner
-  "module": "Local", "roots": ["Local.run"],
-  "status": "completed",                       // or "export_failed" / "load_failed" with "reason"
-  "ir_file_matches": true,                     // null when no file was named
-  "ir_sha256": "…",                            // runner: hash of the completed IR it published
-  "budget": {"heartbeats": 200000, "timeout_ms": 120000}, "strict": false,
-  "lean_version": "4.36.0", "lean_commit": "…", // runner
-  "inputs": {"source/Local.lean": "…", "producer/LeanGo/Validate/Command.lean": "…", …},
+  "schema": "lean-go-validation/v2", "module": "Local", "roots": ["Local.run"],
+  "status": "completed",                        // or export_failed / load_failed / process_failed (+ "reason_class")
+  "ir_file_matches": true, "ir_sha256": "…",     // the complete IR that was validated
+  "lean_version": "4.36.0", "lean_commit": "…",
+  "budget": {"heartbeats": 200000, "timeout_ms": 120000, "memory_mb": 4096, "process_timeout_ms": 3600000},
+  "library": {"producer/LeanGo/Validate/Command.lean": "…", …, "tool/lean-go/validate": "…"},
   "program": "LeanGo.Validated.prog", "specification_list": "LeanGo.Validated.spec",
-  "encodings": [{"type": "Local.Count", "status": "available", "reason": ""}],
+  "encodings": [{"type": "Local.Count", "status": "available"}],
   "functions": [{
     "name": "Local.run._lam_0", "params": ["Local.Config", "UInt32"], "result": "UInt32",
-    "kind": "local_helper",                    // source | byte_fold | reduced_helper | local_helper
+    "kind": "local_helper",                     // source | byte_fold | reduced_helper | local_helper
     "source_owner": "Local.run",
     "specification": "LeanGo.Validated.spec_2: lambda bump of Local.run, captures [config]",
-    "status": "proved",                        // proved | failed | not_attempted
-    "reason": "",                              // stuck goal, "heartbeat budget exhausted", "wall-clock budget exhausted", …
-    "time_ms": 901, "heartbeats_used": 2105,   // thousands
-    "theorem": "LeanGo.Validated.obl_2",       // null unless proved
+    "status": "proved",                         // proved | failed | not_attempted
+    "reason_class": "…",                        // when not proved: stuck, heartbeat_limit, obligation_time_limit,
+                                                // memory_limit, process_time_limit, no_encoding, no_specification, …
+    "theorem": "LeanGo.Validated.obl_2",        // only when proved
     "statement": "LeanGo.Validate.Callable.Rel Eq (…) LeanGo.Validated.spec_2",
-    "axioms": ["propext", "Classical.choice", "Quot.sound"]}],
+    "axioms": ["Classical.choice", "Quot.sound", "propext"]}],
   "programs": [{
     "root": "Local.run", "closure": ["Local.run", "Local.run._lam_0", "Local.add"],
-    "status": "proved",                        // proved | not_established (+ "missing") | failed (+ "reason")
+    "status": "proved",                         // proved | not_established (+ "missing") | failed (+ "reason_class")
     "prefixed_theorem": "…prefixed_0", "theorem": "…sound_0", "statement": "∀ (n : Nat), …",
     "explicit_theorem": "…explicit_0", "explicit_statement": "∀ (n : Nat) (config : Local.Config) …",
-    "axioms": [...], "time_ms": 412}],
-  "summary": {"functions": 3, "proved": 3, "failed": 0, "not_attempted": 0,
-              "roots": 1, "roots_proved": 1, "time_ms": 4438}
+    "axioms": [...]}],
+  "summary": {"functions": 3, "proved": 3, "failed": 0, "not_attempted": 0, "roots": 1, "roots_proved": 1}
 }
+// --validation-diagnostics FILE, schema lean-go-validation-diagnostics/v1: untracked
+{"schema": "…", "module": "…", "roots": […], "ir_sha256": "…", "time_ms": 4438,
+ "attempts": [{"skip": [], "exit_code": 0, "timed_out": false, "wall_ms": 5120}],
+ "functions": [{"name": "…", "status": "…", "reason": "full message", "time_ms": 901, "heartbeats_used": 2105}],
+ "programs": [{"root": "…", "reason": "…", "time_ms": 412}], "encodings": […]}
 ```
 
 Statements are pretty-printed with full names; the theorem names identify the
@@ -333,47 +341,24 @@ What is trusted, and how it is checked:
 
 ## 9. Coverage
 
-`uv run --locked python scripts/validation_coverage.py --out-dir <dir>` runs the
-command (default budget: 200000 thousand heartbeats, Lean's default `maxHeartbeats`, and 120 s per obligation)
-on every tracked program, sequentially, checking that the IR exported in the
-validation workspace is byte-identical to the tracked IR. Results of the run on
-the shared 4-core machine (validation time is the command's own time, without
-the workspace build):
+Coverage is a checked-in fact: `lean-go regenerate` writes the report of every
+tracked module program next to its IR (`testdata/X.validation.json`,
+`examples/proofs/X/X.validation.json`, `examples/formats/X/X.validation.json`)
+with the default budget (200000 thousand heartbeats and 120 s per obligation,
+4096 MiB for the process), and a regression in the proof automation shows up as
+a diff. The table below is the output of `lean-go regenerate --coverage`; an
+ungated test (`internal/artifacts/validation_test.go`) checks it against the
+tracked reports, and that every report belongs to the tracked IR and the
+current validation library.
 
-| Program | IR | Functions proved / total | Roots with whole-program theorem | Validation time |
-|---|---|---|---|---|
-| choice | testdata/choice | 1 / 1 | 1 / 1 | 0.8 s |
-| counters | testdata/counters | 5 / 5 | 4 / 4 | 4.2 s |
-| joins | testdata/joins | 2 / 2 | 1 / 1 | 5.8 s |
-| local | testdata/local | 3 / 3 (incl. lifted `_lam_0` with capture) | 1 / 1 | 3.3 s |
-| numbers | testdata/numbers | 2 / 2 | 1 / 1 | 5.7 s |
-| records | testdata/records | 3 / 3 | 1 / 1 | 4.4 s |
-| reduced | testdata/reduced | 3 / 3 (incl. two `._redArg`) | 1 / 1 | 3.5 s |
-| trees | testdata/trees | 2 / 2 | 1 / 1 | 2.7 s |
-| wide | testdata/wide | 2 / 2 | 1 / 1 | 6.2 s |
-| quota | libraries/quota | 4 / 4 | 4 / 4 | 5.8 s |
-| clamp | examples/proofs/clamp | 2 / 2 | 1 / 1 | 0.9 s |
-| flags | examples/proofs/flags | 4 / 4 | 4 / 4 | 2.3 s |
-| words | examples/proofs/words | 5 / 5 | 5 / 5 | 3.2 s |
-| bytes | examples/proofs/bytes | 4 / 4 | 4 / 4 | 6.0 s |
-| header | examples/proofs/header | 2 / 2 | 2 / 2 | 5.0 s |
-| wire16 | examples/proofs/wire16 | 5 / 5 | 5 / 5 | 9.2 s |
-| crc16 | examples/proofs/crc16 | 3 / 3 (byte fold) | 2 / 2 | 2.6 s |
-| adler32 | examples/proofs/adler32 | 5 / 5 (byte fold) | 3 / 3 | 4.0 s |
-| dns | examples/formats/dns | 13 / 14 | 2 / 3 | 58.8 s |
-| header (format) | examples/formats/header | 7 / 7 | 4 / 4 | 7.8 s |
-| udp | examples/formats/udp | 7 / 7 | 4 / 4 | 8.2 s |
-| **total** | 21 programs | **84 / 85** | **52 / 53** | |
+<!-- validation-coverage:begin (lean-go regenerate --coverage) -->
+<!-- validation-coverage:end -->
 
-In every run the IR exported in the validation workspace has the same
-`module`, `roots`, `types`, `functions` and `api` as the tracked IR, and the
-command's recomputed value matched the file the export wrote
-(`ir_file_matches`). The tracked files are no longer byte-identical to the
-Python runner's output only because the tracked artifacts are now produced by
-the Go pipeline, whose `inputs` inventory differs from `export_module.py`'s.
-No program needed more than 13.5 M heartbeats for one obligation (budget:
-200 M); the slowest single obligation is `DnsHeader.serialize` (≈40 s on the
-loaded machine).
+Under the earlier, unlimited runs (the Python runner) the totals were 84 / 85
+functions and 52 / 53 roots: `DnsHeader.serialize` then proved in about 40 s,
+using between 5 and 6 GB. Under the default 4096 MiB cap it is reported
+`failed: memory limit` as well (`--validate-memory-mb 6144` proves it); its
+root has no whole-program theorem either way, because `word1` fails.
 
 `checkedframe` has no IR of its own: it is the composition of `wire16` and
 `crc16`, both completely validated. The pilot `normalizer` fixture uses the
@@ -405,29 +390,33 @@ failure has been a counterexample (a false obligation from a wrong lowering).
    unfolded. Fixed: owners of reduced helpers are unfolded in every obligation.
 5. **Kernel memory exhaustion, open** (`DnsHeader.word1`, a 7-term straight-line
    sum of shifted bytes): elaboration of the proof finishes quickly within the
-   heartbeat budget, but the kernel check of the proof term grows past 12 GB and
-   the process is killed (exit 137); `be16w`, the same pattern with one term,
-   checks instantly, so it is some interaction of the six literal-shift steps
-   with kernel defeq checking that has not been isolated. Heartbeats do not
-   bound kernel memory. The runner therefore runs validation in its own `lean`
-   process after the export (the IR is never affected), reads the progress file
-   to see which obligation was in progress, reruns with it skipped
-   (`skip "F"`), and reports it `failed` with
-   `validation process exited (137) while proving this obligation (memory limit)`.
-   `DnsHeader.serialize` calls `word1`, so its root has no whole-program
-   theorem; `parse` and `validate` do.
+   heartbeat budget, but the kernel check of the proof term grows past 12 GB;
+   `be16w`, the same pattern with one term, checks instantly, so it is some
+   interaction of the six literal-shift steps with kernel defeq checking that
+   has not been isolated. `DnsHeader.serialize` needs 5–6 GB in the kernel.
+   Heartbeats do not bound kernel memory; Lean's `-M` limit does. The runner
+   starts the validation process with `-M <cap>` and `Elab.async` off, so the
+   kernel's `excessive memory consumption` error fails that obligation inside
+   the command, which reports it; the runner then reruns with it skipped
+   (`skip "F"`), because the process can stay near the cap and fail later
+   obligations spuriously, and reports it `failed` with reason class
+   `memory_limit`. A process that dies outright (Lean's uncaught memory
+   exception, the system's OOM killer, the process timeout) is handled the
+   same way through the progress file. Under the default cap both `word1` and
+   `serialize` are reported `failed: memory limit`; the root
+   `DnsHeader.serialize` has no whole-program theorem; `parse` and `validate`
+   do. No run reaches the machine's OOM killer.
 6. **Kernel cost of a default-transparency `rfl` fallback**: the tactic's last
    resort was `rfl`, which can prove an arithmetic goal by evaluation that the
    kernel then re-does on symbolic operands. It is now `with_reducible rfl`
    (no tracked obligation depended on the stronger form). Scalars are also no
    longer destructed into `BitVec` fields.
 
-Machine note: on the shared machine the container's memory cgroup also killed
-`lean` processes of these runs for reasons unrelated to the proofs (several
-agents compiling at once). The coverage script retries a program once after
-exit 137 and records `killed_for_memory` distinctly; the final table above was
-produced sequentially, one program at a time, with no such kill except
-`DnsHeader.word1`, which reproduces when run alone.
+Machine note: on the shared machine the container's memory cgroup can also
+kill `lean` processes for reasons unrelated to the proofs (several agents
+compiling at once). An exit 137 during an obligation is reported as
+`memory_limit`, with the exit status in the diagnostics; rerun such a program
+alone before reading it as a verdict.
 
 ## 10. What remains trusted
 
@@ -449,60 +438,39 @@ The LCNF → IR lowering and the compiler passes are no longer trusted for the
 functional behaviour of validated roots. They remain trusted for the
 *selection* of what is exported (which roots).
 
-## 11. Integration with the CLI (`internal/pipeline/export.go`)
+## 11. Integration with the CLI (`internal/pipeline/validate_*.go`)
 
-What to embed. `producer/LeanGo/Validate.lean`, `producer/LeanGo/Validate/*.lean`
-and `producer/LeanGo/Validate/Meta/*.lean` (14 files, listed in
-`validate_module.VALIDATION_INPUTS`). They depend only on Lean core and
-`LeanGo.Module.*` (the command imports `LeanGo.Module.Export`), never on user
-sources, so they belong in the **cached producer build**; key that cache entry
-by their digests in addition to the module producer's. Embed them under a
-*separate* glob/accessor (e.g. `ValidationFiles()`), not in `ModuleFiles()`,
-so that exports without validation keep hashing exactly the current inputs and
-the tracked manifests stay unchanged. What is compiled per extraction is only
-the validation harness: derived encodings, the program term and all theorems live in the
-harness environment and are not written to an olean.
+Implemented as follows.
 
-The invocation, mirroring `ExportModule` and `scripts/validate_module.py`:
-
-1. Stage sources and `ModuleFiles()` as today, plus `ValidationFiles()`.
-2. `lake build LeanGo.Module.Export LeanGo.Validate LeanGo.Validate.Command <source modules…>`
-   (the extra targets are cacheable).
-3. Run the export harness exactly as today. Then write a second harness
-   (`LeanGo/Module/Validate.lean`) and run it in its **own** `lake env lean`
-   process, so that validation (including the process being killed for
-   memory) can never affect the IR or the admission diagnostics:
-   ```
-   import LeanGo.Module.Export
-   import LeanGo.Validate
-   import LeanGo.Validate.Command
-   import <Module>
-   #lean_go_validate "ir.json" [<roots, sorted>] "<Module>" report "validation.json" heartbeats <H> timeout_ms <T>[ strict][ skip "F …"]
-   ```
-   The command recomputes the export value in this environment and compares
-   it with the `ir.json` the first process wrote. It appends progress lines
-   (`<ms> ms proving F`, `<ms> ms F: proved in … ms`, phase names) to
-   `validation.json.progress`. If the process dies without a report, the last
-   `proving F` line names the obligation; rerun with `skip "F"` (accumulating,
-   at most a few times) and mark F `failed` with the exit status, as
-   `validate_module.py` does. Allow for the extra time in the process timeout
-   (dns takes about a minute of proving).
-4. Complete the IR exactly as today; its `inputs` remain the export inputs.
-   Read `validation.json` (bounded size), check `module`/`roots`, add
-   `schema`, `lean_version`, `lean_commit`, `ir_sha256` (of the completed IR)
-   and `inputs` (sources plus export and validation files), and publish it next
-   to the IR. Fixed budget defaults: `heartbeats 200000`, `timeout_ms 120000`;
-   record them (they are in the report). Heartbeats make the verdict
-   deterministic; the wall-clock limit is a safety net, and a verdict reached
-   only because of it is visible as `wall-clock budget exhausted`.
-5. A failed or unattempted obligation is data. Only `strict` (for profiles that
-   require validation) turns it into an error; then the harness exits non-zero
-   *after* writing the report, so the report can still be shown.
-
-For the manifest, record per root the `programs[].status`, theorem names and
-`ir_sha256`/report digest; per function the status. Exit code 137 from `lean`
-is the container's memory limit, not a verdict (the coverage script retries once
-and reports `killed_for_memory`).
+* **Embedding and caching.** `producer/embed.go` embeds
+  `LeanGo/Validate.lean`, `LeanGo/Validate/*.lean` and
+  `LeanGo/Validate/Meta/*.lean` (14 files) as `ValidationFiles()`, separate from
+  `ModuleFiles()`. A validating run stages them, builds
+  `LeanGo.Module.Export LeanGo.Validate LeanGo.Validate.Command` and uses a
+  producer-cache entry keyed by the module producer *and* the validation files;
+  the key and the entry of a run without validation are unchanged. Per
+  extraction only the harness runs; derived encodings, the program term and all
+  theorems live in the harness environment and are never written to an olean.
+* **Separate process.** `ExportModule` runs the export harness exactly as
+  before and computes the complete IR. Then it writes
+  `LeanGo/Module/Validate.lean`
+  (`#lean_go_validate "ir.json" [<sorted roots>] "<Module>" report "validation.json" heartbeats H timeout_ms T [skip "F …"]`)
+  and runs it as `lean -M <MiB> -DElab.async=false`, directly, with Lake's
+  `LEAN_PATH` (so a timeout kills the process that does the work, on every
+  OS). The command's `strict` flag is not used: the runner decides `require`.
+* **Limits and reruns.** If the process dies, the last `proving F` line of
+  `validation.json.progress` names the obligation; a report in which the
+  command recorded a memory failure names it too. The runner reruns with the
+  accumulated `skip` list (at most four reruns) and marks each such F `failed`
+  with the limit's reason class. A process that ends without a report and
+  without an obligation in progress gives `status: process_failed`.
+* **Report.** Read with a 16 MiB bound, `module` and `roots` checked, split
+  into the deterministic report and the diagnostics (§7), with `ir_sha256` of
+  the complete IR and the `library` digests of the validation files and of the
+  runner (`tool/lean-go/validate`: the `validate_*.go` sources, which are
+  excluded from the pipeline digest because they cannot change the IR).
+  `report` mode never fails on an unproved obligation; `require` fails after
+  writing the report.
 
 ## 12. Limits and open items
 
