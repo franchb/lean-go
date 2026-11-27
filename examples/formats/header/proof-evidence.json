@@ -106,7 +106,7 @@
     }
   ],
   "contract_sha256": "9432581e947a54034710f578511fc226d38423fc3ff0b617ae942c4d5d4709be",
-  "generated_manifest_sha256": "7764ee41fd9ac56040e966dca76cbde296cbf5fc20380ef5e8f896fe10d5ab61",
+  "generated_manifest_sha256": "dae17f424ec5482bf957703c897f00e43ceb2e28c87c61580f5d4172a8d4c4fe",
   "generated_mode": "native",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",

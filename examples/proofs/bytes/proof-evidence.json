@@ -103,7 +103,7 @@
     }
   ],
   "contract_sha256": "bdc9469d3ad0fcd92b7dec001369d0ab7483c0e3b88113db60aab33414ff9d03",
-  "generated_manifest_sha256": "220ac5c22f872eeaa9fbb9d089fabc33843137ca45ea9666ba3055c17aa8e6c9",
+  "generated_manifest_sha256": "a08b5e807186695f71d90438c3bdf62d9d5cb8e83d8cfc1cbdbdddab8c2499e1",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "ByteCodec",

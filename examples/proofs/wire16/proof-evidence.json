@@ -119,7 +119,7 @@
     }
   ],
   "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
-  "generated_manifest_sha256": "afb9e7d72a986c923e17757060960b9487266068519c8ebf14f2138682f8da70",
+  "generated_manifest_sha256": "3aa78189066589ccd6bab35932a8ae4a4bb6ae4e6465177b0e75a2690a734bbb",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Wire16",

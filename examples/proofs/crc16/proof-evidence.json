@@ -23,7 +23,7 @@
     }
   ],
   "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
-  "generated_manifest_sha256": "d340b5819bb690ad4d6453afcad2e912a08224b974628637aa23b360096a896c",
+  "generated_manifest_sha256": "5e7714de16377acc08d4e5abc6297a68ad397f8b5e9db9959fc2ef92b82a946c",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Crc16",

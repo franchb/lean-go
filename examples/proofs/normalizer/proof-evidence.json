@@ -19,7 +19,7 @@
     }
   ],
   "contract_sha256": "00d682ae72b910a4fc9998a270d88b467cc8a680caaf07734f13422acce96ce2",
-  "generated_manifest_sha256": "77e280db18216c77bd90658eae8b7ffcaaa8613faba92ac98cc7b9396baae163",
+  "generated_manifest_sha256": "230462472d94ec2f8b329db0b58205cd56f5265ed5def4bff22132f67f1f5c14",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Normalizer",
