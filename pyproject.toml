@@ -115,7 +115,6 @@ sources = ["src"]
 "producer/LeanGo/Validate/Semantics.lean" = "lean_go/_payload/producer/LeanGo/Validate/Semantics.lean"
 "producer/LeanGo/Validate/Soundness.lean" = "lean_go/_payload/producer/LeanGo/Validate/Soundness.lean"
 "producer/LeanGo/Validate/Spec.lean" = "lean_go/_payload/producer/LeanGo/Validate/Spec.lean"
-"producer/LeanGo/Validate/Steps.lean" = "lean_go/_payload/producer/LeanGo/Validate/Steps.lean"
 "producer/LeanGo/Validate/Meta.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta.lean"
 "producer/LeanGo/Validate/Command.lean" = "lean_go/_payload/producer/LeanGo/Validate/Command.lean"
 "producer/LeanGo/Validate/Meta/Derive.lean" = "lean_go/_payload/producer/LeanGo/Validate/Meta/Derive.lean"
@@ -243,7 +242,6 @@ include = [
   "/producer/LeanGo/Validate/Semantics.lean",
   "/producer/LeanGo/Validate/Soundness.lean",
   "/producer/LeanGo/Validate/Spec.lean",
-  "/producer/LeanGo/Validate/Steps.lean",
   "/producer/LeanGo/Validate/Meta.lean",
   "/producer/LeanGo/Validate/Command.lean",
   "/producer/LeanGo/Validate/Meta/Derive.lean",

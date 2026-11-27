@@ -27,7 +27,6 @@ producer/LeanGo/Validate/Syntax.lean        deep embedding of the IR
 producer/LeanGo/Validate/Semantics.lean     evaluator, program semantics, `Code.calls`
 producer/LeanGo/Validate/Soundness.lean     Park induction (whole program and call-closed subsets)
 producer/LeanGo/Validate/Spec.lean          spec environments, obligations, `run_rel`, `run_rel_on`
-producer/LeanGo/Validate/Steps.lean         evaluation steps with explicit proofs (used by `validate_obl`)
 producer/LeanGo/Validate/Meta.lean          meta level: imports the three below
 producer/LeanGo/Validate/Meta/Derive.lean   `derive_ir_encoding`
 producer/LeanGo/Validate/Meta/Load.lean     JSON bridge (`elabProgramJson`, `validate_ir_program`)
@@ -202,17 +201,21 @@ round:
 * Scalars are no longer destructed into their `BitVec` field (they are
   structures, too); this made kernel checking of large arithmetic bodies
   expensive.
-* **Evaluation steps carry explicit proofs (`LeanGo.Validate.Steps`).** The
-  core lemmas `Option.bind_some`, `List.foldl_cons`, `ite_true` and
-  `ite_false` are proved by `rfl`, so `simp` applies them *definitionally*:
-  it rewrites the goal and records no proof, and the kernel has to recheck
-  the step as a definitional equality between the term before and the term
-  after. `Steps` restates the four lemmas with proofs that are not `rfl`, and
-  `validate_obl` uses those, so each step is an ordinary rewrite whose proof
-  the kernel checks by instantiation. The statements are the core ones and
-  the obligations are unchanged; only the shape of the proof term changes.
-  This is what made `DnsHeader.word1` and `DnsHeader.serialize` prove
-  (failure class 5).
+* **Evaluation steps carry explicit proofs.** By default `simp` applies a
+  lemma that is proved by `rfl` (`Option.bind_some`, `List.foldl_cons`,
+  `ite_true`, an unfolding equation, …) *definitionally*: it rewrites the goal
+  and records no proof, and the kernel has to recheck the step as a
+  definitional equality between the term before and the term after. That is
+  `Simp.Config.implicitDefEqProofs`, which is on by default ("`simp` does not
+  create proof terms when the input and output terms are definitionally
+  equal", `Init/MetaTypes.lean`). The evaluation pass of `validate_obl` runs
+  `simp -implicitDefEqProofs only […]`, so every rewrite by a lemma is an
+  ordinary rewrite whose proof the kernel checks by instantiation. The
+  obligations are unchanged; only the shape of the proof term changes. This
+  is what made `DnsHeader.word1` and `DnsHeader.serialize` prove (failure
+  class 5). What stays definitional is what `simp` reduces without a lemma
+  (beta, projections, matches on constructors) and the literal arithmetic of
+  the `Nat.reducePow` and `Nat.reduceMod` simprocs.
 
 ## 7. `#lean_go_validate`
 
@@ -394,7 +397,7 @@ current validation library.
 Every tracked function and root is proved under the default budget. The
 last two, `DnsHeader.word1` and `DnsHeader.serialize`, had exceeded the
 memory cap until the evaluation steps got explicit proofs (failure class 5);
-the whole DNS validation now takes about 13 s with a peak of about 1.7 GB,
+the whole DNS validation now takes about 12 s with a peak of about 1.7 GB,
 most of it the imported environment.
 
 `checkedframe` has no IR of its own: it is the composition of `wire16` and
@@ -459,14 +462,16 @@ failure has been a counterexample (a false obligation from a wrong lowering).
      literals and multiplies with the length of the body.
    * Replacing `Option.bind_some` by a copy with a non-`rfl` proof brought
      the synthetic `w_1` … `w_5` together to 0.11 s of kernel time,
-     `word1` to 38 ms and `serialize` to 67 ms (from 38.6 s); in the
-     command, the whole DNS program now validates in about 13 s with a peak
-     of about 1.7 GB, most of which is the imported environment.
-   `List.foldl_cons`, `ite_true` and `ite_false` are the other `rfl` lemmas
-   of the evaluation set whose two sides can share a head symbol, so `Steps`
-   restates them too. The rule the automation follows is now: a generic
-   evaluation step whose left- and right-hand sides can have the same head
-   must not be a definitional step.
+     `word1` to 38 ms and `serialize` to 67 ms (from 38.6 s).
+   `Option.bind_some` is not special: any `rfl` lemma whose two sides can
+   share a head symbol has the same cost, and the evaluation set has more of
+   them (`List.foldl_cons`, `ite_true`, `ite_false`, the unfolding equations
+   of the IR functions and of the source). The fix therefore does not single
+   lemmas out; it turns `implicitDefEqProofs` off for the evaluation pass
+   (§6), so no rewrite by a lemma is a definitional step. In the command,
+   `word1` now takes about 0.3 s and `serialize` about 0.5 s including
+   elaboration, and the whole DNS program validates in about 12 s with a peak
+   of about 1.7 GB, most of which is the imported environment.
 
    The memory cap stays: heartbeats do not bound kernel memory; Lean's `-M`
    limit does. The runner starts the validation process with `-M <cap>` and
@@ -501,7 +506,7 @@ alone before reading it as a verdict.
    `native_decide`/`bv_decide` (`Lean.ofReduceBool`, `Lean.trustCompiler`) or
    a declared axiom. It covers the library, the command's meta code, the
    examples and — through `Examples/Command.lean`, which runs the command with
-   `strict` inside the build — everything the command adds (2758
+   `strict` inside the build — everything the command adds (2754
    declarations). In an extraction, the command applies the same check to
    every theorem it adds before reporting it as proved.
 2. The semantics (`Value`, `Prim.eval`, `Code.eval`, `Program.run`,
@@ -519,7 +524,7 @@ Implemented as follows.
 
 * **Embedding and caching.** `producer/embed.go` embeds
   `LeanGo/Validate.lean`, `LeanGo/Validate/*.lean` and
-  `LeanGo/Validate/Meta/*.lean` (15 files) as `ValidationFiles()`, separate from
+  `LeanGo/Validate/Meta/*.lean` (14 files) as `ValidationFiles()`, separate from
   `ModuleFiles()`. A validating run stages them, builds
   `LeanGo.Module.Export LeanGo.Validate LeanGo.Validate.Command` and uses a
   producer-cache entry keyed by the module producer *and* the validation files;
@@ -558,8 +563,9 @@ Implemented as follows.
 * Symbolic evaluation is `simp`-based; cost grows with the number of case
   splits and with arithmetic expression size, and the kernel re-checks every
   step. A definitional step whose two sides share a head symbol can make that
-  re-check reduce arithmetic (failure class 5); the generic ones are avoided,
-  but a new `rfl` lemma of that shape in `ir_simp` would bring the cost back. Source functions using well-founded
+  re-check reduce arithmetic (failure class 5); the evaluation pass records a
+  proof for every rewrite by a lemma, but a tactic step added outside that
+  pass would have to do the same. Source functions using well-founded
   recursion would need `unfold`-aware handling; none of the tracked ones do.
 * Local helpers: the source lambda is identified through the producer's
   witness and capture names; a capture whose name is ambiguous among the

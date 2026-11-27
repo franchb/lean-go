@@ -18,9 +18,9 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   correctness). Every tracked program has a checked-in report; coverage is 88
   of 88 functions and 54 of 54 roots. See
   [translation validation](docs/research/translation-validation.md).
-  The proof automation now records its generic evaluation steps with
-  explicit proofs, so the kernel no longer reduces fixed-width arithmetic to
-  recheck them; this took the DNS header's `word1` and `serialize`
+  The proof automation now records every rewrite of its evaluation pass with
+  an explicit proof, so the kernel no longer has to recheck those steps by
+  reducing fixed-width arithmetic; this took the DNS header's `word1` and `serialize`
   obligations from beyond the 4096 MiB cap to well under a second each.
 - Proof evidence can be bound to native packages through their manifests
   (`"generated_mode": "native"`).
