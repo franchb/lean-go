@@ -1,138 +1,43 @@
-# Try the experimental preview
+# Getting started
 
-The generated packages run with Go 1.27.4 and `CGO_ENABLED=0`. Regenerating
-them uses Lean and Python 3.15 via uv. For development, install
-the [checkout CLI](cli.md#development-checkout) and use Lean 4.36.0. The
-[release walkthrough](release-candidate.md) covers regeneration and proof checking.
+This walkthrough extracts a small Lean module into a Go package, calls it from
+Go, and then adds translation validation. It needs Go 1.27.4 and Lean 4.36.0
+at commit `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9` with `lean` and `lake`
+on `PATH`. Python is not needed.
 
-## Run a generated package
+## Install the command
 
-To consume the alpha.15 root Go module, run
-
-```sh
-mkdir lean-go-example
-cd lean-go-example
-go mod init example.com/lean-go-example
-go get github.com/franchb/lean-go@v0.1.0-alpha.15
-```
-
-Save this as `main.go`:
-
-```go
-package main
-
-import (
-    "fmt"
-    wide "github.com/franchb/lean-go/generated/wide"
-)
-
-func main() {
-    // generated/wide is a metered package: every call takes Limits.
-    result, err := wide.RunTyped(^uint64(0), 1, wide.DefaultLimits())
-    if err != nil {
-        panic(err)
-    }
-    sum, valid := result.Sum()
-    above53, exact := result.Above53()
-    fmt.Println(sum, valid, above53, exact)
-}
-```
-
-Run it with cgo disabled:
+From a lean-go checkout:
 
 ```sh
-CGO_ENABLED=0 GOTOOLCHAIN=local go run .
+go install ./cmd/lean-go
+lean-go doctor
 ```
 
-In PowerShell, set `$env:CGO_ENABLED = "0"` and
-`$env:GOTOOLCHAIN = "local"`, then run `go run .`.
-The output is `0 true 9007199254740993 true`: addition wraps at 2^64, and the
-larger literal remains exact. The source is
-[`Wide.lean`](../examples/modules/Wide.lean). Other tracked packages demonstrate
-recursive trees, record updates, joins and compiler-generated local helpers.
+`doctor` reports the Go release the binary was built with (`WARN` if it is
+not Go 1.27.4, which only byte-exact reproduction of tracked artifacts
+needs), then Lean, the Lake environment and the producer cache, and exits
+nonzero if one of those fails. `go install` puts the binary in `$(go env GOPATH)/bin` unless
+`GOBIN` is set; that directory must be on `PATH`.
 
-For a two-byte network length, the [Wire16 example](../examples/proofs/wire16)
-exposes a Go `uint16` and packs it in big-endian order. Run it from the repository
-root with `(cd examples/proofs/wire16 && CGO_ENABLED=0 go run .)`.
+## Run a tracked example with Go alone
 
-## Run the byte codec
-
-From this checkout's root, run the [standalone byte module](../examples/proofs/bytes):
+Every example under `examples/proofs/` is a self-contained Go module with its
+generated package checked in:
 
 ```sh
-(
-  cd examples/proofs/bytes
-  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
-  CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
-)
+cd examples/proofs/clamp
+go test -count=1 ./...
+go run .
 ```
 
-```text
-LE(0x12345678) = [78 56 34 12] -> 0x12345678
-BE(0x12345678) = [12 34 56 78] -> 0x12345678
-```
+The program prints `clamp(7, 42) = 7`, `clamp(100, 42) = 42` and
+`clamp(18446744073709551615, 42) = 42`. Its `README.md` explains the Lean
+source, the three theorems and both generated packages.
 
-Copy that directory to use its Go application offline. Its package is
-metered (generated with `--mode metered`). The generated API has
-`RunEncodeLE`/`RunEncodeBE` (`uint32` to `ByteQuad`) and
-`RunDecodeLE`/`RunDecodeBE` (`ByteQuad` to `uint32`). `NewByteQuad` constructs an
-input record. In alpha.9, `NewByteQuadFromBytes(wire, limits)`
-accepts a Go `[4]byte` and `quad.Bytes()` returns `([4]byte, error)`.
-The field getters `B0`–`B3` return `(uint8, bool)`. Constructors and roots take
-`Limits` last and return `(result, error)`. Check each error and validity flag.
-The application reads the concrete four-field Lean record into a Go `[4]byte`.
+## Extract your own module
 
-Twelve source claims prove both inverse directions for both byte orders and all
-eight byte positions. Go tests compare both APIs against `encoding/binary` over
-652 cases and check errors, ownership and budgets. Read the
-[byte walkthrough](articles/proved-byte-codec.md) to inspect the application and
-rebuild its proof evidence with this checkout's CLI. The published alpha.7 tag
-has no byte codec or UInt8 engine.
-
-## Pack words
-
-The candidate retains the [copyable Words module](../examples/proofs/words)
-introduced in alpha.7. It packs
-two `UInt32` values into a `UInt64`, unpacks both halves, widens without loss and narrows modulo 2^32. Seven universal Lean source
-proofs accompany independent Go checks over 699 boundary and seeded triples.
-
-From this checkout, run the generated example offline:
-
-```sh
-cd examples/proofs/words
-CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go test -count=1 ./...
-CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off GOSUMDB=off go run .
-```
-
-The copyable module needs only Go. To regenerate its v11 artifacts or recheck
-proof evidence, install the [CLI](cli.md#development-checkout) from this same
-checkout and follow the example's verifier instructions. For alpha.15,
-pair its example and CLI from that tag. For historical alpha.7 reproduction, use
-its tagged example and
-[guide](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7/docs/cli.md).
-The extraction and Go runtime remain tested and trusted; the proofs establish
-the selected Lean statements.
-Alpha.10 introduced `UInt16` byte casts, OR and shifts. Alpha.11 adds `UInt16.toUInt32` for exact widening.
-Alpha.12 extracts ordinary UInt16 XOR (`^^^`), used in the
-[streaming checksum example](../examples/proofs/crc16). Alpha.13 combines that checksum with Wire16 in a [proved frame reader and encoder](../examples/proofs/checkedframe). Alpha.14 uses an extracted byte fold in that reader and checks both packages with one [composition contract](proof-contracts.md#bind-one-proof-to-multiple-generated-packages). Runtime
-division/remainder, direct UInt8/UInt64 casts and broad generic
-collections remain deferred.
-
-## Extract your own Lean module
-
-Use Go 1.27.4, Lean 4.36.0 and uv for this development checkout.
-The exact Lean commit is `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9`.
-Use Python 3.15 through uv; the repository declares that requirement and has a
-locked dependency set with no third-party runtime Python dependencies. From the
-repository root:
-
-```sh
-uv python install 3.15
-uv sync --locked --reinstall-package lean-go-tools
-uv run --locked lean-go doctor
-```
-
-Create `../counter-example/lean/Counter.lean`:
+In a new directory, create `counter-example/lean/Counter.lean`:
 
 ```lean
 namespace Example
@@ -146,66 +51,117 @@ def increment (counter : Counter) (amount : UInt64) : Counter :=
 end Example
 ```
 
-From the lean-go checkout, build the Go command and generate a package in the
-sibling project:
+Then generate a package from `counter-example`:
 
 ```sh
-go build -o ~/bin/lean-go ./cmd/lean-go
-cd ../counter-example
+cd counter-example
 lean-go generate --source-dir lean --module Counter --root Example.increment \
   --out counter --ir-output counter.ir.json
 ```
 
-The generated directory is standalone [native](native-mode.md) Go source:
-`Counter` is a Go struct and `Example.increment` a Go function. In
-`../counter-example`, run `go mod init example.com/counter` and save this
-`main.go`:
+`--source-dir` holds only your `.lean` files; the run happens in a fresh
+private Lake workspace. `counter/` now contains `manifest.json`, `native.go`,
+`types.go` and `functions.go`. The structure becomes a Go struct and the
+function a Go function:
+
+```go
+// Increment is the Lean function Example.increment.
+func Increment(v1 Counter, v3 uint64) Counter {
+	return Counter{Value: v1.Value + v3}
+}
+```
+
+Parameters are numbered because the IR does not keep source parameter names.
+Run `go mod init example.com/counter` and save this `main.go`:
 
 ```go
 package main
 
 import (
-    "fmt"
-    counter "example.com/counter/counter"
+	"fmt"
+
+	counter "example.com/counter/counter"
 )
 
 func main() {
-    output := counter.Increment(counter.Counter{Value: 41}, 1)
-    fmt.Println(output.Value) // 42
+	output := counter.Increment(counter.Counter{Value: 41}, 1)
+	fmt.Println(output.Value) // 42
 }
 ```
 
-Run with the same cgo-disabled Go command. Every Go value of a generated type
-is a valid Lean value, and functions that do not recurse return no error.
-Native code has no resource budgets: a recursive function only reports
-`ErrDepth` past a fixed depth.
+`go run .` prints `42`. The generated Go package is named `extracted`, hence
+the import alias. Every Go value of a generated type, including the zero value,
+is a valid Lean value, and functions that do not recurse return no error. See
+[native mode](native-mode.md) for the full mapping.
 
-For untrusted recursive input, add `--mode metered` to `generate`. The
-metered package runs the same IR on an explicit-stack interpreter with seven
-resource budgets per call:
+If a source form is outside the supported subset, `generate` fails with a
+diagnostic naming the stage, the reason and the source location, and leaves
+existing output untouched; see [diagnostics](diagnostics.md) and the support
+table in the [README](../README.md#what-it-supports-today). Running `generate`
+again with the same inputs is accepted; differing existing output is refused
+unless you add `--replace`.
+
+## Metered output
+
+For a package that must bound its work on untrusted recursive input, add
+`--mode metered`. The same IR then runs on an explicit-stack interpreter
+with seven resource budgets per call, and every call takes `Limits`:
+
+```sh
+lean-go generate --source-dir lean --module Counter --root Example.increment \
+  --out metered --ir-output metered.ir.json --mode metered
+```
 
 ```go
 limits := counter.DefaultLimits()
 input, err := counter.NewCounter(41, limits)
-if err != nil { panic(err) }
+if err != nil {
+	panic(err)
+}
 output, err := counter.RunTyped(input, 1, limits)
-if err != nil { panic(err) }
+if err != nil {
+	panic(err)
+}
 value, valid := output.Value()
 fmt.Println(value, valid) // 42 true
 ```
 
-Metered record wrappers are immutable; their zero values are invalid.
-Constructors and calls validate limits. Errors distinguish malformed inputs,
-invalid limit settings and exhausted resource budgets. The tracked packages
-under `generated/` and `examples/proofs/` are metered; the
-[clamp example](../examples/proofs/clamp) also carries a native package with
-its own proof evidence, and the [wire-format examples](wire-formats.md) are
-native. The legacy wrapper `uv run --locked python scripts/generate.py` takes
-the same arguments and keeps metered as its default (`--mode native` for
-native output).
+Here `counter` is imported from `example.com/counter/metered`. Metered record
+wrappers are immutable and their zero values are invalid; errors distinguish
+malformed inputs, invalid limits and exhausted budgets.
 
-The producer accepts the documented pure, monomorphic subset and rejects
-unsupported forms. Its input Lean source must be trusted: elaboration can execute
-macros and initializers. The extraction pipeline is tested but not formally
-verified, and it does not establish an application correctness theorem. See the
-[README](../README.md) for supported forms and the research reports for evidence.
+## Validate the translation
+
+Add `--validate report` to prove, inside Lean, that the IR program agrees
+with the Lean function:
+
+```sh
+lean-go generate --source-dir lean --module Counter --root Example.increment \
+  --out counter --ir-output counter.ir.json --validate report
+```
+
+It prints `validation: 1/1 functions proved, 1/1 roots established` and
+writes `counter.validation.json` next to the IR. The proved statement is
+partial correctness: whenever the IR program returns a value, it is the
+encoding of `Example.increment`'s result. `--validate require` fails, and
+publishes nothing, unless everything is proved. The Go printer and the Go
+compiler remain trusted; see the [CLI guide](cli.md#translation-validation).
+
+## Prove properties and bind them to the package
+
+Theorems about your Lean functions are checked with a
+[proof contract](proof-contracts.md): a JSON file that maps each theorem to a
+separately written expected statement. From `examples/proofs/clamp`:
+
+```sh
+lean-go check-proofs --contract proof-contract.json \
+  --manifest clampnative/manifest.json --evidence native-proof-evidence.json
+```
+
+This rebuilds the proofs, compares the theorem statements with the expected
+ones, and checks that the evidence still matches the generated files. Use
+`--output FILE` instead of `--evidence` to write fresh evidence for your own
+project.
+
+The proofs are about the Lean source. Lean source is elaborated with macros
+and initializers enabled, so only extract code you trust.

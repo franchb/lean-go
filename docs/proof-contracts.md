@@ -297,7 +297,7 @@ CGO_ENABLED=0 go test -count=1 ./...
 The proof-contract suite checks malformed contracts, paths, snapshots, manifest
 and output protection, rejected theorem/expectation forms, deterministic evidence
 and an external project with a Go-only consumer. The quota suite retains its
-library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16 and crc16 regenerate artifacts with an installed CLI,
+library-specific source and theorem regression checks. The verifiers for clamp, flags, words, bytes, header, wire16, crc16, adler32 and normalizer regenerate artifacts with an installed CLI,
 check exact evidence and deploy only Go sources. The installed-wheel smoke runs
-all seven through both the direct and sdist-rebuilt wheels, freshly checking 54
+all nine through both the direct and sdist-rebuilt wheels, freshly checking 58
 source claims per wheel; see the [CLI guide](cli.md#verify-an-installation-build).

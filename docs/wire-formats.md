@@ -86,7 +86,8 @@ offending entry, for example
 
 ## Generate
 
-From a checkout with Go 1.27.4, the pinned Lean 4.36.0 and uv:
+From a checkout with Go 1.27.4 and the pinned Lean 4.36.0 (`lean-go format`
+is the same command):
 
 ```sh
 go run ./cmd/lean-go-format check -spec spec.json
@@ -100,8 +101,8 @@ extracted Go API has the names `lean.go` calls, and copies every file into
 lean-go generated), so files of an older metered extraction do not survive.
 Other files of `DIR` it does not produce, such as a README or hand-written
 tests, are left alone. `-sources-only` writes the generated sources without
-running Lean. `-repo` points at the lean-go checkout (default: the current
-directory). One format takes about 20 to 30 seconds.
+running Lean. `-repo` is accepted and ignored: the producer is embedded in
+the command. One format takes about 20 to 30 seconds.
 
 | Output | Produced by |
 | --- | --- |
