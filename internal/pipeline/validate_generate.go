@@ -75,19 +75,57 @@ func checkReportPaths(validation *ValidationOptions, sourceDir string, dirs, fil
 
 // publishValidation writes the report and, when requested, the diagnostics.
 func publishValidation(validation *ValidationOptions, result *ValidationResult) error {
-	if validation == nil || result == nil {
-		return nil
+	commit, discard, err := stageValidation(validation, result)
+	defer discard()
+	if err != nil {
+		return err
 	}
-	result.ReportPath, result.DiagnosticsPath = validation.Report, validation.Diagnostics
-	if err := PublishFile(validation.Report, result.ReportJSON, true); err != nil {
-		return staged("emission", "output_failed", err)
-	}
-	if validation.Diagnostics != "" {
-		if err := PublishFile(validation.Diagnostics, result.DiagnosticsJSON, true); err != nil {
-			return staged("emission", "output_failed", err)
+	return commit()
+}
+
+// stageValidation prepares the report and the optional diagnostics file the
+// way stageFile does and returns one commit and one discard for both.
+func stageValidation(validation *ValidationOptions, result *ValidationResult) (commit func() error, discard func(), err error) {
+	var commits []func() error
+	var discards []func()
+	discard = func() {
+		for _, each := range discards {
+			each()
 		}
 	}
-	return nil
+	commit = func() error {
+		for _, each := range commits {
+			if err := each(); err != nil {
+				return staged("emission", "output_failed", err)
+			}
+		}
+		return nil
+	}
+	if validation == nil || result == nil {
+		return commit, discard, nil
+	}
+	result.ReportPath, result.DiagnosticsPath = validation.Report, validation.Diagnostics
+	outputs := []struct {
+		path string
+		data []byte
+	}{{validation.Report, result.ReportJSON}}
+	if validation.Diagnostics != "" {
+		outputs = append(outputs, struct {
+			path string
+			data []byte
+		}{validation.Diagnostics, result.DiagnosticsJSON})
+	}
+	for _, output := range outputs {
+		one, drop, err := stageFile(output.path, output.data, true)
+		discards = append(discards, drop)
+		if err != nil {
+			return commit, discard, staged("emission", "output_failed", err)
+		}
+		if one != nil {
+			commits = append(commits, one)
+		}
+	}
+	return commit, discard, nil
 }
 
 // requireValidation fails a "require" run with an incomplete report, after

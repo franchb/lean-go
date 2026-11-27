@@ -165,6 +165,121 @@ func TestCacheStoreVerifyAndTamper(t *testing.T) {
 	}
 }
 
+// An entry that does not verify used to stay in place: lookup treated it as a
+// miss, store could not rename onto it and reported success, and every later
+// run rebuilt the producer. store now replaces it.
+func TestCacheStoreRepairsAnEntryThatDoesNotVerify(t *testing.T) {
+	files := map[string][]byte{"lib/lean/LeanGo/Module/Export.olean": []byte("olean"), "ir/LeanGo/Module/Export.c": []byte("c")}
+	breakages := map[string]func(entry string) error{
+		"missing manifest": func(entry string) error { return os.Remove(filepath.Join(entry, manifestName)) },
+		"truncated manifest": func(entry string) error {
+			return os.WriteFile(filepath.Join(entry, manifestName), []byte("not a manifest\n"), 0o600)
+		},
+		"modified file": func(entry string) error {
+			return os.WriteFile(filepath.Join(entry, "build", "ir", "LeanGo", "Module", "Export.c"), []byte("tampered"), 0o600)
+		},
+		"missing file": func(entry string) error {
+			return os.Remove(filepath.Join(entry, "build", "ir", "LeanGo", "Module", "Export.c"))
+		},
+		"empty entry": func(entry string) error {
+			if err := os.RemoveAll(entry); err != nil {
+				return err
+			}
+			return os.Mkdir(entry, 0o700)
+		},
+	}
+	for name, breakEntry := range breakages {
+		t.Run(name, func(t *testing.T) {
+			cache := &Cache{Dir: filepath.Join(t.TempDir(), "cache")}
+			if err := cache.store("key", files); err != nil {
+				t.Fatal(err)
+			}
+			if err := breakEntry(filepath.Join(cache.Dir, "key")); err != nil {
+				t.Fatal(err)
+			}
+			if broken, err := cache.lookup("key"); broken != nil || err != nil {
+				t.Fatalf("the broken entry was not a plain miss: %v %v", broken, err)
+			}
+			if err := cache.store("key", files); err != nil {
+				t.Fatal(err)
+			}
+			got, err := cache.lookup("key")
+			if err != nil || len(got) != 2 || string(got["ir/LeanGo/Module/Export.c"]) != "c" {
+				t.Fatalf("the entry was not repaired: %v %v", got, err)
+			}
+			entries, err := os.ReadDir(cache.Dir)
+			if err != nil || len(entries) != 1 || entries[0].Name() != "key" {
+				t.Fatalf("repair left files behind: %v %v", entries, err)
+			}
+		})
+	}
+	// A valid entry is left alone: a concurrent identical store wins.
+	cache := &Cache{Dir: filepath.Join(t.TempDir(), "cache")}
+	if err := cache.store("key", files); err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(cache.Dir, "key", manifestName)
+	before, err := os.Stat(marker)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cache.store("key", files); err != nil {
+		t.Fatal(err)
+	}
+	if after, err := os.Stat(marker); err != nil || !os.SameFile(before, after) {
+		t.Fatalf("a valid entry was replaced: %v", err)
+	}
+}
+
+// A published package is an ordinary directory, not the private one the
+// staging step creates.
+func TestPublishedPackageHasAnOrdinaryDirectoryMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no POSIX permission bits")
+	}
+	dir := t.TempDir()
+	plain := filepath.Join(dir, "plain")
+	if err := os.Mkdir(plain, 0o777); err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.Stat(plain)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkg := filepath.Join(dir, "pkg")
+	if err := PublishPackage(pkg, map[string][]byte{"a.go": []byte("package a\n")}, false); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.Stat(pkg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Mode().Perm() != want.Mode().Perm() || got.Mode().Perm()&0o700 != 0o700 {
+		t.Fatalf("published package mode %v, an ordinary directory here has %v", got.Mode().Perm(), want.Mode().Perm())
+	}
+	entries, err := os.ReadDir(pkg)
+	if err != nil || len(entries) != 1 || entries[0].Name() != "a.go" {
+		t.Fatalf("published package contents %v %v", entries, err)
+	}
+}
+
+// A lock left by an interrupted run names itself and says what to do.
+func TestStalePublicationLockIsExplained(t *testing.T) {
+	dir := t.TempDir()
+	lock := filepath.Join(dir, ".pkg.lean-go.lock")
+	if err := os.Mkdir(lock, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	err := PublishPackage(filepath.Join(dir, "pkg"), map[string][]byte{"a.go": []byte("package a\n")}, false)
+	if err == nil || !strings.Contains(err.Error(), "acquire publication lock") || !strings.Contains(err.Error(), lock) ||
+		!strings.Contains(err.Error(), "remove it if no run is active") {
+		t.Fatalf("stale lock error: %v", err)
+	}
+	if exists(filepath.Join(dir, "pkg")) || !exists(lock) {
+		t.Fatal("a held lock was ignored or removed")
+	}
+}
+
 func TestInventoryHasNoMachinePaths(t *testing.T) {
 	inventory := ProducerInventory()
 	if _, ok := inventory[ToolInput]; !ok {

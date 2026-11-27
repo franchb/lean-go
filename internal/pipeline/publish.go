@@ -42,6 +42,9 @@ func PublishPackage(dir string, files map[string][]byte, replace bool) error {
 	}
 	lock := filepath.Join(parent, "."+base+".lean-go.lock")
 	if err = os.Mkdir(lock, 0o700); err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			return fmt.Errorf("acquire publication lock: %s exists: another lean-go run is publishing here, or an interrupted run left it behind (remove it if no run is active)", lock)
+		}
 		return fmt.Errorf("acquire publication lock: %w", err)
 	}
 	defer os.Remove(lock)
@@ -57,6 +60,15 @@ func PublishPackage(dir string, files map[string][]byte, replace bool) error {
 		return err
 	}
 	defer os.RemoveAll(stage)
+	// MkdirTemp makes a private directory; the published package gets the
+	// mode an ordinary mkdir gives under the process umask.
+	mode, err := ordinaryDirectoryMode(stage)
+	if err != nil {
+		return err
+	}
+	if err = os.Chmod(stage, mode); err != nil {
+		return err
+	}
 	names := make([]string, 0, len(files))
 	for name := range files {
 		names = append(names, name)
@@ -143,6 +155,24 @@ func replaceable(dir string, files map[string][]byte) error {
 	return nil
 }
 
+// ordinaryDirectoryMode reports the permission bits of a directory created
+// inside dir with the default request, that is, 0777 less the process umask.
+// Go has no portable way to read the umask, so it is observed.
+func ordinaryDirectoryMode(dir string) (fs.FileMode, error) {
+	probe := filepath.Join(dir, ".mode")
+	if err := os.Mkdir(probe, 0o777); err != nil {
+		return 0, err
+	}
+	info, err := os.Stat(probe)
+	if removeErr := os.Remove(probe); err == nil {
+		err = removeErr
+	}
+	if err != nil {
+		return 0, err
+	}
+	return info.Mode().Perm(), nil
+}
+
 func plainDirectory(path string) error {
 	absolute, err := filepath.Abs(path)
 	if err != nil {
@@ -208,43 +238,64 @@ func matches(dir string, files map[string][]byte) (bool, error) {
 // IR publication creates missing parents; evidence publication requires a
 // regular-file destination in an existing directory.
 func PublishFile(path string, data []byte, ir bool) error {
+	commit, discard, err := stageFile(path, data, ir)
+	defer discard()
+	if err != nil || commit == nil {
+		return err
+	}
+	return commit()
+}
+
+// stageFile prepares the publication of one file and returns commit, which
+// puts the prepared bytes in place with a single rename, and discard, which
+// removes whatever commit did not use and is safe to call in every case.
+// Everything that can reasonably fail happens here: creating parents,
+// checking the destination, writing and syncing the bytes. A caller that
+// publishes several outputs stages all of them before it changes any, so
+// that a destination that cannot be written costs nothing. A nil commit
+// without an error means identical bytes already exist.
+func stageFile(path string, data []byte, ir bool) (commit func() error, discard func(), err error) {
+	discard = func() {}
 	if ir {
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			return err
+			return nil, discard, err
 		}
 		if isSymlink(path) {
-			return exportError("IR output must not be a symlink")
+			return nil, discard, exportError("IR output must not be a symlink")
+		}
+		if exists(path) && !isFile(path) {
+			return nil, discard, exportError("output must be a regular file")
 		}
 	} else {
 		if isSymlink(path) || (exists(path) && !isFile(path)) {
-			return exportError("output must be a regular file, not a symlink")
+			return nil, discard, exportError("output must be a regular file, not a symlink")
 		}
 		if !isDir(filepath.Dir(path)) {
-			return exportError("output parent does not exist")
+			return nil, discard, exportError("output parent does not exist")
 		}
 	}
 	if existing, err := os.ReadFile(path); err == nil && bytes.Equal(existing, data) {
-		return nil
+		return nil, discard, nil
 	}
 	temporary, err := os.CreateTemp(filepath.Dir(path), ".lean-go-publish-")
 	if err != nil {
-		return err
+		return nil, discard, err
 	}
 	name := temporary.Name()
-	defer os.Remove(name)
+	discard = func() { os.Remove(name) }
 	if _, err := temporary.Write(data); err != nil {
 		temporary.Close()
-		return err
+		return nil, discard, err
 	}
 	if err := temporary.Sync(); err != nil {
 		temporary.Close()
-		return err
+		return nil, discard, err
 	}
 	if err := temporary.Close(); err != nil {
-		return err
+		return nil, discard, err
 	}
 	if err := os.Chmod(name, 0o644); err != nil {
-		return err
+		return nil, discard, err
 	}
-	return os.Rename(name, path)
+	return func() error { return os.Rename(name, path) }, discard, nil
 }

@@ -36,9 +36,10 @@ exact pinned version and commit, and diagnostics follow
 [diagnostics.md](diagnostics.md). Relative paths belong to the working
 directory. Existing differing package output is preserved and rejected unless
 `--replace` is given: then the existing directory is replaced only after
-generation fully succeeded, and only when it is recognizably a package that
-lean-go generated (a lean-go manifest and no files other than generated
-ones). The IR file is rewritten atomically. Generated Go is formatted by the
+generation fully succeeded and the IR file and validation report have been
+written next to their destinations, and only when it is recognizably a
+package that lean-go generated (a lean-go manifest and no files other than
+generated ones). The IR file is rewritten atomically. Generated Go is formatted by the
 `go/format` package compiled into the binary, so byte-exact reproduction of
 tracked artifacts requires a binary built with Go 1.27.4. A binary built by
 another Go release still generates, printing a one-line warning on stderr that

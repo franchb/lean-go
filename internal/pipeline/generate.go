@@ -164,7 +164,9 @@ func validateOutput(output, sourceDir string, allowMissingParent bool) error {
 }
 
 // Generate extracts Lean sources into a Go package and IR file. Nothing is
-// published until the producer, the freshness checks and the emitter succeed.
+// published until the producer, the freshness checks and the emitter succeed
+// and every file output has been written next to its destination; publication
+// itself is then the package swap followed by one rename per file.
 func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if opts.SourceDir == "" || opts.Module == "" || len(opts.Roots) == 0 {
 		return nil, exportError("--source-dir, --module and --root must be supplied together")
@@ -254,13 +256,28 @@ func Generate(opts GenerateOptions) (*GenerateResult, error) {
 	if err != nil {
 		return nil, staged("emission", "emission_failed", fmt.Errorf("lean-go: %w", err))
 	}
+	// Stage the file outputs before the package is touched: with --replace
+	// the previous package is gone once PublishPackage returns, so an IR or
+	// report destination that cannot be written has to be found out first.
+	commitIR, discardIR, err := stageFile(irOutput, exported.IR, true)
+	defer discardIR()
+	if err != nil {
+		return nil, staged("emission", "emission_failed", err)
+	}
+	commitValidation, discardValidation, err := stageValidation(validation, exported.Validation)
+	defer discardValidation()
+	if err != nil {
+		return nil, err
+	}
 	if err := PublishPackage(output, files, opts.Replace); err != nil {
 		return nil, staged("emission", "emission_failed", fmt.Errorf("lean-go: %w", err))
 	}
-	if err := PublishFile(irOutput, exported.IR, true); err != nil {
-		return nil, staged("emission", "emission_failed", err)
+	if commitIR != nil {
+		if err := commitIR(); err != nil {
+			return nil, staged("emission", "emission_failed", err)
+		}
 	}
-	if err := publishValidation(validation, exported.Validation); err != nil {
+	if err := commitValidation(); err != nil {
 		return nil, err
 	}
 	return &GenerateResult{Out: output, IROutput: irOutput, IR: exported.IR, Files: files, Cache: exported.Cache, Validation: exported.Validation, Warning: warning}, nil

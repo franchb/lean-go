@@ -168,7 +168,8 @@ func (c *Cache) lookup(key string) (map[string][]byte, error) {
 	return files, nil
 }
 
-// store publishes a complete entry atomically; a concurrent identical entry wins.
+// store publishes a complete entry atomically; a concurrent identical entry
+// wins, and an existing entry that does not verify is replaced.
 func (c *Cache) store(key string, files map[string][]byte) error {
 	if err := secureDirectory(c.Dir); err != nil {
 		return err
@@ -199,10 +200,33 @@ func (c *Cache) store(key string, files map[string][]byte) error {
 	}
 	entry := filepath.Join(c.Dir, key)
 	if err := os.Rename(stage, entry); err != nil {
-		if exists(entry) {
+		if !exists(entry) {
+			return err
+		}
+		// Something is there already. A concurrent run that stored the same
+		// entry wins. An entry that does not verify (corrupt or half-written)
+		// would stay a cache miss for ever, so it is moved aside and replaced.
+		valid, lookupErr := c.lookup(key)
+		if lookupErr != nil {
+			return lookupErr
+		}
+		if valid != nil {
 			return nil
 		}
-		return err
+		aside, err := os.MkdirTemp(c.Dir, ".broken-")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(aside)
+		if err := os.Rename(entry, filepath.Join(aside, "entry")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		if err := os.Rename(stage, entry); err != nil {
+			if valid, lookupErr := c.lookup(key); lookupErr == nil && valid != nil {
+				return nil // a concurrent run repaired it first
+			}
+			return err
+		}
 	}
 	return nil
 }
