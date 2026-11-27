@@ -14,7 +14,6 @@ env:
   CGO_ENABLED: '0'
   GOTOOLCHAIN: local
   GOWORK: 'off'
-  PYTHONDONTWRITEBYTECODE: '1'
 
 defaults:
   run:
@@ -37,11 +36,6 @@ jobs:
         with:
           go-version: '1.27.4'
           cache: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: '0.13.5'
-          python-version: '3.15.1'
-          enable-cache: false
       - name: Install pinned Lean release (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -67,41 +61,20 @@ jobs:
             "$archive" | sha256sum --check --strict
           unzip -q "$archive" -d "$RUNNER_TEMP"
           printf '%s\n' "$RUNNER_TEMP/lean-4.36.0-windows/bin" >> "$GITHUB_PATH"
-      - name: Check CLI boundary and payload parity
-        run: |
-          uv run --locked python scripts/test_cli.py
-          uv run --locked python scripts/test_clamp_demo.py
-          uv run --locked python scripts/test_flags_demo.py
-          uv run --locked python scripts/test_words_demo.py
-          uv run --locked python scripts/test_bytes_demo.py
-          uv run --locked python scripts/test_header_demo.py
-          uv run --locked python scripts/test_wire16_demo.py
-      - name: Build, audit and exercise installed wheels and standalone proof demos
-        run: uv run --locked python scripts/check_cli_install.py
+      - name: Check CLI boundary and the installed-CLI harness
+        run: go test -count=1 ./internal/cli/ ./internal/smoke/ ./cmd/lean-go/ ./cmd/lean-go-dev/
+      - name: Build, install and exercise the CLI binaries and standalone proof demos
+        # go build, and go install from a module archive of the tracked files
+        # served by a local proxy; each binary then runs outside the checkout.
+        run: go run ./cmd/lean-go-dev installed-cli
       - name: Install and exercise the exact public CLI tag
         if: github.ref_type == 'tag'
         env:
           LEAN_GO_RELEASE_VERSION: ${{ github.ref_name }}
         run: |
-          export UV_TOOL_DIR="$RUNNER_TEMP/public-cli-tools"
-          export UV_TOOL_BIN_DIR="$RUNNER_TEMP/public-cli-bin"
-          uv tool install --python 3.15 "git+https://github.com/franchb/lean-go.git@$LEAN_GO_RELEASE_VERSION"
-          uv run --locked python - <<'PYTHON'
-          import os
-          from pathlib import Path
-          import subprocess
-          import sys
-          import tomllib
-
-          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
-          release, alpha = version.split('a')
-          assert os.environ['LEAN_GO_RELEASE_VERSION'] == f'v{release}-alpha.{alpha}'
-          cli = Path(os.environ['UV_TOOL_BIN_DIR']) / ('lean-go.exe' if os.name == 'nt' else 'lean-go')
-          actual = subprocess.check_output([str(cli), '--version'], text=True).strip()
-          assert actual == f'lean-go {version}', actual
-          subprocess.run([str(cli), 'doctor'], check=True)
-          for demo in ['clamp', 'flags', 'words', 'bytes', 'header', 'wire16', 'crc16', 'adler32', 'normalizer', 'clock']:
-              subprocess.run([sys.executable, f'scripts/check_{demo}_demo.py', '--cli', str(cli)], check=True)
-          subprocess.run([sys.executable, 'scripts/check_checked_frame.py', '--cli', str(cli)], check=True)
-          PYTHON
+          bin="$RUNNER_TEMP/public-cli-bin"
+          GOBIN="$bin" GOFLAGS=-modcacherw go install "github.com/franchb/lean-go/cmd/lean-go@$LEAN_GO_RELEASE_VERSION"
+          cli="$bin/lean-go"
+          if [ "$RUNNER_OS" = Windows ]; then cli="$cli.exe"; fi
+          go run ./cmd/lean-go-dev installed-cli --cli "$cli" --expect-tag "$LEAN_GO_RELEASE_VERSION"
           (cd examples/proofs/checkedframe && GOPROXY=off go test -count=1 ./... && GOPROXY=off go run .)
