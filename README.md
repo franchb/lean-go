@@ -149,9 +149,10 @@ a form the producer rejects; [diagnostics](docs/diagnostics.md) say where.
   value of a generated type is a valid Lean value; functions return an error
   only on recursive call chains deeper than a fixed `MaxDepth`. There are no
   limits on memory or time.
-- **Metered** (`--mode metered`): the same IR run by an explicit-stack
-  interpreter with seven resource budgets per call. Choose it when the
-  package processes untrusted recursive input and must bound its work.
+- **Metered** (`--mode metered`): the same IR compiled to an explicit-stack
+  state machine over boxed values, with seven resource budgets per call.
+  Choose it when the package processes untrusted recursive input and must
+  bound its work.
 
 Measured in [native mode, Benchmarks](docs/native-mode.md#benchmarks): every
 native workload is within 1.1x of a hand-written Go transliteration of the
@@ -219,4 +220,7 @@ the [CLI guide](docs/cli.md), [native mode](docs/native-mode.md),
 [translation validation](docs/research/translation-validation.md) (semantics,
 proof method, coverage).
 
-License: [Apache 2.0](LICENSE).
+Maintainer: [franchb](https://github.com/franchb) · hello@franchb.com
+
+License: [Apache 2.0](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for
+the tools and the checks to run before sending a change.
