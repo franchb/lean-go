@@ -21,7 +21,7 @@
     }
   ],
   "contract_sha256": "f076f6ac42270ab55cb2fa639a2a4ee53ef084c0df83d743be28415e5e7ab548",
-  "generated_manifest_sha256": "a097104f066d973a9088db5bf456bd51250345591344e62b511f76b7e2969f3f",
+  "generated_manifest_sha256": "9a28f3975e3efa03773fd8ebbf2ba6d2d4066b6c85464751b202efef26c6f35a",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Adler32",
@@ -39,7 +39,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "c7f4d266945fe318ea6e37a5b007ef9bd3a358533fbe5439bae63fa39070b75f",
+    "tool/lean-go/pipeline": "b2a36eea76403a5e94f11a67db5a7e129208916133f3b7dd50de0ffe33467106",
     "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }

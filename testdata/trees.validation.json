@@ -6,7 +6,7 @@
  ],
  "status": "completed",
  "ir_file_matches": true,
- "ir_sha256": "9d79b4e764bb7c2b83c12ae3ec4301af9970b69207d214933fb1b6cf2102b4ba",
+ "ir_sha256": "24ca74e588f136969eb52bd6e7d07b8059c81eb0b91a77bef204a86ec0903e9d",
  "lean_version": "4.36.0",
  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
  "budget": {

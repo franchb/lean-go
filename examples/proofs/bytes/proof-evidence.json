@@ -103,7 +103,7 @@
     }
   ],
   "contract_sha256": "bdc9469d3ad0fcd92b7dec001369d0ab7483c0e3b88113db60aab33414ff9d03",
-  "generated_manifest_sha256": "c80b258d04bc7e8f4cbabcd490c620eb5a3c1a256725abf7af90382574036e4f",
+  "generated_manifest_sha256": "0ebdce9863d0ecc312ab13afbc3d9a1fb6f70d7d77f5bb9bc57f7d68ce47ae21",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "ByteCodec",
@@ -122,7 +122,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "c7f4d266945fe318ea6e37a5b007ef9bd3a358533fbe5439bae63fa39070b75f",
+    "tool/lean-go/pipeline": "b2a36eea76403a5e94f11a67db5a7e129208916133f3b7dd50de0ffe33467106",
     "tool/lean-go/proofcheck": "dcbecc1756d9f92bf51274fd698f2eb73dee7345581189dd103c7d3ede1c9e00"
   }
 }
