@@ -9,8 +9,10 @@ commit** during extraction.
 | `4.36.0` (default) | `611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9` |
 | `4.36.0-rc2` | `b35cb10cf2ced51a2fd1880cfdbf75c71ab7a35a` |
 
-`scripts/check_compatibility.py` qualifies an explicitly installed compiler
-against the production default. Python 3.15, Go 1.27.4 and Linux/POSIX compiler
+`go run ./cmd/lean-go-dev compatibility` qualifies an explicitly installed
+compiler against the production default (package `internal/compatibility`).
+`cmd/lean-go-dev` is a developer command of the checkout, not part of the
+`lean-go` command users install. Go 1.27.4 and Linux/POSIX compiler
 installations are required. Releases beyond the two listed identities need
 their own qualification and review. Alpha.8 used rc2 and a
 14-case corpus. [Alpha.8 notes](releases/v0.1.0-alpha.8.md)
@@ -24,54 +26,93 @@ overlap the checkout or either compiler installation.
 
 ```sh
 # The baseline must match the current production pin exactly.
-uv run --locked python scripts/check_compatibility.py \
+go run ./cmd/lean-go-dev compatibility \
   --baseline-bin /opt/lean-production/bin \
   --candidate-bin /opt/lean-candidate/bin \
   --artifacts /tmp/lean-compatibility-new-run
 
 # Omit --candidate-bin to run just the stable baseline.
 # Run the fast harness protocol and failure-path tests separately.
-uv run --locked python scripts/test_compatibility.py
+go test -count=1 ./internal/compatibility/ ./cmd/lean-go-dev/
 
-# A retained run contains its source snapshot and a replay entry point.
+# A retained run contains its source snapshot and a replay entry point, which
+# rebuilds the harness from that snapshot with the Go on PATH.
 # Supply a fresh output path; the recorded compiler installations must exist.
-uv run --no-project --python 3.15 python \
-  /tmp/lean-compatibility-new-run/replay.py /tmp/lean-compatibility-replay
+sh /tmp/lean-compatibility-new-run/replay.sh /tmp/lean-compatibility-replay
 ```
 
 `--case helpers` focuses a replay on one case. Such a run only qualifies that
 case; `selected_cases` records the scope. `--timeout 300` bounds each command;
 POSIX timeout cleanup kills its process group, including child compilers.
+`LEAN_GO_CACHE_DIR` and `LEAN_GO_NO_CACHE` select the producer cache of the
+extractions as for `lean-go generate`; every other `LEAN_*`, `LAKE_*` and
+`ELAN_*` variable is removed.
 
 The **Compiler compatibility research** workflow runs on pull requests and
 pushes to `main`. It verifies the upstream SHA-256 for each Linux release
-archive, then compares stable with rc2. It also installs the checkout wheel
-and runs all seven proof demos with each compiler. For Wire16, it also builds a
-native Lean executable and compares its encoding, decoding and UInt32 widening with the generated
-Go across every 16-bit value. A manual dispatch can compare
+archive, then compares stable with rc2. It also runs every proof demo with
+each compiler (`go run ./cmd/lean-go-dev demos --lean-bin DIR`, described
+below). A manual dispatch can compare
 stable with itself by choosing `production`. A difference fails the workflow
 and retains the report and replay evidence. The regular extraction workflow
 also exercises the same-compiler comparison.
+
+### Proof demos with one compiler
+
+`go run ./cmd/lean-go-dev demos --lean-bin DIR` accepts only an installation
+whose `lean --version` is one of the supported identities above, puts it first
+on `PATH` and sets `LEAN_GO_TOOLCHAIN` to its version. It runs `lean-go
+doctor`, then for every demo of `internal/artifacts` under `examples/proofs`
+(clamp with its metered and native packages, flags, words, bytes, header,
+wire16, crc16, adler32, normalizer and clock) and the checked-frame
+composition:
+
+- regenerates each package from its tracked source, checks its proof contract
+  freshly and verifies the written evidence again;
+- requires the IR, the manifest's program and the evidence to name the selected
+  compiler, the evidence claims (names, propositions and axioms) to equal the
+  tracked evidence, and the checked claims to be exactly the contract's;
+- for the composition, requires both components and the contract's claims; with
+  the production compiler the evidence must equal the tracked file byte for
+  byte, with rc2 its claims must;
+- for Wire16, builds the native Lean reference and passes its output to the
+  consumer, which compares every 16-bit value;
+- copies each consumer with the fresh packages and runs `go test ./...` and
+  `go run .` with only Go on `PATH`, offline, then runs the same consumer with
+  the tracked packages and requires the same program output.
+
+Compared with the former `check_toolchain_demos.py`, it also covers the native
+clamp package and the clamp native tests, and checks the composition evidence
+again after writing it. It does not compare program output with literals kept
+in the harness; it compares it with the tracked packages' output instead (the
+literals are asserted by the `integration` demo tests).
 
 ## What is checked
 
 Each side observes `lean --version`, `lake env lean --version`, `lake --version`
 and `lean --print-prefix`. Direct Lean and Lake's Lean must agree on the full
 version and commit, and the prefix must match the explicit installation. The
-report includes executable hashes and selected Lean library hashes, plus Python
-and Go identities. These hashes are evidence, not binary authentication.
+report includes executable hashes and selected Lean library hashes, plus the
+Go and harness executables' paths and hashes and Go's identity. These hashes
+are evidence, not binary authentication.
 
-The harness copies the reviewed wheel payload closure from `pyproject.toml` into
-a run-owned workspace. It records original producer, generator, harness and
-corpus SHA-256 fingerprints. Both supported compilers run the production code
-with an empty adaptation patch. For a research candidate, the runner can
-replace only the default compiler identity in the copied toolchain file,
-Python exporter and Go identity table. It verifies that each original literal
-occurs exactly once and records before/after digests and a unified patch.
+The harness copies the build closure of `cmd/lean-go` (every file `go list
+-deps` reports for this module: Go sources for every platform and embedded
+producer files and templates), `go.mod` and `producer/lakefile.toml` into a
+run-owned workspace. It records the SHA-256 of that closure, of the harness's
+own closure (`cmd/lean-go-dev`) and of every corpus file. Both supported
+compilers run the production code with an empty adaptation patch. For a
+research candidate, the runner can replace only the default compiler identity
+in the copied toolchain file and Go identity table. It verifies that each
+original literal occurs exactly once and records before/after digests and a
+unified patch.
 
-The producer must build before the corpus runs. If compilation fails, its
-status is `producer_build_failed` and every case stays `not_run`. The corpus
-contains seventeen accepted cases and seven required rejections.
+The producer must build before the corpus runs: `lake build
+LeanGo.Module.Export` in the copied producer, then `go build ./cmd/lean-go` in
+the workspace. If either fails, the status is `producer_build_failed` and every
+case stays `not_run`. Each case is extracted with that `lean-go generate
+--diagnostics json --mode metered --strict-go`. The corpus contains seventeen
+accepted cases and seven required rejections.
 
 | Case | Independent expectation |
 | --- | --- |
@@ -145,8 +186,10 @@ A baseline failure invalidates the experiment. A candidate `producer_build_faile
 concludes only that the unchanged producer cannot build with that compiler;
 it makes no claim about individual candidate fixtures.
 
-`report.json` summarizes versions, outcomes, statuses and differences.
-`inputs.json` fingerprints the retained `source/` snapshot. Each compiler has
+`report.json` (schema `lean-go-compatibility/v1`) summarizes versions,
+outcomes, statuses and differences; JSON files are written with sorted keys.
+`inputs.json` fingerprints the retained `source/` snapshot, and `replay.sh`
+reruns the same comparison from it. Each compiler has
 `identity.json`, `adaptations.json`, `adaptation.patch`, `result.json` and
 `commands.jsonl`. Command logs include argv, working directory, bounded timeout,
 stdout/stderr, return code and a fixed allowlist of relevant environment values;
