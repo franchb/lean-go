@@ -256,7 +256,8 @@ func fastIn2(n *node) (natConfig, bool) {
 }
 
 // fastArena hands out the nodes and field slots of one converted result,
-// allocated together. Nodes are immutable once built, as everywhere else.
+// allocated up front: in one block when the result type has a constant
+// size, otherwise in two. Nodes are immutable once built, as everywhere else.
 type fastArena struct {
 	nodes  []node
 	fields []*node

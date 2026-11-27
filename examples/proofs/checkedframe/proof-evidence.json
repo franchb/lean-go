@@ -24,7 +24,7 @@
   "components": {
     "crc16": {
       "contract_sha256": "028d84419532349b5e7c00f1c594a973d73db8dcf89c483616c14138a423332b",
-      "generated_manifest_sha256": "757e2d8b018cb10c3cf7d9db04457734923a1ff7f2a7faacda07f7b2bc021178",
+      "generated_manifest_sha256": "c733f8fc1013a780adbb4621341207af376ccf3fbf7ce099e9a8d848c1912c0c",
       "module": "Crc16",
       "roots": [
         "Crc16.update",
@@ -33,7 +33,7 @@
     },
     "wire16": {
       "contract_sha256": "1b807e8d20285a0fdcc8d4db0898921be454e0ae7e5c1f4cc49ed873f7ec0577",
-      "generated_manifest_sha256": "e7b3c232798978b7138c01f83c6fd1eafbb44106bd22fa4d56c3c7773bb52a8e",
+      "generated_manifest_sha256": "868bf8443303bde1e020d435befc7b54003d9db03222d2588351c78064943016",
       "module": "Wire16",
       "roots": [
         "Wire16.classify",
