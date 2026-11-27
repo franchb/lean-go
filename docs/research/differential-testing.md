@@ -1,10 +1,12 @@
 # Program-level differential testing
 
-The campaign generates new small Lean source programs and compares five results:
-an independent source-AST model, a compiled native Lean executable, the
-extracted metered Go package through its raw (`Value`) and typed APIs, and the
-native-mode Go package emitted from the same IR. Go builds and execution use
-`CGO_ENABLED=0`. The producer still requires the project's exact Go and Lean
+The campaign generates new small Lean source programs and compares an
+independent source-AST model with six executions: a compiled native Lean
+executable; the extracted metered Go package through its raw (`Value`) and
+typed APIs; the same two APIs of a second metered package generated from the
+same IR without the fast path, so that they run the explicit-stack state
+machine; and the native-mode Go package emitted from the same IR. Go builds
+and execution use `CGO_ENABLED=0`. The producer still requires the project's exact Go and Lean
 toolchain pins.
 
 The harness is the developer command `cmd/lean-go-dev` (package
@@ -33,9 +35,11 @@ generator, a specified algorithm.
 
 The campaign builds this checkout's `lean-go` command once. Each candidate then
 has a fresh workspace and native executable, a fresh `lean-go generate
---mode metered`, a `lean-go emit --mode native` of the same IR, and an
-independent Go consumer module with no external dependencies that imports both
-packages. The consumer binary runs with a `PATH` that contains no producer
+--mode metered`, a `lean-go emit --mode native` of the same IR, the
+state-machine package generated in process from that IR by
+`modulegen.GenerateStateMachine` (deliberately not a command-line option), and
+an independent Go consumer module with no external dependencies that imports
+all three packages. The consumer binary runs with a `PATH` that contains no producer
 tools. `LEAN_GO_CACHE_DIR` and `LEAN_GO_NO_CACHE` select the producer cache as
 for `lean-go generate`; other `LEAN_*` and `LAKE_*` variables are removed.
 Toolchain probes, commands, stdout, stderr, source, IR, manifests and results
@@ -61,11 +65,22 @@ fresh program generated from the seed, and works with a passing `case.json` too.
 requires compatible tooling and the recorded model schema; the artifact does
 not freeze every future change to the renderer or compiler.
 
+Why two metered pairs: since `lean-go-modulegen/v20` a metered root without
+recursion runs the native emitter's code embedded in the metered package (the
+fast path, `internal/modulegen/fastpath.go`) whenever the limits cover its
+static bound, in `RunTyped` and in `Run`/`RunRoot` alike. Every generated
+program is bounded and the consumer uses `DefaultLimits()`, so `raw` and
+`typed` run that code: they are what users get. `raw_state_machine` and
+`typed_state_machine` make the same calls with the same limits on the package
+without the fast path, so the explicit-stack state machine stays compared with
+native Lean and the model.
+
 The campaign stops with a nonzero exit on the first mismatch, rejected program,
 build failure, timeout or malformed result. Errors remain separate from semantic
 mismatches. A mismatch records which of native Lean (`native`), raw Go (`raw`),
-typed Go (`typed`) and native-mode Go (`native_go`) differ from the independent
-model, and their failing input indexes. UInt64 values remain exact integers
+typed Go (`typed`), the state machine's raw and typed APIs
+(`raw_state_machine`, `typed_state_machine`) and native-mode Go (`native_go`)
+differ from the independent model, in that order, and their failing input indexes. UInt64 values remain exact integers
 throughout; booleans, fractions, exponents, signs, missing values and
 out-of-range results are protocol errors.
 
@@ -89,7 +104,7 @@ A campaign directory `campaign-XXXX/` holds:
 | `case-NNNN/failure.json` | A mismatch with its observation, or an error with its message |
 | `case-NNNN/minimized.json`, `Minimized.lean` | The reduced counterexample (`--shrink` only) |
 | `backend/lean-go` | The `lean-go` command built from the checkout |
-| `backend/check-*/` | One build per tried candidate: `commands.jsonl`, `toolchain.json`, `inputs.json`, `results.json`, `program.ir.json`, `source/`, `native/` (Lake project) and `consumer/` (with `extracted/` and `native/` packages) |
+| `backend/check-*/` | One build per tried candidate: `commands.jsonl`, `toolchain.json`, `inputs.json`, `results.json`, `program.ir.json`, `source/`, `native/` (Lake project) and `consumer/` (with the `extracted/`, `statemachine/` and `native/` packages) |
 
 A case file is one JSON object with exactly the keys `schema`, `program` and
 `inputs`, plus optional `observation` and `error`:
@@ -105,9 +120,11 @@ A case file is one JSON object with exactly the keys `schema`, `program` and
   },
   "inputs": [[0, 0], [4294967295, 1]],
   "observation": {"expected": [0, 4294967295],
-                  "outputs": {"native": [0, 4294967295], "raw": [1, 0],
-                              "typed": [0, 4294967295], "native_go": [0, 4294967295]},
-                  "mismatches": {"native": [], "raw": [0, 1], "typed": [], "native_go": []}}
+                  "outputs": {"native": [0, 4294967295], "raw": [1, 0], "typed": [0, 4294967295],
+                              "raw_state_machine": [0, 4294967295], "typed_state_machine": [0, 4294967295],
+                              "native_go": [0, 4294967295]},
+                  "mismatches": {"native": [], "raw": [0, 1], "typed": [],
+                                 "raw_state_machine": [], "typed_state_machine": [], "native_go": []}}
 }
 ```
 
@@ -118,7 +135,9 @@ elsewhere. Inputs are pairs of exact integers below 2^width. Replay reads only
 Files above 2 MB, unknown keys, other schemas, and programs beyond the model
 limits are rejected before anything runs. Each `commands.jsonl` line records
 the stage, argv, working directory, timeout, a fixed allowlist of environment
-values, exit status, stdout, stderr and elapsed time.
+values, exit status, stdout, stderr and elapsed time; the in-process
+`state-machine-emit` stage has argv `["(in process)",
+"modulegen.GenerateStateMachine", IR, output]` and no output streams.
 
 ## Grammar and implementation boundaries
 
@@ -171,6 +190,15 @@ go run ./cmd/lean-go-dev widths --artifacts /tmp/width-evidence   # 206 UInt32/U
 go run ./cmd/lean-go-dev bytes --artifacts /tmp/byte-evidence     # 353 UInt8 rows
 ```
 
+The thresholds of both campaigns equal the fast path's static bound of each
+root: below it the state machine fails with `ErrResource`, at it the fast path
+answers, and every row runs at `DefaultLimits()` and so on the fast path too.
+Each campaign therefore runs its consumer twice, against the metered package
+and against the state-machine package generated in process from the same IR.
+Both runs must match the model on every row, and the state machine's
+thresholds (`state_machine_budgets` in `report.json`) must equal the metered
+ones (`budgets`); `results.json` holds the rows of every run.
+
 ## CI and assurance
 
 The Linux extraction job runs the eight-program default corpus with up to 12
@@ -178,8 +206,9 @@ shrink trials on a semantic failure. It retains selected source, JSON evidence,
 command logs and generated Go as a `differential-evidence` artifact for 14 days;
 native binaries and build caches are excluded. The existing Linux and Windows
 Go gates continue to exercise tracked generated packages. The Lean-gated tests
-(native smoke, compiled fault injection with replay, and the width and byte
-campaigns) run in CI's `go test ./...` with `LEAN_GO_DIFFERENTIAL=1`; locally:
+(native smoke; compiled fault injection with replay, once in the consumer's raw
+channel and once in the state machine's emitted additions, which only the two
+state-machine channels may report; and the width and byte campaigns) run in CI's `go test ./...` with `LEAN_GO_DIFFERENTIAL=1`; locally:
 
 ```sh
 LEAN_GO_DIFFERENTIAL=1 go test -count=1 -p 1 ./internal/differential/

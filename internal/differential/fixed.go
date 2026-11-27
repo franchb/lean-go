@@ -43,11 +43,14 @@ const Assurance = "Bounded differential testing; not a proof of compiler or univ
 
 // FixedReport is report.json of a fixed campaign.
 type FixedReport struct {
-	Status    string          `json:"status"`
-	Cases     int             `json:"cases"`
-	Roots     []string        `json:"roots"`
-	Budgets   json.RawMessage `json:"budgets"`
-	Assurance string          `json:"assurance"`
+	Status  string          `json:"status"`
+	Cases   int             `json:"cases"`
+	Roots   []string        `json:"roots"`
+	Budgets json.RawMessage `json:"budgets"`
+	// StateMachineBudgets are the same thresholds measured on the package
+	// without the fast path; RunFixed requires them to equal Budgets.
+	StateMachineBudgets json.RawMessage `json:"state_machine_budgets"`
+	Assurance           string          `json:"assurance"`
 }
 
 func bigOf(v uint64) *big.Int { return new(big.Int).SetUint64(v) }
@@ -434,31 +437,19 @@ func RunFixed(f Fixed, repo, work string, timeout time.Duration) (*FixedReport, 
 	if _, err := b.run("extract", command, b.Repo, "", false); err != nil {
 		return nil, err
 	}
-	if err := writeFiles(map[string]string{
-		filepath.Join(consumer, "go.mod"):  "module fixedconsumer\n\ngo 1.27.4\n",
-		filepath.Join(consumer, "main.go"): f.Consumer,
-	}); err != nil {
+	// The thresholds are the static bounds of the fast path: below them the
+	// state machine fails, at them the fast path answers. The same consumer
+	// against the state-machine package runs every row and every budget on
+	// the explicit-stack state machine.
+	if err := b.emitStateMachine(ir, filepath.Join(consumer, "statemachine")); err != nil {
 		return nil, err
 	}
-	binary := filepath.Join(consumer, "consumer"+exeSuffix())
-	if _, err := b.run("go-build", []string{b.tools["go"], "build", "-buildvcs=false", "-o", binary, "."}, consumer, "", false); err != nil {
-		return nil, err
-	}
-	goOutput, err := b.run("go-run", []string{binary}, consumer, string(wire), true)
-	if err != nil {
+	if err := writeFiles(map[string]string{filepath.Join(consumer, "go.mod"): "module fixedconsumer\n\ngo 1.27.4\n"}); err != nil {
 		return nil, err
 	}
 	nativeValues, err := decodeJSON([]byte(nativeOutput))
 	if err != nil {
 		return nil, backendError("native-output", "%v", err)
-	}
-	goValue, err := decodeJSON([]byte(goOutput))
-	if err != nil {
-		return nil, backendError("output", "%v", err)
-	}
-	goValues, ok := goValue.(map[string]any)
-	if !ok || !exactKeys(goValues, "Raw", "Typed", "Budgets") {
-		return nil, backendError("output", "Go result must contain exactly Raw, Typed and Budgets")
 	}
 	modelRows := make([]any, len(rows))
 	for i, row := range rows {
@@ -469,9 +460,40 @@ func RunFixed(f Fixed, repo, work string, timeout time.Duration) (*FixedReport, 
 		}
 		modelRows[i] = items
 	}
-	labelled := map[string]any{"model": modelRows, "native": nativeValues, "raw": goValues["Raw"], "typed": goValues["Typed"]}
+	labelled := map[string]any{"model": modelRows, "native": nativeValues}
+	budgets := map[string]json.RawMessage{}
+	for _, variant := range []struct{ suffix, pkg string }{{"", "extracted"}, {"_state_machine", "statemachine"}} {
+		dir := filepath.Join(consumer, "cmd"+strings.ReplaceAll(variant.suffix, "_", ""))
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, err
+		}
+		source := strings.Replace(f.Consumer, `x "fixedconsumer/extracted"`, `x "fixedconsumer/`+variant.pkg+`"`, 1)
+		if err := writeFiles(map[string]string{filepath.Join(dir, "main.go"): source}); err != nil {
+			return nil, err
+		}
+		binary := filepath.Join(consumer, "consumer"+variant.suffix+exeSuffix())
+		if _, err := b.run("go-build"+variant.suffix, []string{b.tools["go"], "build", "-buildvcs=false", "-o", binary, "./" + filepath.Base(dir)}, consumer, "", false); err != nil {
+			return nil, err
+		}
+		goOutput, err := b.run("go-run"+variant.suffix, []string{binary}, consumer, string(wire), true)
+		if err != nil {
+			return nil, err
+		}
+		goValue, err := decodeJSON([]byte(goOutput))
+		if err != nil {
+			return nil, backendError("output", "%v", err)
+		}
+		goValues, ok := goValue.(map[string]any)
+		if !ok || !exactKeys(goValues, "Raw", "Typed", "Budgets") {
+			return nil, backendError("output", "Go result must contain exactly Raw, Typed and Budgets")
+		}
+		labelled["raw"+variant.suffix], labelled["typed"+variant.suffix] = goValues["Raw"], goValues["Typed"]
+		if budgets[variant.suffix], err = json.Marshal(goValues["Budgets"]); err != nil {
+			return nil, err
+		}
+	}
 	checked := map[string][][]uint64{}
-	for _, label := range []string{"model", "native", "raw", "typed"} {
+	for _, label := range []string{"model", "native", "raw", "typed", "raw_state_machine", "typed_state_machine"} {
 		items, ok := labelled[label].([]any)
 		if !ok || len(items) != len(rows) {
 			return nil, backendError(label, "wrong row count")
@@ -487,6 +509,9 @@ func RunFixed(f Fixed, repo, work string, timeout time.Duration) (*FixedReport, 
 			}
 		}
 	}
+	if string(budgets[""]) != string(budgets["_state_machine"]) {
+		return nil, backendError("budgets", "metered thresholds %s differ from the state machine's %s", budgets[""], budgets["_state_machine"])
+	}
 	irData, err := os.ReadFile(ir)
 	if err != nil {
 		return nil, err
@@ -495,11 +520,8 @@ func RunFixed(f Fixed, repo, work string, timeout time.Duration) (*FixedReport, 
 	if err := json.Unmarshal(irData, &identity); err != nil || identity.Schema != fixedSchema || identity.Profile != fixedProfile {
 		return nil, backendError("extract", "wrong %s schema: %s %s", f.Name, identity.Schema, identity.Profile)
 	}
-	budgets, err := json.Marshal(goValues["Budgets"])
-	if err != nil {
-		return nil, err
-	}
-	report := &FixedReport{Status: "passed", Cases: len(rows), Roots: f.Roots, Budgets: budgets, Assurance: Assurance}
+	report := &FixedReport{Status: "passed", Cases: len(rows), Roots: f.Roots, Budgets: budgets[""],
+		StateMachineBudgets: budgets["_state_machine"], Assurance: Assurance}
 	if err := writeJSON(filepath.Join(work, "results.json"), checked); err != nil {
 		return nil, err
 	}

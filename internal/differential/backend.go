@@ -40,6 +40,9 @@ type Backend struct {
 	LastWork string
 	// ConsumerSource renders the Go consumer; fault-injection tests replace it.
 	ConsumerSource func(width int) string
+	// StateMachine writes the state-machine package of an IR file (default
+	// EmitStateMachine); fault-injection tests replace it.
+	StateMachine func(irPath, out string) error
 
 	compiler pipeline.Compiler
 	env      []string
@@ -66,7 +69,7 @@ func NewBackend(repo, work string, timeout time.Duration) (*Backend, error) {
 	if err != nil {
 		return nil, err
 	}
-	b := &Backend{Repo: repo, Work: work, Timeout: timeout, ConsumerSource: ConsumerSource, compiler: compiler,
+	b := &Backend{Repo: repo, Work: work, Timeout: timeout, ConsumerSource: ConsumerSource, StateMachine: EmitStateMachine, compiler: compiler,
 		process: devexec.Run, lookPath: exec.LookPath}
 	b.env = backendEnvironment(compiler)
 	return b, nil
@@ -255,7 +258,7 @@ func CheckedValues(value any, count, width int, stage string) ([]uint64, error) 
 }
 
 // goChannels are the consumer's result keys.
-var goChannels = []string{"raw", "typed", "native_go"}
+var goChannels = []string{"raw", "typed", "raw_state_machine", "typed_state_machine", "native_go"}
 
 // DecodeResults parses the native Lean and Go consumer outputs.
 func DecodeResults(native, goOutput string, count, width int) (map[string][]uint64, error) {
@@ -301,10 +304,12 @@ def main : IO Unit := do
 `, width, strings.Join(pairs, ",\n  "))
 }
 
-// ConsumerSource is the independent Go consumer: it runs every input through
-// the metered package's raw (Value) and typed APIs and through the
-// native-mode package, and prints uint64 results (encoding/json would write
-// a []uint8 as base64).
+// ConsumerSource is the independent Go consumer: it runs every input
+// through the raw (Value) and typed APIs of the metered package users get
+// (x, whose statically bounded roots take the fast path under covering
+// limits) and of the state-machine package generated from the same IR
+// without the fast path (s), and through the native-mode package (n). It
+// prints uint64 results (encoding/json would write a []uint8 as base64).
 func ConsumerSource(width int) string {
 	return strings.ReplaceAll(`package main
 
@@ -314,6 +319,7 @@ import (
 
 	x "differentialconsumer/extracted"
 	n "differentialconsumer/native"
+	s "differentialconsumer/statemachine"
 )
 
 func main() {
@@ -321,12 +327,16 @@ func main() {
 	if err := json.NewDecoder(os.Stdin).Decode(&inputs); err != nil {
 		panic(err)
 	}
+	count := len(inputs)
 	result := struct {
-		Raw      []uint64 `+"`json:\"raw\"`"+`
-		Typed    []uint64 `+"`json:\"typed\"`"+`
-		NativeGo []uint64 `+"`json:\"native_go\"`"+`
-	}{make([]uint64, len(inputs)), make([]uint64, len(inputs)), make([]uint64, len(inputs))}
+		Raw               []uint64 `+"`json:\"raw\"`"+`
+		Typed             []uint64 `+"`json:\"typed\"`"+`
+		RawStateMachine   []uint64 `+"`json:\"raw_state_machine\"`"+`
+		TypedStateMachine []uint64 `+"`json:\"typed_state_machine\"`"+`
+		NativeGo          []uint64 `+"`json:\"native_go\"`"+`
+	}{make([]uint64, count), make([]uint64, count), make([]uint64, count), make([]uint64, count), make([]uint64, count)}
 	limits := x.DefaultLimits()
+	stateLimits := s.DefaultLimits()
 	for i, pair := range inputs {
 		args := make([]x.Value, 2)
 		for j, value := range pair {
@@ -350,6 +360,30 @@ func main() {
 			panic(err)
 		}
 		result.Typed[i] = uint64(typed)
+
+		stateArgs := make([]s.Value, 2)
+		for j, value := range pair {
+			v, err := s.Import(&s.Input{Type: "UIntW", UIntW: value}, stateLimits)
+			if err != nil {
+				panic(err)
+			}
+			stateArgs[j] = v
+		}
+		stateRaw, err := s.Run(stateArgs, stateLimits)
+		if err != nil {
+			panic(err)
+		}
+		stateValue, ok := stateRaw.UIntW()
+		if !ok || stateRaw.Type() != "UIntW" || len(stateRaw.Fields()) != 0 {
+			panic("invalid state-machine scalar result")
+		}
+		result.RawStateMachine[i] = uint64(stateValue)
+		stateTyped, err := s.RunTyped(pair[0], pair[1], stateLimits)
+		if err != nil {
+			panic(err)
+		}
+		result.TypedStateMachine[i] = uint64(stateTyped)
+
 		result.NativeGo[i] = uint64(n.Run(pair[0], pair[1]))
 	}
 	if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
@@ -431,6 +465,9 @@ func (b *Backend) Check(p Program, inputs []Pair) (map[string][]uint64, error) {
 	}
 	if _, err := b.run("native-emit", []string{b.tools["lean-go"], "emit", "--in", ir, "--out", filepath.Join(consumer, "native"),
 		"--mode", "native"}, b.Repo, "", false); err != nil {
+		return nil, err
+	}
+	if err := b.emitStateMachine(ir, filepath.Join(consumer, "statemachine")); err != nil {
 		return nil, err
 	}
 	if err := writeFiles(map[string]string{

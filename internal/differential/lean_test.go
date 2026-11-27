@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -85,6 +86,75 @@ func TestNativeAndGoMatchIndependentModel(t *testing.T) {
 		if !seen[name] {
 			t.Errorf("function %s was not extracted", name)
 		}
+	}
+}
+
+// A fault only the state machine has (every emitted addition adds one more)
+// is reported by the two state-machine channels alone: raw and typed run the
+// fast path, native_go the native package. It shrinks with that signature
+// and the minimized case passes on a clean backend.
+func TestStateMachineFaultIsSeenOnlyByStateMachineChannels(t *testing.T) {
+	requireDifferential(t)
+	directory := t.TempDir()
+	faulty, err := NewBackend(checkoutRoot(t), filepath.Join(directory, "faulty"), 300*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	addition := regexp.MustCompile(`(\.scalar\d*) \+ `)
+	var planted []bool
+	faulty.StateMachine = func(ir, out string) error {
+		if err := EmitStateMachine(ir, out); err != nil {
+			return err
+		}
+		control := filepath.Join(out, "control.go")
+		data, err := os.ReadFile(control)
+		if err != nil {
+			return err
+		}
+		// A shrink candidate may have no addition left; it then has no fault.
+		planted = append(planted, addition.Match(data))
+		return os.WriteFile(control, addition.ReplaceAll(data, []byte("$1 + 1 + ")), 0o644)
+	}
+	p, err := Generate(0, 32, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pairs := []Pair{{0, 0}, {maxOf(32), 65}}
+	check := func(candidate Program, values []Pair) (Observation, error) {
+		outputs, err := faulty.Check(candidate, values)
+		if err != nil {
+			return Observation{}, err
+		}
+		return Compare(candidate, values, outputs)
+	}
+	want := []string{"raw_state_machine", "typed_state_machine"}
+	original, err := check(p, pairs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(planted) != 1 || !planted[0] {
+		t.Fatal("no addition in the state machine to plant the fault in")
+	}
+	if !reflect.DeepEqual(original.Signature(), want) {
+		t.Fatalf("signature %v, want %v", original.Signature(), want)
+	}
+	reduced, err := ReduceCase(p, pairs, original, check, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(reduced.Observation.Signature(), want) || reduced.Attempts != 2 || reduced.RejectedErrors != 0 || len(reduced.Inputs) != 1 {
+		t.Fatalf("reduction %+v", reduced)
+	}
+	clean, err := NewBackend(checkoutRoot(t), filepath.Join(directory, "clean"), 300*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outputs, err := clean.Check(reduced.Program, reduced.Inputs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if replayed := mustCompare(t, reduced.Program, reduced.Inputs, outputs); len(replayed.Signature()) != 0 {
+		t.Fatalf("clean replay mismatches: %v", replayed.Signature())
 	}
 }
 

@@ -107,7 +107,8 @@ func repository(flagValue string) (string, error) {
 // parseDifferential turns the command line into campaign options.
 func parseDifferential(args []string, stderr io.Writer) (differential.Options, string, error) {
 	flags := newFlags("differential", "Generate small Lean programs from seeds, compare native Lean, the metered Go package\n"+
-		"(raw and typed APIs) and the native-mode Go package with an independent model,\n"+
+		"(raw and typed APIs), the same APIs without the fast path (the state machine) and\n"+
+		"the native-mode Go package with an independent model,\n"+
 		"shrink the first mismatch and save replayable artifacts.", stderr)
 	o := differential.DefaultOptions()
 	var seeds, widths, depth, cases, attempts, timeout []uint64

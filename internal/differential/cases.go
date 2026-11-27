@@ -8,10 +8,14 @@ import (
 	"reflect"
 )
 
-// Channels are the compared executions, in signature order: native Lean,
-// the metered Go package through its raw (Value) API and its typed API, and
-// the native-mode Go package generated from the same IR.
-var Channels = []string{"native", "raw", "typed", "native_go"}
+// Channels are the compared executions, in signature order: native Lean;
+// the metered Go package through its raw (Value) and typed APIs (for a
+// statically bounded root under covering limits these run the fast path,
+// the native emitter's code embedded in the metered package); the same two
+// APIs of the metered package generated from the same IR without the fast
+// path (modulegen.GenerateStateMachine), which run the explicit-stack state
+// machine; and the native-mode Go package.
+var Channels = []string{"native", "raw", "typed", "raw_state_machine", "typed_state_machine", "native_go"}
 
 // CaseSchema identifies a saved case artifact.
 const CaseSchema = "lean-go-differential-case/v1"

@@ -75,23 +75,27 @@ func runFixed(t *testing.T, name string) *FixedReport {
 
 func TestWidthNativeRawTypedAndObservedResourceThresholds(t *testing.T) {
 	report := runFixed(t, "widths")
-	var budgets map[string][2]int
-	if err := json.Unmarshal(report.Budgets, &budgets); err != nil {
-		t.Fatal(err)
-	}
 	want := map[string][2]int{"widen": {1, 2}, "narrow": {1, 2}, "low": {1, 2}, "high": {3, 4}, "pack": {5, 6}}
-	if report.Status != "passed" || report.Cases != 206 || !reflect.DeepEqual(budgets, want) {
-		t.Fatalf("report %+v budgets %v", report, budgets)
+	for _, observed := range []json.RawMessage{report.Budgets, report.StateMachineBudgets} {
+		var budgets map[string][2]int
+		if err := json.Unmarshal(observed, &budgets); err != nil {
+			t.Fatal(err)
+		}
+		if report.Status != "passed" || report.Cases != 206 || !reflect.DeepEqual(budgets, want) {
+			t.Fatalf("report %+v budgets %v", report, budgets)
+		}
 	}
 }
 
 func TestByteNativeRawTypedAndResourceThresholds(t *testing.T) {
 	report := runFixed(t, "bytes")
-	var budgets []int
-	if err := json.Unmarshal(report.Budgets, &budgets); err != nil {
-		t.Fatal(err)
-	}
-	if report.Status != "passed" || report.Cases != 353 || !reflect.DeepEqual(budgets, []int{17, 18}) {
-		t.Fatalf("report %+v budgets %v", report, budgets)
+	for _, observed := range []json.RawMessage{report.Budgets, report.StateMachineBudgets} {
+		var budgets []int
+		if err := json.Unmarshal(observed, &budgets); err != nil {
+			t.Fatal(err)
+		}
+		if report.Status != "passed" || report.Cases != 353 || !reflect.DeepEqual(budgets, []int{17, 18}) {
+			t.Fatalf("report %+v budgets %v", report, budgets)
+		}
 	}
 }

@@ -22,12 +22,12 @@ import (
 func TestExactUint64Values(t *testing.T) {
 	values := []uint64{0, 9007199254740993, 18446744073709551615}
 	text, _ := json.Marshal(values)
-	goOut := fmt.Sprintf(`{"raw":%s,"typed":%s,"native_go":%s}`, text, text, text)
+	goOut := fmt.Sprintf(`{"raw":%s,"typed":%s,"raw_state_machine":%s,"typed_state_machine":%s,"native_go":%s}`, text, text, text, text, text)
 	got, err := DecodeResults(string(text), goOut, 3, 64)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string][]uint64{"native": values, "raw": values, "typed": values, "native_go": values}
+	want := map[string][]uint64{"native": values, "raw": values, "typed": values, "raw_state_machine": values, "typed_state_machine": values, "native_go": values}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v", got)
 	}
@@ -36,13 +36,21 @@ func TestExactUint64Values(t *testing.T) {
 func TestRejectsWrongCountTypeWidthAndShape(t *testing.T) {
 	var backendErr *BackendError
 	for _, values := range []string{`[]`, `[true]`, `[1.0]`, `[-1]`, `[4294967296]`, `["1"]`, `null`} {
-		if _, err := DecodeResults(values, `{"raw":[1],"typed":[1],"native_go":[1]}`, 1, 32); !errors.As(err, &backendErr) {
+		if _, err := DecodeResults(values, `{"raw":[1],"typed":[1],"raw_state_machine":[1],"typed_state_machine":[1],"native_go":[1]}`, 1, 32); !errors.As(err, &backendErr) {
 			t.Errorf("native %s: %v", values, err)
 		}
 	}
-	for _, raw := range []string{`{}`, `{"raw":[1]}`, `{"raw":[1],"typed":[1]}`, `{"raw":[1],"typed":[1],"native_go":[1],"extra":[]}`,
-		`{"raw":[true],"typed":[1],"native_go":[1]}`, `{"raw":[1],"typed":[1.0],"native_go":[1]}`,
-		`{"raw":[1],"typed":[1],"native_go":[1e0]}`, `noise`} {
+	const rest = `"raw_state_machine":[1],"typed_state_machine":[1]`
+	if _, err := DecodeResults(`[1]`, `{"raw":[1],"typed":[1],`+rest+`,"native_go":[1]}`, 1, 32); err != nil {
+		t.Fatalf("valid output rejected: %v", err)
+	}
+	for _, raw := range []string{`{}`, `{"raw":[1]}`, `{"raw":[1],"typed":[1],"native_go":[1]}`,
+		`{"raw":[1],"typed":[1],"raw_state_machine":[1],"native_go":[1]}`,
+		`{"raw":[1],"typed":[1],` + rest + `,"native_go":[1],"extra":[]}`,
+		`{"raw":[true],"typed":[1],` + rest + `,"native_go":[1]}`, `{"raw":[1],"typed":[1.0],` + rest + `,"native_go":[1]}`,
+		`{"raw":[1],"typed":[1],` + rest + `,"native_go":[1e0]}`,
+		`{"raw":[1],"typed":[1],"raw_state_machine":[2],"typed_state_machine":["1"],"native_go":[1]}`,
+		`{"raw":[1],"typed":[1],"raw_state_machine":[4294967296],"typed_state_machine":[1],"native_go":[1]}`, `noise`} {
 		if _, err := DecodeResults(`[1]`, raw, 1, 32); !errors.As(err, &backendErr) {
 			t.Errorf("go %s: %v", raw, err)
 		}
@@ -195,14 +203,19 @@ func TestLeanReferenceHasExactInputLiterals(t *testing.T) {
 }
 
 func TestCheckBuildsNativeAndIsolatedRawTypedAndNativeConsumer(t *testing.T) {
-	b, calls := testBackend(t, "", "[3]", "", "", "", `{"raw":[3],"typed":[3],"native_go":[3]}`)
+	b, calls := testBackend(t, "", "[3]", "", "", "", `{"raw":[3],"typed":[3],"raw_state_machine":[3],"typed_state_machine":[3],"native_go":[3]}`)
 	b.tools = map[string]string{"go": "/tools/go", "lean": "/tools/lean", "lake": "/tools/lake", "lean-go": "/tools/lean-go"}
+	var emitted [][2]string
+	b.StateMachine = func(ir, out string) error {
+		emitted = append(emitted, [2]string{ir, out})
+		return nil
+	}
 	p := Program{Width: 32, Expr: Op("add", A(), B()), Helper: A()}
 	result, err := b.Check(p, []Pair{{1, 2}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := map[string][]uint64{"native": {3}, "raw": {3}, "typed": {3}, "native_go": {3}}
+	want := map[string][]uint64{"native": {3}, "raw": {3}, "typed": {3}, "raw_state_machine": {3}, "typed_state_machine": {3}, "native_go": {3}}
 	if !reflect.DeepEqual(result, want) {
 		t.Fatalf("got %v", result)
 	}
@@ -210,7 +223,7 @@ func TestCheckBuildsNativeAndIsolatedRawTypedAndNativeConsumer(t *testing.T) {
 	for _, record := range readRecords(t, b.LastWork) {
 		stages = append(stages, record["stage"].(string))
 	}
-	if !reflect.DeepEqual(stages, []string{"native-build", "native-run", "extract", "native-emit", "go-build", "go-run"}) {
+	if !reflect.DeepEqual(stages, []string{"native-build", "native-run", "extract", "native-emit", "state-machine-emit", "go-build", "go-run"}) {
 		t.Fatalf("stages %v", stages)
 	}
 	if !reflect.DeepEqual((*calls)[0].command, []string{"/tools/lake", "build", "reference"}) {
@@ -239,7 +252,12 @@ func TestCheckBuildsNativeAndIsolatedRawTypedAndNativeConsumer(t *testing.T) {
 		t.Error("native and extracted sources differ")
 	}
 	consumer := readFile(t, filepath.Join(b.LastWork, "consumer", "main.go"))
-	for _, want := range []string{"x.RunTyped", "x.Run(args", "n.Run(pair[0], pair[1])"} {
+	// The state-machine package is generated in process from the IR lean-go wrote.
+	if !reflect.DeepEqual(emitted, [][2]string{{filepath.Join(b.LastWork, "program.ir.json"), filepath.Join(b.LastWork, "consumer", "statemachine")}}) {
+		t.Errorf("state machine emitted %v", emitted)
+	}
+	for _, want := range []string{"x.RunTyped", "x.Run(args", "s.RunTyped(pair[0], pair[1], stateLimits)", "s.Run(stateArgs, stateLimits)",
+		`s "differentialconsumer/statemachine"`, "n.Run(pair[0], pair[1])"} {
 		if !strings.Contains(consumer, want) {
 			t.Errorf("consumer lacks %q", want)
 		}

@@ -54,7 +54,7 @@ func mustCompare(t *testing.T, p Program, pairs []Pair, outputs map[string][]uin
 func TestCompareReportsExactChannelsAndInputIndexes(t *testing.T) {
 	p := addition(64)
 	pairs := []Pair{{maxOf(64), 1}, {1, 1}}
-	output := map[string][]uint64{"native": {0, 2}, "raw": {0, 3}, "typed": {1, 2}, "native_go": {0, 2}}
+	output := map[string][]uint64{"native": {0, 2}, "raw": {0, 3}, "typed": {1, 2}, "raw_state_machine": {0, 2}, "typed_state_machine": {0, 2}, "native_go": {0, 2}}
 	o := mustCompare(t, p, pairs, output)
 	if !reflect.DeepEqual(o.Expected, []uint64{0, 2}) {
 		t.Errorf("expected %v", o.Expected)
@@ -62,13 +62,19 @@ func TestCompareReportsExactChannelsAndInputIndexes(t *testing.T) {
 	if !reflect.DeepEqual(o.Signature(), []string{"raw", "typed"}) {
 		t.Errorf("signature %v", o.Signature())
 	}
-	want := map[string][]int{"native": {}, "raw": {1}, "typed": {0}, "native_go": {}}
+	want := map[string][]int{"native": {}, "raw": {1}, "typed": {0}, "raw_state_machine": {}, "typed_state_machine": {}, "native_go": {}}
 	if !reflect.DeepEqual(o.Mismatches, want) {
 		t.Errorf("mismatches %v", o.Mismatches)
 	}
 	output["native_go"] = []uint64{1, 3}
 	if o := mustCompare(t, p, pairs, output); !reflect.DeepEqual(o.Signature(), []string{"raw", "typed", "native_go"}) {
 		t.Errorf("signature %v", o.Signature())
+	}
+	output["raw"], output["typed"], output["native_go"] = []uint64{0, 2}, []uint64{0, 2}, []uint64{0, 2}
+	output["typed_state_machine"] = []uint64{0, 3}
+	if o := mustCompare(t, p, pairs, output); !reflect.DeepEqual(o.Signature(), []string{"typed_state_machine"}) ||
+		!reflect.DeepEqual(o.Mismatches["typed_state_machine"], []int{1}) {
+		t.Errorf("state-machine signature %v %v", o.Signature(), o.Mismatches)
 	}
 }
 
@@ -115,7 +121,7 @@ func mustDecode(t *testing.T, text string) any {
 
 func TestBackendProtocolCannotBeASemanticPass(t *testing.T) {
 	good := func() map[string][]uint64 {
-		return map[string][]uint64{"native": {3}, "raw": {3}, "typed": {3}, "native_go": {3}}
+		return map[string][]uint64{"native": {3}, "raw": {3}, "typed": {3}, "raw_state_machine": {3}, "typed_state_machine": {3}, "native_go": {3}}
 	}
 	missing := good()
 	delete(missing, "native")
@@ -132,7 +138,7 @@ func TestBackendProtocolCannotBeASemanticPass(t *testing.T) {
 	}
 	// Values Go's []uint64 cannot hold are rejected where results are decoded.
 	for _, raw := range []string{`[true]`, `[-1]`, `[3.0]`, `"3"`, `{"0":3}`} {
-		goOut := `{"raw":` + raw + `,"typed":[3],"native_go":[3]}`
+		goOut := `{"raw":` + raw + `,"typed":[3],"raw_state_machine":[3],"typed_state_machine":[3],"native_go":[3]}`
 		if _, err := DecodeResults("[3]", goOut, 1, 32); err == nil {
 			t.Errorf("raw %s accepted", raw)
 		}
