@@ -1,0 +1,200 @@
+{
+ "schema": "lean-go-validation/v2",
+ "module": "Adler32",
+ "roots": [
+  "Adler32.checksum",
+  "Adler32.initial",
+  "Adler32.update"
+ ],
+ "status": "completed",
+ "ir_file_matches": true,
+ "ir_sha256": "05154524d28f52a021c9614738398f431a0e2d2b8a1617f8ab20150eccdcc851",
+ "lean_version": "4.36.0",
+ "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+ "budget": {
+  "heartbeats": 200000,
+  "timeout_ms": 120000,
+  "memory_mb": 4096,
+  "process_timeout_ms": 3600000
+ },
+ "library": {
+  "producer/LeanGo/Validate.lean": "7830c3286b8a079fed88fe503cf01415e6be8a56750b22e71d1390a4ca9fe668",
+  "producer/LeanGo/Validate/Attr.lean": "921c765cd3d6b1d545b736cd6543b57835a3781fef49f6dc8c894268c42d0ccd",
+  "producer/LeanGo/Validate/Command.lean": "ea9c506f481f9206f04493ee1161169e90c0a8466668dcfbe1c55a6e69d98dac",
+  "producer/LeanGo/Validate/Meta.lean": "d48de3a6582762bd0b2c3d2c32a16eff0b0a7bc5427e0c947ee4d64d2f340a14",
+  "producer/LeanGo/Validate/Meta/Axioms.lean": "790d7bc6a6098f85e8910c31f708f65a1189afa5b06a7a753c9d5784e6171320",
+  "producer/LeanGo/Validate/Meta/Derive.lean": "3830b4eeac2f963cd8c333c5a88f1e2ab4723176310b9c5cdf8691ae3af044dd",
+  "producer/LeanGo/Validate/Meta/Load.lean": "0577ddf48ec969a97c6c5f0ffdb7f87d399a0cd46921778e9f193c8215707d86",
+  "producer/LeanGo/Validate/Meta/Tactic.lean": "7a79ac2eb261b0563d3c840a1755ccc4be6dd908be728dfe9f0f63c50c11b635",
+  "producer/LeanGo/Validate/Prim.lean": "0797889fce524ae04905b6995aded609b1c59e1de83067e08b6b2f5ccb793ed1",
+  "producer/LeanGo/Validate/Semantics.lean": "931ca0afa704842954cf28127d917a68b0eb6b5902a813354180491fe3b7ba44",
+  "producer/LeanGo/Validate/Soundness.lean": "e77e6ebfce735dd1be5f935f8071417842ed1899025cb2fad2aa9188666da8b4",
+  "producer/LeanGo/Validate/Spec.lean": "c6e6de8469c41fe3a664955d763fa5efb2469d9ec17adf6b3a1a330391396a38",
+  "producer/LeanGo/Validate/Syntax.lean": "c648dce4dbd711439d6a0bfb600bbba47ecfd0d96a02d6555f3e08563f5974d3",
+  "producer/LeanGo/Validate/Value.lean": "219f092ace1db12e7c560ba357409d202768b8e498157fe443edaf3ee29877a2",
+  "tool/lean-go/validate": "21fb22b5b63024f28eacc2d26917d56303c0b0aaa5202b9193946f6eeeba52dd"
+ },
+ "program": "LeanGo.Validated.prog",
+ "specification_list": "LeanGo.Validated.spec",
+ "encodings": [
+  {
+   "type": "Adler32.State",
+   "status": "available"
+  }
+ ],
+ "functions": [
+  {
+   "name": "Adler32.checksum",
+   "params": [
+    "Adler32.State"
+   ],
+   "result": "UInt32",
+   "kind": "source",
+   "source_owner": "Adler32.checksum",
+   "specification": "Adler32.checksum",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_0",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Adler32.checksum»)\n  Adler32.checksum",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Adler32.initial",
+   "params": [],
+   "result": "Adler32.State",
+   "kind": "source",
+   "source_owner": "Adler32.initial",
+   "specification": "Adler32.initial",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_1",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Adler32.initial»)\n  Adler32.initial",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Adler32.reduce",
+   "params": [
+    "UInt32"
+   ],
+   "result": "UInt32",
+   "kind": "source",
+   "source_owner": "Adler32.reduce",
+   "specification": "Adler32.reduce",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_2",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Adler32.reduce»)\n  Adler32.reduce",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Adler32.step",
+   "params": [
+    "Adler32.State",
+    "UInt8"
+   ],
+   "result": "Adler32.State",
+   "kind": "source",
+   "source_owner": "Adler32.step",
+   "specification": "Adler32.step",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_3",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Adler32.step»)\n  Adler32.step",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Adler32.update",
+   "params": [
+    "Adler32.State",
+    "List UInt8"
+   ],
+   "result": "Adler32.State",
+   "kind": "byte_fold",
+   "source_owner": "Adler32.update",
+   "specification": "Adler32.update: List.foldl Adler32.step over Adler32.State",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_4",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Adler32.update»)\n  Adler32.update",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  }
+ ],
+ "programs": [
+  {
+   "root": "Adler32.checksum",
+   "closure": [
+    "Adler32.checksum"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_0",
+   "theorem": "LeanGo.Validated.sound_0",
+   "statement": "∀ (n : Nat),\n  LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Adler32.checksum\") Adler32.checksum",
+   "explicit_theorem": "LeanGo.Validated.explicit_0",
+   "explicit_statement": "∀ (n : Nat) (state : Adler32.State) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Adler32.checksum\" [LeanGo.Validate.Encode.encode state] = some v →\n    v = LeanGo.Validate.Encode.encode (Adler32.checksum state)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "root": "Adler32.initial",
+   "closure": [
+    "Adler32.initial"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_1",
+   "theorem": "LeanGo.Validated.sound_1",
+   "statement": "∀ (n : Nat),\n  LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Adler32.initial\") Adler32.initial",
+   "explicit_theorem": "LeanGo.Validated.explicit_1",
+   "explicit_statement": "∀ (n : Nat) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Adler32.initial\" [] = some v → v = LeanGo.Validate.Encode.encode Adler32.initial",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "root": "Adler32.update",
+   "closure": [
+    "Adler32.update",
+    "Adler32.step",
+    "Adler32.reduce"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_2",
+   "theorem": "LeanGo.Validated.sound_2",
+   "statement": "∀ (n : Nat),\n  LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Adler32.update\") Adler32.update",
+   "explicit_theorem": "LeanGo.Validated.explicit_2",
+   "explicit_statement": "∀ (n : Nat) (state : Adler32.State) (bytes : List UInt8) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Adler32.update\"\n        [LeanGo.Validate.Encode.encode state, LeanGo.Validate.Encode.encode bytes] =\n      some v →\n    v = LeanGo.Validate.Encode.encode (Adler32.update state bytes)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  }
+ ],
+ "summary": {
+  "functions": 5,
+  "proved": 5,
+  "failed": 0,
+  "not_attempted": 0,
+  "roots": 3,
+  "roots_proved": 3
+ }
+}

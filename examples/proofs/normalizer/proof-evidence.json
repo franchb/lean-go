@@ -19,7 +19,7 @@
     }
   ],
   "contract_sha256": "00d682ae72b910a4fc9998a270d88b467cc8a680caaf07734f13422acce96ce2",
-  "generated_manifest_sha256": "ab35c548c4895154a804ecefc7df77dce0216c426b708563b28bae267c170a8c",
+  "generated_manifest_sha256": "b31f2438072501dfaeb2112348a6c71f5ea8b68ad816b5a82f91ff8694cec5b1",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Normalizer",
@@ -35,7 +35,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "f917dae7c550571748c30c622433ae938cc4b8df6437599c3092432905268d28",
+    "tool/lean-go/pipeline": "2c5c56153fc215db83c716af8a709ab514310d5c949d46291d2d59b4e5af8f89",
     "tool/lean-go/proofcheck": "ec36a7972a192fadec581b20597c720032135dd10165928ec07a688698547fc0"
   }
 }

@@ -1,0 +1,230 @@
+{
+ "schema": "lean-go-validation/v2",
+ "module": "Words",
+ "roots": [
+  "Words.high",
+  "Words.low",
+  "Words.narrow",
+  "Words.pack",
+  "Words.widen"
+ ],
+ "status": "completed",
+ "ir_file_matches": true,
+ "ir_sha256": "97bb340268eccdb47fe40f237b77a20e8dfa7465399938e6c87659c4fce5e6ab",
+ "lean_version": "4.36.0",
+ "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
+ "budget": {
+  "heartbeats": 200000,
+  "timeout_ms": 120000,
+  "memory_mb": 4096,
+  "process_timeout_ms": 3600000
+ },
+ "library": {
+  "producer/LeanGo/Validate.lean": "7830c3286b8a079fed88fe503cf01415e6be8a56750b22e71d1390a4ca9fe668",
+  "producer/LeanGo/Validate/Attr.lean": "921c765cd3d6b1d545b736cd6543b57835a3781fef49f6dc8c894268c42d0ccd",
+  "producer/LeanGo/Validate/Command.lean": "ea9c506f481f9206f04493ee1161169e90c0a8466668dcfbe1c55a6e69d98dac",
+  "producer/LeanGo/Validate/Meta.lean": "d48de3a6582762bd0b2c3d2c32a16eff0b0a7bc5427e0c947ee4d64d2f340a14",
+  "producer/LeanGo/Validate/Meta/Axioms.lean": "790d7bc6a6098f85e8910c31f708f65a1189afa5b06a7a753c9d5784e6171320",
+  "producer/LeanGo/Validate/Meta/Derive.lean": "3830b4eeac2f963cd8c333c5a88f1e2ab4723176310b9c5cdf8691ae3af044dd",
+  "producer/LeanGo/Validate/Meta/Load.lean": "0577ddf48ec969a97c6c5f0ffdb7f87d399a0cd46921778e9f193c8215707d86",
+  "producer/LeanGo/Validate/Meta/Tactic.lean": "7a79ac2eb261b0563d3c840a1755ccc4be6dd908be728dfe9f0f63c50c11b635",
+  "producer/LeanGo/Validate/Prim.lean": "0797889fce524ae04905b6995aded609b1c59e1de83067e08b6b2f5ccb793ed1",
+  "producer/LeanGo/Validate/Semantics.lean": "931ca0afa704842954cf28127d917a68b0eb6b5902a813354180491fe3b7ba44",
+  "producer/LeanGo/Validate/Soundness.lean": "e77e6ebfce735dd1be5f935f8071417842ed1899025cb2fad2aa9188666da8b4",
+  "producer/LeanGo/Validate/Spec.lean": "c6e6de8469c41fe3a664955d763fa5efb2469d9ec17adf6b3a1a330391396a38",
+  "producer/LeanGo/Validate/Syntax.lean": "c648dce4dbd711439d6a0bfb600bbba47ecfd0d96a02d6555f3e08563f5974d3",
+  "producer/LeanGo/Validate/Value.lean": "219f092ace1db12e7c560ba357409d202768b8e498157fe443edaf3ee29877a2",
+  "tool/lean-go/validate": "21fb22b5b63024f28eacc2d26917d56303c0b0aaa5202b9193946f6eeeba52dd"
+ },
+ "program": "LeanGo.Validated.prog",
+ "specification_list": "LeanGo.Validated.spec",
+ "encodings": [],
+ "functions": [
+  {
+   "name": "Words.high",
+   "params": [
+    "UInt64"
+   ],
+   "result": "UInt32",
+   "kind": "source",
+   "source_owner": "Words.high",
+   "specification": "Words.high",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_0",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Words.high»)\n  Words.high",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Words.low",
+   "params": [
+    "UInt64"
+   ],
+   "result": "UInt32",
+   "kind": "source",
+   "source_owner": "Words.low",
+   "specification": "Words.low",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_1",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Words.low»)\n  Words.low",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Words.narrow",
+   "params": [
+    "UInt64"
+   ],
+   "result": "UInt32",
+   "kind": "source",
+   "source_owner": "Words.narrow",
+   "specification": "Words.narrow",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_2",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Words.narrow»)\n  Words.narrow",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Words.pack",
+   "params": [
+    "UInt32",
+    "UInt32"
+   ],
+   "result": "UInt64",
+   "kind": "source",
+   "source_owner": "Words.pack",
+   "specification": "Words.pack",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_3",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Words.pack»)\n  Words.pack",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "name": "Words.widen",
+   "params": [
+    "UInt32"
+   ],
+   "result": "UInt64",
+   "kind": "source",
+   "source_owner": "Words.widen",
+   "specification": "Words.widen",
+   "status": "proved",
+   "theorem": "LeanGo.Validated.obl_4",
+   "statement": "LeanGo.Validate.Callable.Rel Eq\n  (LeanGo.Validate.evalBody (LeanGo.Validate.Spec.env LeanGo.Validated.spec) LeanGo.Validated.prog.«Words.widen»)\n  Words.widen",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  }
+ ],
+ "programs": [
+  {
+   "root": "Words.high",
+   "closure": [
+    "Words.high"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_0",
+   "theorem": "LeanGo.Validated.sound_0",
+   "statement": "∀ (n : Nat), LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Words.high\") Words.high",
+   "explicit_theorem": "LeanGo.Validated.explicit_0",
+   "explicit_statement": "∀ (n : Nat) (word : UInt64) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Words.high\" [LeanGo.Validate.Encode.encode word] = some v →\n    v = LeanGo.Validate.Encode.encode (Words.high word)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "root": "Words.low",
+   "closure": [
+    "Words.low"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_1",
+   "theorem": "LeanGo.Validated.sound_1",
+   "statement": "∀ (n : Nat), LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Words.low\") Words.low",
+   "explicit_theorem": "LeanGo.Validated.explicit_1",
+   "explicit_statement": "∀ (n : Nat) (word : UInt64) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Words.low\" [LeanGo.Validate.Encode.encode word] = some v →\n    v = LeanGo.Validate.Encode.encode (Words.low word)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "root": "Words.narrow",
+   "closure": [
+    "Words.narrow"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_2",
+   "theorem": "LeanGo.Validated.sound_2",
+   "statement": "∀ (n : Nat),\n  LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Words.narrow\") Words.narrow",
+   "explicit_theorem": "LeanGo.Validated.explicit_2",
+   "explicit_statement": "∀ (n : Nat) (word : UInt64) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Words.narrow\" [LeanGo.Validate.Encode.encode word] = some v →\n    v = LeanGo.Validate.Encode.encode (Words.narrow word)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "root": "Words.pack",
+   "closure": [
+    "Words.pack"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_3",
+   "theorem": "LeanGo.Validated.sound_3",
+   "statement": "∀ (n : Nat), LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Words.pack\") Words.pack",
+   "explicit_theorem": "LeanGo.Validated.explicit_3",
+   "explicit_statement": "∀ (n : Nat) (high low : UInt32) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Words.pack\" [LeanGo.Validate.Encode.encode high, LeanGo.Validate.Encode.encode low] =\n      some v →\n    v = LeanGo.Validate.Encode.encode (Words.pack high low)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  },
+  {
+   "root": "Words.widen",
+   "closure": [
+    "Words.widen"
+   ],
+   "status": "proved",
+   "prefixed_theorem": "LeanGo.Validated.prefixed_4",
+   "theorem": "LeanGo.Validated.sound_4",
+   "statement": "∀ (n : Nat), LeanGo.Validate.Callable.Rel LeanGo.Validate.Approx (LeanGo.Validated.prog.run n \"Words.widen\") Words.widen",
+   "explicit_theorem": "LeanGo.Validated.explicit_4",
+   "explicit_statement": "∀ (n : Nat) (word : UInt32) (v : LeanGo.Validate.Value),\n  LeanGo.Validated.prog.run n \"Words.widen\" [LeanGo.Validate.Encode.encode word] = some v →\n    v = LeanGo.Validate.Encode.encode (Words.widen word)",
+   "axioms": [
+    "Classical.choice",
+    "Quot.sound",
+    "propext"
+   ]
+  }
+ ],
+ "summary": {
+  "functions": 5,
+  "proved": 5,
+  "failed": 0,
+  "not_attempted": 0,
+  "roots": 5,
+  "roots_proved": 5
+ }
+}

@@ -352,17 +352,42 @@ tracked reports, and that every report belongs to the tracked IR and the
 current validation library.
 
 <!-- validation-coverage:begin (lean-go regenerate --coverage) -->
+| Program | Report | Functions proved / total | Roots established / total | Not proved |
+|---|---|---|---|---|
+| choice | `testdata/choice.validation.json` | 1 / 1 | 1 / 1 | – |
+| counters | `testdata/counters.validation.json` | 5 / 5 | 4 / 4 | – |
+| joins | `testdata/joins.validation.json` | 2 / 2 | 1 / 1 | – |
+| local | `testdata/local.validation.json` | 3 / 3 | 1 / 1 | – |
+| numbers | `testdata/numbers.validation.json` | 2 / 2 | 1 / 1 | – |
+| records | `testdata/records.validation.json` | 3 / 3 | 1 / 1 | – |
+| reduced | `testdata/reduced.validation.json` | 3 / 3 | 1 / 1 | – |
+| trees | `testdata/trees.validation.json` | 2 / 2 | 1 / 1 | – |
+| wide | `testdata/wide.validation.json` | 2 / 2 | 1 / 1 | – |
+| quota | `testdata/quota.validation.json` | 4 / 4 | 4 / 4 | – |
+| clamp | `examples/proofs/clamp/clamp.validation.json` | 2 / 2 | 1 / 1 | – |
+| flags | `examples/proofs/flags/flags.validation.json` | 4 / 4 | 4 / 4 | – |
+| words | `examples/proofs/words/words.validation.json` | 5 / 5 | 5 / 5 | – |
+| bytes | `examples/proofs/bytes/bytes.validation.json` | 4 / 4 | 4 / 4 | – |
+| header | `examples/proofs/header/header.validation.json` | 2 / 2 | 2 / 2 | – |
+| wire16 | `examples/proofs/wire16/wire16.validation.json` | 5 / 5 | 5 / 5 | – |
+| crc16 | `examples/proofs/crc16/crc16.validation.json` | 3 / 3 | 2 / 2 | – |
+| adler32 | `examples/proofs/adler32/adler32.validation.json` | 5 / 5 | 3 / 3 | – |
+| normalizer | `examples/proofs/normalizer/normalizer.validation.json` | 3 / 3 | 1 / 1 | – |
+| format dns | `examples/formats/dns/dns.validation.json` | 12 / 14 | 2 / 3 | `DnsHeader.serialize`: failed: memory limit; `DnsHeader.word1`: failed: memory limit |
+| format header | `examples/formats/header/header.validation.json` | 7 / 7 | 4 / 4 | – |
+| format udp | `examples/formats/udp/udp.validation.json` | 7 / 7 | 4 / 4 | – |
+| **total** | 22 programs | **86 / 88** | **53 / 54** | |
 <!-- validation-coverage:end -->
 
-Under the earlier, unlimited runs (the Python runner) the totals were 84 / 85
-functions and 52 / 53 roots: `DnsHeader.serialize` then proved in about 40 s,
+`normalizer` is now extracted as module IR and is included (3 / 3). Under the
+earlier, unlimited runs of the Python runner (21 programs) the totals were
+84 / 85 functions and 52 / 53 roots: `DnsHeader.serialize` then proved in about 40 s,
 using between 5 and 6 GB. Under the default 4096 MiB cap it is reported
 `failed: memory limit` as well (`--validate-memory-mb 6144` proves it); its
 root has no whole-program theorem either way, because `word1` fails.
 
 `checkedframe` has no IR of its own: it is the composition of `wire16` and
-`crc16`, both completely validated. The pilot `normalizer` fixture uses the
-pilot IR, not the module IR, and is out of scope.
+`crc16`, both completely validated.
 
 ### Failure classes
 
