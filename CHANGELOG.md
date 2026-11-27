@@ -108,6 +108,16 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   fields at the public API; see
   [docs/wire-formats.md](docs/wire-formats.md#native-against-metered).
 
+**Examples**
+
+- [examples/oracle](examples/oracle) uses extracted native packages as
+  reference models: hand-optimized Adler-32 (deferred reduction, blocks of
+  5,552 bytes) and CRC-16/XMODEM (two lookup tables) are tested against the
+  packages generated from the proved sources, with seeded, random-chunking,
+  exhaustive and fuzz tests, and three planted bugs that the harness finds
+  and shrinks. The models are tracked artifacts. See
+  [docs/oracle-testing.md](docs/oracle-testing.md).
+
 **Install and tool**
 
 - The extraction pipeline is a single Go command, `lean-go`, with the

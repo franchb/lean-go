@@ -86,6 +86,13 @@ var Packages = []Package{
 	demo("adler32", "Adler32", "Adler32.checksum", "Adler32.initial", "Adler32.update"),
 	demo("normalizer", "Normalizer", "Normalizer.normalize"),
 	demo("clock", "Clock", "Clock.join", "Clock.split"),
+	// The models of the oracle example: native packages of the proved
+	// checksum sources. They share the demos' IR and carry no evidence of
+	// their own; the proof contracts stay with the demos.
+	{Package: "examples/oracle/model/adler32", IR: "examples/proofs/adler32/adler32.ir.json", SourceDir: "examples/proofs/adler32/source",
+		Module: "Adler32", Roots: []string{"Adler32.checksum", "Adler32.initial", "Adler32.update"}, Mode: "native"},
+	{Package: "examples/oracle/model/crc16", IR: "examples/proofs/crc16/crc16.ir.json", SourceDir: "examples/proofs/crc16/source",
+		Module: "Crc16", Roots: []string{"Crc16.update", "Crc16.updateByte"}, Mode: "native"},
 }
 
 // Frame is the checked-frame composition over two demo packages.

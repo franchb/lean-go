@@ -49,7 +49,7 @@ go run ./cmd/lean-go regenerate
 
 It produces every artifact in a fresh temporary tree, replaces tracked copies
 only after all of them succeeded, and ends with `N of M artifacts changed`; a
-second run reports `0 of M`. A run on an unchanged checkout (107 artifacts,
+second run reports `0 of M`. A run on an unchanged checkout (116 artifacts,
 two jobs, warm producer cache) took about 3 minutes on a shared 4-core
 machine. Each validation process is capped at 4096 MiB and the DNS example
 reaches that cap; on a machine short of memory, use `--jobs 1`. `go run ./cmd/lean-go regenerate --coverage` prints the

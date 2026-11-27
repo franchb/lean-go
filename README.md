@@ -201,6 +201,17 @@ the [UDP header](examples/formats/udp) follows
 [RFC 768](https://www.rfc-editor.org/rfc/rfc768). See
 [wire formats](docs/wire-formats.md) for the spec format and its limits.
 
+## Models as test oracles
+
+You do not have to ship the extracted code to benefit from it. The
+[oracle example](examples/oracle) keeps the generated native packages of
+the proved Adler-32 and CRC-16 sources as reference models and tests
+hand-optimized Go against them: seeded and random chunked inputs, an
+exhaustive pass over every CRC register, two fuzz targets, and three
+deliberately wrong variants that the harness must catch and shrink. The
+fast code is what you would deploy; the model says what it must compute.
+See [models as test oracles](docs/oracle-testing.md).
+
 ## Install
 
 To use a generated package you need only Go (the project pins and tests Go
@@ -240,6 +251,7 @@ history is in [CHANGELOG.md](CHANGELOG.md).
 Next: [getting started](docs/getting-started.md) (extract your own module),
 the [CLI guide](docs/cli.md), [native mode](docs/native-mode.md),
 [proof contracts](docs/proof-contracts.md), [wire formats](docs/wire-formats.md),
+[models as test oracles](docs/oracle-testing.md),
 [diagnostics](docs/diagnostics.md), the [quota library](docs/quota.md) and
 [translation validation](docs/research/translation-validation.md) (semantics,
 proof method, coverage).
