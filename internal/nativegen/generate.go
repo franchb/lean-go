@@ -26,7 +26,7 @@ import (
 )
 
 // Version identifies the native emitter and its output conventions.
-const Version = "lean-go-nativegen/v1"
+const Version = "lean-go-nativegen/v2"
 
 // ManifestSchema identifies the native manifest layout.
 const ManifestSchema = "lean-go-native-manifest/v1"
