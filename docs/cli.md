@@ -156,6 +156,7 @@ uv run --locked python scripts/check_header_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_wire16_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_crc16_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_adler32_demo.py --cli "$checkout_cli"
+uv run --locked python scripts/check_clock_demo.py --cli "$checkout_cli"
 uv run --locked python scripts/check_checked_frame.py --cli "$checkout_cli"
 ```
 
@@ -268,9 +269,9 @@ The install smoke test audits a direct wheel and an sdist-rebuilt wheel, install
 each in a fresh environment, verifies the actual installed imports, and runs
 external generation, proof checking and a Go-only consumer. It also checks
 read-only installed resources and paths containing spaces. Both installed wheels
-regenerate and recheck the complete standalone clamp, flags, words, bytes, header, wire16, crc16 and adler32
-demos, compare their tracked artifacts, freshly check all 56 source claims per
-wheel, and test and run all eight copied modules with Go alone. Each wheel also checks the two frame composition claims against both component manifests. `--without-lean`
+regenerate and recheck the complete standalone clamp, flags, words, bytes, header, wire16, crc16, adler32 and clock
+demos, compare their tracked artifacts, freshly check all 59 source claims per
+wheel, and test and run all nine copied modules with Go alone. Each wheel also checks the two frame composition claims against both component manifests. `--without-lean`
 explicitly restricts this smoke test to packaging,
 help/version and missing-tool errors; it does not claim producer validation. CI runs the full smoke on Linux
 and Windows.

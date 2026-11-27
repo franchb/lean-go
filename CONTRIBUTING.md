@@ -46,7 +46,7 @@ The [alpha.15 release](docs/releases/v0.1.0-alpha.15.md), Python package
 Pair tagged examples with the CLI from the same tag. For current artifacts,
 [install the CLI from this same checkout](docs/cli.md#development-checkout);
 the checkout uses generator v19 with the single IR schema `lean-go-ir/v24` and adds the
-[Adler-32 record fold](examples/proofs/adler32).
+[Adler-32 record fold](examples/proofs/adler32) and the [clock division example](examples/proofs/clock).
 After changing a demo or CLI handoff, run the relevant verifier unit tests and
 the complete installed-wheel smoke:
 
@@ -61,19 +61,20 @@ uv run --locked python scripts/check_cli_install.py
 ```
 
 The smoke audits both a direct wheel and an sdist-rebuilt wheel. For each wheel,
-it regenerates all eight demos, compares exact bytes, freshly checks all 56 source
+it regenerates all nine demos, compares exact bytes, freshly checks all 59 source
 claims and deploys each using only Go sources and `go.mod`. It also checks the two frame claims against both component manifests. Root Go tests also
-exercise all eight standalone demos by copying them into isolated Go-only
+exercise all nine standalone demos by copying them into isolated Go-only
 environments. Tests inside a nested module
 can be run directly; they are otherwise excluded from root package discovery.
 The [byte walkthrough](docs/articles/proved-byte-codec.md) explains how to review
 a concrete contribution: four roots, twelve independent expected propositions,
 fresh proof evidence and Go checks against `encoding/binary`. For changes to the
 UInt8 engine, use the focused admission and differential tests in the
-[UInt8 report](docs/research/extraction-uint8.md). Broad generic collections and
-direct UInt8/UInt64 casts remain deferred. The UInt16 subset covers byte casts,
-OR, masked shifts, exact widening from UInt16 to UInt32 and, in the development
-checkout, XOR. The [CRC-16/XMODEM example](examples/proofs/crc16) exercises it.
+[UInt8 report](docs/research/extraction-uint8.md). Broad generic collections
+remain deferred. In the development checkout every unsigned width supports every
+operation, including division, remainder and all twelve conversions; see the
+[support matrix](docs/support-matrix.md), its focused tests in
+`scripts/test_unsigned.py` and the [clock example](examples/proofs/clock).
 
 CI executes ordinary Go tests on Linux and Windows, and extraction gates on Linux.
 Tag workflows also fetch the exact published version into separate Go-only

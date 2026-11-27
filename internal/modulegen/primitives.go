@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/franchb/lean-go/internal/moduleir"
 )
@@ -20,6 +21,13 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 		if len(primitive.Params) == 2 {
 			right = fmt.Sprintf("f.slots[%d].%s", f.slots[c.Value.Args[1]], field)
 		}
+		if division(c.Value.Name) {
+			// Go panics on a zero divisor; Lean defines x / 0 = 0 and x % 0 = x.
+			fmt.Fprintf(w, "value,err:=b.make(%d,0,nil);if err!=nil{return nil,err};%s\n", g.types[result],
+				divisionStatement(c.Value.Name, "value."+scalarField(result), left, right, false, ""))
+			fmt.Fprintf(w, "f.slots[%d]=value;f.pc=%d\n", f.slots[c.Bind.ID], f.states[c.Next])
+			return
+		}
 		expression = primitiveExpression(c.Value.Name, left, right)
 	}
 	if result == "Bool" {
@@ -30,55 +38,52 @@ func (g *generator) emitNumeric(w *bytes.Buffer, f *function, c *moduleir.Code) 
 	fmt.Fprintf(w, "f.slots[%d]=value;f.pc=%d\n", f.slots[c.Bind.ID], f.states[c.Next])
 }
 
+var shiftMasks = map[string]string{"UInt8": "7", "UInt16": "15", "UInt32": "31", "UInt64": "63"}
+var primitiveOperators = map[string]string{"add": "+", "sub": "-", "mul": "*", "land": "&", "lor": "|", "xor": "^",
+	"decEq": "==", "decLt": "<", "decLe": "<="}
+
+// division reports whether a primitive needs the zero-divisor guard of divisionStatement.
+func division(name string) bool {
+	_, operation, _ := strings.Cut(name, ".")
+	return operation == "div" || operation == "mod"
+}
+
+// primitiveExpression renders every primitive except division and remainder
+// as a Go expression on operands of the primitive's width. Shift counts are
+// masked to the width, as in Lean; conversions truncate or zero-extend.
 func primitiveExpression(name, left, right string) string {
-	operator := ""
-	switch name {
-	case "UInt8.toUInt16":
-		return "uint16(" + left + ")"
-	case "UInt8.toUInt32", "UInt16.toUInt32", "UInt64.toUInt32":
-		return "uint32(" + left + ")"
-	case "UInt16.toUInt8", "UInt32.toUInt8":
-		return "uint8(" + left + ")"
-	case "UInt32.toUInt64":
-		return "uint64(" + left + ")"
-	case "UInt8.add", "UInt32.add", "UInt64.add":
-		operator = "+"
-	case "UInt8.sub", "UInt32.sub", "UInt64.sub":
-		operator = "-"
-	case "UInt8.mul", "UInt32.mul", "UInt64.mul":
-		operator = "*"
-	case "UInt8.shiftLeft":
-		return left + " << (" + right + " & 7)"
-	case "UInt16.shiftLeft":
-		return left + " << (" + right + " & 15)"
-	case "UInt32.shiftLeft":
-		return left + " << (" + right + " & 31)"
-	case "UInt64.shiftLeft":
-		return left + " << (" + right + " & 63)"
-	case "UInt8.land", "UInt32.land", "UInt64.land":
-		operator = "&"
-	case "UInt8.lor", "UInt16.lor", "UInt32.lor", "UInt64.lor":
-		operator = "|"
-	case "UInt8.xor", "UInt16.xor", "UInt32.xor", "UInt64.xor":
-		operator = "^"
-	case "UInt8.complement", "UInt32.complement", "UInt64.complement":
+	primitive, _ := moduleir.LookupPrimitive(name)
+	width, operation, _ := strings.Cut(name, ".")
+	switch operation {
+	case "shiftLeft":
+		return left + " << (" + right + " & " + shiftMasks[width] + ")"
+	case "shiftRight":
+		return left + " >> (" + right + " & " + shiftMasks[width] + ")"
+	case "complement":
 		return "^" + left
-	case "UInt8.shiftRight":
-		return left + " >> (" + right + " & 7)"
-	case "UInt16.shiftRight":
-		return left + " >> (" + right + " & 15)"
-	case "UInt32.shiftRight":
-		return left + " >> (" + right + " & 31)"
-	case "UInt64.shiftRight":
-		return left + " >> (" + right + " & 63)"
-	case "UInt8.decEq", "UInt32.decEq", "UInt64.decEq":
-		operator = "=="
-	case "UInt8.decLt", "UInt32.decLt", "UInt64.decLt":
-		operator = "<"
-	case "UInt8.decLe", "UInt32.decLe", "UInt64.decLe":
-		operator = "<="
 	}
-	return left + " " + operator + " " + right
+	if operator, ok := primitiveOperators[operation]; ok {
+		return left + " " + operator + " " + right
+	}
+	return strings.ToLower(primitive.Result) + "(" + left + ")"
+}
+
+// divisionStatement assigns Lean's division or remainder to dst. With declare,
+// it declares dst with the given Go type; otherwise dst is a zero-valued field.
+func divisionStatement(name, dst, left, right string, declare bool, goType string) string {
+	_, operation, _ := strings.Cut(name, ".")
+	if operation == "div" {
+		prefix := ""
+		if declare {
+			prefix = "var " + dst + " " + goType + ";"
+		}
+		return prefix + "if " + right + "!=0{" + dst + "=" + left + "/" + right + "}"
+	}
+	assign := "="
+	if declare {
+		assign = ":="
+	}
+	return dst + assign + left + ";if " + right + "!=0{" + dst + "=" + left + "%" + right + "}"
 }
 
 func (g *generator) primitiveCatalog() []moduleir.Primitive {

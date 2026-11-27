@@ -112,9 +112,10 @@ The extraction and Go runtime remain tested and trusted; the proofs establish
 the selected Lean statements.
 Alpha.10 introduced `UInt16` byte casts, OR and shifts. Alpha.11 adds `UInt16.toUInt32` for exact widening.
 Alpha.12 extracts ordinary UInt16 XOR (`^^^`), used in the
-[streaming checksum example](../examples/proofs/crc16). Alpha.13 combines that checksum with Wire16 in a [proved frame reader and encoder](../examples/proofs/checkedframe). Alpha.14 uses an extracted byte fold in that reader and checks both packages with one [composition contract](proof-contracts.md#bind-one-proof-to-multiple-generated-packages). Runtime
-division/remainder, direct UInt8/UInt64 casts and broad generic
-collections remain deferred.
+[streaming checksum example](../examples/proofs/crc16). Alpha.13 combines that checksum with Wire16 in a [proved frame reader and encoder](../examples/proofs/checkedframe). Alpha.14 uses an extracted byte fold in that reader and checks both packages with one [composition contract](proof-contracts.md#bind-one-proof-to-multiple-generated-packages). The development
+checkout admits every operation of every unsigned width, including division,
+remainder and all width conversions; see the [support matrix](support-matrix.md).
+Broad generic collections remain deferred.
 
 ## Extract your own Lean module
 

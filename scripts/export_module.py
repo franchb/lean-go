@@ -223,11 +223,12 @@ PROFILE = 'pure-module/v22'
 BYTE_LIST = 'List UInt8'
 SCALAR_FEATURES = {'UInt8': 'uint8', 'UInt16': 'uint16', 'UInt32': 'uint32', 'UInt64': 'uint64'}
 # Exact primitive names per feature family; they mirror internal/moduleir/features.go.
-BITWISE_PRIMITIVES = {f'UInt{width}.{operation}' for width in (8, 32, 64) for operation in (
-    'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight')} | {
-        f'UInt16.{operation}' for operation in ('lor', 'xor', 'shiftLeft', 'shiftRight')}
-WIDTH_CONVERSIONS = {'UInt8.toUInt16', 'UInt8.toUInt32', 'UInt16.toUInt8', 'UInt16.toUInt32',
-                     'UInt32.toUInt8', 'UInt32.toUInt64', 'UInt64.toUInt32'}
+WIDTHS = (8, 16, 32, 64)
+BITWISE_PRIMITIVES = {f'UInt{width}.{operation}' for width in WIDTHS for operation in (
+    'land', 'lor', 'xor', 'complement', 'shiftLeft', 'shiftRight')}
+DIVISION_PRIMITIVES = {f'UInt{width}.{operation}' for width in WIDTHS for operation in ('div', 'mod')}
+WIDTH_CONVERSIONS = {f'UInt{source}.toUInt{target}' for source in WIDTHS for target in WIDTHS
+                     if source != target}
 
 
 def executable_nodes(program):
@@ -277,6 +278,8 @@ def program_features(program):
     features = {SCALAR_FEATURES[typ] for typ in emitted_types(program) if typ in SCALAR_FEATURES}
     if primitives & BITWISE_PRIMITIVES:
         features.add('bitwise')
+    if primitives & DIVISION_PRIMITIVES:
+        features.add('division')
     if primitives & WIDTH_CONVERSIONS:
         features.add('width_conversion')
     if any(node['op'] == 'join' for node in executable_nodes(program)):

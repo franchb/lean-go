@@ -160,7 +160,14 @@ func (e *apiEmitter) emitScalarBlock(w *bytes.Buffer, first *moduleir.Code, used
 	}
 	fmt.Fprintf(w, "if !b.scalarWork(%d,%d){return %s,ErrResource}\n", allocations+1, allocations, zero)
 	for bind := first; bind != c; bind = bind.Next {
-		if used[bind.Bind.ID] {
+		if !used[bind.Bind.ID] {
+			continue
+		}
+		if value := bind.Value; value.Kind == "primitive" && division(value.Name) {
+			dst := fmt.Sprintf("v%d", bind.Bind.ID)
+			left, right := fmt.Sprintf("v%d", value.Args[0]), fmt.Sprintf("v%d", value.Args[1])
+			w.WriteString(divisionStatement(value.Name, dst, left, right, true, e.scalars[bind.Bind.Type].GoType) + "\n")
+		} else {
 			fmt.Fprintf(w, "v%d := %s\n", bind.Bind.ID, e.scalarExpression(bind))
 		}
 	}

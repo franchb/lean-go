@@ -38,7 +38,7 @@ class WidthFeatureTests(unittest.TestCase):
                     program, roots = self.raw(body, multi)
                     program['provenance'] = [dict(name=name, dependencies=[name])]
                     self.assertFalse(self.converts(program, roots))
-        for name in ('UInt32.toUInt32', 'UInt64.toUInt64', 'UInt16.toUInt64', 'UInt32.toUInt16',
+        for name in ('UInt32.toUInt32', 'UInt64.toUInt64', 'UInt16.toUInt16', 'USize.toUInt32',
                      'UInt32.toUInt64._boxed', 'UInt64.toUInt32.injected', 'Fake.UInt32.toUInt64',
                      'UInt16.toUInt32._boxed', 'Fake.UInt16.toUInt32'):
             leaf['value']['name'] = name
@@ -76,10 +76,10 @@ class WidthAdmissionTests(unittest.TestCase):
         for helper, cast, operand in cases:
             probe = self.imported_attribute_probe('externAttr', helper, '{ entries := [.standard `all "untrusted"] }')
             self.assert_rejected(f'def run (a : {operand}) := {cast} a\n', 'Numeric source extern changed', probe=probe)
-        for body in ('def run (a : UInt64) := a.toNat\n', 'def run (a : UInt32) := a.toUInt16\n',
-                     'def run (a : UInt16) := a.toUInt64\n', 'axiom forged : UInt64\ndef run := forged.toUInt32\n',
+        for body in ('def run (a : UInt64) := a.toNat\n', 'def run (a : UInt32) := a.toUSize\n',
+                     'def run (a : UInt16) := a.toInt16\n', 'axiom forged : UInt64\ndef run := forged.toUInt32\n',
                      'unsafe def run (a : UInt64) := a.toUInt32\n'):
-            self.assert_rejected(body, 'extern|axiom|unsafe|Unsafe|Unsupported|unsupported|not supported by code generator')
+            self.assert_rejected(body, 'extern|axiom|unsafe|Unsafe|Unsupported|unsupported|not supported by code generator|provenance')
 
     def test_imported_attributes_and_mono_signatures_reject(self):
         for name, operand, result in CASTS:

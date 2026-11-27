@@ -132,16 +132,15 @@ def run (flag : Bool) (a b : UInt8) (p : Packet) : Packet :=
 
     def test_reject_unadmitted_widths_operators_and_alias(self):
         sources = [
-            'def run (a : UInt16) :=\n  let _unused := a * a\n  a',
-            'def run (a : UInt16) := a &&& a', 'def run (a : UInt16) := ~~~a',
-            'def run (a : UInt16) := a / a', 'def run (a : UInt16) := a % a',
-            'def run (a b : UInt16) := decide (a < b)', 'def run (a : UInt16) := a.toUInt64',
-            'def run (a : UInt64) := a.toUInt16', 'def run (a : UInt16) := a.toNat',
+            'def run (a : UInt16) :=\n  let _unused := a.toNat * a.toNat\n  a',
+            'def run (a : Int16) := a &&& a', 'def run (a : UInt16) := a.toInt16',
+            'def run (a : UInt16) := a.toUSize', 'def run (a : UInt16) := a.toFloat',
+            'def run (a : UInt16) := a.toNat',
             'abbrev Half := UInt16\ndef run (a : Half) := a',
         ]
         for source in sources:
             with self.subTest(source=source):
-                self.assert_rejected(source, 'extern|opaque|Unsupported|unsupported|not an inductive type')
+                self.assert_rejected(source, 'extern|opaque|Unsupported|unsupported|not an inductive type|provenance')
 
     def test_trusted_literal_and_logical_helper_attribute_changes_reject(self):
         for helper, body in [('UInt16.ofNat', 'def run : UInt16 := 65535'),

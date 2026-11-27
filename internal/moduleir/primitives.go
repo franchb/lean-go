@@ -15,65 +15,45 @@ type Primitive struct {
 	Semantics string   `json:"semantics"`
 }
 
+// scalarBits are the admitted unsigned widths. Each width has the same
+// fourteen operations and one conversion to every other width.
+var scalarBits = map[string]int{"UInt8": 8, "UInt16": 16, "UInt32": 32, "UInt64": 64}
+
 // LookupPrimitive returns a fresh signature, so callers cannot mutate the catalog.
+// The names are exactly those of the producer's numericPrimitives table.
 func LookupPrimitive(name string) (Primitive, bool) {
-	switch name {
-	case "UInt8.toUInt16":
-		return Primitive{name, []string{"UInt8"}, "UInt16", "zero extension: a"}, true
-	case "UInt16.toUInt32":
-		return Primitive{name, []string{"UInt16"}, "UInt32", "zero extension: a"}, true
-	case "UInt16.toUInt8":
-		return Primitive{name, []string{"UInt16"}, "UInt8", "a modulo 2^8"}, true
-	case "UInt16.lor":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "bitwise OR of 16-bit operands"}, true
-	case "UInt16.xor":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "bitwise XOR of 16-bit operands"}, true
-	case "UInt16.shiftLeft":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "(a * 2^(b modulo 16)) modulo 2^16"}, true
-	case "UInt16.shiftRight":
-		return Primitive{name, []string{"UInt16", "UInt16"}, "UInt16", "floor(a / 2^(b modulo 16))"}, true
-	case "UInt8.toUInt32":
-		return Primitive{name, []string{"UInt8"}, "UInt32", "zero extension: a"}, true
-	case "UInt32.toUInt8":
-		return Primitive{name, []string{"UInt32"}, "UInt8", "a modulo 2^8"}, true
-	case "UInt32.toUInt64":
-		return Primitive{name, []string{"UInt32"}, "UInt64", "zero extension: a"}, true
-	case "UInt64.toUInt32":
-		return Primitive{name, []string{"UInt64"}, "UInt32", "a modulo 2^32"}, true
-	}
 	width, operation, ok := strings.Cut(name, ".")
-	if !ok || (width != "UInt8" && width != "UInt32" && width != "UInt64") {
+	bits, scalar := scalarBits[width]
+	if !ok || !scalar {
 		return Primitive{}, false
 	}
-	bits := "32"
-	if width == "UInt8" {
-		bits = "8"
-	}
-	if width == "UInt64" {
-		bits = "64"
-	}
+	n := strconv.Itoa(bits)
 	result, semantics := width, ""
 	params := []string{width, width}
 	switch operation {
 	case "add":
-		semantics = "(a + b) modulo 2^" + bits
+		semantics = "(a + b) modulo 2^" + n
 	case "sub":
-		semantics = "(a - b) modulo 2^" + bits
+		semantics = "(a - b) modulo 2^" + n
 	case "mul":
-		semantics = "(a * b) modulo 2^" + bits
+		semantics = "(a * b) modulo 2^" + n
+	case "div":
+		semantics = "floor(a / b), and 0 when b = 0"
+	case "mod":
+		semantics = "a modulo b, and a when b = 0"
 	case "shiftLeft":
-		semantics = "(a * 2^(b modulo " + bits + ")) modulo 2^" + bits
+		semantics = "(a * 2^(b modulo " + n + ")) modulo 2^" + n
 	case "land":
-		semantics = "bitwise AND of " + bits + "-bit operands"
+		semantics = "bitwise AND of " + n + "-bit operands"
 	case "lor":
-		semantics = "bitwise OR of " + bits + "-bit operands"
+		semantics = "bitwise OR of " + n + "-bit operands"
 	case "xor":
-		semantics = "bitwise XOR of " + bits + "-bit operands"
+		semantics = "bitwise XOR of " + n + "-bit operands"
 	case "complement":
 		params = []string{width}
-		semantics = "(2^" + bits + " - 1) - a"
+		semantics = "(2^" + n + " - 1) - a"
 	case "shiftRight":
-		semantics = "floor(a / 2^(b modulo " + bits + "))"
+		semantics = "floor(a / 2^(b modulo " + n + "))"
 	case "decEq":
 		result, semantics = "Bool", "unsigned a == b"
 	case "decLt":
@@ -81,7 +61,15 @@ func LookupPrimitive(name string) (Primitive, bool) {
 	case "decLe":
 		result, semantics = "Bool", "unsigned a <= b"
 	default:
-		return Primitive{}, false
+		target, conversion := strings.CutPrefix(operation, "to")
+		targetBits, known := scalarBits[target]
+		if !conversion || !known || target == width {
+			return Primitive{}, false
+		}
+		params, result, semantics = []string{width}, target, "zero extension: a"
+		if targetBits < bits {
+			semantics = "a modulo 2^" + strconv.Itoa(targetBits)
+		}
 	}
 	return Primitive{name, params, result, semantics}, true
 }

@@ -19,27 +19,25 @@ structure NumericPrimitive where
   axioms : Array Name := #[]
   deriving Inhabited
 
--- Runtime admission is this exact table, never all extern declarations.
+-- Runtime admission is this exact table, never all extern declarations: every
+-- unsigned width has the same fourteen operations and three conversions.
+-- The pinned compiler's constant folder (Lean.Compiler.LCNF.Simp.ConstantFold)
+-- also introduces some of these leaves itself: `x * 2^k` and `x / 2^k` become
+-- `shiftLeft x k` and `shiftRight x k`; `x / 1`, `x % 0`, `x % 1` and `0 / y`
+-- fold to `x`, `x`, `0` and `0`; `x / 0` and `x % 2^k` stay `div` and `mod`.
 def numericPrimitives : Array NumericPrimitive := #[
-  { name := ``UInt8.toUInt16, operand := ``UInt8, result := ``UInt16,
-    externalSymbol := "lean_uint8_to_uint16", arity := 1 },
-  { name := ``UInt16.toUInt32, operand := ``UInt16, result := ``UInt32,
-    externalSymbol := "lean_uint16_to_uint32", arity := 1 },
-  { name := ``UInt16.toUInt8, operand := ``UInt16, result := ``UInt8,
-    externalSymbol := "lean_uint16_to_uint8", arity := 1 },
-  { name := ``UInt16.lor, operand := ``UInt16, result := ``UInt16,
-    externalSymbol := "lean_uint16_lor", axioms := #[``propext, ``Quot.sound] },
-  { name := ``UInt16.xor, operand := ``UInt16, result := ``UInt16,
-    externalSymbol := "lean_uint16_xor", axioms := #[``propext, ``Quot.sound] },
-  { name := ``UInt16.shiftLeft, operand := ``UInt16, result := ``UInt16,
-    externalSymbol := "lean_uint16_shift_left", axioms := #[``propext] },
-  { name := ``UInt16.shiftRight, operand := ``UInt16, result := ``UInt16,
-    externalSymbol := "lean_uint16_shift_right", axioms := #[``propext] },
-
-  { name := ``UInt8.toUInt32, operand := ``UInt8, result := ``UInt32,
-    externalSymbol := "lean_uint8_to_uint32", arity := 1 },
-  { name := ``UInt32.toUInt8, operand := ``UInt32, result := ``UInt8,
-    externalSymbol := "lean_uint32_to_uint8", arity := 1 },
+  -- UInt8: arithmetic, Lean division (x / 0 = 0, x % 0 = x), bitwise, shifts,
+  -- comparisons and the three conversions to other widths.
+  { name := ``UInt8.add, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_add" },
+  { name := ``UInt8.sub, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_sub" },
+  { name := ``UInt8.mul, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_mul" },
+  { name := ``UInt8.div, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_div", axioms := #[``propext] },
+  { name := ``UInt8.mod, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_mod", axioms := #[``propext] },
   { name := ``UInt8.land, operand := ``UInt8, result := ``UInt8,
     externalSymbol := "lean_uint8_land", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt8.lor, operand := ``UInt8, result := ``UInt8,
@@ -48,22 +46,70 @@ def numericPrimitives : Array NumericPrimitive := #[
     externalSymbol := "lean_uint8_xor", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt8.complement, operand := ``UInt8, result := ``UInt8,
     externalSymbol := "lean_uint8_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt8.shiftLeft, operand := ``UInt8, result := ``UInt8,
+    externalSymbol := "lean_uint8_shift_left", axioms := #[``propext] },
   { name := ``UInt8.shiftRight, operand := ``UInt8, result := ``UInt8,
     externalSymbol := "lean_uint8_shift_right", axioms := #[``propext] },
-  { name := ``UInt8.add, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_add" },
-  { name := ``UInt8.sub, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_sub" },
-  { name := ``UInt8.mul, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_mul" },
-  { name := ``UInt8.decEq, operand := ``UInt8, result := ``Bool, externalSymbol := "lean_uint8_dec_eq" },
-  { name := ``UInt8.decLt, operand := ``UInt8, result := ``Bool, externalSymbol := "lean_uint8_dec_lt" },
-  { name := ``UInt8.decLe, operand := ``UInt8, result := ``Bool, externalSymbol := "lean_uint8_dec_le" },
-  -- The pinned compiler also introduces this when multiplying by a power of two.
-  { name := ``UInt8.shiftLeft, operand := ``UInt8, result := ``UInt8, externalSymbol := "lean_uint8_shift_left",
-    axioms := #[``propext] },
-
-  { name := ``UInt32.toUInt64, operand := ``UInt32, result := ``UInt64,
-    externalSymbol := "lean_uint32_to_uint64", arity := 1 },
-  { name := ``UInt64.toUInt32, operand := ``UInt64, result := ``UInt32,
-    externalSymbol := "lean_uint64_to_uint32", arity := 1 },
+  { name := ``UInt8.decEq, operand := ``UInt8, result := ``Bool,
+    externalSymbol := "lean_uint8_dec_eq" },
+  { name := ``UInt8.decLt, operand := ``UInt8, result := ``Bool,
+    externalSymbol := "lean_uint8_dec_lt" },
+  { name := ``UInt8.decLe, operand := ``UInt8, result := ``Bool,
+    externalSymbol := "lean_uint8_dec_le" },
+  { name := ``UInt8.toUInt16, operand := ``UInt8, result := ``UInt16,
+    externalSymbol := "lean_uint8_to_uint16", arity := 1 },
+  { name := ``UInt8.toUInt32, operand := ``UInt8, result := ``UInt32,
+    externalSymbol := "lean_uint8_to_uint32", arity := 1 },
+  { name := ``UInt8.toUInt64, operand := ``UInt8, result := ``UInt64,
+    externalSymbol := "lean_uint8_to_uint64", arity := 1 },
+  -- UInt16: arithmetic, Lean division (x / 0 = 0, x % 0 = x), bitwise, shifts,
+  -- comparisons and the three conversions to other widths.
+  { name := ``UInt16.add, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_add" },
+  { name := ``UInt16.sub, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_sub" },
+  { name := ``UInt16.mul, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_mul" },
+  { name := ``UInt16.div, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_div", axioms := #[``propext] },
+  { name := ``UInt16.mod, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_mod", axioms := #[``propext] },
+  { name := ``UInt16.land, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_land", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt16.lor, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_lor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt16.xor, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_xor", axioms := #[``propext, ``Quot.sound] },
+  { name := ``UInt16.complement, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt16.shiftLeft, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_shift_left", axioms := #[``propext] },
+  { name := ``UInt16.shiftRight, operand := ``UInt16, result := ``UInt16,
+    externalSymbol := "lean_uint16_shift_right", axioms := #[``propext] },
+  { name := ``UInt16.decEq, operand := ``UInt16, result := ``Bool,
+    externalSymbol := "lean_uint16_dec_eq" },
+  { name := ``UInt16.decLt, operand := ``UInt16, result := ``Bool,
+    externalSymbol := "lean_uint16_dec_lt" },
+  { name := ``UInt16.decLe, operand := ``UInt16, result := ``Bool,
+    externalSymbol := "lean_uint16_dec_le" },
+  { name := ``UInt16.toUInt8, operand := ``UInt16, result := ``UInt8,
+    externalSymbol := "lean_uint16_to_uint8", arity := 1 },
+  { name := ``UInt16.toUInt32, operand := ``UInt16, result := ``UInt32,
+    externalSymbol := "lean_uint16_to_uint32", arity := 1 },
+  { name := ``UInt16.toUInt64, operand := ``UInt16, result := ``UInt64,
+    externalSymbol := "lean_uint16_to_uint64", arity := 1 },
+  -- UInt32: arithmetic, Lean division (x / 0 = 0, x % 0 = x), bitwise, shifts,
+  -- comparisons and the three conversions to other widths.
+  { name := ``UInt32.add, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_add" },
+  { name := ``UInt32.sub, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_sub" },
+  { name := ``UInt32.mul, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_mul" },
+  { name := ``UInt32.div, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_div", axioms := #[``propext] },
+  { name := ``UInt32.mod, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_mod", axioms := #[``propext] },
   { name := ``UInt32.land, operand := ``UInt32, result := ``UInt32,
     externalSymbol := "lean_uint32_land", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt32.lor, operand := ``UInt32, result := ``UInt32,
@@ -72,8 +118,34 @@ def numericPrimitives : Array NumericPrimitive := #[
     externalSymbol := "lean_uint32_xor", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt32.complement, operand := ``UInt32, result := ``UInt32,
     externalSymbol := "lean_uint32_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt32.shiftLeft, operand := ``UInt32, result := ``UInt32,
+    externalSymbol := "lean_uint32_shift_left", axioms := #[``propext] },
   { name := ``UInt32.shiftRight, operand := ``UInt32, result := ``UInt32,
     externalSymbol := "lean_uint32_shift_right", axioms := #[``propext] },
+  { name := ``UInt32.decEq, operand := ``UInt32, result := ``Bool,
+    externalSymbol := "lean_uint32_dec_eq" },
+  { name := ``UInt32.decLt, operand := ``UInt32, result := ``Bool,
+    externalSymbol := "lean_uint32_dec_lt" },
+  { name := ``UInt32.decLe, operand := ``UInt32, result := ``Bool,
+    externalSymbol := "lean_uint32_dec_le" },
+  { name := ``UInt32.toUInt8, operand := ``UInt32, result := ``UInt8,
+    externalSymbol := "lean_uint32_to_uint8", arity := 1 },
+  { name := ``UInt32.toUInt16, operand := ``UInt32, result := ``UInt16,
+    externalSymbol := "lean_uint32_to_uint16", arity := 1 },
+  { name := ``UInt32.toUInt64, operand := ``UInt32, result := ``UInt64,
+    externalSymbol := "lean_uint32_to_uint64", arity := 1 },
+  -- UInt64: arithmetic, Lean division (x / 0 = 0, x % 0 = x), bitwise, shifts,
+  -- comparisons and the three conversions to other widths.
+  { name := ``UInt64.add, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_add" },
+  { name := ``UInt64.sub, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_sub" },
+  { name := ``UInt64.mul, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_mul" },
+  { name := ``UInt64.div, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_div", axioms := #[``propext] },
+  { name := ``UInt64.mod, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_mod", axioms := #[``propext] },
   { name := ``UInt64.land, operand := ``UInt64, result := ``UInt64,
     externalSymbol := "lean_uint64_land", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt64.lor, operand := ``UInt64, result := ``UInt64,
@@ -82,25 +154,22 @@ def numericPrimitives : Array NumericPrimitive := #[
     externalSymbol := "lean_uint64_xor", axioms := #[``propext, ``Quot.sound] },
   { name := ``UInt64.complement, operand := ``UInt64, result := ``UInt64,
     externalSymbol := "lean_uint64_complement", axioms := #[``propext, ``Quot.sound], arity := 1 },
+  { name := ``UInt64.shiftLeft, operand := ``UInt64, result := ``UInt64,
+    externalSymbol := "lean_uint64_shift_left", axioms := #[``propext] },
   { name := ``UInt64.shiftRight, operand := ``UInt64, result := ``UInt64,
     externalSymbol := "lean_uint64_shift_right", axioms := #[``propext] },
-  { name := ``UInt32.add, result := ``UInt32, externalSymbol := "lean_uint32_add" },
-  { name := ``UInt32.sub, result := ``UInt32, externalSymbol := "lean_uint32_sub" },
-  { name := ``UInt32.mul, result := ``UInt32, externalSymbol := "lean_uint32_mul" },
-  { name := ``UInt32.decEq, result := ``Bool, externalSymbol := "lean_uint32_dec_eq" },
-  { name := ``UInt32.decLt, result := ``Bool, externalSymbol := "lean_uint32_dec_lt" },
-  { name := ``UInt32.decLe, result := ``Bool, externalSymbol := "lean_uint32_dec_le" },
-  -- The pinned compiler also introduces this when multiplying by a power of two.
-  { name := ``UInt32.shiftLeft, result := ``UInt32, externalSymbol := "lean_uint32_shift_left",
-    axioms := #[``propext] },
-  { name := ``UInt64.add, operand := ``UInt64, result := ``UInt64, externalSymbol := "lean_uint64_add" },
-  { name := ``UInt64.sub, operand := ``UInt64, result := ``UInt64, externalSymbol := "lean_uint64_sub" },
-  { name := ``UInt64.mul, operand := ``UInt64, result := ``UInt64, externalSymbol := "lean_uint64_mul" },
-  { name := ``UInt64.decEq, operand := ``UInt64, result := ``Bool, externalSymbol := "lean_uint64_dec_eq" },
-  { name := ``UInt64.decLt, operand := ``UInt64, result := ``Bool, externalSymbol := "lean_uint64_dec_lt" },
-  { name := ``UInt64.decLe, operand := ``UInt64, result := ``Bool, externalSymbol := "lean_uint64_dec_le" },
-  { name := ``UInt64.shiftLeft, operand := ``UInt64, result := ``UInt64,
-    externalSymbol := "lean_uint64_shift_left", axioms := #[``propext] }]
+  { name := ``UInt64.decEq, operand := ``UInt64, result := ``Bool,
+    externalSymbol := "lean_uint64_dec_eq" },
+  { name := ``UInt64.decLt, operand := ``UInt64, result := ``Bool,
+    externalSymbol := "lean_uint64_dec_lt" },
+  { name := ``UInt64.decLe, operand := ``UInt64, result := ``Bool,
+    externalSymbol := "lean_uint64_dec_le" },
+  { name := ``UInt64.toUInt8, operand := ``UInt64, result := ``UInt8,
+    externalSymbol := "lean_uint64_to_uint8", arity := 1 },
+  { name := ``UInt64.toUInt16, operand := ``UInt64, result := ``UInt16,
+    externalSymbol := "lean_uint64_to_uint16", arity := 1 },
+  { name := ``UInt64.toUInt32, operand := ``UInt64, result := ``UInt32,
+    externalSymbol := "lean_uint64_to_uint32", arity := 1 }]
 
 def numericPrimitive? (n : Name) : Option NumericPrimitive :=
   numericPrimitives.find? (·.name == n)
@@ -114,28 +183,46 @@ def numericByteOrderPackage : Name :=
 def numericWideOrderPackage : Name :=
   ``instLinearOrderPackageUInt64
 
+def numericHalfOrderPackage : Name :=
+  ``instLinearOrderPackageUInt16
+
+def numericOrderPackages : Array Name :=
+  #[numericByteOrderPackage, numericHalfOrderPackage, numericOrderPackage, numericWideOrderPackage]
+
+-- Standard operator instances whose methods are exactly one admitted leaf.
+def numericInstancesBitwise : Array Name := #[
+  ``instAndOpUInt8, ``instAndOpUInt16, ``instAndOpUInt32, ``instAndOpUInt64,
+  ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
+  ``instXorOpUInt8, ``instXorOpUInt16, ``instXorOpUInt32, ``instXorOpUInt64,
+  ``instComplementUInt8, ``instComplementUInt16, ``instComplementUInt32, ``instComplementUInt64]
+
+def numericInstancesPropext : Array Name := #[
+  ``instDivUInt8, ``instDivUInt16, ``instDivUInt32, ``instDivUInt64,
+  ``instModUInt8, ``instModUInt16, ``instModUInt32, ``instModUInt64,
+  ``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
+  ``instShiftRightUInt8, ``instShiftRightUInt16, ``instShiftRightUInt32, ``instShiftRightUInt64]
+
 -- Source-only wrappers support ordinary notation and erased decision proofs.
 -- None of these names authorizes an executable call in exported IR.
 def numericSourceSupport : Array Name := #[
   ``UInt8.ofNat, ``UInt16.ofNat, ``UInt32.ofNat, ``UInt64.ofNat, ``OfNat.ofNat,
   ``UInt8.instOfNat, ``UInt16.instOfNat, ``UInt32.instOfNat, ``UInt64.instOfNat,
-  ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt8, ``instAddUInt32, ``instAddUInt64,
-  ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt8, ``instSubUInt32, ``instSubUInt64,
-  ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt8, ``instMulUInt32, ``instMulUInt64, ``outParam,
-  ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64,
-  ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or, ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
-  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``instXorOpUInt8, ``instXorOpUInt16, ``instXorOpUInt32, ``instXorOpUInt64,
-  ``Complement.complement, ``instComplementUInt8, ``instComplementUInt32, ``instComplementUInt64,
+  ``HAdd.hAdd, ``instHAdd, ``Add.add, ``instAddUInt8, ``instAddUInt16, ``instAddUInt32, ``instAddUInt64,
+  ``HSub.hSub, ``instHSub, ``Sub.sub, ``instSubUInt8, ``instSubUInt16, ``instSubUInt32, ``instSubUInt64,
+  ``HMul.hMul, ``instHMul, ``Mul.mul, ``instMulUInt8, ``instMulUInt16, ``instMulUInt32, ``instMulUInt64, ``outParam,
+  ``HDiv.hDiv, ``instHDiv, ``Div.div, ``HMod.hMod, ``instHMod, ``Mod.mod,
+  ``HAnd.hAnd, ``instHAndOfAndOp, ``AndOp.and, ``HOr.hOr, ``instHOrOfOrOp, ``OrOp.or,
+  ``HXor.hXor, ``instHXorOfXorOp, ``XorOp.xor, ``Complement.complement,
   ``HShiftLeft.hShiftLeft, ``instHShiftLeftOfShiftLeft, ``ShiftLeft.shiftLeft,
-  ``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
-  ``HShiftRight.hShiftRight, ``instHShiftRightOfShiftRight, ``ShiftRight.shiftRight,
-  ``instShiftRightUInt8, ``instShiftRightUInt16, ``instShiftRightUInt32, ``instShiftRightUInt64,
+  ``HShiftRight.hShiftRight, ``instHShiftRightOfShiftRight, ``ShiftRight.shiftRight] ++
+  numericInstancesBitwise ++ numericInstancesPropext ++ #[
   ``BEq.beq, ``Std.PreorderPackage.toBEq,
   ``Std.LinearPreorderPackage.toPreorderPackage,
-  ``Std.LinearOrderPackage.toLinearPreorderPackage, numericByteOrderPackage, numericOrderPackage, numericWideOrderPackage,
-  ``Decidable.decide, ``instDecidableEqUInt8, ``instDecidableEqUInt32, ``instDecidableEqUInt64,
+  ``Std.LinearOrderPackage.toLinearPreorderPackage] ++ numericOrderPackages ++ #[
+  ``Decidable.decide, ``instDecidableEqUInt8, ``instDecidableEqUInt16, ``instDecidableEqUInt32, ``instDecidableEqUInt64,
   ``instDecidableEqBool, ``instBEqOfDecidableEq,
-  ``LT.lt, ``instLTUInt8, ``instLTUInt32, ``instLTUInt64, ``LE.le, ``instLEUInt8, ``instLEUInt32, ``instLEUInt64,
+  ``LT.lt, ``instLTUInt8, ``instLTUInt16, ``instLTUInt32, ``instLTUInt64,
+  ``LE.le, ``instLEUInt8, ``instLEUInt16, ``instLEUInt32, ``instLEUInt64,
   ``ite, ``dite, ``Not, ``Bool.Reflects, ``Bool.Reflects.match_1]
 
 def isNumericSourceBoundary (n : Name) : Bool :=
@@ -207,15 +294,12 @@ def captureNumericBoundary (n : Name) : CoreM TrustedBoundary := do
   return { name := n, observations }
 
 def expectedNumericAxioms (n : Name) : Array Name :=
-  if n == numericByteOrderPackage || n == numericOrderPackage || n == numericWideOrderPackage then
+  if numericOrderPackages.contains n then
     #[``propext, ``Classical.choice, ``Quot.sound]
   else if n == ``Std.LinearPreorderPackage.toPreorderPackage ||
       n == ``Std.LinearOrderPackage.toLinearPreorderPackage then #[``propext]
-  else if #[``instAndOpUInt8, ``instAndOpUInt32, ``instAndOpUInt64, ``instOrOpUInt8, ``instOrOpUInt16, ``instOrOpUInt32, ``instOrOpUInt64,
-      ``instXorOpUInt8, ``instXorOpUInt16, ``instXorOpUInt32, ``instXorOpUInt64, ``instComplementUInt8, ``instComplementUInt32,
-      ``instComplementUInt64].contains n then #[``propext, ``Quot.sound]
-  else if #[``instShiftLeftUInt8, ``instShiftLeftUInt16, ``instShiftLeftUInt32, ``instShiftLeftUInt64,
-      ``instShiftRightUInt8, ``instShiftRightUInt16, ``instShiftRightUInt32, ``instShiftRightUInt64].contains n then #[``propext]
+  else if numericInstancesBitwise.contains n then #[``propext, ``Quot.sound]
+  else if numericInstancesPropext.contains n then #[``propext]
   else (numericPrimitive? n).map (·.axioms) |>.getD #[]
 
 def sameNames (a b : Array Name) : Bool :=

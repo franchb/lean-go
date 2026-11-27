@@ -220,13 +220,14 @@ Limits:
 
 ### Extractor constraints
 
-The runtime Lean stays inside the extractor's current integer matrix:
+The runtime Lean was written for an earlier, smaller integer matrix:
 `UInt16` values are built from bytes with `|||` and `<<<` only and compared
 after `UInt16.toUInt32`; arithmetic and comparisons happen in `UInt32` or
 `UInt64`; there is no division. A 9- to 16-bit member read from a word is
-converted to `UInt16` through two bytes (`to16`). Once `UInt16` comparison,
-arithmetic and `UInt32.toUInt16` are available, `u16`, `to16` and the
-widening in `validate` can be dropped. Bit-field serializers take only their
+converted to `UInt16` through two bytes (`to16`). The extractor now admits
+`UInt16` comparison, arithmetic and `UInt32.toUInt16` (see the
+[support matrix](support-matrix.md)), so `u16`, `to16` and the widening in
+`validate` can be dropped in a later generator change. Bit-field serializers take only their
 own fields, and readers do not take the whole `Wire`, which keeps the
 extracted type closure well below the producer's limit for 64-byte headers.
 

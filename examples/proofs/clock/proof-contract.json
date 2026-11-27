@@ -1,0 +1,12 @@
+{
+  "schema": "lean-go-proof-contract/v1",
+  "source_dir": "source",
+  "proof_dir": "proof",
+  "module": "Clock",
+  "roots": ["Clock.join", "Clock.split"],
+  "claims": [
+    {"theorem": "ClockProofs.recombines", "expected": "ClockContract.recombines"},
+    {"theorem": "ClockProofs.minutesBelow60", "expected": "ClockContract.minutesBelow60"},
+    {"theorem": "ClockProofs.secondsBelow60", "expected": "ClockContract.secondsBelow60"}
+  ]
+}

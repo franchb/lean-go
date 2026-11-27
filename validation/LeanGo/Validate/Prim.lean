@@ -9,10 +9,8 @@ The complete unsigned primitive matrix, defined directly with Lean's own
 `UInt8/16/32/64` operations so that symbolic evaluation produces exactly the
 terms the source elaborates to (`a + b`, `a <<< b`, `decide (a < b)`,
 `a.toUInt64`, ...). Names follow `producer/LeanGo/Module/Primitives.lean`
-(`UInt32.add`, `UInt8.toUInt16`, ...). The matrix is deliberately larger than
-what the extractor admits today: `div`, `mod` and the conversions
-`UInt8.toUInt64`, `UInt64.toUInt8`, `UInt16.toUInt64`, `UInt64.toUInt16`,
-`UInt32.toUInt16`, ... are included.
+(`UInt32.add`, `UInt8.toUInt16`, ...). The producer admits exactly this
+matrix: all 68 primitives, including `div`, `mod` and the twelve conversions.
 
 Shift counts are reduced modulo the width and division/remainder by zero
 yield `0` and the dividend respectively, because that is what Lean's

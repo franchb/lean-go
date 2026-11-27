@@ -13,14 +13,14 @@ From the repository root, with the pinned tools on `PATH`:
 ```sh
 uv run --locked python scripts/differential.py
 uv run --locked python scripts/differential.py \
-  --seed 2 --seed 3 --seed 4 --width 32 --width 64 --depth 4 --cases 64
+  --seed 2 --seed 3 --seed 4 --width 8 --width 64 --depth 4 --cases 64
 ```
 
-Defaults are seeds 0 and 1, both widths, generation depth 3 and 32 input pairs
-per program: four programs and 128 comparisons against each execution channel.
+Defaults are seeds 0 and 1, all four widths (8, 16, 32 and 64), generation depth 3 and 32 input pairs
+per program: eight programs and 256 comparisons against each execution channel.
 `--seed` and `--width` may be repeated. `--cases` is the total input count, including
 the boundary prefix, with a maximum of 4096. The prefix covers zero, maxima,
-unsigned high bits, shift counts around the width and UInt64 values above 2^53.
+unsigned high bits, shift counts around the width, zero divisors and UInt64 values above 2^53.
 Further pairs use a deterministic seeded random stream. Small `--cases` values
 truncate this prefix and therefore do not cover every boundary.
 
@@ -68,13 +68,14 @@ that budget, not a globally minimal counterexample. Original artifacts remain.
 `scripts/differential_model.py` owns immutable expressions, validation,
 serialization, generation, rendering and the independent evaluator. It imports
 neither compiler IR nor extraction implementation. Numeric semantics use Python
-arbitrary-precision integers with explicit reduction modulo 2^32 or 2^64 and
+arbitrary-precision integers with explicit reduction modulo 2^8, 2^16, 2^32 or 2^64,
+Lean's `x / 0 = 0` and `x % 0 = x`, and
 shift counts modulo the selected width.
 
 Programs have two scalar inputs and a scalar result. The alpha.6 bitwise
 extension adds AND, OR, XOR, unary complement and logical right shift at both
 widths; serialized ASTs preserve unary arity for replay. Expressions combine numeric
-literals, addition, subtraction, multiplication, left shift, equality and unsigned
+literals, addition, subtraction, multiplication, division, remainder, left shift, equality and unsigned
 ordering, conditionals, direct helpers, single-field wrappers and nested record
 construction/updates. A generated helper consumes both arguments. Fixed
 `noinline` wrapper/record accessors preserve structure boundaries through the
@@ -102,7 +103,7 @@ artifact capture, replay and shrinking work even when the real compiler agrees.
 
 ## CI and assurance
 
-The Linux extraction job runs the four-program default corpus with up to 12
+The Linux extraction job runs the eight-program default corpus with up to 12
 shrink trials on a semantic failure. It retains selected source, JSON evidence,
 command logs and generated Go as a `differential-evidence` artifact for 14 days;
 native binaries and build caches are excluded. The existing Linux and Windows

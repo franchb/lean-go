@@ -56,7 +56,7 @@ func TestPrimitiveRegistry(t *testing.T) {
 			t.Fatal("mutable registry signature", name)
 		}
 	}
-	for _, name := range []string{"", "UInt32.div", "UInt64.div", "UInt32.and", "UInt32.add._boxed"} {
+	for _, name := range []string{"", "UInt32.divide", "Int64.div", "UInt32.and", "UInt32.add._boxed"} {
 		if primitive, ok := LookupPrimitive(name); ok {
 			t.Fatal("unknown primitive admitted", primitive)
 		}
@@ -72,7 +72,7 @@ func TestRejectNumericValues(t *testing.T) {
 		})
 	}
 	changes := map[string]func(*Program){
-		"unknown leaf":     func(p *Program) { p.Functions[0].Body.Value.Name = "UInt32.div" },
+		"unknown leaf":     func(p *Program) { p.Functions[0].Body.Value.Name = "UInt32.log2" },
 		"source injection": func(p *Program) { p.Functions[0].Body.Value.Name = "UInt32.add);panic(0)//" },
 		"unknown kind":     func(p *Program) { p.Functions[0].Body.Value.Kind = "extern" },
 		"unsaturated":      func(p *Program) { p.Functions[0].Body.Value.Args = []int{1} },

@@ -118,7 +118,9 @@ def run (a b : UInt32) := a <<< b
             probe = self.imported_attribute_probe('externAttr', f'UInt{width}.mod',
                                                  '{ entries := [.standard `all "untrusted"] }')
             self.assert_rejected(f'def run (a b : UInt{width}) := a <<< b\n', 'Numeric source extern changed', probe=probe)
-            self.assert_rejected(f'def run (a b : UInt{width}) := UInt{width}.mod a b\n', 'extern|Unsupported|unsupported')
+            # UInt.mod is now an admitted leaf; its natural-number helper is not.
+            self.assert_rejected(f'def run (a b : UInt{width}) := (Nat.mod a.toNat b.toNat).toUInt{width}\n',
+                                 'extern|Unsupported|unsupported|provenance')
         self.assert_rejected('def run (a b : USize) := a <<< b\n',
                              'extern|axiom|opaque|Unsupported|unsupported|not supported by code generator')
         self.assert_rejected('axiom forged : UInt32\ndef run (b : UInt32) := forged <<< b\n', 'axiom|not supported by code generator')

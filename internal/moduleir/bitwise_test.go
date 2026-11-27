@@ -83,7 +83,7 @@ func TestBitwiseSignaturesAndArguments(t *testing.T) {
 			})
 		}
 	}
-	for _, name := range []string{"UInt16.land", "UInt32.and", "UInt64.not", "UInt32.shift_right", "UInt64.xor.injected", "UInt32.LAND"} {
+	for _, name := range []string{"UInt16.and", "UInt32.and", "UInt64.not", "UInt32.shift_right", "UInt64.xor.injected", "UInt32.LAND"} {
 		if _, ok := LookupPrimitive(name); ok {
 			t.Fatal("unknown name admitted", name)
 		}

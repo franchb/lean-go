@@ -149,7 +149,7 @@ jobs:
       - name: Generated-program semantic comparison
         run: |
           uv run --locked python scripts/differential.py \
-            --seed 0 --seed 1 --width 32 --width 64 --cases 32 \
+            --seed 0 --seed 1 --width 8 --width 16 --width 32 --width 64 --cases 32 \
             --shrink --shrink-attempts 12 \
             --artifacts "$RUNNER_TEMP/lean-go-differential"
       - name: Preserve differential evidence

@@ -66,13 +66,13 @@ class BitwiseFeatureTests(unittest.TestCase):
                 self.assertEqual(self.complete(program, roots)['features'], ['join'])
 
     def test_exact_names_and_all_operations(self):
-        for width in (8, 32, 64):
+        for width in (8, 16, 32, 64):
             for op in OPERATIONS + ('shiftLeft',):
                 body = dict(op='let', value=dict(kind='primitive', name=f'UInt{width}.{op}', args=[]),
                             next=dict(op='return', var=1))
                 program, roots = self.raw(body)
                 self.assertTrue(self.bitwise(program, roots))
-        for name in ('UInt32.land._boxed', 'UInt16.land', 'UInt16.complement', 'UInt32.add', 'UInt32.toUInt64'):
+        for name in ('UInt32.land._boxed', 'UInt16.and', 'Int16.complement', 'UInt32.add', 'UInt32.div', 'UInt32.toUInt64'):
             body['value']['name'] = name
             program, roots = self.raw(body)
             self.assertFalse(self.bitwise(program, roots))
@@ -157,11 +157,11 @@ class BitwiseAdmissionTests(unittest.TestCase):
                 for source in sources:
                     self.assert_rejected(source, 'rewrite|replacement|repeated compilation')
 
-    def test_unsupported_width_conversions_division_remainder_and_forged_axiom(self):
-        for source in ('def run (a b : UInt16) := a &&& b\n',
-                       'def run (a : UInt64) := (~~~a).toUInt16\n',
-                       'def run (a b : UInt32) := (a &&& b) / b\n',
-                       'def run (a b : UInt64) := (a ||| b) % b\n',
+    def test_unsupported_signed_and_platform_widths_and_forged_axiom(self):
+        for source in ('def run (a b : Int16) := a &&& b\n',
+                       'def run (a : USize) := (~~~a).toUInt16\n',
+                       'def run (a b : Int32) := (a &&& b) / b\n',
+                       'def run (a b : UInt64) := ((a ||| b) % b).toUSize\n',
                        'axiom forged : UInt32\ndef run := ~~~forged\n'):
             self.assert_rejected(source, 'extern|axiom|opaque|Unsupported|unsupported|not supported by code generator')
 
