@@ -22,7 +22,6 @@ env:
   CGO_ENABLED: '0'
   GOTOOLCHAIN: local
   GOWORK: 'off'
-  UV_NO_EDITABLE: '1'
 
 jobs:
   compatibility:
@@ -36,11 +35,6 @@ jobs:
         with:
           go-version: '1.27.4'
           cache: false
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-        with:
-          version: '0.13.5'
-          python-version: '3.15.1'
-          enable-cache: false
       - name: Install explicit baseline and candidate releases
         env:
           CANDIDATE: ${{ inputs.candidate || '4.36.0-rc2' }}
@@ -73,21 +67,19 @@ jobs:
           esac
           printf 'BASELINE_BIN=%s\nCANDIDATE_BIN=%s\n' \
             "$RUNNER_TEMP/baseline-lean/bin" "$candidate_bin" >> "$GITHUB_ENV"
-      - name: Install checkout wheel and CLI
-        run: uv sync --locked --no-editable
       - name: Harness unit tests
-        run: uv run --locked python scripts/test_compatibility.py
+        run: go test -count=1 ./internal/compatibility/ ./internal/devexec/ ./cmd/lean-go-dev/
       - name: Compare independent corpus
         # Differences intentionally fail this research job; inspect the artifact.
         run: >-
-          uv run --locked python scripts/check_compatibility.py
+          go run ./cmd/lean-go-dev compatibility
           --baseline-bin "$BASELINE_BIN"
           --candidate-bin "$CANDIDATE_BIN"
           --artifacts "$RUNNER_TEMP/compiler-compatibility"
       - name: Check proof demos with stable Lean
-        run: uv run --locked python scripts/check_toolchain_demos.py --lean-bin "$BASELINE_BIN"
+        run: go run ./cmd/lean-go-dev demos --lean-bin "$BASELINE_BIN"
       - name: Check proof demos with rc2
-        run: uv run --locked python scripts/check_toolchain_demos.py --lean-bin "$RUNNER_TEMP/rc2-lean/bin"
+        run: go run ./cmd/lean-go-dev demos --lean-bin "$RUNNER_TEMP/rc2-lean/bin"
       - name: Preserve compatibility report and replay evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -99,7 +91,7 @@ jobs:
             ${{ runner.temp }}/compiler-compatibility/report.json
             ${{ runner.temp }}/compiler-compatibility/inputs.json
             ${{ runner.temp }}/compiler-compatibility/commands.jsonl
-            ${{ runner.temp }}/compiler-compatibility/replay.py
+            ${{ runner.temp }}/compiler-compatibility/replay.sh
             ${{ runner.temp }}/compiler-compatibility/source/**
             ${{ runner.temp }}/compiler-compatibility/differences/**
             ${{ runner.temp }}/compiler-compatibility/*/identity.json
