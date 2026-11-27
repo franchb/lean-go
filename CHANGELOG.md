@@ -69,6 +69,16 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   example and validation report.
 - The pilot pipeline is retired; the normalizer is now an ordinary module
   example.
+- `generate` writes the IR file and the validation report next to their
+  destinations before it swaps the package, so a destination that cannot be
+  written no longer costs the previous package under `--replace`.
+- `emit --native-max-depth` requires a whole positive integer (`7abc` was
+  read as 7 and `0` as the default).
+- Published packages are ordinary directories (they were mode 0700); a
+  producer cache entry that does not verify is rebuilt and replaced instead
+  of being rebuilt on every run; a leftover publication lock says what it is.
+- The validation runner checks that a completed report covers every IR
+  function and every requested root, and counts anything missing as unproved.
 
 ## v0.1.0-alpha.15 (2026-11-26)
 
