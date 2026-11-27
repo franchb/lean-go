@@ -1,6 +1,7 @@
 package wireformat
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,23 +9,29 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/franchb/lean-go/internal/modulegen"
+	"github.com/franchb/lean-go/internal/moduleir"
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
 // The native-backed adapter agrees with the previous metered-backed adapter.
 //
-// For each example the test builds one temporary module holding both: the
-// adapter the generator renders today over the tracked IR emitted in native
-// mode, and a copy of the same adapter with the previous backend
-// (backendMetered) over the same IR emitted in metered mode. A generated test
-// compares Parse, Validate, AppendSerialize and, for payload formats,
-// PayloadLength and AppendFrame on boundary and random inputs. No Lean is
-// needed: the IR is tracked.
+// For each example the test builds one temporary module holding three
+// adapters: the one the generator renders today over the tracked IR emitted
+// in native mode, and two copies of the same adapter with the previous
+// backend (backendMetered). The oracle copy runs on the IR emitted by
+// modulegen.GenerateStateMachine, the metered output without the fast path:
+// the fast path runs the native emitter's own code, so only the state
+// machine is independent of the native side. The other copy runs on the
+// default metered output (--mode metered, fast path included). A generated
+// test compares both with the native adapter on Parse, Validate,
+// AppendSerialize and, for payload formats, PayloadLength and AppendFrame on
+// boundary and random inputs. No Lean is needed: the IR is tracked.
 //
 // LEAN_GO_FORMATS_FUZZ=30s also fuzzes the comparison, and
 // LEAN_GO_FORMATS_BENCH=1 runs the benchmarks of every example (native-backed,
-// metered-backed and a hand-written encoding/binary codec), printing their
-// output.
+// default metered, metered state machine and a hand-written encoding/binary
+// codec), printing their output.
 
 const differentialTest = `package differential
 
@@ -36,6 +43,7 @@ import (
 
 	native "{{module}}/{{name}}"
 	metered "{{module}}/{{name}}metered"
+	oracle "{{module}}/{{name}}statemachine"
 )
 
 type parsed struct {
@@ -52,42 +60,30 @@ func errText(err error) string {
 	return err.Error()
 }
 
-{{parse}}
+{{parseNative}}
 
 type appended struct {
 	out []byte
 	err string
 }
 
+// compareParse and compareHeader compare the native adapter with the
+// state-machine oracle and with the default metered adapter.
 func compareParse(t *testing.T, data []byte) {
 	t.Helper()
-	before := bytes.Clone(data)
-	a, b := parseNative(data), parseMetered(data)
-	if !reflect.DeepEqual(a, b) {
-		t.Fatalf("Parse(% x): native %+v, metered %+v", data, a, b)
-	}
-	if !bytes.Equal(data, before) {
-		t.Fatalf("Parse modified its input")
-	}
+	compareParseOracle(t, data)
+	compareParseMetered(t, data)
 }
 
 func compareHeader(t *testing.T, h native.Header) {
 	t.Helper()
-	m := metered.Header(h)
-	if a, b := errText(native.Validate(h)), errText(metered.Validate(m)); a != b {
-		t.Fatalf("Validate(%+v): native %q, metered %q", h, a, b)
-	}
-	prefix := []byte{0xa5, 0x5a}
-	a, errA := native.AppendSerialize(bytes.Clone(prefix), h)
-	b, errB := metered.AppendSerialize(bytes.Clone(prefix), m)
-	if !bytes.Equal(a, b) || errText(errA) != errText(errB) {
-		t.Fatalf("AppendSerialize(%+v): native % x %v, metered % x %v", h, a, errA, b, errB)
-	}
-	if errA == nil {
-		compareParse(t, a[len(prefix):])
-	}
-	{{header}}
+	compareHeaderOracle(t, h)
+	compareHeaderMetered(t, h)
 }
+
+{{compareOracle}}
+
+{{compareMetered}}
 
 // value draws a field value biased towards bit boundaries.
 func value(r *rand.Rand, bits int) uint64 {
@@ -182,33 +178,67 @@ func FuzzNativeMatchesMetered(f *testing.F) {
 }
 `
 
-const parsePlain = `func parseNative(data []byte) parsed {
-	h, n, err := native.Parse(data)
-	return parsed{h: h, n: n, err: errText(err)}
+// compareTemplate compares the native adapter with the adapter {{pkg}}.
+const compareTemplate = `{{parse}}
+
+func compareParse{{Pkg}}(t *testing.T, data []byte) {
+	t.Helper()
+	before := bytes.Clone(data)
+	a, b := parseNative(data), parse{{Pkg}}(data)
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("Parse(% x): native %+v, {{label}} %+v", data, a, b)
+	}
+	if !bytes.Equal(data, before) {
+		t.Fatalf("Parse modified its input")
+	}
 }
 
-func parseMetered(data []byte) parsed {
-	h, n, err := metered.Parse(data)
+func compareHeader{{Pkg}}(t *testing.T, h native.Header) {
+	t.Helper()
+	m := {{pkg}}.Header(h)
+	if a, b := errText(native.Validate(h)), errText({{pkg}}.Validate(m)); a != b {
+		t.Fatalf("Validate(%+v): native %q, {{label}} %q", h, a, b)
+	}
+	prefix := []byte{0xa5, 0x5a}
+	a, errA := native.AppendSerialize(bytes.Clone(prefix), h)
+	b, errB := {{pkg}}.AppendSerialize(bytes.Clone(prefix), m)
+	if !bytes.Equal(a, b) || errText(errA) != errText(errB) {
+		t.Fatalf("AppendSerialize(%+v): native % x %v, {{label}} % x %v", h, a, errA, b, errB)
+	}
+	if errA == nil {
+		compareParse(t, a[len(prefix):])
+	}
+	{{header}}
+}
+`
+
+const parseNativePlain = `func parseNative(data []byte) parsed {
+	h, n, err := native.Parse(data)
+	return parsed{h: h, n: n, err: errText(err)}
+}`
+
+const parsePlain = `func parse{{Pkg}}(data []byte) parsed {
+	h, n, err := {{pkg}}.Parse(data)
 	return parsed{h: native.Header(h), n: n, err: errText(err)}
 }`
 
-const parsePayload = `func parseNative(data []byte) parsed {
+const parseNativePayload = `func parseNative(data []byte) parsed {
 	h, n, payload, err := native.Parse(data)
 	if payload != nil && cap(payload) != len(payload) {
 		panic("payload capacity exceeds its length")
 	}
 	return parsed{h: h, n: n, payload: payload, err: errText(err)}
-}
+}`
 
-func parseMetered(data []byte) parsed {
-	h, n, payload, err := metered.Parse(data)
+const parsePayload = `func parse{{Pkg}}(data []byte) parsed {
+	h, n, payload, err := {{pkg}}.Parse(data)
 	return parsed{h: native.Header(h), n: n, payload: payload, err: errText(err)}
 }`
 
 const headerPayload = `a1, e1 := native.PayloadLength(h)
-	b1, f1 := metered.PayloadLength(m)
+	b1, f1 := {{pkg}}.PayloadLength(m)
 	if a1 != b1 || errText(e1) != errText(f1) {
-		t.Fatalf("PayloadLength(%+v): native %d %v, metered %d %v", h, a1, e1, b1, f1)
+		t.Fatalf("PayloadLength(%+v): native %d %v, {{label}} %d %v", h, a1, e1, b1, f1)
 	}
 	for _, size := range []uint32{0, 1, a1 - 1, a1, a1 + 1} {
 		if size > 1<<16 {
@@ -216,9 +246,9 @@ const headerPayload = `a1, e1 := native.PayloadLength(h)
 		}
 		payload := bytes.Repeat([]byte{0x3c}, int(size))
 		c, e2 := native.AppendFrame(bytes.Clone(prefix), h, payload)
-		d, f2 := metered.AppendFrame(bytes.Clone(prefix), m, payload)
+		d, f2 := {{pkg}}.AppendFrame(bytes.Clone(prefix), m, payload)
 		if !bytes.Equal(c, d) || errText(e2) != errText(f2) {
-			t.Fatalf("AppendFrame(%+v, %d bytes): native %v, metered %v", h, size, e2, f2)
+			t.Fatalf("AppendFrame(%+v, %d bytes): native %v, {{label}} %v", h, size, e2, f2)
 		}
 		if e2 == nil {
 			compareParse(t, c[len(prefix):])
@@ -226,7 +256,8 @@ const headerPayload = `a1, e1 := native.PayloadLength(h)
 	}`
 
 // The benchmarks: parse then serialize one message per iteration, through
-// the native-backed adapter, the metered-backed adapter and a hand-written
+// the native-backed adapter, the default metered adapter, the state-machine
+// metered adapter and a hand-written
 // encoding/binary codec with the same checks. Payload formats parse the
 // header and its payload and append the frame again.
 const benchmarkTest = `package differential
@@ -238,6 +269,7 @@ import (
 
 	native "{{module}}/{{name}}"
 	metered "{{module}}/{{name}}metered"
+	oracle "{{module}}/{{name}}statemachine"
 )
 
 var errTruncated = errors.New("truncated")
@@ -257,6 +289,12 @@ func BenchmarkParseSerialize(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
 			{{loopMetered}}
+		}
+	})
+	b.Run("metered-state-machine", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			{{loopStateMachine}}
 		}
 	})
 	b.Run("handwritten", func(b *testing.B) {
@@ -458,7 +496,7 @@ func writeTree(t *testing.T, dir string, files map[string][]byte) {
 	}
 }
 
-// differentialModule writes the two adapters and the comparison into dir.
+// differentialModule writes the three adapters and the comparison into dir.
 func differentialModule(t *testing.T, name, dir string) {
 	t.Helper()
 	f, err := Load(filepath.Join(examplesDir, name, "spec.json"))
@@ -486,18 +524,42 @@ func differentialModule(t *testing.T, name, dir string) {
 			}
 		}
 	}
-	// The previous adapter: the same <name>.go with the metered backend.
-	rename := func(text string) []byte {
-		text = strings.Replace(text, "\npackage "+f.Name+"\n", "\npackage "+f.Name+"metered\n", 1)
-		return []byte(strings.Replace(text, f.ExtractedImport(), f.GoModulePath()+"/internal/meteredextracted", 1))
+	// The oracle: the same IR through the state machine alone, so that it
+	// shares no generated code with the native package.
+	program, err := moduleir.Decode(bytes.NewReader(ir))
+	if err != nil {
+		t.Fatal(err)
 	}
-	files[f.Name+"metered/"+f.Name+".go"] = rename(f.adapterGo())
-	files[f.Name+"metered/lean.go"] = rename(gofmt("lean.go", backendMetered(f)))
-	parse, header := parsePlain, ""
+	stateMachine, err := modulegen.GenerateStateMachine(program)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for file, data := range stateMachine {
+		if strings.HasSuffix(file, ".go") {
+			files["internal/statemachineextracted/"+file] = data
+		}
+	}
+	// The previous adapter: the same <name>.go with the metered backend, once
+	// over each metered package.
+	for suffix, sub := range map[string]string{"metered": "internal/meteredextracted", "statemachine": "internal/statemachineextracted"} {
+		rename := func(text string) []byte {
+			text = strings.Replace(text, "\npackage "+f.Name+"\n", "\npackage "+f.Name+suffix+"\n", 1)
+			return []byte(strings.Replace(text, f.ExtractedImport(), f.GoModulePath()+"/"+sub, 1))
+		}
+		files[f.Name+suffix+"/"+f.Name+".go"] = rename(f.adapterGo())
+		files[f.Name+suffix+"/lean.go"] = rename(gofmt("lean.go", backendMetered(f)))
+	}
+	parseNative, parse, header := parseNativePlain, parsePlain, ""
 	if f.Payload != nil {
-		parse, header = parsePayload, headerPayload
+		parseNative, parse, header = parseNativePayload, parsePayload, headerPayload
 	}
-	vars := map[string]string{"module": f.GoModulePath(), "name": f.Name, "parse": parse, "header": header, "seed": fmt.Sprint(len(name))}
+	compare := func(pkg, Pkg, label string) string {
+		text := strings.ReplaceAll(compareTemplate, "{{parse}}", parse)
+		text = strings.ReplaceAll(text, "{{header}}", header)
+		return expand(text, map[string]string{"pkg": pkg, "Pkg": Pkg, "label": label})
+	}
+	vars := map[string]string{"module": f.GoModulePath(), "name": f.Name, "parseNative": parseNative, "seed": fmt.Sprint(len(name)),
+		"compareOracle": compare("oracle", "Oracle", "metered state machine"), "compareMetered": compare("metered", "Metered", "metered")}
 	files["differential/differential_test.go"] = []byte(gofmt("differential_test.go", expand(differentialTest, vars)))
 	if hand, ok := handCodecs[name]; ok {
 		loop, loopHand := loopPlain, loopHandPlain
@@ -505,7 +567,7 @@ func differentialModule(t *testing.T, name, dir string) {
 			loop, loopHand = loopPayload, loopHandPayload
 		}
 		bench := expand(benchmarkTest, map[string]string{"hand": hand, "loopNative": strings.ReplaceAll(loop, "{{pkg}}", "native"),
-			"loopMetered": strings.ReplaceAll(loop, "{{pkg}}", "metered"), "loopHand": loopHand})
+			"loopMetered": strings.ReplaceAll(loop, "{{pkg}}", "metered"), "loopStateMachine": strings.ReplaceAll(loop, "{{pkg}}", "oracle"), "loopHand": loopHand})
 		files["differential/bench_test.go"] = []byte(gofmt("bench_test.go", expand(bench, vars)))
 	}
 	writeTree(t, dir, files)
