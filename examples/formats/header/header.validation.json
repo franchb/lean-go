@@ -9,7 +9,7 @@
  ],
  "status": "completed",
  "ir_file_matches": true,
- "ir_sha256": "0d09820f9478a178241f8c0dbd6c9b4e974cadb163b25de905d5d9b387f7526a",
+ "ir_sha256": "3a1ebe565ad4be0345e2400f9f67b5236ea63d807c2c259ff8eb5e925f4a16e8",
  "lean_version": "4.36.0",
  "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
  "budget": {
@@ -33,7 +33,7 @@
   "producer/LeanGo/Validate/Spec.lean": "c6e6de8469c41fe3a664955d763fa5efb2469d9ec17adf6b3a1a330391396a38",
   "producer/LeanGo/Validate/Syntax.lean": "c648dce4dbd711439d6a0bfb600bbba47ecfd0d96a02d6555f3e08563f5974d3",
   "producer/LeanGo/Validate/Value.lean": "219f092ace1db12e7c560ba357409d202768b8e498157fe443edaf3ee29877a2",
-  "tool/lean-go/validate": "9b4336d7df7ad73292853d04d32420c36d65d256a4879290f970825a157558b5"
+  "tool/lean-go/validate": "1e119bb4ade8d67beaa8c483b16e8fdd80dab2f6db3308df112558a5a0526f02"
  },
  "program": "LeanGo.Validated.prog",
  "specification_list": "LeanGo.Validated.spec",

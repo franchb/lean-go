@@ -58,7 +58,7 @@
     }
   ],
   "contract_sha256": "8494cf05df9c4fac542270b442b7cba0c8ea286686420174f3c54c72a9cf52e0",
-  "generated_manifest_sha256": "c460a513c4070cb0820860aba1229d8a3f5c6930bd4f7423adc28d2b8fa6f68c",
+  "generated_manifest_sha256": "2895bd17bb81520b4938eebf0e02a6867cfc59b9dfb9d8351cb489371e797e93",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Words",
@@ -78,7 +78,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
     "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
   }
 }

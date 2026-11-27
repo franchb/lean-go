@@ -93,7 +93,7 @@
     }
   ],
   "contract_sha256": "82faa2267b826a1b1678e91aacce4eff221f8d45650aa856f16e27e6d3ea1add",
-  "generated_manifest_sha256": "0a16b659229d1a6b92bd8bfffeef2128bc115bbf719a13ba82ad18f6130b7e8b",
+  "generated_manifest_sha256": "503f298d8b6fd1370cbab37f98e0d0d3a14aaa7c7c839c4a737e9ff2bb1b3084",
   "generated_mode": "native",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
@@ -113,7 +113,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "1f4b177fce808edd39df3985c51af87b4d6eb2bdd3e8d2822a292cd9f0616308",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "b9457564ed0bd93d46d1b00223447e42b2f37014285c2d4692181b0c599f0004",
+    "tool/lean-go/pipeline": "8ecee76684134c48a23bb822bc679d1954985bdf9a250cd0f088af2bb1fe152f",
     "tool/lean-go/proofcheck": "6557eb81f262236e20b3222ac4ed56945a7df02b169e98707e2daad3b4e62e21"
   }
 }
