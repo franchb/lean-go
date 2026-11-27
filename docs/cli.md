@@ -6,10 +6,12 @@ This checkout's extraction pipeline is a single Go binary. It needs only the
 pinned Lean on `PATH`; Python and uv are not involved. Build it with Go 1.27.4:
 
 ```sh
-go install github.com/franchb/lean-go/cmd/lean-go@<version>   # or, in a checkout:
 go build -o ~/bin/lean-go ./cmd/lean-go
 lean-go doctor
 ```
+
+Published tags up to `v0.1.0-alpha.15` contain only the legacy
+`lean-go -in FILE -out DIR` form of this command, so build it from a checkout.
 
 | Command | Purpose |
 | --- | --- |
