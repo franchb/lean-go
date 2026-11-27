@@ -155,6 +155,21 @@ state machine, where v19 ran metered native code. Results and errors are
 unchanged; only callers that pass limits tighter than the root's static
 worst case are affected.
 
+The fast path also changes what the older comparisons exercise. A call with
+`DefaultLimits` takes the fast path for every eligible root, so the
+integration tests that compare the tracked metered packages with native Lean
+now compare Lean with the fast path there; of the tracked metered packages
+only Trees and the normalizer, whose roots recurse, still run on the state
+machine in those tests. The state machine itself is compared with native
+Lean and with an independent model by the generated-program campaign and by
+the fixed width and byte campaigns (`go run ./cmd/lean-go-dev differential`,
+`widths` and `bytes`; CI runs all three), each through a second package
+emitted without the fast path (`modulegen.GenerateStateMachine`, channels
+`raw_state_machine` and `typed_state_machine`). Without Lean,
+`TestFastPathSoundAndEquivalent` compares the state machine with the fast
+path, and the native emitter's differential tests and the wire-format oracle
+compare it with native Go.
+
 The strict IR decoder rejects malformed Unicode, duplicate/unknown/missing/null
 fields and trailing input. Independent validation checks lexical scopes, types,
 exhaustiveness, source metadata and exact function/type closure. Limits include
