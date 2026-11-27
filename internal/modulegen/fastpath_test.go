@@ -135,6 +135,21 @@ func TestFastPathBoundByHand(t *testing.T) {
 	}
 }
 
+// The bound analysis and fastCovers use the caps of DefaultLimits.
+func TestLimitCapsAreDefaultLimits(t *testing.T) {
+	files, err := Generate(loadProgram(t, "../../examples/proofs/clamp/clamp.ir.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parts []string
+	for _, c := range limitCaps {
+		parts = append(parts, fmt.Sprint(c))
+	}
+	if want := "return Limits{" + strings.Join(parts, ", ") + "}"; !bytes.Contains(files["runtime.go"], []byte(want)) {
+		t.Fatalf("runtime.go does not contain %q", want)
+	}
+}
+
 // The test switch only adds the fastDisabled variable and its checks.
 func TestFastPathSwitchIsTestOnly(t *testing.T) {
 	p := loadProgram(t, "../../examples/formats/dns/dns.ir.json")

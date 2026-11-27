@@ -13,7 +13,7 @@ import (
 // limits cover its static worst case (bound.go) in all seven dimensions:
 //
 //	func RunR(args, l Limits) (T, error) {
-//		if checkLimits(l) == nil && fastCoversN(l) {
+//		if fastCoversN(l) { // valid limits covering the bound
 //			if every argument converts { return natR(converted args), nil }
 //		}
 //		... the state machine, unchanged ...
@@ -165,9 +165,9 @@ func fastMeasure(n *node) { n.size, n.depth = 1, 1; for _, c := range n.fields {
 				continue
 			}
 			if scalar == "Bool" {
-				fmt.Fprintf(w, "func (a *fastArena) putBool(v bool) *node { n := a.next(); tag := 0; if v { tag = 1 }; *n = node{typ: %d, tag: tag, size: 1, depth: 1}; return n }\n", e.g.types["Bool"])
+				fmt.Fprintf(w, "func (a *fastArena) putBool(v bool) *node { n := a.next(); n.typ, n.size, n.depth = %d, 1, 1; if v { n.tag = 1 }; return n }\n", e.g.types["Bool"])
 			} else {
-				fmt.Fprintf(w, "func (a *fastArena) put%s(v %s) *node { n := a.next(); *n = node{typ: %d, %s: v, size: 1, depth: 1}; return n }\n", scalar, e.scalars[scalar].GoType, e.g.types[scalar], scalarField(scalar))
+				fmt.Fprintf(w, "func (a *fastArena) put%s(v %s) *node { n := a.next(); n.typ, n.%s, n.size, n.depth = %d, v, 1, 1; return n }\n", scalar, e.scalars[scalar].GoType, scalarField(scalar), e.g.types[scalar])
 			}
 		}
 		for _, typ := range conv.outOrd {
@@ -177,13 +177,15 @@ func fastMeasure(n *node) { n.size, n.depth = 1, 1; for _, c := range n.fields {
 	for _, root := range plan.roots {
 		f := e.g.functions[root]
 		b := plan.bounds[root]
-		fmt.Fprintf(w, "\n// fastCovers%d reports whether valid limits l cover the static worst case of %s.\nfunc fastCovers%d(l Limits) bool {\n", f.id, strings.ReplaceAll(root, "\n", " "), f.id)
+		// Every bound is at least 1, so the conditions also imply that
+		// checkLimits accepts l: each limit positive and within its cap.
+		fmt.Fprintf(w, "\n// fastCovers%d reports whether l is valid and covers the static worst case of\n// %s in every dimension.\nfunc fastCovers%d(l Limits) bool {\n", f.id, strings.ReplaceAll(root, "\n", " "), f.id)
 		if e.g.options.fastSwitch {
 			w.WriteString("if fastDisabled { return false }\n")
 		}
 		var parts []string
 		for i, name := range limitNames {
-			parts = append(parts, fmt.Sprintf("l.%s >= %d", name, b[i]))
+			parts = append(parts, fmt.Sprintf("%d <= l.%s && l.%s <= %d", b[i], name, name, limitCaps[i]))
 		}
 		fmt.Fprintf(w, "return %s\n}\n", strings.Join(parts, " && "))
 	}
@@ -283,19 +285,26 @@ func (e *apiEmitter) emitFastOut(w *bytes.Buffer, typ string, s shape) {
 	}
 	fmt.Fprintf(w, "\n// fastPut%d builds the nodes of x in a.\nfunc fastPut%d(a *fastArena, x %s) *node {\nn := a.next()\n", id, id, native)
 	e.fastCases(w, typ, "x", func(i int, c moduleir.Constructor, fields []string) {
+		// Arena nodes are zero: set only the other fields, one by one,
+		// rather than storing a whole struct through the pointer.
+		fmt.Fprintf(w, "n.typ, n.tag = %d, %d\n", id, c.Tag)
 		if len(c.Fields) == 0 {
-			fmt.Fprintf(w, "*n = node{typ: %d, tag: %d}\n", id, c.Tag)
 			return
 		}
 		fmt.Fprintf(w, "f := a.take(%d)\n", len(c.Fields))
 		for j, field := range c.Fields {
 			fmt.Fprintf(w, "f[%d] = %s\n", j, e.fastPut(field, fields[j]))
 		}
-		fmt.Fprintf(w, "*n = node{typ: %d, tag: %d, fields: f}\n", id, c.Tag)
+		w.WriteString("n.fields = f\n")
 	})
 	w.WriteString("fastMeasure(n)\nreturn n\n}\n")
-	size := e.fastSize(typ, "x", s)
-	fmt.Fprintf(w, "\n// fastOut%d converts x into fresh nodes.\nfunc fastOut%d(x %s) *node {\ns := uint64(%s)\na := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}\nreturn fastPut%d(&a, x)\n}\n", id, id, native, size, id)
+	if s.min == s.max {
+		// One allocation holds every node and field slot of the result.
+		fmt.Fprintf(w, "\n// fastSlab%d holds the %d nodes of a %s value.\ntype fastSlab%d struct { nodes [%d]node; fields [%d]*node }\n", id, s.max, strings.ReplaceAll(typ, "\n", " "), id, s.max, s.max-1)
+		fmt.Fprintf(w, "\n// fastOut%d converts x into fresh nodes.\nfunc fastOut%d(x %s) *node {\ns := new(fastSlab%d)\na := fastArena{nodes: s.nodes[:], fields: s.fields[:]}\nreturn fastPut%d(&a, x)\n}\n", id, id, native, id, id)
+		return
+	}
+	fmt.Fprintf(w, "\n// fastOut%d converts x into fresh nodes.\nfunc fastOut%d(x %s) *node {\ns := fastSize%d(x)\na := fastArena{nodes: make([]node, s), fields: make([]*node, s-1)}\nreturn fastPut%d(&a, x)\n}\n", id, id, native, id, id)
 }
 
 func (e *apiEmitter) fastPut(typ, x string) string {
@@ -355,7 +364,7 @@ func (e *apiEmitter) emitFastRun(w *bytes.Buffer) {
 func (e *apiEmitter) fastPrelude(root string) string {
 	f := e.g.functions[root]
 	var b strings.Builder
-	fmt.Fprintf(&b, "if checkLimits(l) == nil && fastCovers%d(l) {\n", f.id)
+	fmt.Fprintf(&b, "if fastCovers%d(l) {\n", f.id)
 	var conditions []string
 	for i, p := range f.decl.Params {
 		if _, scalar := e.scalars[p.Type]; scalar {
