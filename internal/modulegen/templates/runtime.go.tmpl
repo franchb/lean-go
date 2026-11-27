@@ -74,7 +74,8 @@ func (b *budget) make(typ,tag int,fields []*node)(*node,error){
  [[if .MultiRoot]]entry,resultType,expected,ok:=rootSignature(root);if !ok{return Value{},ErrMalformed};[[else]]expected:=rootParameters();[[end]]if len(args)!=len(expected){return Value{},ErrMalformed}
  nodes:=make([]*node,len(args));var total uint64
  for i,v:=range args{if v.n==nil||v.n.typ!=expected[i]||v.n.size==0||v.n.depth==0{return Value{},ErrMalformed};if v.n.size>l.MaxNodes-total||v.n.depth>l.MaxDepth{return Value{},ErrResource};total+=v.n.size;nodes[i]=v.n}
- b:=&budget{limits:l};result,err:=execute(b,[[if .MultiRoot]]entry,[[end]]nodes);if err!=nil{return Value{},err}
+ [[if .Fast]]if result,ok:=fastRun([[if .MultiRoot]]entry,[[end]]nodes,l);ok{return Value{result},nil}
+ [[end]]b:=&budget{limits:l};result,err:=execute(b,[[if .MultiRoot]]entry,[[end]]nodes);if err!=nil{return Value{},err}
  if result==nil||result.typ!=[[if .MultiRoot]]resultType[[else]]rootResult()[[end]]||result.size==0||result.depth==0{return Value{},ErrMalformed}
  if result.size>l.MaxOutputNodes||result.depth>l.MaxDepth{return Value{},ErrResource}
  return Value{result},nil

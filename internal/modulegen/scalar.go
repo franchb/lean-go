@@ -57,6 +57,12 @@ func (e *apiEmitter) nativeEligibility(records bool) func(string) bool {
 	return visit
 }
 
+// scalarRoots returns the byte-fold steps that run as metered native code
+// and the scalar roots that keep the metered scalar entry. A scalar root
+// keeps it only when it is off the fast path, which happens when its static
+// bound exceeds the caps of DefaultLimits (an exponential call tree):
+// exact metering still lets the inputs that stay within the limits run
+// natively.
 func (e *apiEmitter) scalarRoots() map[string]bool {
 	scalar := e.nativeEligibility(false)
 	record := e.nativeEligibility(true)
@@ -65,7 +71,7 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 		if step := e.names.ByteFolds[name]; step != "" && (scalar(step) || e.records[e.g.functions[name].decl.Result] != "" && record(step)) {
 			roots[step] = true
 		}
-		if scalar(name) {
+		if scalar(name) && !e.g.fast.eligible(name) {
 			roots[name] = true
 		}
 	}
@@ -74,6 +80,7 @@ func (e *apiEmitter) scalarRoots() map[string]bool {
 
 func (e *apiEmitter) emitEntrypoints(w *bytes.Buffer) {
 	roots := e.scalarRoots()
+	e.emitFast(w)
 	if len(roots) != 0 {
 		w.WriteString(`// scalarWork charges the same IR steps and logical scalar allocations as execute.
 func (b *budget) scalarWork(steps, allocations uint64) bool {
@@ -92,7 +99,7 @@ func (b *budget) scalarWork(steps, allocations uint64) bool {
 				e.emitScalarFunction(w, callee, emitted)
 			}
 			e.byteFoldEntry(w, e.g.functions[root], callee, roots[step])
-		} else if roots[root] && e.records[e.g.functions[root].decl.Result] == "" {
+		} else if roots[root] && !e.g.fast.eligible(root) && e.records[e.g.functions[root].decl.Result] == "" {
 			e.emitScalarFunction(w, e.g.functions[root], emitted)
 			e.scalarEntry(w, root)
 		} else {

@@ -17,7 +17,7 @@ import (
 //go:embed templates/*.tmpl
 var templates embed.FS
 
-const Version = "lean-go-modulegen/v19"
+const Version = "lean-go-modulegen/v20"
 
 func digest(data []byte) string { sum := sha256.Sum256(data); return hex.EncodeToString(sum[:]) }
 
@@ -35,16 +35,24 @@ type generator struct {
 	types        map[string]int
 	constructors map[string]constructor
 	functions    map[string]*function
+	options      generateOptions
+	fast         *fastPlan // nil when no root takes the fast path
 }
 type constructor struct{ typ, tag int }
 
 // Generate validates the supplied IR before emitting any output. Source identity
 // metadata is not authentication; use the source producer for Lean admission.
 func Generate(p *moduleir.Program) (map[string][]byte, error) {
+	return generateWith(p, generateOptions{})
+}
+
+func generateWith(p *moduleir.Program, options generateOptions) (map[string][]byte, error) {
 	if err := moduleir.Validate(p); err != nil {
 		return nil, fmt.Errorf("validate module IR: %w", err)
 	}
 	g := newGenerator(p)
+	g.options = options
+	g.fast = g.planFastPath()
 	var schema, control bytes.Buffer
 	g.emitSchema(&schema)
 	g.emitControl(&control)

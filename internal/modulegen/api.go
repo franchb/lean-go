@@ -178,17 +178,23 @@ func (e *apiEmitter) destructor(w *bytes.Buffer, typ moduleir.TypeDecl, ctor mod
 	fmt.Fprintf(w, "return %s,true}\n", strings.Join(values, ","))
 }
 
+// run writes the typed entry point of a root: it invokes Run or RunRoot,
+// after the native call of the fast path when the root is eligible.
 func (e *apiEmitter) run(w *bytes.Buffer, name string) {
 	root := e.g.functions[name].decl
 	fields := make([]string, len(root.Params))
 	for i, param := range root.Params {
 		fields[i] = param.Type
 	}
+	prelude, how := "", "and its existing limits."
+	if e.g.fast.eligible(name) {
+		prelude, how = e.fastPrelude(name), "and its existing limits, or natively\n// when the limits cover the root's static worst case."
+	}
 	if moduleir.HasMultipleRoots(e.g.program) {
 		entry := e.names.Entrypoints[name]
-		fmt.Fprintf(w, "// %s invokes its selected Lean root through RunRoot and its existing limits.\nfunc %s(%sl Limits)(%s,error){out,err:=RunRoot(%q,[]Value{", entry, entry, e.parameters(fields), e.names.Types[root.Result], name)
+		fmt.Fprintf(w, "// %s invokes its selected Lean root through RunRoot %s\nfunc %s(%sl Limits)(%s,error){\n%sout,err:=RunRoot(%q,[]Value{", entry, how, entry, e.parameters(fields), e.names.Types[root.Result], prelude, name)
 	} else {
-		fmt.Fprintf(w, "// RunTyped invokes the selected Lean root through Run and its existing limits.\nfunc RunTyped(%sl Limits)(%s,error){out,err:=Run([]Value{", e.parameters(fields), e.names.Types[root.Result])
+		fmt.Fprintf(w, "// RunTyped invokes the selected Lean root through Run %s\nfunc RunTyped(%sl Limits)(%s,error){\n%sout,err:=Run([]Value{", how, e.parameters(fields), e.names.Types[root.Result], prelude)
 	}
 	for i, field := range fields {
 		fmt.Fprintf(w, "{n:%s},", e.node(field, fmt.Sprintf("a%d", i)))
