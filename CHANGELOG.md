@@ -15,9 +15,13 @@ Changes on the development branch since `v0.1.0-alpha.15`.
 - Translation validation: `lean-go generate --validate report|require` and
   `lean-go validate` prove, per extraction, that the IR program returns the
   encoding of the Lean function's result whenever it returns (partial
-  correctness). Every tracked program has a checked-in report; coverage is 86
-  of 88 functions and 53 of 54 roots. See
+  correctness). Every tracked program has a checked-in report; coverage is 88
+  of 88 functions and 54 of 54 roots. See
   [translation validation](docs/research/translation-validation.md).
+  The proof automation now records its generic evaluation steps with
+  explicit proofs, so the kernel no longer reduces fixed-width arithmetic to
+  recheck them; this took the DNS header's `word1` and `serialize`
+  obligations from beyond the 4096 MiB cap to well under a second each.
 - Proof evidence can be bound to native packages through their manifests
   (`"generated_mode": "native"`).
 

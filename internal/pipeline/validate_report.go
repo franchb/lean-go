@@ -281,7 +281,7 @@ type ValidationResult struct {
 }
 
 // Unproved lists, in report order, every function and root that is not proved,
-// with its reason ("DnsHeader.word1: failed: memory limit"). A run that did
+// with its reason ("M.f: failed: memory limit"). A run that did
 // not complete or whose IR check failed is listed as well.
 func (r *ValidationReport) Unproved() []string {
 	var out []string

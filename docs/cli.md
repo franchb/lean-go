@@ -135,10 +135,10 @@ place. An obligation that hits a limit (the memory cap, a heartbeat or time
 budget, or the process timeout) is reported `failed` with a reason class that
 names the limit (`memory_limit`, `heartbeat_limit`, `obligation_time_limit`,
 `process_time_limit`); the process is rerun with that obligation skipped, so
-the remaining obligations still run. The default cap is deliberately low: on
-the tracked examples `DnsHeader.word1` would need more than 12 GB and
-`DnsHeader.serialize` between 5 and 6 GB, and both are reported
-`failed: memory limit` under it.
+the remaining obligations still run. Every tracked example validates
+under the default cap (a whole program peaks at about 1.7 GB, most of it the
+imported environment); an obligation whose kernel check outgrows it is
+reported `failed: memory limit` instead of exhausting the machine.
 
 **Reports.** The report (`lean-go-validation/v2`) is deterministic: two runs on
 the same inputs and budgets write the same bytes. It records the module and

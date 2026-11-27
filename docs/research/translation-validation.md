@@ -27,6 +27,7 @@ producer/LeanGo/Validate/Syntax.lean        deep embedding of the IR
 producer/LeanGo/Validate/Semantics.lean     evaluator, program semantics, `Code.calls`
 producer/LeanGo/Validate/Soundness.lean     Park induction (whole program and call-closed subsets)
 producer/LeanGo/Validate/Spec.lean          spec environments, obligations, `run_rel`, `run_rel_on`
+producer/LeanGo/Validate/Steps.lean         evaluation steps with explicit proofs (used by `validate_obl`)
 producer/LeanGo/Validate/Meta.lean          meta level: imports the three below
 producer/LeanGo/Validate/Meta/Derive.lean   `derive_ir_encoding`
 producer/LeanGo/Validate/Meta/Load.lean     JSON bridge (`elabProgramJson`, `validate_ir_program`)
@@ -201,6 +202,17 @@ round:
 * Scalars are no longer destructed into their `BitVec` field (they are
   structures, too); this made kernel checking of large arithmetic bodies
   expensive.
+* **Evaluation steps carry explicit proofs (`LeanGo.Validate.Steps`).** The
+  core lemmas `Option.bind_some`, `List.foldl_cons`, `ite_true` and
+  `ite_false` are proved by `rfl`, so `simp` applies them *definitionally*:
+  it rewrites the goal and records no proof, and the kernel has to recheck
+  the step as a definitional equality between the term before and the term
+  after. `Steps` restates the four lemmas with proofs that are not `rfl`, and
+  `validate_obl` uses those, so each step is an ordinary rewrite whose proof
+  the kernel checks by instantiation. The statements are the core ones and
+  the obligations are unchanged; only the shape of the proof term changes.
+  This is what made `DnsHeader.word1` and `DnsHeader.serialize` prove
+  (failure class 5).
 
 ## 7. `#lean_go_validate`
 
@@ -373,18 +385,17 @@ current validation library.
 | crc16 | `examples/proofs/crc16/crc16.validation.json` | 3 / 3 | 2 / 2 | – |
 | adler32 | `examples/proofs/adler32/adler32.validation.json` | 5 / 5 | 3 / 3 | – |
 | normalizer | `examples/proofs/normalizer/normalizer.validation.json` | 3 / 3 | 1 / 1 | – |
-| format dns | `examples/formats/dns/dns.validation.json` | 12 / 14 | 2 / 3 | `DnsHeader.serialize`: failed: memory limit; `DnsHeader.word1`: failed: memory limit |
+| format dns | `examples/formats/dns/dns.validation.json` | 14 / 14 | 3 / 3 | – |
 | format header | `examples/formats/header/header.validation.json` | 7 / 7 | 4 / 4 | – |
 | format udp | `examples/formats/udp/udp.validation.json` | 7 / 7 | 4 / 4 | – |
-| **total** | 22 programs | **86 / 88** | **53 / 54** | |
+| **total** | 22 programs | **88 / 88** | **54 / 54** | |
 <!-- validation-coverage:end -->
 
-`normalizer` is now extracted as module IR and is included (3 / 3). Under the
-earlier, unlimited runs of the Python runner (21 programs) the totals were
-84 / 85 functions and 52 / 53 roots: `DnsHeader.serialize` then proved in about 40 s,
-using between 5 and 6 GB. Under the default 4096 MiB cap it is reported
-`failed: memory limit` as well (`--validate-memory-mb 6144` proves it); its
-root has no whole-program theorem either way, because `word1` fails.
+Every tracked function and root is proved under the default budget. The
+last two, `DnsHeader.word1` and `DnsHeader.serialize`, had exceeded the
+memory cap until the evaluation steps got explicit proofs (failure class 5);
+the whole DNS validation now takes about 13 s with a peak of about 1.7 GB,
+most of it the imported environment.
 
 `checkedframe` has no IR of its own: it is the composition of `wire16` and
 `crc16`, both completely validated.
@@ -413,24 +424,63 @@ failure has been a counterexample (a false obligation from a wrong lowering).
    the helper's specification fixes removed arguments to an arbitrary
    inhabitant, the source call sites pass `⟨0⟩`; stuck until the owner is
    unfolded. Fixed: owners of reduced helpers are unfolded in every obligation.
-5. **Kernel memory exhaustion, open** (`DnsHeader.word1`, a 7-term straight-line
-   sum of shifted bytes): elaboration of the proof finishes quickly within the
-   heartbeat budget, but the kernel check of the proof term grows past 12 GB;
-   `be16w`, the same pattern with one term, checks instantly, so it is some
-   interaction of the six literal-shift steps with kernel defeq checking that
-   has not been isolated. `DnsHeader.serialize` needs 5–6 GB in the kernel.
-   Heartbeats do not bound kernel memory; Lean's `-M` limit does. The runner
-   starts the validation process with `-M <cap>` and `Elab.async` off, so the
-   kernel's `excessive memory consumption` error fails that obligation inside
-   the command, which reports it; the runner then reruns with it skipped
-   (`skip "F"`), because the process can stay near the cap and fail later
-   obligations spuriously, and reports it `failed` with reason class
-   `memory_limit`. A process that dies outright (Lean's uncaught memory
-   exception, the system's OOM killer, the process timeout) is handled the
-   same way through the progress file. Under the default cap both `word1` and
-   `serialize` are reported `failed: memory limit`; the root
-   `DnsHeader.serialize` has no whole-program theorem; `parse` and `validate`
-   do. No run reaches the machine's OOM killer.
+5. **Kernel memory exhaustion from definitional evaluation steps**
+   (`DnsHeader.word1`, a 7-term straight-line sum of shifted bytes, and
+   `DnsHeader.serialize`, which calls it): elaboration finished in well under a
+   second, but the kernel check of the proof exhausted memory (more than 12 GB
+   uncapped; under `-M 6144` it failed after 29 s), and `serialize` needed
+   38.6 s and a peak of 6.0 GB. Fixed by the explicit evaluation steps (§6).
+   How it was found, each step reproduced in isolation under `lean -M`:
+   * The obligation is closed by a single `simp only` pass. Running that pass
+     with the source side left open (`sorry`), and without the literal and
+     shift normal forms, still exhausted the cap: the cost was in the proof of
+     the *IR-side* evaluation, not in the arithmetic normal forms or the final
+     comparison with the source.
+   * A synthetic family `w_k` (k shifted bytes plus one byte, the shape of
+     `word1`) gave kernel times of under 0.1 s, 0.37 s and 2.0 s for k = 1, 2,
+     3, and k = 4 exceeded 4096 MiB: a factor of about five per term. With
+     the shift replaced by a multiplication by a literal, one term took
+     0.12 s, 1.1 s and 5.3 s for the literals 2^12, 2^15 and 2^17: linear in
+     the literal's value, which is the signature of the kernel reducing
+     `Nat` arithmetic on a literal one successor at a time.
+   * A throwaway probe kernel-checked every proof subterm separately and
+     descended into the most expensive one. The minimal expensive piece was an
+     `Eq.trans` whose two halves checked in 6 ms and 3 ms; the whole second
+     was spent checking that the right-hand side of the first half and the
+     left-hand side of the second are the same term. They are not
+     syntactically equal: `simp` had applied `Option.bind_some`
+     (`(some a).bind f = f a`, proved by `rfl`) as a definitional step, so
+     the kernel had to establish `(some E).bind (fun E => …) ≡ (the body
+     with E substituted)` itself. Both sides are `Option.bind` applications,
+     and the kernel compares same-head applications argument by argument
+     before it unfolds; those comparisons fail, but only after reducing the
+     evaluated values, `UInt32` arithmetic on symbolic operands, down to
+     `Nat`. Each nested step repeats this, so the cost grows with the
+     literals and multiplies with the length of the body.
+   * Replacing `Option.bind_some` by a copy with a non-`rfl` proof brought
+     the synthetic `w_1` … `w_5` together to 0.11 s of kernel time,
+     `word1` to 38 ms and `serialize` to 67 ms (from 38.6 s); in the
+     command, the whole DNS program now validates in about 13 s with a peak
+     of about 1.7 GB, most of which is the imported environment.
+   `List.foldl_cons`, `ite_true` and `ite_false` are the other `rfl` lemmas
+   of the evaluation set whose two sides can share a head symbol, so `Steps`
+   restates them too. The rule the automation follows is now: a generic
+   evaluation step whose left- and right-hand sides can have the same head
+   must not be a definitional step.
+
+   The memory cap stays: heartbeats do not bound kernel memory; Lean's `-M`
+   limit does. The runner starts the validation process with `-M <cap>` and
+   `Elab.async` off, so the kernel's `excessive memory consumption` error
+   fails that obligation inside the command, which reports it; the runner
+   then reruns with it skipped (`skip "F"`), because the process can stay
+   near the cap and fail later obligations spuriously, and reports it
+   `failed` with reason class `memory_limit`. A process that dies outright
+   (Lean's uncaught memory exception, the system's OOM killer, the process
+   timeout) is handled the same way through the progress file. No tracked
+   obligation reaches the cap any more (the largest whole-program run peaks
+   at about 1.7 GB, close to what the imported environment alone needs), so
+   the rerun of an obligation that hits the cap is tested with a fake
+   validator, and the real process only with a cap it cannot meet.
 6. **Kernel cost of a default-transparency `rfl` fallback**: the tactic's last
    resort was `rfl`, which can prove an arithmetic goal by evaluation that the
    kernel then re-does on symbolic operands. It is now `with_reducible rfl`
@@ -451,7 +501,7 @@ alone before reading it as a verdict.
    `native_decide`/`bv_decide` (`Lean.ofReduceBool`, `Lean.trustCompiler`) or
    a declared axiom. It covers the library, the command's meta code, the
    examples and — through `Examples/Command.lean`, which runs the command with
-   `strict` inside the build — everything the command adds (2741
+   `strict` inside the build — everything the command adds (2758
    declarations). In an extraction, the command applies the same check to
    every theorem it adds before reporting it as proved.
 2. The semantics (`Value`, `Prim.eval`, `Code.eval`, `Program.run`,
@@ -469,7 +519,7 @@ Implemented as follows.
 
 * **Embedding and caching.** `producer/embed.go` embeds
   `LeanGo/Validate.lean`, `LeanGo/Validate/*.lean` and
-  `LeanGo/Validate/Meta/*.lean` (14 files) as `ValidationFiles()`, separate from
+  `LeanGo/Validate/Meta/*.lean` (15 files) as `ValidationFiles()`, separate from
   `ModuleFiles()`. A validating run stages them, builds
   `LeanGo.Module.Export LeanGo.Validate LeanGo.Validate.Command` and uses a
   producer-cache entry keyed by the module producer *and* the validation files;
@@ -507,7 +557,9 @@ Implemented as follows.
   recursion (the extractor does not admit them either).
 * Symbolic evaluation is `simp`-based; cost grows with the number of case
   splits and with arithmetic expression size, and the kernel re-checks every
-  step (see the dns failure class). Source functions using well-founded
+  step. A definitional step whose two sides share a head symbol can make that
+  re-check reduce arithmetic (failure class 5); the generic ones are avoided,
+  but a new `rfl` lemma of that shape in `ir_simp` would bring the cost back. Source functions using well-founded
   recursion would need `unfold`-aware handling; none of the tracked ones do.
 * Local helpers: the source lambda is identified through the producer's
   witness and capture names; a capture whose name is ambiguous among the

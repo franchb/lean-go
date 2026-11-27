@@ -95,9 +95,8 @@ connects a Lean function to Go through three links of different assurance:
    *whenever the IR program returns a value, it is the encoding of the Lean
    function's result*. It does not prove that the IR program terminates.
    Validation is off by default. Every tracked example has a checked-in
-   report; together they establish 53 of 54 exported functions (86 of 88 IR
-   functions); the DNS header's `serialize` is not established because two
-   obligations exceed the default 4096 MiB memory limit
+   report; together they establish all 54 exported functions (88 of 88 IR
+   functions) under the default budget
    ([coverage table](docs/research/translation-validation.md#9-coverage)).
 3. **Trusted, not proved.** The Lean kernel; the meaning given to IR
    programs (`producer/LeanGo/Validate`) and the JSON-to-Lean bridge; the
