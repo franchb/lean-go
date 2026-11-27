@@ -151,27 +151,35 @@ func TestTinyMemoryCapIsAFailedValidationNotAnOOM(t *testing.T) {
 	}
 }
 
-// DnsHeader.word1 makes the kernel use more than 12 GB; under the default
-// cap it must be a failed obligation, and the other obligations still run.
-func TestDNSWord1HitsTheMemoryCap(t *testing.T) {
+// DnsHeader.word1 and DnsHeader.serialize used to exhaust the kernel's memory
+// (more than 12 GB, and about 6 GB), until the evaluation steps of
+// validate_obl got explicit proofs. Under the default budget the whole
+// program must now be proved in one process attempt. No tracked obligation
+// reaches the cap any more, so the memory path is exercised with a cap the
+// process cannot meet: it must still end as a reported memory-limit failure,
+// not an OOM. (The skip-and-rerun of a single obligation that hits the cap is
+// covered with a fake validator: TestCaughtMemoryFailureIsIsolatedByARerun,
+// TestKilledProcessSkipsTheObligationAndReruns.)
+func TestDNSProvesUnderTheDefaultBudget(t *testing.T) {
 	requireValidate(t)
-	result, err := generateExample(t, validateDNS, t.TempDir(), &ValidationOptions{Mode: ValidateReport})
+	result, err := generateExample(t, validateDNS, t.TempDir(), &ValidationOptions{Mode: ValidateRequire})
 	if err != nil {
 		t.Fatal(err)
 	}
 	r := result.Validation.Report
-	byName := map[string]ReportFunction{}
-	for _, f := range r.Functions {
-		byName[f.Name] = f
+	if !r.Complete() || r.Summary.Proved != 14 || r.Summary.RootsProved != 3 {
+		t.Fatalf("%+v %v", r.Summary, r.Unproved())
 	}
-	word1 := byName["DnsHeader.word1"]
-	if word1.Status != "failed" || word1.ReasonClass != ReasonMemory {
-		t.Fatalf("word1: %+v", word1)
+	if len(result.Validation.Diagnostics.Attempts) != 1 {
+		t.Fatalf("attempts %+v", result.Validation.Diagnostics.Attempts)
 	}
-	if byName["DnsHeader.parse"].Status != "proved" || byName["DnsHeader.validate"].Status != "proved" {
-		t.Fatalf("%v", r.Unproved())
+
+	result, err = generateExample(t, validateDNS, t.TempDir(), &ValidationOptions{Mode: ValidateReport, MemoryMB: MinValidateMemoryMB})
+	if err != nil {
+		t.Fatal("report mode failed:", err)
 	}
-	if r.Summary.RootsProved != 2 || len(result.Validation.Diagnostics.Attempts) < 2 {
-		t.Fatalf("%+v %d", r.Summary, len(result.Validation.Diagnostics.Attempts))
+	r = result.Validation.Report
+	if r.Status != ValidationProcessFailed || r.ReasonClass != ReasonMemory || r.Complete() {
+		t.Fatalf("%s %s", r.Status, r.ReasonClass)
 	}
 }
