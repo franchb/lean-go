@@ -71,7 +71,7 @@ func diagnosticError(item *Object, cause error) *Error {
 }
 
 // staged enriches an error with a stage and code unless it already carries a
-// diagnostic, mirroring the Python stage() context manager.
+// diagnostic: the innermost stage that saw the error names it.
 func staged(stage, code string, err error) error {
 	return stagedHint(stage, code, nil, err)
 }

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// Ported from scripts/test_differential_model.py.
+// Ported from the retired scripts/test_differential_model.py.
 
 func lit(v uint64) Expr { return LitU(v) }
 

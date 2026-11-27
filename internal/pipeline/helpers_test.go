@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// Shared helpers for the tests ported from the Python suites in scripts/.
+// Shared helpers for the tests ported from the retired Python suites in scripts/.
 
 var (
 	sharedCacheOnce sync.Once

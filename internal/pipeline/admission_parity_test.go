@@ -44,7 +44,7 @@ func buildErrors(message string) []string {
 	return out
 }
 
-func TestAdmissionDiagnosticsMatchPythonPipeline(t *testing.T) {
+func TestAdmissionDiagnosticsMatchRecordedPythonReports(t *testing.T) {
 	if os.Getenv("LEAN_GO_PARITY") != "1" {
 		t.Skip("set LEAN_GO_PARITY=1 for fresh Lean admission builds")
 	}

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) ports of scripts/test_numeric_admission.py
+// Lean-gated (LEAN_GO_MODULES=1) ports of the retired scripts/test_numeric_admission.py
 // and scripts/test_uint64_admission.py, with the fixture shared by the other
 // numeric ports (lean_unsigned_test.go, lean_bytes_test.go,
 // lean_bitwise_test.go and lean_widths_test.go).

@@ -14,7 +14,7 @@ import (
 // (LEAN_GO_PROOFS=1) and the script JSON case of
 // scripts/test_diagnostics_lean.py (LEAN_GO_MODULES=1). The other
 // test_diagnostics_lean.py cases are covered with exact report equality by
-// TestAdmissionDiagnosticsMatchPythonPipeline (LEAN_GO_PARITY=1) and by
+// TestAdmissionDiagnosticsMatchRecordedPythonReports (LEAN_GO_PARITY=1) and by
 // TestDiagnosticsLeanAssertions below.
 
 func clampFixture(t *testing.T) (*Contract, *ProjectSnapshot, *toolInputs) {

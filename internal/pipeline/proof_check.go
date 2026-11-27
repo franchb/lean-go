@@ -357,7 +357,7 @@ func Evidence(contractPath, manifestPath string) ([]byte, *Contract, error) {
 		return nil, nil, err
 	}
 	changed := exportError("proof inputs or generated package changed during checking")
-	// Like the Python checker, a failing recheck reports its own error.
+	// A failing recheck reports its own error.
 	again, err := LoadContract(contractPath)
 	if err != nil {
 		return nil, nil, err

@@ -20,7 +20,7 @@ import (
 
 // Native halves of scripts/test_unsigned.py and scripts/test_uint16.py:
 // fresh Lean builds compared with the generated Go of both APIs and with an
-// arithmetic model. Gated by LEAN_GO_MODULES, as the Python suites were. The
+// arithmetic model. Gated by LEAN_GO_MODULES, as the retired Python suites were. The
 // producer halves are in internal/pipeline/lean_unsigned_test.go and
 // lean_bytes_test.go.
 

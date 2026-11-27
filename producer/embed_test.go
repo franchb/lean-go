@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// Ported from scripts/test_validate_module.py: the embedded validation files
+// Ported from the retired scripts/test_validate_module.py: the embedded validation files
 // are exactly the validation library on disk, and none of them is a module
 // producer file (whose digests every manifest records).
 func TestValidationFilesCoverTheLibrary(t *testing.T) {

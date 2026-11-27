@@ -12,7 +12,7 @@ import (
 	"github.com/franchb/lean-go/producer"
 )
 
-// Ported from scripts/test_proof_contracts.py (protocol tests; the Lean
+// Ported from the retired scripts/test_proof_contracts.py (protocol tests; the Lean
 // tests are in proof_lean_test.go) and scripts/test_composition_contract.py.
 
 type contractFixture struct {

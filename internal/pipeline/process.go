@@ -32,13 +32,14 @@ func childEnvironment(c Compiler) []string {
 	return append(env, "ELAN_TOOLCHAIN="+c.Toolchain(), "CGO_ENABLED=0", "GOTOOLCHAIN=local")
 }
 
-// universal reproduces Python's text-mode newline translation.
+// universal translates CRLF and CR line ends to LF, the text-mode newline
+// translation the recorded diagnostics were written with.
 func universal(s string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
 }
 
 // run executes one producer process with captured output. Failures carry the
-// child's complete diagnostics in the message, as the Python pipeline did.
+// child's complete diagnostics in the message.
 // run and lookPath are variables so tests can stand in for Lean and Lake.
 var (
 	run      = runProcess

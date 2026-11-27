@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// Ported from scripts/test_diagnostics.py (protocol and source mapping,
+// Ported from the retired scripts/test_diagnostics.py (protocol and source mapping,
 // independent of the Lean toolchain). The script-boundary cases live in
 // internal/cli.
 
@@ -96,7 +96,7 @@ func TestChildProtocolChecksTypesCodesAndLocationContext(t *testing.T) {
 	if mapLocation(parseValue(t, rawLocation), []mappedSource{{module: "Example"}}) != nil {
 		t.Fatal("invalid location mapped")
 	}
-	// A child report (the Python CLI's forwarded document) is validated as a
+	// A child report (a forwarded document, as the retired Python CLI sent) is validated as a
 	// whole: invented codes, wrong types or an unmapped location are rejected.
 	for _, changed := range []string{
 		strings.Replace(validProducerItem, `"unsupported_type"`, `"fake_rejection"`, 1),

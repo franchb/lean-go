@@ -19,7 +19,7 @@ import (
 	"github.com/franchb/lean-go/producer"
 )
 
-// Ported from scripts/test_compatibility.py.
+// Ported from the retired scripts/test_compatibility.py.
 
 var (
 	base = Identity{Version: Pinned.Version, Commit: Pinned.Commit}

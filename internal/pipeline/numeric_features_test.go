@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Ports of the feature tests of scripts/test_bitwise.py, test_uint8.py and
+// Ports of the feature tests of the retired scripts/test_bitwise.py, test_uint8.py and
 // test_width_conversions.py, which need no Lean:
 // the producer declares a feature family only for executable primitive
 // leaves, and malformed producer bodies are protocol errors.

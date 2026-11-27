@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) ports of scripts/test_record_admission.py,
+// Lean-gated (LEAN_GO_MODULES=1) ports of the retired scripts/test_record_admission.py,
 // scripts/test_api_admission.py, scripts/test_join_admission.py,
 // scripts/test_module_positive.py and the Lean half of scripts/test_multiroot.py.
 

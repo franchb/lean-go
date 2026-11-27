@@ -56,7 +56,8 @@ func demo(name, module string, roots ...string) Package {
 		Module: module, Roots: roots, Contract: base + "/proof-contract.json", Evidence: base + "/proof-evidence.json", Mode: "metered"}
 }
 
-// Packages are the tracked module packages, in scripts/regenerate_all.py order.
+// Packages are the tracked module packages, in the order the retired
+// scripts/regenerate_all.py used.
 var Packages = []Package{
 	fixture("choice", "Choice.Transform", "Choice.rotate"),
 	fixture("counters", "Counters", "Counters.advance", "Counters.initial", "Counters.read", "Counters.total"),

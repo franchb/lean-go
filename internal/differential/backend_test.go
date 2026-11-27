@@ -15,7 +15,7 @@ import (
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Ported from scripts/test_differential_backend.py (ResultProtocolTests,
+// Ported from the retired scripts/test_differential_backend.py (ResultProtocolTests,
 // ProcessTests). The timeout test of the process group is in
 // internal/devexec; the native smoke test is in lean_test.go.
 
