@@ -13,10 +13,10 @@ func TestSymlinkFreeAcceptsPlainAndMissingPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !symlinkFree(dir) {
+	if !SymlinkFree(dir) {
 		t.Fatalf("plain directory %s reported as containing a link", dir)
 	}
-	if !symlinkFree(filepath.Join(dir, "missing", "deeper", "file.json")) {
+	if !SymlinkFree(filepath.Join(dir, "missing", "deeper", "file.json")) {
 		t.Fatal("a missing tail below a plain directory reported as containing a link")
 	}
 	// The snapshot must get past the link check and report the real problem.
@@ -36,7 +36,7 @@ func TestSymlinkFreeRejectsLinkedComponents(t *testing.T) {
 	link := filepath.Join(dir, "link")
 	symlinkOrSkip(t, target, link)
 	for _, path := range []string{link, filepath.Join(link, "below"), filepath.Join(link, "missing", "file")} {
-		if symlinkFree(path) {
+		if SymlinkFree(path) {
 			t.Fatalf("%s goes through a symbolic link but was reported link-free", path)
 		}
 	}

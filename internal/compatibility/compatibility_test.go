@@ -436,6 +436,13 @@ func TestReusedOverlappingAndSymlinkOutputsAreRejected(t *testing.T) {
 	if _, err := ValidateOutput(filepath.Join(install, "out"), repo, []string{filepath.Join(install, "bin")}); err == nil {
 		t.Error("output inside a compiler installation accepted")
 	}
+	// A new path below a plain directory is accepted as given. On Windows
+	// runners the temporary directory is spelled with an 8.3 short name
+	// (RUNNER~1), so it differs from its resolved form without any link.
+	fresh := filepath.Join(parent, "fresh")
+	if got, err := ValidateOutput(fresh, repo, nil); err != nil || got != fresh {
+		t.Fatalf("%q %v", got, err)
+	}
 	alias := filepath.Join(parent, "alias")
 	if err := os.Symlink(repo, alias); err != nil {
 		t.Skip("symlinks unavailable")
@@ -443,9 +450,17 @@ func TestReusedOverlappingAndSymlinkOutputsAreRejected(t *testing.T) {
 	if _, err := ValidateOutput(filepath.Join(alias, "new"), repo, nil); err == nil {
 		t.Error("symlinked output accepted")
 	}
-	fresh := filepath.Join(parent, "fresh")
-	if got, err := ValidateOutput(fresh, repo, nil); err != nil || got != fresh {
-		t.Fatalf("%q %v", got, err)
+	// A link to a directory outside the checkout is still a link.
+	elsewhere := filepath.Join(parent, "elsewhere")
+	if err := os.Mkdir(elsewhere, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(parent, "link")
+	if err := os.Symlink(elsewhere, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ValidateOutput(filepath.Join(link, "new"), repo, nil); err == nil {
+		t.Error("output below a link to an unprotected directory accepted")
 	}
 }
 

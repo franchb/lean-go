@@ -181,14 +181,15 @@ func isSymlink(path string) bool {
 	return err == nil && info.Mode()&fs.ModeSymlink != 0
 }
 
-// symlinkFree reports whether no existing component of an absolute path is a
+// SymlinkFree reports whether no existing component of an absolute path is a
 // symbolic link or, on Windows, another reparse point such as a junction.
 // Components after the first missing one cannot be links.
 //
 // Comparing a path with its filepath.EvalSymlinks form is not a substitute:
 // on Windows the two also differ for 8.3 short names (RUNNER~1) and for
-// letter case, where no link is involved.
-func symlinkFree(path string) bool {
+// letter case, where no link is involved. The developer harnesses apply the
+// same rule to their output directories, which is why this is exported.
+func SymlinkFree(path string) bool {
 	separator := string(filepath.Separator)
 	prefix := filepath.VolumeName(path)
 	for _, part := range strings.Split(filepath.ToSlash(path[len(prefix):]), "/") {
@@ -235,7 +236,7 @@ func SourceSnapshot(sourceDir string) (Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !symlinkFree(directory) || !isDir(directory) {
+	if !SymlinkFree(directory) || !isDir(directory) {
 		return nil, exportError("source directory must exist and must not contain symlinks")
 	}
 	var out Snapshot

@@ -701,16 +701,21 @@ func ValidateOutput(artifacts, repo string, bins []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if _, err := os.Lstat(requested); err == nil || resolveLexical(requested) != requested {
+	// The link check walks the components. Comparing the path with its
+	// resolved form would also reject a link-free path on Windows, where
+	// resolution expands 8.3 short names (RUNNER~1) and corrects letter case.
+	if _, err := os.Lstat(requested); err == nil || !pipeline.SymlinkFree(requested) {
 		return "", harnessError("artifact directory must be a new path without symlinks")
 	}
+	// Overlap, for the same reason, is decided between resolved forms only.
+	resolved := resolveLexical(requested)
 	protected := []string{repo}
 	for _, bin := range bins {
 		protected = append(protected, filepath.Dir(bin))
 	}
 	for _, p := range protected {
 		p = resolveLexical(p)
-		if within(requested, p) || within(p, requested) {
+		if within(resolved, p) || within(p, resolved) {
 			return "", harnessError("artifact directory must not overlap source or compiler installations")
 		}
 	}

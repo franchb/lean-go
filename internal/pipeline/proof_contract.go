@@ -95,7 +95,7 @@ func readRegular(path string, limit int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !symlinkFree(path) || !isFile(path) {
+	if !SymlinkFree(path) || !isFile(path) {
 		return nil, exportErrorf("missing, noncanonical or symlinked input: %s", baseName(path))
 	}
 	info, err := os.Stat(path)
@@ -140,7 +140,7 @@ func projectDirectory(root string, value any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !symlinkFree(directory) || !isDir(directory) {
+	if !SymlinkFree(directory) || !isDir(directory) {
 		return "", exportError("contract directory is missing or contains a symlink")
 	}
 	return directory, nil

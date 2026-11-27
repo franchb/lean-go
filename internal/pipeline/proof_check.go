@@ -454,7 +454,7 @@ func validateEvidencePath(path string, c *Contract, manifest string) (string, er
 	if err != nil {
 		return "", exportError("invalid evidence path")
 	}
-	if !symlinkFree(output) || (exists(output) && !isFile(output)) {
+	if !SymlinkFree(output) || (exists(output) && !isFile(output)) {
 		return "", exportError("evidence path must be a regular file without symlinks")
 	}
 	// Compare resolved forms with each other: on Windows the resolved form
