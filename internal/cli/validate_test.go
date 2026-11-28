@@ -65,8 +65,9 @@ func TestValidateCommand(t *testing.T) {
 	if code, _, _ := runMain("validate", "--source-dir", "s", "--module", "M"); code != 2 {
 		t.Fatal("missing --ir accepted")
 	}
-	if code, _, _ := runMain("validate", "--source-dir", "s", "--module", "M", "--root", "M.r", "--ir", "x.ir.json", "--validate", "off"); code != 2 {
-		t.Fatal("--validate off accepted")
+	if code, _, stderr := runMain("validate", "--source-dir", "s", "--module", "M", "--root", "M.r", "--ir", "x.ir.json", "--validate", "off"); code != 2 ||
+		!strings.Contains(stderr, `invalid choice: "off" (choose from report, require)`) {
+		t.Fatalf("--validate off: %d %q", code, stderr)
 	}
 	code, stdout, stderr := runMain("validate", "--source-dir", "s", "--module", "M", "--root", "M.r", "--ir", "x.ir.json", "--validate-memory-mb", "2048")
 	if code != 0 {
@@ -78,10 +79,42 @@ func TestValidateCommand(t *testing.T) {
 	if !strings.Contains(stdout, "1/1 functions proved, 1/1 roots established; report in x.validation.json") {
 		t.Fatalf("%q", stdout)
 	}
-	if code, stdout, _ := runMain("validate", "--help"); code != 0 || !strings.Contains(stdout, "--validate-memory-mb") {
-		t.Fatal("help")
+	if code, _, _ := runMain("validate", "--source-dir", "s", "--module", "M", "--root", "M.r", "--ir", "x.ir.json", "--validate", "require"); code != 0 || seen.Validation.Mode != pipeline.ValidateRequire {
+		t.Fatalf("--validate require: %d %+v", code, seen.Validation)
 	}
-	if code, stdout, _ := runMain("generate", "--help"); code != 0 || !strings.Contains(stdout, "--validate off|report|require") {
-		t.Fatal("generate help lacks --validate")
+}
+
+// Each command's --validate line states that command's own choices and default.
+func TestValidateHelpStatesTheCommandDefault(t *testing.T) {
+	optionLine := func(command string) string {
+		t.Helper()
+		code, stdout, _ := runMain(command, "--help")
+		if code != 0 {
+			t.Fatalf("%s --help exits %d", command, code)
+		}
+		for _, line := range strings.Split(stdout, "\n") {
+			if strings.HasPrefix(line, "  --validate ") {
+				return strings.Join(strings.Fields(line), " ")
+			}
+		}
+		t.Fatalf("%s --help has no --validate line:\n%s", command, stdout)
+		return ""
+	}
+	if got, want := optionLine("generate"), "--validate off|report|require translation-validate the export (default off); require fails unless everything is proved"; got != want {
+		t.Errorf("generate: %q", got)
+	}
+	if got, want := optionLine("validate"), "--validate report|require report records what was proved (default); require also fails unless everything is proved"; got != want {
+		t.Errorf("validate: %q", got)
+	}
+	// The other validation options are the same list for both commands.
+	_, generate, _ := runMain("generate", "--help")
+	_, validate, _ := runMain("validate", "--help")
+	for _, name := range []string{"--validation-report", "--validation-diagnostics", "--validate-memory-mb", "--validate-heartbeats", "--validate-timeout-ms", "--validate-process-timeout"} {
+		if !strings.Contains(generate, "  "+name+" ") || !strings.Contains(validate, "  "+name+" ") {
+			t.Errorf("%s is missing from a help text", name)
+		}
+	}
+	if strings.Contains(validate, "default off") {
+		t.Errorf("validate --help names a default the command does not have:\n%s", validate)
 	}
 }

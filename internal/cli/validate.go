@@ -5,25 +5,30 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Translation validation options, shared by "generate --validate" and the
-// standalone "validate" command.
-var validationOptions = []option{
-	{name: "validate", values: 1, choices: pipeline.ValidateModes, meta: "off|report|require", help: "translation-validate the export (default off); require fails unless everything is proved"},
-	{name: "validation-report", values: 1, meta: "FILE", help: "tracked validation report (default: next to the IR, X.ir.json -> X.validation.json)"},
-	{name: "validation-diagnostics", values: 1, meta: "FILE", help: "also write untracked timings and full failure messages"},
-	{name: "validate-memory-mb", values: 1, meta: "N", help: fmt.Sprintf("memory limit of the validation process in MiB (default %d)", pipeline.DefaultValidateMemoryMB)},
-	{name: "validate-heartbeats", values: 1, meta: "N", help: fmt.Sprintf("heartbeats per obligation, in thousands (default %d)", pipeline.DefaultValidateHeartbeats)},
-	{name: "validate-timeout-ms", values: 1, meta: "N", help: fmt.Sprintf("wall-clock limit per obligation (default %d)", pipeline.DefaultValidateTimeoutMs)},
-	{name: "validate-process-timeout", values: 1, meta: "SECONDS", help: fmt.Sprintf("wall-clock limit of one validation process (default %d)", int(pipeline.DefaultValidateProcessTimeout.Seconds()))},
+// validationOptions are the translation validation options of "generate" and
+// of the standalone "validate" command. The two differ in --validate only:
+// generate validates on request, validate always does.
+func validationOptions(modes []string, help string) []option {
+	return []option{
+		{name: "validate", values: 1, choices: modes, meta: strings.Join(modes, "|"), help: help},
+		{name: "validation-report", values: 1, meta: "FILE", help: "tracked validation report (default: next to the IR, X.ir.json -> X.validation.json)"},
+		{name: "validation-diagnostics", values: 1, meta: "FILE", help: "also write untracked timings and full failure messages"},
+		{name: "validate-memory-mb", values: 1, meta: "N", help: fmt.Sprintf("memory limit of the validation process in MiB (default %d)", pipeline.DefaultValidateMemoryMB)},
+		{name: "validate-heartbeats", values: 1, meta: "N", help: fmt.Sprintf("heartbeats per obligation, in thousands (default %d)", pipeline.DefaultValidateHeartbeats)},
+		{name: "validate-timeout-ms", values: 1, meta: "N", help: fmt.Sprintf("wall-clock limit per obligation (default %d)", pipeline.DefaultValidateTimeoutMs)},
+		{name: "validate-process-timeout", values: 1, meta: "SECONDS", help: fmt.Sprintf("wall-clock limit of one validation process (default %d)", int(pipeline.DefaultValidateProcessTimeout.Seconds()))},
+	}
 }
 
 func init() {
-	generateOptions = append(generateOptions, validationOptions...)
+	generateOptions = append(generateOptions, validationOptions(pipeline.ValidateModes,
+		"translation-validate the export (default off); require fails unless everything is proved")...)
 }
 
 func positive(p *parsed, name string) (int, error) {
@@ -86,7 +91,8 @@ var validateCommandOptions = append([]option{
 	{name: "ir", values: 1, meta: "FILE", help: "existing IR file; the sources must export to exactly these bytes"},
 	{name: "diagnostics", values: 1, choices: []string{"text", "json"}, meta: "text|json", help: "failure report format (default text)"},
 	{name: "no-cache", help: "build the producer from scratch instead of using the cache"},
-}, validationOptions...)
+}, validationOptions([]string{pipeline.ValidateReport, pipeline.ValidateRequire},
+	"report records what was proved (default); require also fails unless everything is proved")...)
 
 const validateSummary = `Translation-validate an existing IR file against its Lean sources.
 
@@ -94,8 +100,7 @@ The module is exported again in a fresh private workspace and must give the
 IR file byte for byte; then #lean_go_validate proves, in a separate Lean
 process with a memory cap, that each IR function returns the encoding of its
 source function's result whenever it returns (partial correctness). The
-report is written next to the IR unless --validation-report is given.
---validate defaults to report here.`
+report is written next to the IR unless --validation-report is given.`
 
 var validateFunc = pipeline.Validate
 
@@ -110,10 +115,8 @@ func validateCommand(args []string, stdout, stderr io.Writer) int {
 		err = errors.New("--source-dir, --module, --root and --ir are required")
 	}
 	if err == nil {
+		// Never nil: the command's --validate choices do not include off.
 		validation, err = validationFromFlags(p, pipeline.ValidateReport)
-		if err == nil && validation == nil {
-			err = errors.New("--validate off does nothing here")
-		}
 	}
 	if err != nil {
 		return usageFailure(stderr, "validate", validateSummary, validateCommandOptions, err)
