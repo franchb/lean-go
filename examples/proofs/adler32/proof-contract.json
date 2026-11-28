@@ -16,6 +16,14 @@
     {
       "theorem": "Adler32Proofs.step_spec",
       "expected": "Adler32Contract.step_spec"
+    },
+    {
+      "theorem": "Adler32Proofs.pack_spec",
+      "expected": "Adler32Contract.pack_spec"
+    },
+    {
+      "theorem": "Adler32Proofs.checksum_spec",
+      "expected": "Adler32Contract.checksum_spec"
     }
   ]
 }

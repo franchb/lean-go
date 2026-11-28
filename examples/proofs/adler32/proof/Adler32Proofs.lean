@@ -65,4 +65,25 @@ private theorem chunks (cs : List (List UInt8)) (s : Adler32.State) (hs : reduce
 
 theorem chunks_spec : Adler32Contract.chunks_spec := fun cs => chunks cs Adler32.initial (by decide : 1 < 65521 ∧ 0 < 65521)
 
+theorem pack_spec : Adler32Contract.pack_spec := by
+  intro s hs
+  obtain ⟨hlo, hhi⟩ := hs
+  have count : (16 : UInt32).toNat % 32 = 16 := by decide
+  have shifted : (s.high <<< 16).toNat = s.high.toNat <<< 16 := by
+    rw [UInt32.toNat_shiftLeft, count, Nat.shiftLeft_eq]
+    exact Nat.mod_eq_of_lt (by omega)
+  simp only [Adler32.checksum, observe, referenceChecksum, UInt32.toNat_or, shifted]
+  rw [← Nat.shiftLeft_add_eq_or_of_lt (by omega), Nat.shiftLeft_eq]
+
+private theorem chunks_reduced (cs : List (List UInt8)) (s : Adler32.State) (hs : reduced s) :
+    reduced (cs.foldl Adler32.update s) := by
+  induction cs generalizing s with
+  | nil => exact hs
+  | cons c cs ih => exact ih _ (bytes c s hs).1
+
+theorem checksum_spec : Adler32Contract.checksum_spec := fun cs => by
+  have init : reduced Adler32.initial := (by decide : 1 < 65521 ∧ 0 < 65521)
+  rw [pack_spec _ (chunks_reduced cs _ init), chunks cs _ init]
+  rfl
+
 end Adler32Proofs

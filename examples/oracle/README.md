@@ -39,7 +39,9 @@ state `high<<16 | low` is also the checksum.
 that one `step` from any reduced state equals the RFC 1950 natural-number
 reference: both sums are taken modulo 65521 and start at (1, 0). It also
 states that folding `update` over any list of chunks from `initial` equals
-the reference over the concatenation. The
+the reference over the concatenation, and that `checksum` of that state is
+the stored value `s2 * 65536 + s1` of the reference sums, which is the number
+the oracle tests compare. The
 [CRC-16 contract](../proofs/crc16/proof/Crc16Contract.lean) states that
 `updateByte` equals eight steps of a bit-at-a-time register for every state
 and byte. It also states that folding `update` over any chunks equals the

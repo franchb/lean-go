@@ -84,7 +84,7 @@ var All = []Demo{
 		ExtraFiles: []string{"checksum/checksum.go"},
 		Output:     "CRC-16/XMODEM(\"123456789\") = 0x31C3\n"},
 	{Name: "adler32", Module: "Adler32", Roots: []string{"Adler32.checksum", "Adler32.initial", "Adler32.update"},
-		Claims: pairs("Adler32Proofs", "Adler32Contract", "chunks_spec", "step_spec"),
+		Claims: pairs("Adler32Proofs", "Adler32Contract", "checksum_spec", "chunks_spec", "pack_spec", "step_spec"),
 		Output: "Adler-32(\"Wikipedia\") = 0x11E60398\n"},
 	{Name: "normalizer", Module: "Normalizer", Roots: []string{"Normalizer.normalize"},
 		Claims: pairs("NormalizerProofs", "NormalizerContract", "normalize_is_normal", "normalize_preserves_eval"),

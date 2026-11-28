@@ -392,5 +392,5 @@ source and theorem regression checks and recheck the tracked quota evidence.
 The installed-CLI check regenerates clamp, flags, words, bytes, header, wire16,
 crc16, adler32, normalizer and clock with a built and a module-installed
 binary, checks exact evidence against an independent claim inventory and
-deploys only Go sources, freshly checking 61 source claims per binary; see the
+deploys only Go sources, freshly checking 63 source claims per binary; see the
 [CLI guide](cli.md#verify-an-installation).
