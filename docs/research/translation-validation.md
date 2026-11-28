@@ -144,7 +144,9 @@ whatever happens to other functions of the same extraction.
 What it covers: for every fuel, every validated entry point and every encoded
 argument list, a defined IR result equals the encoded source result. What it
 does **not** cover: termination or non-stuckness (a program that always
-returns `none` satisfies it). That needs a separate progress argument.
+returns `none` satisfies it). That needs a separate progress argument. The
+command checks the weaker, concrete fact that the hypothesis is satisfiable:
+non-vacuity witnesses on generated inputs (§7).
 
 ## 5. Source encodings and the typed boundary
 
@@ -233,6 +235,7 @@ round:
 #lean_go_export_roots "ir.json" [R₁, …, Rₖ] "Module"      -- unchanged producer command
 #lean_go_validate "ir.json" [R₁, …, Rₖ] "Module" report "validation.json"
   heartbeats 200000 timeout_ms 120000 [strict] [namespace N] [skip "F …"]
+  [skip_witnesses "R …"]
 ```
 
 in the same environment, after the export command. Steps:
@@ -267,13 +270,78 @@ in the same environment, after the export command. Steps:
    (by `validate_prefixed_on`), `N.sound_k : ∀ n, Callable.Rel Approx (N.prog.run n "R") R`
    (by `run_rel_on`) and the explicit form
    `N.explicit_k : ∀ n a₁ … aₖ v, N.prog.run n "R" [encode a₁, …, encode aₖ] = some v → v = encode (R a₁ … aₖ)`.
-6. **Report** (below). With `strict`, any function not proved, any root
-   without its theorem, or an IR file mismatch is an error after the report is
-   written.
+6. **Non-vacuity witnesses** for every root whose explicit theorem is proved
+   (below).
+7. **Report** (below). With `strict`, any function not proved, an IR file
+   mismatch, or a root whose witnesses are `failed` is an error after the
+   report is written.
 
 `N` defaults to `LeanGo.Validated` (users cannot declare `LeanGo.*`; their
 sources cannot import the library either, so no user-supplied `Encode`
 instance can interfere).
+
+### Non-vacuity witnesses
+
+The explicit theorem is satisfied by a program that never returns. For every
+root `R` whose explicit theorem is proved, the command therefore adds, for a
+few concrete inputs `c` and the fixed fuel `F = 64`,
+
+```lean
+N.witness_k_j : N.prog.run 64 "R" [encode c₁, …, encode cₘ] = some (encode (R c₁ … cₘ))
+```
+
+* **Proof.** The kernel computes only that the IR program returns: the proof
+  term is `witness_of_isSome (Eq.refl true) (N.explicit_k 64 c₁ … cₘ)`
+  (`Spec.lean`), so the kernel checks `(N.prog.run 64 "R" [encode c…]).isSome
+  ≡ true` by evaluating the concrete run, and the equation follows from the
+  explicit theorem. The source function `R` is never reduced, so a source
+  defined by well-founded recursion does not get in the way. The theorem is
+  added with `addDecl` (kernel-checked, synchronously, with the obligation
+  budget: the heartbeat limit as the kernel's own limit and the wall-clock
+  cancellation token) and passes the same axiom check as every other theorem.
+  A rejected attempt is removed from the environment again.
+* **Measured cost.** Kernel time for one `isSome` check on the shared machine
+  (before choosing this route): `Clamp.clamp` 18–23 ms, independent of the
+  fuel (64, 1024 and 100000 gave the same time, as evaluation is lazy);
+  `Quota.reserve` 42 ms; `Trees.mirror` on a depth-2 tree 40 ms;
+  `Adler32.update` on three bytes 95 ms; `Crc16.update` on three bytes 194 ms
+  and on sixteen bytes 850 ms; `DnsHeader.parse` 78–179 ms,
+  `DnsHeader.serialize` 130 ms, `DnsHeader.validate` 73 ms;
+  `Normalizer.normalize` on a depth-3 expression 82 ms. Plain kernel reduction
+  is therefore used everywhere; the fallback (proving `isSome` by the
+  library's simp-based evaluation) is not needed.
+* **Inputs.** Derived from the root's parameter types, in a fixed order:
+  `UIntN` gives 0, 1, 2^N − 1 and one mixed pattern (`0xA5`, `0xA5C3`,
+  `0xA5C35A3C`, `0xA5C35A3C0F1E2D4B`); `Bool` both values; `List UInt8` the
+  lists `[]`, `[0xA5]`, `[0x00, 0xFF, 0x01, 0x5A]`; a non-parametric
+  inductive type its constructors applied to sample fields, rotating through
+  the field samples, recursive fields taken from the samples one constructor
+  level shallower (depth ≤ 2); at most four values per type. Case `j` takes
+  sample `(j + i) mod size` for parameter `i`; there are as many cases as the
+  largest sample list, at most four, and one for a root without parameters.
+* **Fuel.** Fuel bounds the call depth only. Kernel checks of the deepest
+  inputs (`Adler32.update` and `Crc16.update` over four bytes, `Trees.mirror`
+  on a depth-3 tree, `Normalizer.normalize` on a depth-3 expression,
+  `DnsHeader.parse`) succeed with fuel 9 (`Adler32.update` already with 7),
+  so 64 leaves a wide margin; a larger fuel costs nothing measurable. Every
+  generated case of every tracked root returns within 64 (§9).
+* **Outcome per root.** `checked`: every case returned `some` and its theorem
+  was added. `failed`: the kernel rejected the `isSome = true` check and
+  accepted `(N.prog.run 64 "R" [encode c…]).isSome = false`, added as
+  `N.nonwitness_k_j`: the program returns `none` on a generated input within
+  the fuel. `not_attempted` with a reason: the root is not proved
+  (`root_not_proved`), a parameter type has no samples (`no_samples`), a case
+  exhausted a budget (`heartbeat_limit`, `obligation_time_limit`,
+  `memory_limit`; the remaining cases are then not attempted), the witnesses
+  were skipped after a process limit, or the command did not report them
+  (`not_reported`). Every root of the report carries one of the three.
+* **Example.** `validation/Examples/Vacuous.lean` has a hand-written IR
+  function that calls itself and returns the result. Its obligation, its
+  `PreFixed` fact and its explicit theorem all prove (vacuously);
+  `#lean_go_witnesses`, which runs the same witness step on a hand-written
+  program, reports it `failed` with the kernel-checked
+  `(prog.run 64 "Examples.Vacuous.spin" [encode 0]).isSome = false`, and the
+  build fails if it does not.
 
 ### Report
 
@@ -281,9 +349,9 @@ The command writes its raw report (`validation.json` in the workspace, with
 timings and heartbeat counts). The Go runner splits it into two files:
 
 ```jsonc
-// X.validation.json, schema lean-go-validation/v2: deterministic, tracked
+// X.validation.json, schema lean-go-validation/v3: deterministic, tracked
 {
-  "schema": "lean-go-validation/v2", "module": "Local", "roots": ["Local.run"],
+  "schema": "lean-go-validation/v3", "module": "Local", "roots": ["Local.run"],
   "status": "completed",                        // or export_failed / load_failed / process_failed (+ "reason_class")
   "ir_file_matches": true, "ir_sha256": "…",     // the complete IR that was validated
   "lean_version": "4.36.0", "lean_commit": "…",
@@ -307,14 +375,21 @@ timings and heartbeat counts). The Go runner splits it into two files:
     "status": "proved",                         // proved | not_established (+ "missing") | failed (+ "reason_class")
     "prefixed_theorem": "…prefixed_0", "theorem": "…sound_0", "statement": "∀ (n : Nat), …",
     "explicit_theorem": "…explicit_0", "explicit_statement": "∀ (n : Nat) (config : Local.Config) …",
-    "axioms": [...]}],
-  "summary": {"functions": 3, "proved": 3, "failed": 0, "not_attempted": 0, "roots": 1, "roots_proved": 1}
+    "axioms": [...],
+    "witnesses": {                              // on every program
+      "status": "checked",                      // checked | failed | not_attempted (+ "reason_class")
+      "fuel": 64,
+      "cases": [{"theorem": "…witness_0_0", "statement": "….prog.run 64 \"Local.run\" […] = some (…)",
+                 "status": "checked"}, …]}}],    // a failed case names …nonwitness_k_j
+  "summary": {"functions": 3, "proved": 3, "failed": 0, "not_attempted": 0, "roots": 1, "roots_proved": 1,
+              "roots_witnessed": 1}
 }
 // --validation-diagnostics FILE, schema lean-go-validation-diagnostics/v1: untracked
 {"schema": "…", "module": "…", "roots": […], "ir_sha256": "…", "time_ms": 4438,
  "attempts": [{"skip": [], "exit_code": 0, "timed_out": false, "wall_ms": 5120}],
  "functions": [{"name": "…", "status": "…", "reason": "full message", "time_ms": 901, "heartbeats_used": 2105}],
- "programs": [{"root": "…", "reason": "…", "time_ms": 412}], "encodings": […]}
+ "programs": [{"root": "…", "reason": "…", "time_ms": 412, "witness_reason": "…", "witness_time_ms": 230,
+               "witness_cases": [{"status": "checked", "time_ms": 61}, …]}], "encodings": […]}
 ```
 
 Statements are pretty-printed with full names; the theorem names identify the
@@ -377,38 +452,41 @@ tracked reports, and that every report belongs to the tracked IR and the
 current validation library.
 
 <!-- validation-coverage:begin (lean-go regenerate --coverage) -->
-| Program | Report | Functions proved / total | Roots established / total | Not proved |
-|---|---|---|---|---|
-| choice | `testdata/choice.validation.json` | 1 / 1 | 1 / 1 | – |
-| counters | `testdata/counters.validation.json` | 5 / 5 | 4 / 4 | – |
-| joins | `testdata/joins.validation.json` | 2 / 2 | 1 / 1 | – |
-| local | `testdata/local.validation.json` | 3 / 3 | 1 / 1 | – |
-| numbers | `testdata/numbers.validation.json` | 2 / 2 | 1 / 1 | – |
-| records | `testdata/records.validation.json` | 3 / 3 | 1 / 1 | – |
-| reduced | `testdata/reduced.validation.json` | 3 / 3 | 1 / 1 | – |
-| trees | `testdata/trees.validation.json` | 2 / 2 | 1 / 1 | – |
-| unsigned | `testdata/unsigned.validation.json` | 5 / 5 | 5 / 5 | – |
-| wide | `testdata/wide.validation.json` | 2 / 2 | 1 / 1 | – |
-| quota | `testdata/quota.validation.json` | 4 / 4 | 4 / 4 | – |
-| clamp | `examples/proofs/clamp/clamp.validation.json` | 2 / 2 | 1 / 1 | – |
-| flags | `examples/proofs/flags/flags.validation.json` | 4 / 4 | 4 / 4 | – |
-| words | `examples/proofs/words/words.validation.json` | 5 / 5 | 5 / 5 | – |
-| bytes | `examples/proofs/bytes/bytes.validation.json` | 4 / 4 | 4 / 4 | – |
-| header | `examples/proofs/header/header.validation.json` | 2 / 2 | 2 / 2 | – |
-| wire16 | `examples/proofs/wire16/wire16.validation.json` | 5 / 5 | 5 / 5 | – |
-| crc16 | `examples/proofs/crc16/crc16.validation.json` | 3 / 3 | 2 / 2 | – |
-| adler32 | `examples/proofs/adler32/adler32.validation.json` | 5 / 5 | 3 / 3 | – |
-| normalizer | `examples/proofs/normalizer/normalizer.validation.json` | 3 / 3 | 1 / 1 | – |
-| clock | `examples/proofs/clock/clock.validation.json` | 2 / 2 | 2 / 2 | – |
-| format dns | `examples/formats/dns/dns.validation.json` | 14 / 14 | 3 / 3 | – |
-| format header | `examples/formats/header/header.validation.json` | 7 / 7 | 4 / 4 | – |
-| format udp | `examples/formats/udp/udp.validation.json` | 7 / 7 | 4 / 4 | – |
-| **total** | 24 programs | **95 / 95** | **61 / 61** | |
+| Program | Report | Functions proved / total | Roots established / total | Roots witnessed / total | Not proved | Not witnessed |
+|---|---|---|---|---|---|---|
+| choice | `testdata/choice.validation.json` | 1 / 1 | 1 / 1 | 1 / 1 | – | – |
+| counters | `testdata/counters.validation.json` | 5 / 5 | 4 / 4 | 4 / 4 | – | – |
+| joins | `testdata/joins.validation.json` | 2 / 2 | 1 / 1 | 1 / 1 | – | – |
+| local | `testdata/local.validation.json` | 3 / 3 | 1 / 1 | 1 / 1 | – | – |
+| numbers | `testdata/numbers.validation.json` | 2 / 2 | 1 / 1 | 1 / 1 | – | – |
+| records | `testdata/records.validation.json` | 3 / 3 | 1 / 1 | 1 / 1 | – | – |
+| reduced | `testdata/reduced.validation.json` | 3 / 3 | 1 / 1 | 1 / 1 | – | – |
+| trees | `testdata/trees.validation.json` | 2 / 2 | 1 / 1 | 1 / 1 | – | – |
+| unsigned | `testdata/unsigned.validation.json` | 5 / 5 | 5 / 5 | 5 / 5 | – | – |
+| wide | `testdata/wide.validation.json` | 2 / 2 | 1 / 1 | 1 / 1 | – | – |
+| quota | `testdata/quota.validation.json` | 4 / 4 | 4 / 4 | 4 / 4 | – | – |
+| clamp | `examples/proofs/clamp/clamp.validation.json` | 2 / 2 | 1 / 1 | 1 / 1 | – | – |
+| flags | `examples/proofs/flags/flags.validation.json` | 4 / 4 | 4 / 4 | 4 / 4 | – | – |
+| words | `examples/proofs/words/words.validation.json` | 5 / 5 | 5 / 5 | 5 / 5 | – | – |
+| bytes | `examples/proofs/bytes/bytes.validation.json` | 4 / 4 | 4 / 4 | 4 / 4 | – | – |
+| header | `examples/proofs/header/header.validation.json` | 2 / 2 | 2 / 2 | 2 / 2 | – | – |
+| wire16 | `examples/proofs/wire16/wire16.validation.json` | 5 / 5 | 5 / 5 | 5 / 5 | – | – |
+| crc16 | `examples/proofs/crc16/crc16.validation.json` | 3 / 3 | 2 / 2 | 2 / 2 | – | – |
+| adler32 | `examples/proofs/adler32/adler32.validation.json` | 5 / 5 | 3 / 3 | 3 / 3 | – | – |
+| normalizer | `examples/proofs/normalizer/normalizer.validation.json` | 3 / 3 | 1 / 1 | 1 / 1 | – | – |
+| clock | `examples/proofs/clock/clock.validation.json` | 2 / 2 | 2 / 2 | 2 / 2 | – | – |
+| format dns | `examples/formats/dns/dns.validation.json` | 14 / 14 | 3 / 3 | 3 / 3 | – | – |
+| format header | `examples/formats/header/header.validation.json` | 7 / 7 | 4 / 4 | 4 / 4 | – | – |
+| format udp | `examples/formats/udp/udp.validation.json` | 7 / 7 | 4 / 4 | 4 / 4 | – | – |
+| **total** | 24 programs | **95 / 95** | **61 / 61** | **61 / 61** | | |
 <!-- validation-coverage:end -->
 
-Every tracked function and root is proved under the default budget. The
-last two, `DnsHeader.word1` and `DnsHeader.serialize`, had exceeded the
-memory cap until the evaluation steps got explicit proofs (failure class 5);
+Every tracked function and root is proved under the default budget, and
+every established root has checked witnesses (240 witness theorems: four
+cases per root, three for `Choice.rotate`, whose parameter type has three
+constructors, and one for `Adler32.initial`, which has no parameters). The
+last two functions to prove, `DnsHeader.word1` and `DnsHeader.serialize`,
+had exceeded the memory cap until the evaluation steps got explicit proofs (failure class 5);
 the whole DNS validation now takes about 12 s with a peak of about 1.7 GB,
 most of it the imported environment.
 
@@ -518,8 +596,8 @@ alone before reading it as a verdict.
    `native_decide`/`bv_decide` (`Lean.ofReduceBool`, `Lean.trustCompiler`) or
    a declared axiom. It covers the library, the command's meta code, the
    examples and — through `Examples/Command.lean`, which runs the command with
-   `strict` inside the build — everything the command adds (2767
-   declarations). In an extraction, the command applies the same check to
+   `strict` inside the build — everything the command adds, the witness
+   theorems included (2878 declarations, with `Examples/Vacuous.lean`). In an extraction, the command applies the same check to
    every theorem it adds before reporting it as proved.
 2. The semantics (`Value`, `Prim.eval`, `Code.eval`, `Program.run`,
    `Value.hasType`): it must describe what the Go printer implements.
@@ -554,19 +632,28 @@ Implemented as follows.
   `validation.json.progress` names the obligation; a report in which the
   command recorded a memory failure names it too. The runner reruns with the
   accumulated `skip` list (at most four reruns) and marks each such F `failed`
-  with the limit's reason class. A process that ends without a report and
-  without an obligation in progress gives `status: process_failed`.
+  with the limit's reason class. Witnesses are covered the same way: the
+  progress line `witnessing R` names the root, a process that dies there (or
+  a witness the command reports not attempted for memory) is rerun with
+  `skip_witnesses "R"`, and R's witnesses are reported `not_attempted` with
+  the limit's reason class. A process that ends without a report and without
+  an obligation or witness in progress gives `status: process_failed`.
 * **Report.** Read with a 16 MiB bound, `module` and `roots` checked, split
   into the deterministic report and the diagnostics (§7), with `ir_sha256` of
   the complete IR and the `library` digests of the validation files and of the
   runner (`tool/lean-go/validate`: the `validate_*.go` sources, which are
   excluded from the pipeline digest because they cannot change the IR).
   `report` mode never fails on an unproved obligation; `require` fails after
-  writing the report.
+  writing the report when a function or root is not proved or a root's
+  witnesses are `failed`. Witnesses that are `not_attempted` do not fail
+  `require`; they are counted in the summary line ("…, k/n roots
+  witnessed") and listed below it.
 
 ## 12. Limits and open items
 
-* Partial correctness only (§4).
+* Partial correctness only (§4). The witnesses show, per root, that the
+  hypothesis of the explicit theorem holds on a few generated inputs; they
+  are not a termination proof for other inputs.
 * Primitives outside the unsigned matrix (signed integers being added to
   `Primitives.lean`) are rejected by the loader until `Prim.lean` and the
   semantics are extended; the command then reports `load_failed`.

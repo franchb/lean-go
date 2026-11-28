@@ -1,5 +1,5 @@
 {
- "schema": "lean-go-validation/v2",
+ "schema": "lean-go-validation/v3",
  "module": "Counters",
  "roots": [
   "Counters.advance",
@@ -21,7 +21,7 @@
  "library": {
   "producer/LeanGo/Validate.lean": "7830c3286b8a079fed88fe503cf01415e6be8a56750b22e71d1390a4ca9fe668",
   "producer/LeanGo/Validate/Attr.lean": "921c765cd3d6b1d545b736cd6543b57835a3781fef49f6dc8c894268c42d0ccd",
-  "producer/LeanGo/Validate/Command.lean": "ea9c506f481f9206f04493ee1161169e90c0a8466668dcfbe1c55a6e69d98dac",
+  "producer/LeanGo/Validate/Command.lean": "80f83ee74b40248c9c99cf67b7e62dd7c136dcfd89c97e8e9073fe264a1ca390",
   "producer/LeanGo/Validate/Meta.lean": "d48de3a6582762bd0b2c3d2c32a16eff0b0a7bc5427e0c947ee4d64d2f340a14",
   "producer/LeanGo/Validate/Meta/Axioms.lean": "790d7bc6a6098f85e8910c31f708f65a1189afa5b06a7a753c9d5784e6171320",
   "producer/LeanGo/Validate/Meta/Derive.lean": "3830b4eeac2f963cd8c333c5a88f1e2ab4723176310b9c5cdf8691ae3af044dd",
@@ -30,10 +30,10 @@
   "producer/LeanGo/Validate/Prim.lean": "589a0dd044cb6f05880df329d048048dcacf7b0b8b976d24e9840646baa27ee6",
   "producer/LeanGo/Validate/Semantics.lean": "931ca0afa704842954cf28127d917a68b0eb6b5902a813354180491fe3b7ba44",
   "producer/LeanGo/Validate/Soundness.lean": "e77e6ebfce735dd1be5f935f8071417842ed1899025cb2fad2aa9188666da8b4",
-  "producer/LeanGo/Validate/Spec.lean": "c6e6de8469c41fe3a664955d763fa5efb2469d9ec17adf6b3a1a330391396a38",
+  "producer/LeanGo/Validate/Spec.lean": "d93b152c7319d94dd21a8c131c44cb9a5c5a9b8d87bae6fdec079faf602a846d",
   "producer/LeanGo/Validate/Syntax.lean": "c648dce4dbd711439d6a0bfb600bbba47ecfd0d96a02d6555f3e08563f5974d3",
   "producer/LeanGo/Validate/Value.lean": "219f092ace1db12e7c560ba357409d202768b8e498157fe443edaf3ee29877a2",
-  "tool/lean-go/validate": "1e119bb4ade8d67beaa8c483b16e8fdd80dab2f6db3308df112558a5a0526f02"
+  "tool/lean-go/validate": "54a454e13d34f361644b1bee504940705e0d0dc5db26c9451fbe43541528e537"
  },
  "program": "LeanGo.Validated.prog",
  "specification_list": "LeanGo.Validated.spec",
@@ -160,7 +160,33 @@
     "Classical.choice",
     "Quot.sound",
     "propext"
-   ]
+   ],
+   "witnesses": {
+    "status": "checked",
+    "fuel": 64,
+    "cases": [
+     {
+      "theorem": "LeanGo.Validated.witness_0_0",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.advance\"\n    [LeanGo.Validate.Encode.encode { count := { value := 0 }, total := 1, enabled := false },\n      LeanGo.Validate.Encode.encode { value := 1 }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.advance { count := { value := 0 }, total := 1, enabled := false } { value := 1 }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_0_1",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.advance\"\n    [LeanGo.Validate.Encode.encode { count := { value := 1 }, total := 18446744073709551615, enabled := true },\n      LeanGo.Validate.Encode.encode { value := 4294967295 }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.advance { count := { value := 1 }, total := 18446744073709551615, enabled := true }\n        { value := 4294967295 }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_0_2",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.advance\"\n    [LeanGo.Validate.Encode.encode\n        { count := { value := 4294967295 }, total := 11944489850714860875, enabled := false },\n      LeanGo.Validate.Encode.encode { value := 2781043260 }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.advance { count := { value := 4294967295 }, total := 11944489850714860875, enabled := false }\n        { value := 2781043260 }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_0_3",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.advance\"\n    [LeanGo.Validate.Encode.encode { count := { value := 2781043260 }, total := 0, enabled := true },\n      LeanGo.Validate.Encode.encode { value := 0 }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.advance { count := { value := 2781043260 }, total := 0, enabled := true } { value := 0 }))",
+      "status": "checked"
+     }
+    ]
+   }
   },
   {
    "root": "Counters.initial",
@@ -177,7 +203,33 @@
     "Classical.choice",
     "Quot.sound",
     "propext"
-   ]
+   ],
+   "witnesses": {
+    "status": "checked",
+    "fuel": 64,
+    "cases": [
+     {
+      "theorem": "LeanGo.Validated.witness_1_0",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.initial\"\n    [LeanGo.Validate.Encode.encode 0, LeanGo.Validate.Encode.encode 1, LeanGo.Validate.Encode.encode false] =\n  some (LeanGo.Validate.Encode.encode (Counters.initial 0 1 false))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_1_1",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.initial\"\n    [LeanGo.Validate.Encode.encode 1, LeanGo.Validate.Encode.encode 18446744073709551615,\n      LeanGo.Validate.Encode.encode true] =\n  some (LeanGo.Validate.Encode.encode (Counters.initial 1 18446744073709551615 true))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_1_2",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.initial\"\n    [LeanGo.Validate.Encode.encode 4294967295, LeanGo.Validate.Encode.encode 11944489850714860875,\n      LeanGo.Validate.Encode.encode false] =\n  some (LeanGo.Validate.Encode.encode (Counters.initial 4294967295 11944489850714860875 false))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_1_3",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.initial\"\n    [LeanGo.Validate.Encode.encode 2781043260, LeanGo.Validate.Encode.encode 0, LeanGo.Validate.Encode.encode true] =\n  some (LeanGo.Validate.Encode.encode (Counters.initial 2781043260 0 true))",
+      "status": "checked"
+     }
+    ]
+   }
   },
   {
    "root": "Counters.read",
@@ -194,7 +246,33 @@
     "Classical.choice",
     "Quot.sound",
     "propext"
-   ]
+   ],
+   "witnesses": {
+    "status": "checked",
+    "fuel": 64,
+    "cases": [
+     {
+      "theorem": "LeanGo.Validated.witness_2_0",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.read\"\n    [LeanGo.Validate.Encode.encode { count := { value := 0 }, total := 1, enabled := false }] =\n  some (LeanGo.Validate.Encode.encode (Counters.read { count := { value := 0 }, total := 1, enabled := false }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_2_1",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.read\"\n    [LeanGo.Validate.Encode.encode { count := { value := 1 }, total := 18446744073709551615, enabled := true }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.read { count := { value := 1 }, total := 18446744073709551615, enabled := true }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_2_2",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.read\"\n    [LeanGo.Validate.Encode.encode\n        { count := { value := 4294967295 }, total := 11944489850714860875, enabled := false }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.read { count := { value := 4294967295 }, total := 11944489850714860875, enabled := false }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_2_3",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.read\"\n    [LeanGo.Validate.Encode.encode { count := { value := 2781043260 }, total := 0, enabled := true }] =\n  some (LeanGo.Validate.Encode.encode (Counters.read { count := { value := 2781043260 }, total := 0, enabled := true }))",
+      "status": "checked"
+     }
+    ]
+   }
   },
   {
    "root": "Counters.total",
@@ -211,7 +289,33 @@
     "Classical.choice",
     "Quot.sound",
     "propext"
-   ]
+   ],
+   "witnesses": {
+    "status": "checked",
+    "fuel": 64,
+    "cases": [
+     {
+      "theorem": "LeanGo.Validated.witness_3_0",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.total\"\n    [LeanGo.Validate.Encode.encode { count := { value := 0 }, total := 1, enabled := false }] =\n  some (LeanGo.Validate.Encode.encode (Counters.total { count := { value := 0 }, total := 1, enabled := false }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_3_1",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.total\"\n    [LeanGo.Validate.Encode.encode { count := { value := 1 }, total := 18446744073709551615, enabled := true }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.total { count := { value := 1 }, total := 18446744073709551615, enabled := true }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_3_2",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.total\"\n    [LeanGo.Validate.Encode.encode\n        { count := { value := 4294967295 }, total := 11944489850714860875, enabled := false }] =\n  some\n    (LeanGo.Validate.Encode.encode\n      (Counters.total { count := { value := 4294967295 }, total := 11944489850714860875, enabled := false }))",
+      "status": "checked"
+     },
+     {
+      "theorem": "LeanGo.Validated.witness_3_3",
+      "statement": "LeanGo.Validated.prog.run 64 \"Counters.total\"\n    [LeanGo.Validate.Encode.encode { count := { value := 2781043260 }, total := 0, enabled := true }] =\n  some\n    (LeanGo.Validate.Encode.encode (Counters.total { count := { value := 2781043260 }, total := 0, enabled := true }))",
+      "status": "checked"
+     }
+    ]
+   }
   }
  ],
  "summary": {
@@ -220,6 +324,7 @@
   "failed": 0,
   "not_attempted": 0,
   "roots": 4,
-  "roots_proved": 4
+  "roots_proved": 4,
+  "roots_witnessed": 4
  }
 }

@@ -140,10 +140,12 @@ lean-go generate --source-dir lean --module Counter --root Example.increment \
   --out counter --ir-output counter.ir.json --validate report
 ```
 
-It prints `validation: 1/1 functions proved, 1/1 roots established` and
-writes `counter.validation.json` next to the IR. The proved statement is
-partial correctness: whenever the IR program returns a value, it is the
-encoding of `Example.increment`'s result. `--validate require` fails, and
+It prints `validation: 1/1 functions proved, 1/1 roots established, 1/1 roots
+witnessed` and writes `counter.validation.json` next to the IR. The proved
+statement is partial correctness: whenever the IR program returns a value, it
+is the encoding of `Example.increment`'s result. "Witnessed" means that on a
+few sample inputs the kernel also checked that the program does return a
+value. `--validate require` fails, and
 publishes nothing, unless everything is proved. The Go printer and the Go
 compiler remain trusted; see the [CLI guide](cli.md#translation-validation).
 

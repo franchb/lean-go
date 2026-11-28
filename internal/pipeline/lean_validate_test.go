@@ -54,7 +54,8 @@ func TestRequireProvesSmallExamples(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if !parsed.Complete() || parsed.IRSHA256 != Digest(result.IR) || parsed.Summary.Roots != len(e.roots) {
+				if !parsed.Complete() || parsed.IRSHA256 != Digest(result.IR) || parsed.Summary.Roots != len(e.roots) ||
+					parsed.Summary.RootsWitnessed != len(e.roots) || len(parsed.Unwitnessed()) != 0 {
 					t.Fatalf("%v", parsed.Unproved())
 				}
 				if !strings.Contains(readText(t, filepath.Join(out, "diagnostics.json")), `"time_ms"`) {
@@ -210,7 +211,7 @@ func TestDNSProvesUnderTheDefaultBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := result.Validation.Report
-	if !r.Complete() || r.Summary.Proved != 14 || r.Summary.RootsProved != 3 {
+	if !r.Complete() || r.Summary.Proved != 14 || r.Summary.RootsProved != 3 || r.Summary.RootsWitnessed != 3 {
 		t.Fatalf("%+v %v", r.Summary, r.Unproved())
 	}
 	if len(result.Validation.Diagnostics.Attempts) != 1 {

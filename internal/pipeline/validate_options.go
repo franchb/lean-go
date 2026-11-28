@@ -110,9 +110,10 @@ func DefaultReportPath(irPath string) string {
 	return irPath + ".validation.json"
 }
 
-// harnessCommand is the validation harness the separate Lean process runs.
-// Roots are the sorted export roots; skip names obligations not to attempt.
-func validationHarness(module string, roots []string, o ValidationOptions, skip []string) string {
+// validationHarness is the validation harness the separate Lean process
+// runs. Roots are the sorted export roots; skip names obligations not to
+// attempt, skipWitnesses roots whose witnesses not to check.
+func validationHarness(module string, roots []string, o ValidationOptions, skip, skipWitnesses []string) string {
 	var b strings.Builder
 	b.WriteString("import LeanGo.Module.Export\nimport LeanGo.Validate\nimport LeanGo.Validate.Command\n")
 	fmt.Fprintf(&b, "import %s\n", module)
@@ -120,6 +121,9 @@ func validationHarness(module string, roots []string, o ValidationOptions, skip 
 		strings.Join(roots, ", "), module, o.Heartbeats, o.TimeoutMs)
 	if len(skip) > 0 {
 		fmt.Fprintf(&b, " skip \"%s\"", strings.Join(skip, " "))
+	}
+	if len(skipWitnesses) > 0 {
+		fmt.Fprintf(&b, " skip_witnesses \"%s\"", strings.Join(skipWitnesses, " "))
 	}
 	b.WriteString("\n")
 	return b.String()

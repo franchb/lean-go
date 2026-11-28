@@ -9,5 +9,6 @@ import Examples.Counters
 import Examples.Records
 import Examples.Reduced
 import Examples.Joins
+import Examples.Vacuous
 import Examples.Command
 import Examples.AxiomCheck

@@ -60,7 +60,7 @@ func TestValidateCommand(t *testing.T) {
 	validateFunc = func(opts pipeline.ValidateOptions) (*pipeline.ValidationResult, error) {
 		seen = opts
 		return &pipeline.ValidationResult{Report: &pipeline.ValidationReport{Status: "completed",
-			IRFileMatches: new(bool), Summary: pipeline.ReportSummary{Functions: 1, Proved: 1, Roots: 1, RootsProved: 1}}, ReportPath: "x.validation.json"}, nil
+			IRFileMatches: new(bool), Summary: pipeline.ReportSummary{Functions: 1, Proved: 1, Roots: 1, RootsProved: 1, RootsWitnessed: 1}}, ReportPath: "x.validation.json"}, nil
 	}
 	if code, _, _ := runMain("validate", "--source-dir", "s", "--module", "M"); code != 2 {
 		t.Fatal("missing --ir accepted")
@@ -75,7 +75,7 @@ func TestValidateCommand(t *testing.T) {
 	if seen.Validation.Mode != pipeline.ValidateReport || seen.Validation.MemoryMB != 2048 || seen.IR != "x.ir.json" || seen.Module != "M" {
 		t.Fatalf("%+v", seen)
 	}
-	if !strings.Contains(stdout, "1/1 functions proved, 1/1 roots established; report in x.validation.json") {
+	if !strings.Contains(stdout, "1/1 functions proved, 1/1 roots established, 1/1 roots witnessed; report in x.validation.json") {
 		t.Fatalf("%q", stdout)
 	}
 	if code, stdout, _ := runMain("validate", "--help"); code != 0 || !strings.Contains(stdout, "--validate-memory-mb") {
@@ -83,5 +83,23 @@ func TestValidateCommand(t *testing.T) {
 	}
 	if code, stdout, _ := runMain("generate", "--help"); code != 0 || !strings.Contains(stdout, "--validate off|report|require") {
 		t.Fatal("generate help lacks --validate")
+	}
+}
+
+func TestPrintValidationListsWitnesses(t *testing.T) {
+	yes := true
+	report := &pipeline.ValidationReport{Status: pipeline.ValidationCompleted, IRFileMatches: &yes, Roots: []string{"M.f", "M.g"},
+		Programs: []pipeline.ReportProgram{
+			{Root: "M.f", Status: "proved", Witnesses: &pipeline.ReportWitnesses{Status: pipeline.WitnessNotAttempted, ReasonClass: "heartbeat_limit"}},
+			{Root: "M.g", Status: "proved", Witnesses: &pipeline.ReportWitnesses{Status: pipeline.WitnessFailed, ReasonClass: "returns_none"}},
+		},
+		Summary: pipeline.ReportSummary{Roots: 2, RootsProved: 2}}
+	var out strings.Builder
+	printValidation(&out, &pipeline.ValidationResult{Report: report, ReportPath: "r.json"})
+	want := "validation: 0/0 functions proved, 2/2 roots established, 0/2 roots witnessed; report in r.json\n" +
+		"  root M.g: witnesses failed: returns none\n" +
+		"  root M.f: witnesses not attempted: heartbeat limit\n"
+	if out.String() != want {
+		t.Fatalf("%q", out.String())
 	}
 }

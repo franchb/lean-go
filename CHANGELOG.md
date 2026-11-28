@@ -22,6 +22,15 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   an explicit proof, so the kernel no longer has to recheck those steps by
   reducing fixed-width arithmetic; this took the DNS header's `word1` and `serialize`
   obligations from beyond the 4096 MiB cap to well under a second each.
+- Translation validation also checks that each established root returns.
+  Partial correctness alone is satisfied by a program that never returns. On
+  up to four generated inputs and with a fixed fuel, the kernel now computes
+  that the IR program returns a value, which with the root's theorem gives
+  `prog.run 64 "R" [encode c…] = some (encode (R c…))`. A root whose program
+  returns nothing on such an input is reported with `failed` witnesses and
+  fails `--validate require`; witnesses that could not be attempted are
+  listed and do not fail the run. Reports use schema `lean-go-validation/v3`
+  (`witnesses` per root, `roots_witnessed` in the summary).
 - Proof evidence can be bound to native packages through their manifests
   (`"generated_mode": "native"`).
 - `check-proofs` no longer trusts the theorems it finds in the built proof

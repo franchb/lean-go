@@ -1,0 +1,47 @@
+{
+ "functions": [
+  {
+   "body": {
+    "bind": {
+     "id": 2,
+     "type": "UInt32"
+    },
+    "next": {
+     "op": "return",
+     "var": 2
+    },
+    "op": "let",
+    "value": {
+     "args": [
+      1
+     ],
+     "kind": "call",
+     "name": "Examples.Vacuous.spin"
+    }
+   },
+   "name": "Examples.Vacuous.spin",
+   "params": [
+    {
+     "id": 1,
+     "type": "UInt32"
+    }
+   ],
+   "result": "UInt32"
+  },
+  {
+   "body": {
+    "op": "return",
+    "var": 1
+   },
+   "name": "Examples.Vacuous.same",
+   "params": [
+    {
+     "id": 1,
+     "type": "UInt32"
+    }
+   ],
+   "result": "UInt32"
+  }
+ ],
+ "types": []
+}

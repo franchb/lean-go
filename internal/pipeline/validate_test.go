@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -66,14 +67,22 @@ func TestDefaultReportPath(t *testing.T) {
 
 func TestValidationHarness(t *testing.T) {
 	o := ValidationOptions{Heartbeats: 5, TimeoutMs: 6}
-	got := validationHarness("M", []string{"M.a", "M.b"}, o, []string{"M.f", "M.g"})
+	got := validationHarness("M", []string{"M.a", "M.b"}, o, []string{"M.f", "M.g"}, nil)
 	want := "import LeanGo.Module.Export\nimport LeanGo.Validate\nimport LeanGo.Validate.Command\nimport M\n" +
 		"#lean_go_validate \"ir.json\" [M.a, M.b] \"M\" report \"validation.json\" heartbeats 5 timeout_ms 6 skip \"M.f M.g\"\n"
 	if got != want {
 		t.Fatalf("%q", got)
 	}
-	if strings.Contains(validationHarness("M", []string{"M.a"}, o, nil), "skip") || strings.Contains(got, "strict") {
+	if strings.Contains(validationHarness("M", []string{"M.a"}, o, nil, nil), "skip") || strings.Contains(got, "strict") {
 		t.Fatal("unexpected harness options")
+	}
+	both := validationHarness("M", []string{"M.a", "M.b"}, o, []string{"M.f"}, []string{"M.a", "M.b"})
+	if !strings.HasSuffix(both, `timeout_ms 6 skip "M.f" skip_witnesses "M.a M.b"`+"\n") {
+		t.Fatalf("%q", both)
+	}
+	if witnessesOnly := validationHarness("M", []string{"M.a"}, o, nil, []string{"M.a"}); strings.Contains(witnessesOnly, `skip "`) ||
+		!strings.Contains(witnessesOnly, `skip_witnesses "M.a"`) {
+		t.Fatalf("%q", witnessesOnly)
 	}
 }
 
@@ -91,6 +100,22 @@ func TestLastAttempt(t *testing.T) {
 			t.Errorf("%q: %q, want %q", progress, got, want)
 		}
 	}
+	type step struct{ kind, name string }
+	for progress, want := range map[string]step{
+		"5 ms proving M.f\n9 ms M.f: proved in 4 ms\n10 ms whole-program theorems\n11 ms witnessing M.f\n": {stepWitness, "M.f"},
+		"11 ms witnessing M.f\n20 ms M.f: witnesses checked in 9 ms\n":                                     {"", ""},
+		"11 ms witnessing M.f\n20 ms M.f: witnesses failed in 9 ms\n21 ms witnessing M.g":                  {stepWitness, "M.g"},
+		"5 ms proving M.f\n": {stepObligation, "M.f"},
+	} {
+		kind, name := lastStep(progress)
+		if (step{kind, name}) != want {
+			t.Errorf("%q: %q %q, want %+v", progress, kind, name, want)
+		}
+		// A witness in progress is not an obligation in progress.
+		if want.kind == stepWitness && lastAttempt(progress) != "" {
+			t.Errorf("%q: witness taken for an obligation", progress)
+		}
+	}
 }
 
 func TestClassifyReason(t *testing.T) {
@@ -99,14 +124,18 @@ func TestClassifyReason(t *testing.T) {
 		"validate_obl: stuck at ⊢ x = y": ReasonStuck,
 		"heartbeat budget exhausted":     ReasonHeartbeats,
 		"wall-clock budget exhausted":    ReasonObligationTime,
-		"(kernel) excessive memory consumption detected": ReasonMemory,
-		"no encoding for T: derive failed":               ReasonNoEncoding,
-		"non-standard axioms #[sorryAx]":                 ReasonAxioms,
-		"source signature of M.f does not match":         ReasonNoSpecification,
-		"root M.f is a compiler-generated helper":        ReasonNoSpecification,
-		"unsolved goals remain":                          ReasonUnsolved,
-		"the proof contains sorry":                       ReasonProofRejected,
-		"something new":                                  ReasonOther,
+		"(kernel) excessive memory consumption detected":           ReasonMemory,
+		"no encoding for T: derive failed":                         ReasonNoEncoding,
+		"non-standard axioms #[sorryAx]":                           ReasonAxioms,
+		"source signature of M.f does not match":                   ReasonNoSpecification,
+		"root M.f is a compiler-generated helper":                  ReasonNoSpecification,
+		"unsolved goals remain":                                    ReasonUnsolved,
+		"the proof contains sorry":                                 ReasonProofRejected,
+		"something new":                                            ReasonOther,
+		"the program returns none on this input within fuel 64":    ReasonReturnsNone,
+		"root not proved":                                          ReasonRootNotProved,
+		"no sample inputs for parameter type Nat":                  ReasonNoSamples,
+		"not attempted after an earlier case exhausted its budget": ReasonSkipped,
 	} {
 		if got := classifyReason(text); got != want {
 			t.Errorf("%q: %q, want %q", text, got, want)
@@ -131,11 +160,24 @@ func sampleRaw() *rawValidationReport {
 			{Name: "M.g", Kind: "source", Status: "not_attempted", Reason: "skipped by the caller", TimeMs: 0}},
 		Programs: []rawProgram{
 			{Root: "M.f", Closure: []string{"M.f", "M.h"}, Status: "proved", Theorem: "LeanGo.Validated.sound_0", Statement: "∀ n, …",
-				PrefixedTheorem: "p", ExplicitTheorem: "e", ExplicitStatement: "∀ n a v, …", Axioms: []string{"propext"}, TimeMs: 99},
-			{Root: "M.g", Closure: []string{"M.g"}, Status: "not_established", Missing: []string{"M.g"}},
+				PrefixedTheorem: "p", ExplicitTheorem: "e", ExplicitStatement: "∀ n a v, …", Axioms: []string{"propext"}, TimeMs: 99,
+				Witnesses: checkedWitnesses("M.f")},
+			{Root: "M.g", Closure: []string{"M.g"}, Status: "not_established", Missing: []string{"M.g"},
+				Witnesses: &rawWitnesses{Status: "not_attempted", Reason: "root not proved", Fuel: 64, Cases: []rawWitnessCase{}}},
 		},
 		Summary: map[string]any{"time_ms": float64(1234)},
 	}
+}
+
+// checkedWitnesses are two checked witness cases of a root.
+func checkedWitnesses(root string) *rawWitnesses {
+	w := &rawWitnesses{Status: "checked", Fuel: 64, TimeMs: 31}
+	for j, input := range []string{"0", "1"} {
+		theorem := fmt.Sprintf("LeanGo.Validated.witness_0_%d", j)
+		w.Cases = append(w.Cases, rawWitnessCase{Theorem: &theorem, Status: "checked", TimeMs: 15,
+			Statement: fmt.Sprintf("LeanGo.Validated.prog.run 64 %q [encode %s] = some (encode (%s %s))", root, input, root, input)})
+	}
+	return w
 }
 
 func sampleInputs() reportInputs {
@@ -184,7 +226,7 @@ func TestReportSplitIsDeterministic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if parsed.Summary != (ReportSummary{Functions: 3, Proved: 2, Failed: 1, Roots: 2, RootsProved: 1}) {
+	if parsed.Summary != (ReportSummary{Functions: 3, Proved: 2, Failed: 1, Roots: 2, RootsProved: 1, RootsWitnessed: 1}) {
 		t.Fatalf("summary %+v", parsed.Summary)
 	}
 	g := parsed.Functions[2]
@@ -200,6 +242,23 @@ func TestReportSplitIsDeterministic(t *testing.T) {
 	unproved := strings.Join(parsed.Unproved(), "\n")
 	if unproved != "M.g: failed: memory limit\nroot M.g: not established (needs M.g)" {
 		t.Fatalf("%q", unproved)
+	}
+	f := parsed.Programs[0].Witnesses
+	if f.Status != WitnessChecked || f.Fuel != 64 || len(f.Cases) != 2 || f.Cases[1].Theorem != "LeanGo.Validated.witness_0_1" ||
+		f.Cases[1].Status != WitnessChecked || !strings.Contains(f.Cases[0].Statement, "run 64") {
+		t.Fatalf("witnesses %+v", f)
+	}
+	if g := parsed.Programs[1].Witnesses; g.Status != WitnessNotAttempted || g.ReasonClass != ReasonRootNotProved {
+		t.Fatalf("witnesses of an unproved root %+v", g)
+	}
+	if len(parsed.Unwitnessed()) != 0 {
+		t.Fatalf("a root that is not established is listed as unwitnessed: %v", parsed.Unwitnessed())
+	}
+	if parsed.SummaryLine() != "validation: 2/3 functions proved, 1/2 roots established, 1/2 roots witnessed" {
+		t.Fatal(parsed.SummaryLine())
+	}
+	if diagnostics.Programs[0].WitnessTimeMs != 31 || len(diagnostics.Programs[0].WitnessCases) != 2 {
+		t.Fatalf("witness diagnostics %+v", diagnostics.Programs[0])
 	}
 	if !strings.HasSuffix(string(result.ReportJSON), "}\n") || !strings.Contains(string(result.ReportJSON), "∀ n, …") {
 		t.Fatal("report is not plain indented UTF-8 JSON")
@@ -540,5 +599,216 @@ func TestCompletedReportMustCoverEveryFunctionAndRoot(t *testing.T) {
 	}
 	if irFunctionNames([]byte(`not json`)) != nil {
 		t.Fatal("unreadable IR produced names")
+	}
+}
+
+// witnessReport is a completed report with one established root whose
+// witnesses are w.
+func witnessReport(w *rawWitnesses) (*ValidationReport, *ValidationDiagnostics) {
+	yes := true
+	raw := &rawValidationReport{
+		Module: "M", Roots: []string{"M.f"}, Status: "completed", IRFileMatches: &yes,
+		Functions: []rawFunction{proved("M.f")},
+		Programs:  []rawProgram{{Root: "M.f", Closure: []string{"M.f"}, Status: "proved", Theorem: "t", Witnesses: w}},
+	}
+	in := sampleInputs()
+	in.roots, in.killed, in.functions = []string{"M.f"}, nil, []string{"M.f"}
+	return splitReport(raw, in)
+}
+
+// A failed witness fails the gate; a witness that was not attempted does not,
+// but is listed and counted.
+func TestWitnessStatusesAndTheGate(t *testing.T) {
+	report, _ := witnessReport(checkedWitnesses("M.f"))
+	if !report.Complete() || report.Summary.RootsWitnessed != 1 || len(report.Unwitnessed()) != 0 ||
+		report.SummaryLine() != "validation: 1/1 functions proved, 1/1 roots established, 1/1 roots witnessed" {
+		t.Fatalf("%v %v %q", report.Unproved(), report.Unwitnessed(), report.SummaryLine())
+	}
+
+	refuted := "LeanGo.Validated.nonwitness_0_0"
+	failed := &rawWitnesses{Status: "failed", Reason: "the program returns none within fuel 64 on case 0", Fuel: 64, Cases: []rawWitnessCase{
+		{Theorem: &refuted, Statement: "(LeanGo.Validated.prog.run 64 \"M.f\" [encode 0]).isSome = false", Status: "failed",
+			Reason: "the program returns none on this input within fuel 64"},
+		{Statement: "LeanGo.Validated.prog.run 64 \"M.f\" [encode 1] = some (encode (M.f 1))", Status: "not_attempted",
+			Reason: "wall-clock budget exhausted"},
+	}}
+	report, diagnostics := witnessReport(failed)
+	w := report.Programs[0].Witnesses
+	if w.Status != WitnessFailed || w.ReasonClass != ReasonReturnsNone || w.Cases[0].Theorem != refuted ||
+		w.Cases[0].ReasonClass != ReasonReturnsNone || w.Cases[1].Theorem != "" || w.Cases[1].ReasonClass != ReasonObligationTime {
+		t.Fatalf("%+v", w)
+	}
+	if report.Complete() || strings.Join(report.Unproved(), "; ") != "root M.f: witnesses failed: returns none" {
+		t.Fatalf("a failed witness passed the gate: %v", report.Unproved())
+	}
+	if report.Summary.RootsWitnessed != 0 || !strings.HasSuffix(report.SummaryLine(), "0/1 roots witnessed") {
+		t.Fatal(report.SummaryLine())
+	}
+	if diagnostics.Programs[0].WitnessReason == "" || diagnostics.Programs[0].WitnessCases[1].Reason != "wall-clock budget exhausted" {
+		t.Fatalf("%+v", diagnostics.Programs[0])
+	}
+	result, err := encodeValidation(witnessReport(failed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := requireValidation(&ValidationOptions{Mode: ValidateRequire, Report: filepath.Join(t.TempDir(), "r.json")}, result); err == nil ||
+		!strings.Contains(err.Error(), "witnesses failed") {
+		t.Fatalf("require accepted a failed witness: %v", err)
+	}
+
+	budget := &rawWitnesses{Status: "not_attempted", Reason: "heartbeat budget exhausted", Fuel: 64, Cases: []rawWitnessCase{
+		{Statement: "…", Status: "not_attempted", Reason: "heartbeat budget exhausted"},
+		{Statement: "…", Status: "not_attempted", Reason: "not attempted after an earlier case exhausted its budget"},
+	}}
+	report, _ = witnessReport(budget)
+	if !report.Complete() || report.Programs[0].Witnesses.ReasonClass != ReasonHeartbeats ||
+		report.Programs[0].Witnesses.Cases[1].ReasonClass != ReasonSkipped {
+		t.Fatalf("%v %+v", report.Unproved(), report.Programs[0].Witnesses)
+	}
+	if notes := report.Unwitnessed(); len(notes) != 1 || notes[0] != "root M.f: witnesses not attempted: heartbeat limit" {
+		t.Fatalf("%q", notes)
+	}
+	if !strings.HasSuffix(report.SummaryLine(), "1/1 roots established, 0/1 roots witnessed") {
+		t.Fatal(report.SummaryLine())
+	}
+	result, err = encodeValidation(witnessReport(budget))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := requireValidation(&ValidationOptions{Mode: ValidateRequire, Report: filepath.Join(t.TempDir(), "r.json")}, result); err != nil {
+		t.Fatalf("require failed on a witness that was not attempted: %v", err)
+	}
+
+	// A program entry without witnesses, or a "checked" status that its cases
+	// do not back, is not attempted.
+	for _, w := range []*rawWitnesses{nil, {Status: "checked", Fuel: 64},
+		{Status: "checked", Fuel: 64, Cases: []rawWitnessCase{{Status: "not_attempted"}}}, {Status: "bogus"}} {
+		report, _ := witnessReport(w)
+		got := report.Programs[0].Witnesses
+		if got.Status != WitnessNotAttempted || got.ReasonClass == "" || report.Summary.RootsWitnessed != 0 || len(report.Unwitnessed()) != 1 {
+			t.Errorf("%+v: %+v", w, got)
+		}
+	}
+	report, _ = witnessReport(nil)
+	if report.Programs[0].Witnesses.ReasonClass != ReasonNotReported {
+		t.Fatalf("%+v", report.Programs[0].Witnesses)
+	}
+}
+
+// Reports of the previous schema, and v3 reports with a program that lacks
+// its witnesses, are refused.
+func TestWitnessSchema(t *testing.T) {
+	result, err := encodeValidation(witnessReport(checkedWitnesses("M.f")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ParseValidationReport(result.ReportJSON); err != nil {
+		t.Fatal(err)
+	}
+	for _, word := range []string{`"schema": "lean-go-validation/v3"`, `"roots_witnessed": 1`, `"fuel": 64`, `"witnesses": {`} {
+		if !bytes.Contains(result.ReportJSON, []byte(word)) {
+			t.Errorf("report lacks %s", word)
+		}
+	}
+	if bytes.Contains(result.ReportJSON, []byte(`"time_ms"`)) {
+		t.Error("witness timings in the tracked report")
+	}
+	old := bytes.Replace(result.ReportJSON, []byte("lean-go-validation/v3"), []byte("lean-go-validation/v2"), 1)
+	if _, err := ParseValidationReport(old); err == nil {
+		t.Fatal("a v2 report was accepted")
+	}
+	var object map[string]any
+	if err := json.Unmarshal(result.ReportJSON, &object); err != nil {
+		t.Fatal(err)
+	}
+	delete(object["programs"].([]any)[0].(map[string]any), "witnesses")
+	missing, _ := json.Marshal(object)
+	if _, err := ParseValidationReport(missing); err == nil || !strings.Contains(err.Error(), "no witnesses") {
+		t.Fatalf("a program without witnesses was accepted: %v", err)
+	}
+}
+
+// completedWithWitnesses is a completed report of the fake run in which M.f
+// is established and its witnesses are w.
+func completedWithWitnesses(w *rawWitnesses) *rawValidationReport {
+	raw := completed()
+	raw.Programs[0].Witnesses = w
+	return raw
+}
+
+// A process that dies while checking a root's witnesses is rerun with those
+// witnesses skipped; they are reported not attempted with the limit, and the
+// obligations keep their results.
+func TestKilledWitnessIsSkippedAndRerun(t *testing.T) {
+	r := fakeRun(t)
+	f := &fakeValidator{t: t}
+	f.steps = []func(string, string) processOutcome{
+		func(ws, _ string) processOutcome {
+			writeProgress(t, ws, "0 ms export value\n3 ms proving M.f\n4 ms M.f: proved in 1 ms\n5 ms whole-program theorems\n6 ms witnessing M.f\n")
+			return processOutcome{exitCode: 137, output: "Killed"}
+		},
+		func(ws, harness string) processOutcome {
+			if !strings.Contains(harness, `skip_witnesses "M.f"`) || strings.Contains(harness, `skip "`) {
+				t.Errorf("rerun harness %q", harness)
+			}
+			writeRaw(t, ws, completedWithWitnesses(&rawWitnesses{Status: "not_attempted", Reason: "skipped by the caller", Fuel: 64, Cases: []rawWitnessCase{}}))
+			return processOutcome{}
+		},
+	}
+	f.install(t)
+	result, err := runValidation(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := result.Report.Programs[0].Witnesses
+	if result.Report.Status != ValidationCompleted || w.Status != WitnessNotAttempted || w.ReasonClass != ReasonMemory {
+		t.Fatalf("%+v %+v", result.Report.Status, w)
+	}
+	for _, fn := range result.Report.Functions {
+		if fn.Status != "proved" {
+			t.Errorf("obligation %s lost its result: %+v", fn.Name, fn)
+		}
+	}
+	if !strings.Contains(result.Diagnostics.Programs[0].WitnessReason, "exit 137") ||
+		!strings.Contains(result.Diagnostics.Programs[0].WitnessReason, "witnesses") {
+		t.Fatal(result.Diagnostics.Programs[0].WitnessReason)
+	}
+	attempts := result.Diagnostics.Attempts
+	if len(attempts) != 2 || !slices.Equal(attempts[1].SkipWitnesses, []string{"M.f"}) || len(attempts[1].Skip) != 0 {
+		t.Fatalf("%+v", attempts)
+	}
+	// The fake report leaves M.g unproved; the skipped witness itself is not a
+	// gate failure but is listed.
+	if strings.Contains(strings.Join(result.Report.Unproved(), "\n"), "witness") || len(result.Report.Unwitnessed()) != 1 {
+		t.Fatalf("%v %v", result.Report.Unproved(), result.Report.Unwitnessed())
+	}
+}
+
+// A memory failure the command caught during a witness is isolated by a
+// rerun, as for an obligation.
+func TestCaughtWitnessMemoryFailureIsIsolatedByARerun(t *testing.T) {
+	r := fakeRun(t)
+	f := &fakeValidator{t: t}
+	f.steps = []func(string, string) processOutcome{
+		func(ws, _ string) processOutcome {
+			writeRaw(t, ws, completedWithWitnesses(&rawWitnesses{Status: "not_attempted", Reason: "(kernel) excessive memory consumption detected", Fuel: 64,
+				Cases: []rawWitnessCase{{Statement: "…", Status: "not_attempted", Reason: "(kernel) excessive memory consumption detected"}}}))
+			return processOutcome{}
+		},
+		func(ws, harness string) processOutcome {
+			if !strings.Contains(harness, `skip_witnesses "M.f"`) {
+				t.Errorf("rerun harness %q", harness)
+			}
+			writeRaw(t, ws, completedWithWitnesses(&rawWitnesses{Status: "not_attempted", Reason: "skipped by the caller", Fuel: 64, Cases: []rawWitnessCase{}}))
+			return processOutcome{}
+		},
+	}
+	f.install(t)
+	result, err := runValidation(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := result.Report.Programs[0].Witnesses; w.Status != WitnessNotAttempted || w.ReasonClass != ReasonMemory || len(f.commands) != 2 {
+		t.Fatalf("%+v after %d runs", w, len(f.commands))
 	}
 }
