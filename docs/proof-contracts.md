@@ -154,6 +154,12 @@ lean-go check-proofs \
   --evidence /path/to/my-library/proof-evidence.json
 ```
 
+Add `--require-validation X.validation.json` to either command to make it
+fail unless a complete [translation-validation](research/translation-validation.md)
+report exists for exactly the IR in the manifest
+([rules](cli.md#require-the-validation-report)). Without it, the proof check
+says nothing about whether the IR was validated.
+
 Use the same lean-go checkout or release to regenerate artifacts and proof
 evidence; reproducing a published release requires that release's examples
 and CLI together ([installation](cli.md#install)).

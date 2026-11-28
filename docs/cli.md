@@ -225,7 +225,8 @@ import restrictions and resource limits are unchanged; see
 
 The symlink rule covers paths as well as files. No existing component of the
 source directory, of the package output directory, or of the contract,
-manifest and evidence paths given to `check-proofs` may be a symbolic link, so
+manifest, evidence and validation report paths given to `check-proofs` may be
+a symbolic link, so
 a project reached through a linked directory is rejected; give the real path
 instead. On macOS, `/tmp` and `/var` are links into `/private`: name
 `/private/tmp/...` or work below your home directory. CI covers Linux and
@@ -318,6 +319,46 @@ the pinned producer. Generated consumers need only Go and its standard
 library; they do not need Lean, Lake or a C compiler.
 
 For a proof about multiple generated packages, repeat `--component-manifest NAME PATH` for each named component. [Composition contract and CLI example](proof-contracts.md#bind-one-proof-to-multiple-generated-packages)
+
+### Require the validation report
+
+The proof check is about the Lean function; [translation validation](#translation-validation)
+is about the IR. `--require-validation REPORT` makes one command insist on
+both for the same program:
+
+```sh
+lean-go generate --source-dir source --module Clamp --root Clamp.clamp \
+  --out clampnative --ir-output clamp.ir.json --validate require
+lean-go check-proofs --contract proof-contract.json \
+  --manifest clampnative/manifest.json --evidence native-proof-evidence.json \
+  --require-validation clamp.validation.json
+```
+
+`check-proofs` then also fails, before it builds any proof and without writing
+evidence, unless the report
+
+- has this lean-go's report schema and was written with its validation
+  library and runner (the `library` digests are compared; a report from
+  another version must be produced again);
+- validated exactly the IR recorded in the manifest. The manifest holds that
+  IR whole, as `program`; in the encoding of an IR file its SHA-256 is the
+  report's `ir_sha256`. The manifest's own `ir_sha256` digests another
+  encoding of the same program and is not the value to compare;
+- names the module and the roots of that IR and lists every one of its
+  functions;
+- is complete: the run completed, the validated program is the exported IR,
+  every function is proved and every root is established.
+
+On success a second line names the report and its counts. For a composition,
+repeat the option: every component's IR needs a report, and every report must
+belong to a component. A metered and a native package of one IR share its
+report.
+
+The report is read, not proved again, so the option is as good as the file:
+produce the report in the same job, with `generate --validate require` or
+`lean-go validate`, and do not take one from an untrusted source. What links
+the report to the sources is the proof check itself, which requires the
+manifest's program to be a fresh export of the contract's sources.
 
 ## Verify an installation
 

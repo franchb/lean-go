@@ -42,6 +42,11 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   sources and emits it again, and requires the manifest's program and every
   package file byte for byte. Packages from another lean-go version are
   refused with a hint to regenerate.
+- `check-proofs --require-validation REPORT` fails unless a complete
+  translation-validation report, written by the same lean-go, exists for
+  exactly the IR recorded in each bound manifest. It is the one command that
+  requires the source proofs and the validated IR for the same program; see
+  [the CLI guide](docs/cli.md#require-the-validation-report).
 - Proof evidence moves to `lean-go-proof-evidence/v3` (`v4` for
   compositions): the recorded statement is now rendered by the checker from
   the kernel term, with every argument shown, no notation, every constant
