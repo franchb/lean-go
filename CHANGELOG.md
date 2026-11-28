@@ -125,6 +125,11 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   `regenerate`, `doctor` and `version`. The Lean producer is embedded in the
   binary and its compiled form is kept in a content-addressed cache. See
   [docs/cli.md](docs/cli.md).
+- `lean-go version` and the walkthrough receipt give the version in SemVer
+  form, the Go module tag without its `v`: `0.1.0-alpha.16-dev` on the
+  development branch, where earlier trees printed the PEP 440 spelling
+  `0.1.0a15`. A version ending in `-dev` has no release tag, and the tag
+  check of `lean-go-dev installed-cli --expect-tag` refuses such a tree.
 - The repository no longer contains Python. The `lean-go-tools` wheel and its
   `lean-go` command, `scripts/` (the wrappers, verifiers and test suites),
   `pyproject.toml` and `uv.lock` are removed, and CI no longer installs uv or

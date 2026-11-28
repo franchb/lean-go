@@ -20,10 +20,15 @@ lean-go doctor
 
 `go install` puts the binary in `$(go env GOBIN)`, or `$(go env GOPATH)/bin`
 when `GOBIN` is unset; `go build -o DIR/lean-go ./cmd/lean-go` writes it
-elsewhere. `lean-go version` prints the tool version (`0.1.0a15` in this
-checkout), the Go release that built it and the digest of its pipeline
-sources. `lean-go doctor` checks the Go release, Lean, Lake and the producer
-cache, and exits nonzero if a check fails.
+elsewhere. `lean-go version` prints the tool version, the Go release that
+built it and the digest of its pipeline sources. The version is the Go module
+tag in [SemVer](https://semver.org/spec/v2.0.0.html) form without its `v`;
+between releases it is the next release with `-dev` appended
+(`0.1.0-alpha.16-dev` in this checkout). When Go recorded a module version in
+the binary, that follows in parentheses: the tag after
+`go install ...@<tag>`, a pseudo-version after `go build` in a checkout.
+`lean-go doctor` checks the Go release, Lean, Lake and the producer cache, and
+exits nonzero if a check fails.
 
 A release tag that contains this command can be installed without a checkout:
 
