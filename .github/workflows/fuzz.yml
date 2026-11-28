@@ -1,0 +1,170 @@
+name: Fuzz
+
+# Runs every Go fuzz target of the root module and of the nested example
+# modules for longer than a pull request can afford. The pull-request checks
+# in ci.yml keep their own short fuzz step.
+#
+# A pull request that changes this file runs it with a 10-second budget, so a
+# change to the workflow is exercised before it reaches the schedule.
+
+on:
+  schedule:
+    # Nightly, off the hour.
+    - cron: '23 2 * * *'
+  workflow_dispatch:
+    inputs:
+      fuzztime:
+        description: Budget per fuzz target, as go test -fuzztime takes it (3m, 90s, 100000x)
+        required: true
+        default: 3m
+  pull_request:
+    paths:
+      - .github/workflows/fuzz.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CGO_ENABLED: '0'
+  GOTOOLCHAIN: local
+  GOWORK: 'off'
+  FUZZTIME: ${{ inputs.fuzztime || (github.event_name == 'pull_request' && '10s') || '3m' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  discover:
+    name: Find the modules with fuzz targets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      modules: ${{ steps.list.outputs.modules }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: List the fuzz targets of every tracked module
+        id: list
+        run: |
+          test "$(go env GOVERSION)" = go1.27.4
+          # go test -list asks the compiled test binaries, so a function inside
+          # a template string or under testdata is not counted.
+          modules=()
+          total=0
+          while IFS= read -r file; do
+            dir=$(dirname "$file")
+            list=$(cd "$dir" && go test -vet=off -json -list '^Fuzz' ./...)
+            targets=$(jq -r 'select(.Action == "output" and (.Output | test("^Fuzz[A-Za-z0-9_]*\n$"))) | "\(.Package) \(.Output | rtrimstr("\n"))"' <<<"$list")
+            if [ -n "$targets" ]; then
+              modules+=("$dir")
+              total=$((total + $(wc -l <<<"$targets")))
+              printf '%s:\n%s\n' "$dir" "$targets"
+            fi
+          done < <(git ls-files go.mod '*/go.mod')
+          echo "$total fuzz targets in ${#modules[@]} modules"
+          test "$total" -gt 0
+          printf 'modules=%s\n' "$(jq -cn '$ARGS.positional' --args "${modules[@]}")" >> "$GITHUB_OUTPUT"
+
+  targets:
+    name: Fuzz (${{ matrix.module }})
+    needs: discover
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.discover.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Fuzz every target of the module
+        working-directory: ${{ matrix.module }}
+        run: |
+          test "$(go env GOVERSION)" = go1.27.4
+          case "$FUZZTIME" in
+            '' | *[!0-9a-z.]*) echo "invalid fuzz budget: $FUZZTIME" >&2; exit 2 ;;
+          esac
+          go test -vet=off -json -list '^Fuzz' ./... > "$RUNNER_TEMP/fuzz-list.json"
+          jq -r 'select(.Action == "output" and (.Output | test("^Fuzz[A-Za-z0-9_]*\n$"))) | "\(.Package) \(.Output | rtrimstr("\n"))"' \
+            "$RUNNER_TEMP/fuzz-list.json" > "$RUNNER_TEMP/fuzz-targets"
+          count=0
+          failed=()
+          # go test accepts one fuzz target per run.
+          while read -r package target; do
+            count=$((count + 1))
+            echo "::group::$package $target"
+            if ! go test -vet=off -run '^$' -fuzz "^$target\$" -fuzztime "$FUZZTIME" "$package" < /dev/null; then
+              failed+=("$package $target")
+            fi
+            echo "::endgroup::"
+          done < "$RUNNER_TEMP/fuzz-targets"
+          echo "fuzzed $count targets for $FUZZTIME each; ${#failed[@]} failed"
+          if [ "$count" -eq 0 ]; then
+            echo "no fuzz target found in a module that was listed with one" >&2
+            exit 1
+          fi
+          if [ "${#failed[@]}" -ne 0 ]; then
+            printf 'failed: %s\n' "${failed[@]}" >&2
+            exit 1
+          fi
+      - name: Preserve failing inputs
+        # go test writes a failing input to testdata/fuzz/<target>/ in the package.
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-failures-${{ strategy.job-index }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: ${{ matrix.module }}/**/testdata/fuzz/**
+
+  generated:
+    # Fuzz targets that exist only in modules the tests generate: the native
+    # emitter against the metered state machine, and each wire-format adapter
+    # against its metered twin. The tests run them when given a budget.
+    name: Fuzz (generated harnesses)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - name: Check the budget
+        run: |
+          test "$(go env GOVERSION)" = go1.27.4
+          case "$FUZZTIME" in
+            '' | *[!0-9a-z.]*) echo "invalid fuzz budget: $FUZZTIME" >&2; exit 2 ;;
+          esac
+      - name: Native emitter against the state machine (FuzzAdler32, FuzzMirror)
+        env:
+          LEAN_GO_NATIVE_HARNESS: ${{ runner.temp }}/native-harness
+        run: LEAN_GO_NATIVE_FUZZ="$FUZZTIME" go test -count=1 -timeout=0 -run '^TestDifferential$' -v ./internal/nativegen/
+      - name: Wire-format adapters, native against metered (FuzzNativeMatchesMetered per format)
+        if: success() || failure()
+        run: LEAN_GO_FORMATS_FUZZ="$FUZZTIME" go test -count=1 -timeout=0 -run '^TestNativeAdapterMatchesMeteredAdapter$' -v ./internal/wireformat/
+      - name: Preserve failing inputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-failures-generated
+          retention-days: 30
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/native-harness/**/testdata/fuzz/**
