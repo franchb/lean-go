@@ -117,6 +117,12 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   exhaustive and fuzz tests, and three planted bugs that the harness finds
   and shrinks. The models are tracked artifacts. See
   [docs/oracle-testing.md](docs/oracle-testing.md).
+- The [Adler-32 example](examples/proofs/adler32) proves two claims about
+  the exported `checksum`, which had none: for a state with both sums below
+  65521 it is `high * 65536 + low`, and from the standard seed the checksum
+  of any list of chunks is the value RFC 1950 stores for the reference sums
+  of their concatenation. This is the root the oracle example compares
+  against. The ten demos carry 63 claims.
 
 **Install and tool**
 

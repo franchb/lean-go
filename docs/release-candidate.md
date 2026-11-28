@@ -41,16 +41,16 @@ comparing the program's output with the expected text.
 | [Bytes](../examples/proofs/bytes) | 12 | 652 boundary, one-hot and seeded cases |
 | [Header](../examples/proofs/header) | 9 | All 262,144 valid headers plus rejection and limit cases |
 | [Wire16](../examples/proofs/wire16) | 13 | All 65,536 words and all 262,144 valid typed headers |
-| [Adler-32](../examples/proofs/adler32) | 2 | Empty and multi-block input, checksum agreement with `hash/adler32` and raw/typed resource boundaries |
+| [Adler-32](../examples/proofs/adler32) | 4 | Empty and multi-block input, checksum agreement with `hash/adler32` and raw/typed resource boundaries |
 | [CRC-16/XMODEM](../examples/proofs/crc16) | 2 | Every byte from nine boundary states, the published check value and chunked input |
 | [Normalizer](../examples/proofs/normalizer) | 2 | All 7,265 expressions up to depth two under nine valuations, 512 seeded deeper expressions and a 1,001-negation chain |
 | [Clock](../examples/proofs/clock) | 3 | 17 boundary and 1,024 seeded second counts, plus wrapping and error cases |
 
-Both binaries check all ten demos, freshly checking 61 source claims per
+Both binaries check all ten demos, freshly checking 63 source claims per
 binary, and the two composition claims of the
 [checksummed Wire16 frame](../examples/proofs/checkedframe): a v2 proof contract
 checks those two propositions once and binds them to both component manifests,
-for a total of 63 distinct source claims. Current regenerated manifests and
+for a total of 65 distinct source claims. Current regenerated manifests and
 proof evidence use generator v20 and the single IR schema `lean-go-ir/v24`.
 
 ## Reproduce a published tag

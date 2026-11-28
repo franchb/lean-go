@@ -18,4 +18,14 @@ def chunks_spec : Prop := ∀ (chunks : List (List UInt8)),
   observe (chunks.foldl Adler32.update Adler32.initial) =
     chunks.flatten.foldl referenceByte (1, 0)
 
+/-- RFC 1950, section 2.2, stores the checksum as `s2 * 65536 + s1`. -/
+def referenceChecksum (s : Nat × Nat) : Nat := s.2 * 65536 + s.1
+
+def pack_spec : Prop := ∀ s, reduced s →
+  (Adler32.checksum s).toNat = referenceChecksum (observe s)
+
+def checksum_spec : Prop := ∀ (chunks : List (List UInt8)),
+  (Adler32.checksum (chunks.foldl Adler32.update Adler32.initial)).toNat =
+    referenceChecksum (chunks.flatten.foldl referenceByte (1, 0))
+
 end Adler32Contract

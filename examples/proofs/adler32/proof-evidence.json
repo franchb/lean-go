@@ -6,9 +6,27 @@
         "Quot.sound",
         "propext"
       ],
+      "expected": "Adler32Contract.checksum_spec",
+      "name": "Adler32Proofs.checksum_spec",
+      "statement": "∀ (chunks : List (List UInt8)), Eq Nat (UInt32.toNat (Adler32.checksum (List.foldl Adler32.State (List UInt8) Adler32.update Adler32.initial chunks))) (Adler32Contract.referenceChecksum (List.foldl (Prod Nat Nat) UInt8 Adler32Contract.referenceByte (Prod.mk Nat Nat (OfNat.ofNat Nat 1 (instOfNatNat 1)) (OfNat.ofNat Nat 0 (instOfNatNat 0))) (List.flatten UInt8 chunks)))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
       "expected": "Adler32Contract.chunks_spec",
       "name": "Adler32Proofs.chunks_spec",
       "statement": "∀ (chunks : List (List UInt8)), Eq (Prod Nat Nat) (Adler32Contract.observe (List.foldl Adler32.State (List UInt8) Adler32.update Adler32.initial chunks)) (List.foldl (Prod Nat Nat) UInt8 Adler32Contract.referenceByte (Prod.mk Nat Nat (OfNat.ofNat Nat 1 (instOfNatNat 1)) (OfNat.ofNat Nat 0 (instOfNatNat 0))) (List.flatten UInt8 chunks))"
+    },
+    {
+      "axioms": [
+        "Quot.sound",
+        "propext"
+      ],
+      "expected": "Adler32Contract.pack_spec",
+      "name": "Adler32Proofs.pack_spec",
+      "statement": "∀ (s : Adler32.State), Adler32Contract.reduced s → Eq Nat (UInt32.toNat (Adler32.checksum s)) (Adler32Contract.referenceChecksum (Adler32Contract.observe s))"
     },
     {
       "axioms": [
@@ -20,14 +38,14 @@
       "statement": "∀ (s : Adler32.State) (b : UInt8), Adler32Contract.reduced s → Eq (Prod Nat Nat) (Adler32Contract.observe (Adler32.step s b)) (Adler32Contract.referenceByte (Adler32Contract.observe s) b)"
     }
   ],
-  "contract_sha256": "f076f6ac42270ab55cb2fa639a2a4ee53ef084c0df83d743be28415e5e7ab548",
+  "contract_sha256": "e8e87aedc576e539015a11f3668d31f996c603bbde9246424b92a72074e40b65",
   "generated_manifest_sha256": "fb325651a788f6a4fc313c99b06910d8be31355e324f65ad11bbcc1c5c032192",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "Adler32",
   "project_inputs": {
-    "proof/Adler32Contract.lean": "10e473d5b89501513f3c10c5926b1df7d1cb6b313ed1141f17e3f06bcd642e10",
-    "proof/Adler32Proofs.lean": "726c51e12f468cdcf5f9f4ea922cbabacf0b6ae8ceefd3cb24e43f4a45fa4575",
+    "proof/Adler32Contract.lean": "fce39171e895654d0313b4e38bc1b17729444da113436de23ba1bbf2addad737",
+    "proof/Adler32Proofs.lean": "c9cc0e38b555b4f16117ee37911eadbf219f56207ddf23a7d00f2922357a8546",
     "source/Adler32.lean": "9263491c9a5af3553ca52f3997f37bff7e10291cc929c509ef20fa1508bf9c69"
   },
   "roots": [

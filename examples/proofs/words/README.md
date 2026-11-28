@@ -177,7 +177,7 @@ from `PATH`, disables module/checksum downloads and cgo, and runs both tests and
 the executable with isolated caches, comparing the output with the expected
 text. Root `go test ./...` includes the same
 Go-only copy check. Current installed-CLI CI runs all ten demos with a built and a
-module-installed binary on Linux and Windows, checking 61 source claims per
+module-installed binary on Linux and Windows, checking 63 source claims per
 binary. Published alpha.7's
 exact-tag workflow covers its three demos; local checkout checks do not validate
 the published tag's artifact hashes.

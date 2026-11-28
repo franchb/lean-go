@@ -167,7 +167,7 @@ its tests, and generated Go sources, then tests and runs that deployment with
 Go alone. No Lean sources, manifests or proof artifacts are present; nested
 modules would otherwise be skipped. The complete installed-CLI check (`go run ./cmd/lean-go-dev installed-cli`)
 runs all ten demos with a built and a module-installed binary on Linux and
-Windows in CI, checking 61 source claims per binary. Alpha.7 shipped the first three demos with generator v9. Alpha.8 shipped the
+Windows in CI, checking 63 source claims per binary. Alpha.7 shipped the first three demos with generator v9. Alpha.8 shipped the
 byte codec with generator v10. Alpha.9 ships the header codec with generator v11.
 Pair examples with the CLI from the same checkout or tag. See the
 [article](../../../docs/articles/lean-proofs-to-go.md)

@@ -152,8 +152,8 @@ func TestProofDemoInventory(t *testing.T) {
 			total += len(want)
 		})
 	}
-	if total != 61 {
-		t.Errorf("%d source claims across the demos, want 61", total)
+	if total != 63 {
+		t.Errorf("%d source claims across the demos, want 63", total)
 	}
 }
 

@@ -167,6 +167,6 @@ text.
 
 Root `go test ./...` includes the same Go-only deployment on Linux and Windows.
 The current checkout's installed-CLI workflow regenerates and checks all ten
-demos with a built and a module-installed binary, checking 61 source claims per
+demos with a built and a module-installed binary, checking 63 source claims per
 binary and that the installed binary remains unchanged. Published alpha.7 has the first
 three demos; the alpha.8 release adds the byte codec. Current artifacts require this checkout's CLI.

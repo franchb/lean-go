@@ -82,6 +82,6 @@ producer tools hidden and cgo and downloads disabled, and compares the output
 with the expected text. Without `--cli` it builds and installs the checkout's
 lean-go itself. Root Go tests exercise the same isolated deployment. The
 complete installed-CLI check runs all ten demos with a built and a
-module-installed binary, freshly checking 61 source claims per binary.
+module-installed binary, freshly checking 63 source claims per binary.
 See the [proof contract guide](../../../docs/proof-contracts.md)
 for evidence binding and the [CLI guide](../../../docs/cli.md) for installation.

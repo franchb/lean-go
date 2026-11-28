@@ -343,7 +343,7 @@ package, and a rejected source that must leave the earlier package, IR and
 evidence unchanged. Both binaries then regenerate every standalone demo (clamp,
 flags, words, bytes, header, wire16, crc16, adler32, normalizer and clock) from
 a copy, compare package, IR and evidence bytes with the tracked ones, freshly
-check all 61 source claims against an independent inventory, test and run each
+check all 63 source claims against an independent inventory, test and run each
 copied consumer with Go alone and compare its output with the expected text,
 and check the two checked-frame composition claims against both component
 manifests. `--without-lean` restricts the run to the binaries, help, version
