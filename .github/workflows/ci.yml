@@ -72,9 +72,8 @@ jobs:
       LEAN_GO_PROOFS: '1'
       LEAN_GO_FORMATS: '1'
       LEAN_GO_VALIDATE: '1'
-      # The recorded admission diagnostics (the rejections the retired Python
-      # suites asserted) and the byte comparison of every tracked artifact
-      # with a fresh in-process regeneration.
+      # The recorded admission diagnostics and the byte comparison of every
+      # tracked artifact with a fresh in-process regeneration.
       LEAN_GO_PARITY: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

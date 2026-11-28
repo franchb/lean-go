@@ -12,8 +12,8 @@ import (
 	"time"
 )
 
-// Ported from the retired scripts/test_differential.py (CaseTests, ReductionTests,
-// CampaignTests). The compiled fault-injection test is in lean_test.go.
+// Cases, reduction and campaigns. The compiled fault-injection test is in
+// lean_test.go.
 
 func addition(width int) Program {
 	return Program{Seed: 91, Width: width, Expr: Op("add", A(), B()), Helper: A()}
@@ -288,8 +288,8 @@ func TestZeroBudgetDoesNotExecuteBackend(t *testing.T) {
 	}
 }
 
-// Python also rejected True and 1.0 as budgets; Go's int parameter cannot
-// hold them, and the command-line parser rejects them (cmd/lean-go-dev).
+// A boolean or fractional budget cannot be an int, and the command-line
+// parser rejects both (cmd/lean-go-dev).
 func TestPassingCaseAndInvalidBudgetsAreNotShrunk(t *testing.T) {
 	p, pairs := addition(32), []Pair{{0, 0}}
 	check := func(Program, []Pair) (Observation, error) { t.Fatal("backend called"); return Observation{}, nil }

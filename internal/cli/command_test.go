@@ -15,9 +15,8 @@ import (
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Ported from the retired scripts/test_cli.py (command boundary), the script-boundary
-// cases of scripts/test_diagnostics.py and the mode cases of
-// scripts/test_native_mode.py.
+// The command boundary: how arguments, paths, diagnostics modes and output
+// modes reach the pipeline, and what the command prints and returns.
 
 func runMain(args ...string) (int, string, string) {
 	var stdout, stderr bytes.Buffer
@@ -227,8 +226,8 @@ func TestChildEnvironmentDropsLeanOverrides(t *testing.T) {
 	}
 }
 
-// scripts/test_diagnostics_lean.py: a JSON failure is one stderr document
-// and preserves existing outputs (LEAN_GO_MODULES=1).
+// A JSON failure is one stderr document and preserves existing outputs
+// (LEAN_GO_MODULES=1).
 func TestScriptJSONFailureIsOneDocumentAndPreservesOutputs(t *testing.T) {
 	if os.Getenv("LEAN_GO_MODULES") != "1" {
 		t.Skip("set LEAN_GO_MODULES=1 for fresh Lean diagnostics")

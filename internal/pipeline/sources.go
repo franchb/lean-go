@@ -41,7 +41,7 @@ func isPrintable(r rune) bool { return unicode.IsPrint(r) }
 // ValidateName accepts the ASCII Lean identifier syntax used on the command line.
 func ValidateName(name string) error {
 	if !identifier.MatchString(name) {
-		return exportErrorf("invalid ASCII Lean name: %s", pythonRepr(name))
+		return exportErrorf("invalid ASCII Lean name: %s", quoted(name))
 	}
 	return nil
 }
@@ -126,8 +126,8 @@ func absolutePath(path string) (string, error) {
 	return filepath.Clean(path), nil
 }
 
-// lexicalPath normalizes like Python's pathlib: repeated separators and "."
-// components disappear, while ".." stays for symlink-aware checks.
+// lexicalPath normalizes without touching the file system: repeated separators
+// and "." components disappear, while ".." stays for symlink-aware checks.
 func lexicalPath(path string) string {
 	volume := filepath.VolumeName(path)
 	rest := filepath.ToSlash(path[len(volume):])
@@ -145,8 +145,8 @@ func lexicalPath(path string) string {
 	return volume + filepath.FromSlash(joined)
 }
 
-// resolvePath follows symlinks for the existing prefix and cleans the rest,
-// like Python's non-strict Path.resolve().
+// resolvePath follows symlinks for the existing prefix and cleans the rest, so
+// a path that does not exist yet still resolves.
 func resolvePath(path string) (string, error) {
 	path, err := absolutePath(path)
 	if err != nil {
@@ -327,8 +327,8 @@ type headerToken struct {
 
 var headerIdentifier = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_'.]*`)
 
-// headerTokenizer reads tokens lazily, respecting nested comments, like the
-// Python generator: an error is reported only when the caller reaches it.
+// headerTokenizer reads tokens lazily, respecting nested comments: an error
+// is reported only when the caller reaches it.
 // Offsets index code points.
 type headerTokenizer struct {
 	text []rune
@@ -349,7 +349,7 @@ func (t *headerTokenizer) has(prefix string) bool {
 func (t *headerTokenizer) next() (*headerToken, error) {
 	for t.i < len(t.text) {
 		switch {
-		case unicode.IsSpace(t.text[t.i]) || isPythonSpace(t.text[t.i]):
+		case unicode.IsSpace(t.text[t.i]) || isInformationSeparator(t.text[t.i]):
 			t.i++
 		case t.has("--"):
 			for t.i < len(t.text) && t.text[t.i] != '\n' {
@@ -395,8 +395,10 @@ func isHeaderIdentRune(r rune) bool {
 	return r == '_' || r == '\'' || r == '.' || ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') || ('0' <= r && r <= '9')
 }
 
-// isPythonSpace adds the separators str.isspace() accepts beyond unicode.IsSpace.
-func isPythonSpace(r rune) bool { return r >= 0x1c && r <= 0x1f }
+// isInformationSeparator reports the four control characters U+001C to U+001F,
+// which the header scanner treats as white space although unicode.IsSpace
+// does not.
+func isInformationSeparator(r rune) bool { return r >= 0x1c && r <= 0x1f }
 
 // instrumentSource injects the producer audit import after the header and
 // returns the exact mapping back to the original bytes.

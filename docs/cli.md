@@ -66,7 +66,7 @@ byte identity.
 | `lean-go validate` | translation-validate an existing IR file against its sources (`--source-dir`, `--module`, repeated `--root`, `--ir`, validation options) |
 | `lean-go emit` | IR file → Go package (`--in FILE --out DIR [--mode ...] [--native-max-depth N] [--replace]`) |
 | `lean-go check-proofs` | proof contracts and composition contracts, as described below |
-| `lean-go format check\|generate` | [wire formats](wire-formats.md); `lean-go-format` remains as an alias |
+| `lean-go format check\|generate` | [wire formats](wire-formats.md) |
 | `lean-go regenerate` | contributor command: regenerate every tracked artifact, wire-format example and validation report; `--coverage` prints the validation coverage table |
 | `lean-go doctor`, `lean-go version` | check Lean, Lake, the build toolchain and the producer cache; print the tool identity |
 

@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// Shared helpers for the tests ported from the retired Python suites in scripts/.
+// Shared helpers of the pipeline tests.
 
 var (
 	sharedCacheOnce sync.Once
@@ -138,7 +138,7 @@ func (f *leanFixture) reject(module, root, pattern string) error {
 		f.t.Fatalf("%s was accepted, want rejection matching %q", root, pattern)
 	}
 	if pattern == "" {
-		// Any failure, build failures included (test_diagnostics_lean.py).
+		// Any failure, build failures included.
 	} else if err := checkRejection(err, pattern); err != nil {
 		f.t.Fatal(err)
 	}

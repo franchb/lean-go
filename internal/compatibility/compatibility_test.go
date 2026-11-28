@@ -19,8 +19,6 @@ import (
 	"github.com/franchb/lean-go/producer"
 )
 
-// Ported from the retired scripts/test_compatibility.py.
-
 var (
 	base = Identity{Version: Pinned.Version, Commit: Pinned.Commit}
 	next = Identity{Version: "4.99.0-rc1", Commit: "1234567890abcdef1234567890abcdef12345678"}
@@ -156,7 +154,7 @@ func TestSnapshotIsTheLeanGoBuildClosure(t *testing.T) {
 		}
 	}
 	for name := range s {
-		if strings.HasSuffix(name, "_test.go") || strings.HasPrefix(name, "scripts/") || strings.HasPrefix(name, "internal/compatibility/") ||
+		if strings.HasSuffix(name, "_test.go") || strings.HasPrefix(name, "internal/compatibility/") ||
 			strings.HasPrefix(name, "cmd/lean-go-dev/") {
 			t.Errorf("snapshot contains %s", name)
 		}
@@ -353,7 +351,7 @@ func TestCanonicalIRExcludesOnlyTopLevelIdentity(t *testing.T) {
 	if _, err := CanonicalIR(parse(t, `{}`)); err == nil {
 		t.Error("empty IR accepted")
 	}
-	// Python json.dumps(sort_keys=True, indent=2) layout.
+	// Sorted keys, indented by two spaces.
 	if want := "{\n  \"claims\": [],\n  \"functions\": [],\n"; !strings.HasPrefix(canonical, want) {
 		t.Errorf("layout %q", canonical)
 	}
@@ -762,8 +760,8 @@ func TestUnifiedDiffMatchesDifflib(t *testing.T) {
 	}
 }
 
-// The demo check covers the demos check_toolchain_demos.py ran, plus the
-// native clamp package next to the metered one.
+// The demo check covers every proof demo, and the native clamp package next
+// to the metered one.
 func TestDemosAreEveryTrackedProofDemo(t *testing.T) {
 	var names []string
 	for _, demo := range Demos() {

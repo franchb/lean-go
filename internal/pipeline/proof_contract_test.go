@@ -12,8 +12,8 @@ import (
 	"github.com/franchb/lean-go/producer"
 )
 
-// Ported from the retired scripts/test_proof_contracts.py (protocol tests; the Lean
-// tests are in lean_proofs_test.go) and scripts/test_composition_contract.py.
+// Proof contracts and composition contracts at the protocol level; the tests
+// that run Lean are in lean_proofs_test.go.
 
 type contractFixture struct {
 	t            *testing.T
@@ -586,8 +586,8 @@ func TestProjectContractAndGeneratedMutationsDuringProvingFail(t *testing.T) {
 }
 
 func TestProofToolIdentityIsPinnedAndEmbedded(t *testing.T) {
-	// The Python tool-root mutation cases do not apply: the checker and pin are
-	// embedded in the binary. What remains checkable is the pin and identity.
+	// The checker and the pin are embedded in the binary, so what can be
+	// checked here is the pin and the identity.
 	tools, err := proofTools()
 	if err != nil {
 		t.Fatal(err)
@@ -776,7 +776,7 @@ func TestStagedInputAndDependencyChangesAreRejected(t *testing.T) {
 	}
 }
 
-// scripts/test_composition_contract.py
+// Composition contracts.
 
 type compositionFixture struct {
 	root, contract, output string

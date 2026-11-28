@@ -5,8 +5,10 @@ import (
 	"testing"
 )
 
-// Expected bytes were recorded from CPython's json module with the same options, which wrote the tracked artifacts of the retired Python pipeline.
-func TestPythonCompatibleEncodings(t *testing.T) {
+// The expected bytes come from an independent encoder: CPython's json module
+// with sorted or insertion-ordered keys, the same separators and
+// ensure_ascii off.
+func TestCanonicalEncodings(t *testing.T) {
 	input := "{\"b\":[1,{}],\"a\":\"x\\\"\\\\\\n\\t\\u0001\x7f é ✓  \",\"c\":[],\"big\":9007199254740993,\"n\":null,\"t\":true,\"z\":-0}"
 	value, err := ParseJSON([]byte(input))
 	if err != nil {
@@ -51,15 +53,15 @@ func TestStrictDecoding(t *testing.T) {
 	}
 }
 
-func TestPythonRepr(t *testing.T) {
+func TestQuoted(t *testing.T) {
 	for input, want := range map[string]string{
 		"a'b":                               `"a'b"`,
 		`a"b'c`:                             `'a"b\'c'`,
 		"x\x01\u0085é​\U0001F600\U000E0001": `'x\x01\x85é` + `\` + `u200b😀\U000e0001'`,
 		"plain":                             `'plain'`,
 	} {
-		if got := pythonRepr(input); got != want {
-			t.Errorf("repr(%q) = %s, want %s", input, got, want)
+		if got := quoted(input); got != want {
+			t.Errorf("quoted(%q) = %s, want %s", input, got, want)
 		}
 	}
 }
@@ -76,7 +78,7 @@ func TestInstrumentationAndPositions(t *testing.T) {
 	if !strings.Contains(string(mapping.Instrumented), "public import Helper\npublic meta import LeanGo.Module.Audit\n") {
 		t.Fatalf("instrumented:\n%s", mapping.Instrumented)
 	}
-	// Expected values were recorded from the retired scripts/source_locations.py.
+	// Expected values were recorded from an earlier, independent implementation.
 	for _, c := range []struct {
 		line, column int64
 		want         string

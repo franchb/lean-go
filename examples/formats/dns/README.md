@@ -3,7 +3,7 @@
 The 12-byte header of every DNS message, from
 [RFC 1035 section 4.1.1](https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1),
 generated from [spec.json](spec.json) by
-[lean-go-format](../../../docs/wire-formats.md).
+[`lean-go format`](../../../docs/wire-formats.md).
 
 ```text
                                 1  1  1  1  1  1
@@ -60,5 +60,5 @@ go test -fuzz=FuzzParse ./dns
 From the repository root:
 
 ```sh
-go run ./cmd/lean-go-format generate -spec examples/formats/dns/spec.json -out examples/formats/dns
+go run ./cmd/lean-go format generate -spec examples/formats/dns/spec.json -out examples/formats/dns
 ```

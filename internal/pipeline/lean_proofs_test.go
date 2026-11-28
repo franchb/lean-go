@@ -10,11 +10,10 @@ import (
 	"testing"
 )
 
-// Lean-gated ports: RealProofContractTests of scripts/test_proof_contracts.py
-// (LEAN_GO_PROOFS=1) and the script JSON case of
-// scripts/test_diagnostics_lean.py (LEAN_GO_MODULES=1). The other
-// test_diagnostics_lean.py cases are covered with exact report equality by
-// TestAdmissionDiagnosticsMatchRecordedPythonReports (LEAN_GO_PARITY=1) and by
+// Lean-gated: the real proof contracts (LEAN_GO_PROOFS=1) and the JSON
+// failure report of the command (LEAN_GO_MODULES=1). The other diagnostics
+// cases are covered with exact report equality by
+// TestAdmissionDiagnosticsMatchRecordedReports (LEAN_GO_PARITY=1) and by
 // TestDiagnosticsLeanAssertions below.
 
 func clampFixture(t *testing.T) (*Contract, *ProjectSnapshot, *toolInputs) {
@@ -240,8 +239,8 @@ fmt.Println("proof-contract Go-only consumer: OK")
 	}
 }
 
-// scripts/test_diagnostics_lean.py: the individual assertions of each case,
-// on top of the exact-report parity test.
+// The individual assertions of each diagnostics case, on top of the
+// exact-report parity test.
 
 func diagnosticOf(t *testing.T, err error) map[string]any {
 	t.Helper()

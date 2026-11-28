@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// Ported from validation/check_ir_copies.py: the programs the Lean
+// The programs the Lean
 // translation-validation library checks (validation/Examples/IR) are copies
 // of tracked IR, so that its evidence stays reproducible while the tracked
 // files are regenerated. The two sections its loader reads, types and

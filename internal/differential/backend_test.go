@@ -15,9 +15,9 @@ import (
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Ported from the retired scripts/test_differential_backend.py (ResultProtocolTests,
-// ProcessTests). The timeout test of the process group is in
-// internal/devexec; the native smoke test is in lean_test.go.
+// The result protocol and the process handling of the backend. The timeout
+// test of the process group is in internal/devexec; the native smoke test is
+// in lean_test.go.
 
 func TestExactUint64Values(t *testing.T) {
 	values := []uint64{0, 9007199254740993, 18446744073709551615}
@@ -183,8 +183,8 @@ func TestMissingToolAndWrongVersionFail(t *testing.T) {
 	}
 }
 
-// Python also rejected NaN, infinity and True; time.Duration cannot hold
-// them and the command line accepts only integer seconds in 1..3600.
+// NaN, infinity and booleans cannot be a time.Duration, and the command line
+// accepts only integer seconds in 1..3600.
 func TestTimeoutMustBePositive(t *testing.T) {
 	for _, timeout := range []time.Duration{0, -1} {
 		if _, err := NewBackend(t.TempDir(), t.TempDir(), timeout); err == nil {

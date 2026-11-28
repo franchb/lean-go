@@ -1,6 +1,6 @@
 # Proved binary header codecs from a JSON spec
 
-`lean-go-format` turns a short JSON description of a fixed-size binary
+`lean-go format` turns a short JSON description of a fixed-size binary
 header into:
 
 1. ordinary first-order Lean (`source/<Module>.lean`): the header record, a
@@ -86,12 +86,11 @@ offending entry, for example
 
 ## Generate
 
-From a checkout with Go 1.27.4 and the pinned Lean 4.36.0 (`lean-go format`
-is the same command):
+From a checkout with Go 1.27.4 and the pinned Lean 4.36.0:
 
 ```sh
-go run ./cmd/lean-go-format check -spec spec.json
-go run ./cmd/lean-go-format generate -spec spec.json -out DIR
+go run ./cmd/lean-go format check -spec spec.json
+go run ./cmd/lean-go format generate -spec spec.json -out DIR
 ```
 
 `generate` renders the sources into a fresh temporary directory, runs the

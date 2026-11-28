@@ -5,10 +5,9 @@ import (
 	"testing"
 )
 
-// Ports of the feature tests of the retired scripts/test_bitwise.py, test_uint8.py and
-// test_width_conversions.py, which need no Lean:
-// the producer declares a feature family only for executable primitive
-// leaves, and malformed producer bodies are protocol errors.
+// The producer declares a feature family only for executable primitive
+// leaves, and malformed producer bodies are protocol errors. None of this
+// needs Lean.
 
 // rawFeatureProgram is BitwiseFeatureTests.raw: a producer result with one function.
 func rawFeatureProgram(body any, multi bool) (map[string]any, []string) {
@@ -109,7 +108,7 @@ func TestMalformedProducerBodiesAreExportErrors(t *testing.T) {
 	}
 }
 
-// scripts/test_bitwise.py BitwiseFeatureTests.test_exact_names_and_all_operations
+// Bitwise features: exact names and all operations.
 func TestBitwiseFeatureNeedsExactNamesOfAllOperations(t *testing.T) {
 	var body map[string]any
 	for _, width := range []string{"8", "16", "32", "64"} {
@@ -129,7 +128,7 @@ func TestBitwiseFeatureNeedsExactNamesOfAllOperations(t *testing.T) {
 	}
 }
 
-// scripts/test_uint8.py ByteFeatureTests.test_executable_byte_types_literals_and_primitives_declare_features
+// Byte features: executable byte types, literals and primitives declare them.
 func TestExecutableByteTypesLiteralsAndPrimitivesDeclareFeatures(t *testing.T) {
 	casts := []string{"UInt8.toUInt32", "UInt32.toUInt8"}
 	var leaves []string
@@ -153,7 +152,7 @@ func TestExecutableByteTypesLiteralsAndPrimitivesDeclareFeatures(t *testing.T) {
 				program, roots := rawFeatureProgram(body, multi)
 				features := rawFeatures(t, program, roots)
 				assertContains(t, name, features, "uint32")
-				// Python: (family in features) == (family is not None).
+				// A primitive with a family declares it.
 				if family != "" && !hasString(features, family) {
 					t.Fatalf("%s: %v lacks %s", name, features, family)
 				}
@@ -190,7 +189,7 @@ func TestExecutableByteTypesLiteralsAndPrimitivesDeclareFeatures(t *testing.T) {
 	}
 }
 
-// scripts/test_width_conversions.py WidthFeatureTests.test_executable_casts_declare_feature_in_every_container
+// Width features: an executable cast declares the feature in every container.
 func TestExecutableCastsDeclareFeatureInEveryContainer(t *testing.T) {
 	converts := func(program map[string]any, roots []string) bool {
 		return hasString(rawFeatures(t, program, roots), "width_conversion")

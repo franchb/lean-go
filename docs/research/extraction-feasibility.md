@@ -9,7 +9,7 @@ An original, version-pinned adapter can recover the required bodies and public
 schema without a patched Lean compiler or native runtime dependency in the
 candidate closure. This investigation implements and tests the Lean producer
 prototype. It does not implement Go extraction, prove translation correctness,
-or satisfy the future release gates in the [approved design](../superpowers/specs/2026-11-11-lean-go-extraction-design.md).
+or satisfy the future release gates in the [approved design](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.15/docs/superpowers/specs/2026-11-11-lean-go-extraction-design.md).
 
 ## Scope, toolchain, and reproduction
 

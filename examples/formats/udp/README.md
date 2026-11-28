@@ -2,7 +2,7 @@
 
 The User Datagram Protocol header, from the "Format" section of
 [RFC 768](https://www.rfc-editor.org/rfc/rfc768), generated from
-[spec.json](spec.json) by [lean-go-format](../../../docs/wire-formats.md).
+[spec.json](spec.json) by [`lean-go format`](../../../docs/wire-formats.md).
 
 ```text
  0      7 8     15 16    23 24    31
@@ -54,5 +54,5 @@ go test -fuzz=FuzzParse ./udp
 From the repository root:
 
 ```sh
-go run ./cmd/lean-go-format generate -spec examples/formats/udp/spec.json -out examples/formats/udp
+go run ./cmd/lean-go format generate -spec examples/formats/udp/spec.json -out examples/formats/udp
 ```

@@ -3,7 +3,7 @@
   "generator": "lean-go-modulegen/v20",
   "generator_source_sha256": "5d1a3e11ada9e3be8c90559f2c14f620ffbd9e4c6660ce121b9d2b88945e4e9d",
   "validator_source_sha256": "d6bd18ba4e7d84e95051ce15b95d4d32d2945ace3da795f8c5ea62528e79d456",
-  "ir_sha256": "b6462f94b0d86c8298e3d11d30b3932a638c4c24875ffc4d5a9dec6c385894cc",
+  "ir_sha256": "853c142c2fdfc374034cc87989f5c0ca863c704675031939ea2932867fbbb326",
   "program": {
     "schema": "lean-go-ir/v24",
     "profile": "pure-module/v22",
@@ -36,7 +36,7 @@
       "source/Trees.lean": "2f9a77194b1b55351fb5a642228f9109e0e42f2f72a7dab0bd7249a2b664afd3",
       "source/Unsigned.lean": "e8e23809ef702769a6935652d222ecc942b850d1cd15b8367f70b77285e19d8a",
       "source/Wide.lean": "5513da955d6a4bfeac9c0c4dbac1e9c0190652e793b46db414f1527d57f572fb",
-      "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d"
+      "tool/lean-go/pipeline": "0ab58ea43c0002036916072da849b4880bc297598e8a2ce6fd23fa79e62cf335"
     },
     "types": [
       {

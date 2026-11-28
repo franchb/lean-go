@@ -157,7 +157,7 @@ func textOf(v any) string {
 	return fmt.Sprint(v)
 }
 
-// integer reports whether v is a JSON integer (Python: type(v) is int).
+// integer reports whether v is a JSON integer; a boolean or a fraction is not.
 func integer(v any) (int64, bool) {
 	n, ok := v.(json.Number)
 	if !ok || strings.ContainsAny(string(n), ".eE") {
@@ -375,7 +375,7 @@ func zeroIfEmpty(digits string) string {
 	return ""
 }
 
-// RequestedMode follows argparse's last explicit --diagnostics value.
+// RequestedMode is the last explicit --diagnostics value of an argument list.
 func RequestedMode(args []string) string {
 	for i := len(args) - 1; i >= 0; i-- {
 		switch value := args[i]; {

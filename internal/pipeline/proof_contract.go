@@ -282,7 +282,7 @@ func pyReprValue(v any) string {
 	case nil:
 		return "None"
 	case string:
-		return pythonRepr(t)
+		return quoted(t)
 	case bool:
 		if t {
 			return "True"

@@ -7,10 +7,8 @@ import (
 	"testing"
 )
 
-// Ported from scripts/test_export.py (ProducerTests): compiler pins, process
-// failures and symlink destinations. Its publish_files rollback cases tested
-// a Python helper the Go pipeline does not have: Go stages every output
-// before it changes any (publish_stage_test.go).
+// Compiler pins, process failures and symlink destinations. Staging of
+// published outputs is tested in publish_stage_test.go.
 
 func TestOnlySelectedVersionAndCommitPass(t *testing.T) {
 	for _, compiler := range SupportedCompilers {

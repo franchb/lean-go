@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-// Ported from the retired scripts/test_validate_module.py: the embedded validation files
-// are exactly the validation library on disk, and none of them is a module
-// producer file (whose digests every manifest records).
+// The embedded validation files are exactly the validation library on disk,
+// and none of them is a module producer file (whose digests every manifest
+// records).
 func TestValidationFilesCoverTheLibrary(t *testing.T) {
 	onDisk := map[string]bool{}
 	err := filepath.WalkDir("LeanGo", func(path string, d fs.DirEntry, err error) error {

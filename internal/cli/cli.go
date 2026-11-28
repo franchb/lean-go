@@ -276,12 +276,11 @@ var formatOptions = []option{
 	{name: "sources-only", help: "write generated sources without running extraction and the proof check"},
 	{name: "no-cache", help: "build the producer from scratch instead of using the cache"},
 	{name: "strict-go", help: "refuse to run unless lean-go was built with the pinned Go release"},
-	{name: "repo", values: 1, meta: "DIR", help: "ignored; kept for compatibility with lean-go-format"},
 }
 
-// Format implements "lean-go format" and the lean-go-format compatibility command.
+// Format implements "lean-go format".
 func Format(args []string, stdout, stderr io.Writer) int {
-	if err := FormatRun(args, stdout); err != nil {
+	if err := formatRun(args, stdout); err != nil {
 		var usage *usageError
 		if errors.As(err, &usage) {
 			fmt.Fprintf(stderr, "lean-go format: %v\n%s", err, formatUsage)
@@ -293,8 +292,8 @@ func Format(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// FormatRun is Format returning its error.
-func FormatRun(args []string, stdout io.Writer) error {
+// formatRun is Format returning its error.
+func formatRun(args []string, stdout io.Writer) error {
 	if len(args) == 0 {
 		return &usageError{"missing command"}
 	}

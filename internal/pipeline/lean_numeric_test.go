@@ -7,14 +7,13 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) ports of the retired scripts/test_numeric_admission.py
-// and scripts/test_uint64_admission.py, with the fixture shared by the other
-// numeric ports (lean_unsigned_test.go, lean_bytes_test.go,
-// lean_bitwise_test.go and lean_widths_test.go).
+// Lean-gated (LEAN_GO_MODULES=1): numeric and UInt64 admission, with the
+// fixture shared by the other numeric tests (lean_unsigned_test.go,
+// lean_bytes_test.go, lean_bitwise_test.go and lean_widths_test.go).
 
-// numericOptions are NumericAdmissionTests.export's options; probe is Lean
+// numericOptions select how a numeric fixture is exported; probe is Lean
 // inserted into the export harness right before the export command, after
-// the source module is imported (UInt64AdmissionTests.export).
+// the source module is imported.
 type numericOptions struct {
 	modern bool
 	probe  string
@@ -45,8 +44,7 @@ func numericExport(t *testing.T, body string, o numericOptions) map[string]any {
 
 // numericReject requires the producer to reject Numeric.run with a
 // diagnostic matching pattern that is no elaboration failure, leaves
-// existing outputs alone, and was raised before emission (the Python suites
-// rejected in export_module, which never emits Go).
+// existing outputs alone, and was raised before emission.
 func numericReject(t *testing.T, body, pattern string, o numericOptions) {
 	t.Helper()
 	err := numericFixture(t, body, o).reject("Numeric", "Numeric.run", pattern)
@@ -197,7 +195,7 @@ func noPrivatePackage(t *testing.T, provenance []string) {
 	}
 }
 
-// scripts/test_numeric_admission.py
+// Numeric admission.
 
 func TestNumericLiteralsPrimitivesAndDecidableBoolLowering(t *testing.T) {
 	requireModules(t)
@@ -206,7 +204,7 @@ func TestNumericLiteralsPrimitivesAndDecidableBoolLowering(t *testing.T) {
 def run (a b : UInt32) : Result :=
   .mk (((a + 4294967297) - b) * 2) (decide (a = b)) (decide (a < b)) (decide (a ≤ b))
 `, numericOptions{modern: true})
-	// Only the straight-line let chain of each function, as in the Python test.
+	// Only the straight-line let chain of each function.
 	var values []map[string]any
 	for _, function := range arr(program["functions"]) {
 		code := obj(obj(function)["body"])
@@ -303,7 +301,7 @@ func TestNumericContextSensitivePrimitiveAndWrapperReplacementsAreRejected(t *te
 	}
 }
 
-// scripts/test_uint64_admission.py
+// UInt64 admission.
 
 func TestUInt64ExactLiteralsAndSevenPrimitiveSignatures(t *testing.T) {
 	requireModules(t)

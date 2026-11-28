@@ -11,8 +11,6 @@ import (
 	"testing"
 )
 
-// Ported from the retired scripts/test_differential_model.py.
-
 func lit(v uint64) Expr { return LitU(v) }
 
 func bigLit(shift uint, plus int64) Expr {
@@ -158,8 +156,8 @@ func TestRecordsUpdateAndHelperArgumentBinding(t *testing.T) {
 	}
 }
 
-// Python also rejected -1, True, 1.0 and "1": Go's uint64 parameters cannot
-// hold them, so they are checked where untyped data enters, in
+// A negative, boolean, fractional or string value cannot be a uint64
+// parameter; such values are checked where untyped data enters, in
 // TestInvalidInputsFailBeforeEvaluation (ParseInputs) and the case loader.
 func TestInvalidInputsDoNotSilentlyWrap(t *testing.T) {
 	for _, value := range []uint64{1 << 32, 1<<32 + 5, ^uint64(0)} {
@@ -209,8 +207,8 @@ func TestDeterministicBoundedVariedPrograms(t *testing.T) {
 	}
 }
 
-// Python also rejected a negative or boolean seed, which uint64 cannot
-// express; the serialized form rejects them in TestExactKeysAndSchemaRequired.
+// A negative or boolean seed cannot be a uint64; the serialized form rejects
+// them in TestExactKeysAndSchemaRequired.
 func TestDepthLimitsAndArgumentValidation(t *testing.T) {
 	for _, depth := range []int{0, 4} {
 		p, err := Generate(1, 64, depth)
@@ -367,7 +365,7 @@ func TestBadArityTypesLiteralsAndRecursiveHelperRejected(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "recursive helper") {
 		t.Fatalf("recursive helper: %v", err)
 	}
-	// A boolean literal payload (Python's value=True) is rejected on load.
+	// A boolean literal payload is rejected on load.
 	data := serializedMap(t, program(lit(0), 32))
 	data["expr"].(map[string]any)["value"] = true
 	if _, err := Deserialize(data); err == nil {

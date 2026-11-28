@@ -18,11 +18,9 @@ import (
 	"github.com/franchb/lean-go/internal/proofdemos"
 )
 
-// Ported from the retired demo verifiers (scripts/check_*_demo.py,
-// scripts/test_*_demo.py, scripts/check_checked_frame.py): each demo's
-// tracked contract, evidence and regeneration entry must select exactly the
-// independently listed module, roots and claims, so a claim cannot vanish
-// from contract and evidence together.
+// Each demo's tracked contract, evidence and regeneration entry must select
+// exactly the independently listed module, roots and claims, so a claim
+// cannot vanish from contract and evidence together.
 
 const proofDemos = "../examples/proofs"
 

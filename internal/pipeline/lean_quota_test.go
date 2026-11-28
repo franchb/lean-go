@@ -6,12 +6,8 @@ import (
 	"testing"
 )
 
-// Ported from scripts/test_quota_proofs.py and scripts/check_quota.py: the
-// quota contract's selection, and the real quota proofs through the shared
-// gate (LEAN_GO_QUOTA=1). The Python wrapper's argument forwarding
-// (QuotaCompatibilityTests.test_default_verification_and_explicit_publication_keep_cli_paths)
-// has no counterpart: check_quota.py was a thin wrapper over check-proofs,
-// which CI now calls directly.
+// The quota contract's selection, and the real quota proofs through the
+// shared gate (LEAN_GO_QUOTA=1).
 
 const quotaContract = "../../libraries/quota/proof-contract.json"
 
@@ -55,7 +51,7 @@ func quotaFixture(t *testing.T) (*Contract, *ProjectSnapshot, *toolInputs, Compi
 	return contract, project, tools, compiler
 }
 
-// replaceCreate replaces the create_valid theorem, as test_quota_proofs.py did.
+// replaceCreate replaces the create_valid theorem.
 func replaceCreate(t *testing.T, project *ProjectSnapshot, declaration string) *ProjectSnapshot {
 	t.Helper()
 	return replaceProofDeclaration(t, project, "QuotaProofs", "theorem create_valid ", "theorem reserve_accepted ", declaration)
@@ -144,8 +140,8 @@ func TestQuotaSemanticSourceMutationFailsProofs(t *testing.T) {
 	expectError(t, err, "QuotaProofs.lean")
 }
 
-// check_quota.py without arguments: the tracked evidence is freshly
-// verified against the tracked generated package.
+// The tracked evidence is freshly verified against the tracked generated
+// package.
 func TestQuotaTrackedEvidenceRechecks(t *testing.T) {
 	gate(t, "LEAN_GO_QUOTA")
 	summary, err := CheckProofs(CheckProofsOptions{Contract: quotaContract,

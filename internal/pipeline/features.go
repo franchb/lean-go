@@ -102,7 +102,7 @@ func paramTypes(v any, key string, types map[any]bool) error {
 	}
 	raw, ok := o.Values[key]
 	if !ok {
-		return nil // Python uses .get(key, [])
+		return nil // an absent key is an empty list
 	}
 	params, ok := raw.([]any)
 	if !ok {
@@ -118,7 +118,7 @@ func paramTypes(v any, key string, types map[any]bool) error {
 	return nil
 }
 
-// hashable maps a JSON value to a comparable set key, as Python sets require.
+// hashable maps a JSON value to a comparable value, usable as a set key.
 func hashable(v any) any {
 	switch v.(type) {
 	case *Object, []any:
@@ -305,7 +305,7 @@ func programFeatures(program *Object) ([]any, error) {
 	return out, nil
 }
 
-// contains is Python's `value in container` for an object or array.
+// contains reports whether value is a key of an object or an element of an array.
 func contains(container, value any) bool {
 	switch c := container.(type) {
 	case *Object:
