@@ -119,6 +119,24 @@ connects a Lean function to Go through three links of different assurance:
 So a theorem from link 1 describes what the IR returns when it returns (link
 2); that the Go code behaves like the IR is tested and trusted (link 3).
 
+Links 1 and 2 are separate checks, and by default nothing stops you from
+shipping a package with the first alone. To require both for the same
+program, validate when you generate and hand the report to the proof check:
+
+```sh
+lean-go generate --source-dir source --module Clamp --root Clamp.clamp \
+  --out clampnative --ir-output clamp.ir.json --validate require
+lean-go check-proofs --contract proof-contract.json \
+  --manifest clampnative/manifest.json --evidence native-proof-evidence.json \
+  --require-validation clamp.validation.json
+```
+
+With `--require-validation`, `check-proofs` also fails unless the report was
+written by this lean-go for exactly the IR recorded in the manifest and shows
+every function proved and every root established. This is the gate to run in
+CI. The report is read, not proved again, so produce it in the same job
+([details](docs/cli.md#require-the-validation-report)).
+
 ## What it supports today
 
 Types: `Bool`, `UInt8`, `UInt16`, `UInt32`, `UInt64`, and your own

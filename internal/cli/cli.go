@@ -225,6 +225,7 @@ var proofOptions = []option{
 	{name: "component-manifest", values: 2, repeat: true, meta: "NAME PATH", help: "bind a v2 component by name; repeat once per component"},
 	{name: "output", values: 1, meta: "FILE", help: "write freshly checked evidence"},
 	{name: "evidence", values: 1, meta: "FILE", help: "freshly verify existing evidence"},
+	{name: "require-validation", values: 1, repeat: true, meta: "REPORT", help: "also require a complete validation report of each bound manifest's IR; repeat for a composition"},
 }
 
 const proofSummary = "Check source-proof contracts freshly and bind evidence to generated Go."
@@ -248,6 +249,23 @@ func checkProofs(args []string, stdout, stderr io.Writer) int {
 	if err != nil {
 		return usageFailure(stderr, "check-proofs", proofSummary, proofOptions, err)
 	}
+	// The reports are read first, so that a missing or incomplete one costs no
+	// proof build and writes no evidence. What they are compared with, the
+	// program in each manifest, is confirmed by the proof check that follows.
+	var validated []string
+	if p.has("require-validation") {
+		manifests := []string{p.one("manifest")}
+		if p.has("component-manifest") {
+			manifests = nil
+			for _, component := range p.pairs("component-manifest") {
+				manifests = append(manifests, component[1])
+			}
+		}
+		if validated, err = requireValidation(manifests, p.all("require-validation")); err != nil {
+			fmt.Fprintf(stderr, "validation requirement failed: %v\n", err)
+			return 1
+		}
+	}
 	summary, err := checkProofsFunc(pipeline.CheckProofsOptions{
 		Contract: p.one("contract"), Manifest: p.one("manifest"), ComponentManifests: p.pairs("component-manifest"),
 		Output: p.one("output"), Evidence: p.one("evidence"),
@@ -257,6 +275,9 @@ func checkProofs(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	fmt.Fprintln(stdout, summary)
+	for _, line := range validated {
+		fmt.Fprintln(stdout, line)
+	}
 	return 0
 }
 

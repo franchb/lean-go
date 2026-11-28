@@ -128,12 +128,13 @@ jobs:
       - name: Build the translation-validation library, examples and axiom gate
         working-directory: validation
         run: lake build
-      - name: Check quota source proofs and generated binding
+      - name: Check quota source proofs, generated binding and validation report
         run: >-
           go run ./cmd/lean-go check-proofs
           --contract libraries/quota/proof-contract.json
           --manifest generated/quota/manifest.json
           --evidence libraries/quota/proof-evidence.json
+          --require-validation testdata/quota.validation.json
       - name: Verify release-candidate proof-to-Go walkthrough
         run: go run ./cmd/lean-go-dev release-candidate > "$RUNNER_TEMP/lean-go-candidate-receipt.json"
       - name: Native Lean comparison and fresh regeneration
