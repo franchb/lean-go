@@ -1,12 +1,22 @@
 # lean-go
 
 lean-go turns functions written in a small, first-order subset of
-[Lean 4](https://lean-lang.org/) into a standalone Go package. You write the
-logic in Lean, prove properties about it there, and ship ordinary Go that
-depends only on the standard library. It is for Go developers who want a few
-small, critical functions (a header parser, a checksum, a quota rule) to come
-with machine-checked statements about what they compute. Using a generated
-package needs only Go; generating one needs Lean as well.
+[Lean 4](https://lean-lang.org/) into a standalone Go package that depends
+only on the standard library. You write the logic in Lean and prove
+properties about it there. It is for Go developers who want a few small,
+critical functions (a header parser, a checksum, a quota rule) to come with
+machine-checked statements about what they compute.
+
+There are two ways to use the generated package:
+
+- **As a test oracle.** Keep the Go you wrote and optimized by hand, and test
+  it against the generated package: differential tests and fuzzing against a
+  model whose properties are proved. Nothing generated runs in production, so
+  its speed and API do not constrain yours
+  ([models as test oracles](#models-as-test-oracles)).
+- **As the implementation.** Import the generated package and call it.
+
+Using a generated package needs only Go; generating one needs Lean as well.
 
 ## A complete example
 
@@ -74,6 +84,18 @@ native "example.com/proved-clamp/clampnative"
 got := native.Clamp(value, limit)
 ```
 
+## Models as test oracles
+
+You do not have to ship the extracted code to benefit from it. The
+[oracle example](examples/oracle) keeps the generated native packages of
+the proved Adler-32 and CRC-16 sources as reference models and tests
+hand-optimized Go against them: seeded and random chunked inputs, an
+exhaustive pass over every CRC register, two fuzz targets, and three
+deliberately wrong variants that the harness must catch and shrink. The
+fast code is what you would deploy; the model says what it must compute.
+That your code agrees with the model is tested on the inputs that ran, not
+proved. See [models as test oracles](docs/oracle-testing.md).
+
 ## What is and is not guaranteed
 
 This is not a verified compiler and does not formally verify Go programs. It
@@ -95,7 +117,8 @@ connects a Lean function to Go through three links of different assurance:
    same sources, byte for byte, and the evidence records the digest of every
    generated file. Changing the source, the proofs or a generated file makes
    the evidence fail. The theorems are about the Lean function; whether they
-   say what you need is for a reviewer to decide.
+   say what you need is for a reviewer to decide. Published tags have a
+   weaker proof check than the one described here ([status](#status)).
 2. **Translation validation (proved, kernel-checked, partial correctness).**
    Generation first produces an intermediate program (the *IR*, a JSON file
    such as `clamp.ir.json`). With `--validate report` or `--validate require`,
@@ -159,6 +182,11 @@ a form the producer rejects; [diagnostics](docs/diagnostics.md) say where.
 
 ## Two output modes
 
+Use native mode for a test oracle and for most code you ship: a model has to
+be fast enough to fuzz, and the native Adler-32 below runs at about 570 MB/s.
+Metered mode is for one case, untrusted recursive input whose work must be
+bounded.
+
 - **Native** (default): plain Go types and functions, as above. Every Go
   value of a generated type is a valid Lean value; functions return an error
   only on recursive call chains deeper than a fixed `MaxDepth`. There are no
@@ -187,6 +215,15 @@ in the same binary). The native gap is Go copying 12-field structs
 through memory at the by-value API boundaries, not the extracted code
 ([wire formats](docs/wire-formats.md#native-against-metered)).
 
+The ten [proof demos](examples/proofs) are metered packages. Eight of them
+predate native mode, and the demo harness and each demo's Go consumer are
+written against the metered API and its resource limits, so the demos are
+what exercises that runtime. Native output is tracked for the same clamp source
+([`clampnative`](examples/proofs/clamp/clampnative), with its own evidence),
+for the two [oracle models](examples/oracle/model) and for the three
+[wire-format examples](examples/formats). The IR and the proofs are the same
+in both modes.
+
 ## Wire formats
 
 `lean-go format generate -spec spec.json -out DIR` turns a JSON description
@@ -200,17 +237,6 @@ check it. The
 the [UDP header](examples/formats/udp) follows
 [RFC 768](https://www.rfc-editor.org/rfc/rfc768). See
 [wire formats](docs/wire-formats.md) for the spec format and its limits.
-
-## Models as test oracles
-
-You do not have to ship the extracted code to benefit from it. The
-[oracle example](examples/oracle) keeps the generated native packages of
-the proved Adler-32 and CRC-16 sources as reference models and tests
-hand-optimized Go against them: seeded and random chunked inputs, an
-exhaustive pass over every CRC register, two fuzz targets, and three
-deliberately wrong variants that the harness must catch and shrink. The
-fast code is what you would deploy; the model says what it must compute.
-See [models as test oracles](docs/oracle-testing.md).
 
 ## Install
 
@@ -246,6 +272,20 @@ supported Lean subset and the command-line options may change between
 prereleases, and IR and manifests from earlier versions are rejected; pin a
 commit and regenerate the package, IR and proof evidence together. Release
 history is in [CHANGELOG.md](CHANGELOG.md).
+
+**`check-proofs` in the published tags can be bypassed.** In
+`v0.1.0-alpha.3` through `v0.1.0-alpha.15`, `check-proofs` takes each theorem
+from the environment that the proof files built and compares its type with
+the expected statement. It never sends the proof to the Lean kernel. A proof
+file can therefore run meta code that adds a theorem with the kernel check
+switched off (`debug.skipKernelTC` and `addDecl`), and a false statement is
+recorded as checked, with an empty axiom list. Proof files without such code
+were kernel-checked when they were built, so evidence for proofs you wrote
+or reviewed stands; evidence for anyone else's proofs from those tags does
+not. The check on `main` replays every declaration through the kernel in a
+separate process
+([what it guarantees](docs/proof-contracts.md#evidence-and-assurance)). No
+tag contains it yet: pin a commit of `main`.
 
 Next: [getting started](docs/getting-started.md) (extract your own module),
 the [CLI guide](docs/cli.md), [native mode](docs/native-mode.md),
