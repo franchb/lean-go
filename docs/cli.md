@@ -157,7 +157,7 @@ program, that the IR agrees with the Lean source functions, using the
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--validate off\|report\|require` | `off` | `report` records the result and never fails because of an unproved obligation; `require` fails (stage `validation`, code `validation_failed`) after writing the report unless every function and every root is proved, and then publishes neither the package nor the IR |
+| `--validate off\|report\|require` | `off` | `report` records the result and never fails because of an unproved obligation; `require` fails (stage `validation`, code `validation_failed`) after writing the report unless every function and every root is proved and no root's witnesses failed, and then publishes neither the package nor the IR |
 | `--validation-report FILE` | next to the IR: `X.ir.json` → `X.validation.json` | the deterministic report |
 | `--validation-diagnostics FILE` | not written | timings, heartbeat counts, full failure messages and the process attempts |
 | `--validate-memory-mb N` | 4096 | memory limit of the validation process, in MiB |
@@ -188,15 +188,22 @@ under the default cap (a whole program peaks at about 1.7 GB, most of it the
 imported environment); an obligation whose kernel check outgrows it is
 reported `failed: memory limit` instead of exhausting the machine.
 
-**Reports.** The report (`lean-go-validation/v2`) is deterministic: two runs on
+**Reports.** The report (`lean-go-validation/v3`) is deterministic: two runs on
 the same inputs and budgets write the same bytes. It records the module and
 roots, the SHA-256 of the IR it validated, the compiler, the budget, the
 digests of the validation library (`producer/LeanGo/Validate*` and the runner
 `tool/lean-go/validate`), and, per function, its kind, specification, status,
 reason class, theorem name and statement and axioms; per root, its status,
-call closure and the whole-program statements. Timings and heartbeat counts go
-only to the diagnostics file (`lean-go-validation-diagnostics/v1`). Validation
-files never enter the IR `inputs` or the manifest.
+call closure, the whole-program statements and its non-vacuity witnesses
+(`witnesses`: status, reason class, fuel and the theorem and statement of each
+case). Timings and heartbeat counts go only to the diagnostics file
+(`lean-go-validation-diagnostics/v1`). Validation files never enter the IR
+`inputs` or the manifest.
+
+The commands print one summary line, `validation: P/F functions proved, E/R
+roots established, W/R roots witnessed; report in FILE`, followed by one line
+per function or root that is not proved, per root whose witnesses failed, and
+per established root whose witnesses were not attempted (with the reason).
 
 **What is proved.** For each proved function, the kernel-checked statement
 `Callable.Rel Eq (evalBody (Spec.env spec) prog.F) spec_F`; for each
@@ -205,9 +212,20 @@ explicit form: whenever the IR program returns a value for encoded arguments,
 it is the encoding of the source function's result. Only the three standard
 axioms are accepted.
 
+**Non-vacuity witnesses.** For each established root, a few concrete inputs
+built from its parameter types (at most four cases, fuel 64) give the
+kernel-checked theorem `prog.run 64 "R" [encode c…] = some (encode (R c…))`.
+A root's witnesses are `checked` (every case returned), `failed` (the kernel
+showed that the program returns `none` on a generated input; `require` fails)
+or `not_attempted` with a reason class, for example `root_not_proved`,
+`no_samples` or a budget (`require` does not fail; the summary line counts
+it). A witness that kills the validation process is skipped in a rerun, as an
+obligation is.
+
 **What is not proved.** Termination and progress: a program that never
-returns satisfies the statement (partial correctness only). Which roots are
-exported is still the producer's choice.
+returns satisfies the statement (partial correctness only); the witnesses
+cover only their generated inputs. Which roots are exported is still the
+producer's choice.
 
 **What stays trusted.** The Lean kernel; the IR semantics in
 `producer/LeanGo/Validate` (that it describes what the Go printer implements);

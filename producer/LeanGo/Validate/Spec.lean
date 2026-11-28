@@ -143,4 +143,13 @@ theorem run_rel_on {P : Program} {ρ : Callees} {S : List String} (hpre : PreFix
   Callable.rel_le _ _ f (fun args => (hρ args) ▸ run_le_on hpre n name hname args)
     (Callable.call_rel f)
 
+/-- Non-vacuity witness from partial correctness: a run that returns some
+value (`h`, decided by the kernel on a concrete run) and returns only `r`
+(`hx`, an instance of the explicit whole-program theorem) returns `r`. -/
+theorem witness_of_isSome {o : Option Value} {r : Value} (h : o.isSome = true)
+    (hx : ∀ v, o = some v → v = r) : o = some r := by
+  cases o with
+  | none => simp at h
+  | some v => rw [hx v rfl]
+
 end LeanGo.Validate

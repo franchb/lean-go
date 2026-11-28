@@ -101,7 +101,11 @@ connects a Lean function to Go through three links of different assurance:
    such as `clamp.ir.json`). With `--validate report` or `--validate require`,
    or with `lean-go validate`, Lean proves for each exported function that
    *whenever the IR program returns a value, it is the encoding of the Lean
-   function's result*. It does not prove that the IR program terminates.
+   function's result*. It does not prove that the IR program terminates. A
+   program that never returned would satisfy that statement, so for each
+   exported function the kernel also runs the IR program on up to four
+   sample inputs and checks that it returns; a function that fails this is
+   reported and fails `--validate require`.
    Validation is off by default. Every tracked example has a checked-in
    report; together they establish all 61 exported functions (95 of 95 IR
    functions) under the default budget

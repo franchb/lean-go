@@ -56,8 +56,12 @@ type CoverageRow struct {
 	Program, Report    string
 	Proved, Functions  int
 	RootsProved, Roots int
+	RootsWitnessed     int
 	Unproved           []string
-	Status             string
+	// Unwitnessed lists the established roots whose witnesses are not
+	// checked, with their status and reason class.
+	Unwitnessed []string
+	Status      string
 }
 
 // Coverage reads every tracked validation report, packages first, then the
@@ -87,11 +91,20 @@ func Coverage(root string) ([]CoverageRow, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", e.report, err)
 		}
+		var unwitnessed []string
+		for _, p := range report.Programs {
+			if p.Status != "proved" || p.Witnesses.Status == pipeline.WitnessChecked {
+				continue
+			}
+			unwitnessed = append(unwitnessed, fmt.Sprintf("`%s`: %s (%s)", p.Root,
+				strings.ReplaceAll(p.Witnesses.Status, "_", " "), strings.ReplaceAll(p.Witnesses.ReasonClass, "_", " ")))
+		}
 		rows = append(rows, CoverageRow{
 			Program: e.program, Report: e.report, Status: report.Status,
 			Proved: report.Summary.Proved, Functions: report.Summary.Functions,
 			RootsProved: report.Summary.RootsProved, Roots: report.Summary.Roots,
-			Unproved: report.Unproved(),
+			RootsWitnessed: report.Summary.RootsWitnessed,
+			Unproved:       report.Unproved(), Unwitnessed: unwitnessed,
 		})
 	}
 	return rows, nil
@@ -101,9 +114,9 @@ func Coverage(root string) ([]CoverageRow, error) {
 // docs/research/translation-validation.md §9.
 func CoverageTable(rows []CoverageRow) string {
 	var b strings.Builder
-	b.WriteString("| Program | Report | Functions proved / total | Roots established / total | Not proved |\n")
-	b.WriteString("|---|---|---|---|---|\n")
-	var proved, functions, rootsProved, roots int
+	b.WriteString("| Program | Report | Functions proved / total | Roots established / total | Roots witnessed / total | Not proved | Not witnessed |\n")
+	b.WriteString("|---|---|---|---|---|---|---|\n")
+	var proved, functions, rootsProved, roots, witnessed int
 	for _, row := range rows {
 		unproved := "–"
 		var names []string
@@ -115,14 +128,20 @@ func CoverageTable(rows []CoverageRow) string {
 		if len(names) > 0 {
 			unproved = strings.Join(names, "; ")
 		}
-		if row.Status != pipeline.ValidationCompleted {
-			unproved = row.Status
+		unwitnessed := "–"
+		if len(row.Unwitnessed) > 0 {
+			unwitnessed = strings.Join(row.Unwitnessed, "; ")
 		}
-		fmt.Fprintf(&b, "| %s | `%s` | %d / %d | %d / %d | %s |\n", row.Program, row.Report,
-			row.Proved, row.Functions, row.RootsProved, row.Roots, unproved)
+		if row.Status != pipeline.ValidationCompleted {
+			unproved, unwitnessed = row.Status, row.Status
+		}
+		fmt.Fprintf(&b, "| %s | `%s` | %d / %d | %d / %d | %d / %d | %s | %s |\n", row.Program, row.Report,
+			row.Proved, row.Functions, row.RootsProved, row.Roots, row.RootsWitnessed, row.Roots, unproved, unwitnessed)
 		proved, functions, rootsProved, roots = proved+row.Proved, functions+row.Functions, rootsProved+row.RootsProved, roots+row.Roots
+		witnessed += row.RootsWitnessed
 	}
-	fmt.Fprintf(&b, "| **total** | %d programs | **%d / %d** | **%d / %d** | |\n", len(rows), proved, functions, rootsProved, roots)
+	fmt.Fprintf(&b, "| **total** | %d programs | **%d / %d** | **%d / %d** | **%d / %d** | | |\n", len(rows), proved, functions,
+		rootsProved, roots, witnessed, roots)
 	return b.String()
 }
 

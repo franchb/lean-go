@@ -77,6 +77,9 @@ func printValidation(stdout io.Writer, result *pipeline.ValidationResult) {
 	for _, line := range result.Report.Unproved() {
 		fmt.Fprintf(stdout, "  %s\n", line)
 	}
+	for _, line := range result.Report.Unwitnessed() {
+		fmt.Fprintf(stdout, "  %s\n", line)
+	}
 }
 
 var validateCommandOptions = append([]option{

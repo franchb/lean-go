@@ -11,7 +11,7 @@ public meta section
 ```
 #lean_go_export_roots "ir.json" [R₁, …] "Module"
 #lean_go_validate "ir.json" [R₁, …] "Module" report "validation.json"
-  heartbeats 200000 timeout_ms 120000 strict
+  heartbeats 200000 timeout_ms 120000 strict [skip "F …"] [skip_witnesses "R …"]
 ```
 
 run in the environment where the producer exported the roots. The command
@@ -44,8 +44,13 @@ run in the environment where the producer exported the roots. The command
    `∀ n, Callable.Rel Approx (prog.run n "R") R` (`run_rel_on`) and its
    explicit form
    `∀ n a₁ … aₖ v, prog.run n "R" [encode a₁, …] = some v → v = encode (R a₁ … aₖ)`;
-6. writes a JSON report. Nothing here fails the command unless `strict` is
-   given and some function is not proved.
+6. for each established root, checks non-vacuity witnesses: on a few concrete
+   inputs built from the parameter types and a fixed fuel `F`,
+   `prog.run F "R" [encode c₁, …] = some (encode (R c₁ …))`, with the kernel
+   computing that the run returns; a run that returns `none` makes the
+   root's witnesses `failed`;
+7. writes a JSON report. Nothing here fails the command unless `strict` is
+   given and some function is not proved or some root's witnesses failed.
 
 Generated declarations live under `LeanGo.Validated` (and the derived
 instances under the source types' namespaces). The specifications of
@@ -579,6 +584,253 @@ open Lean.Elab.Tactic in
       evalTactic (← `(tactic| (intro h; exact absurd h (by decide))))
   setGoals []
 
+/-! ## Non-vacuity witnesses
+
+The explicit theorem is partial correctness: a program that never returns
+satisfies it. For every established root the command therefore also checks,
+on a few concrete inputs `c` built from the root's parameter types and with
+the fixed fuel `witnessFuel`,
+
+    N.witness_k_j : N.prog.run F "R" [encode c₁, …] = some (encode (R c₁ …))
+
+The kernel computes only that the IR program returns (`isSome = true` by
+`Eq.refl`, so the source function never has to reduce); the equation follows
+from `N.explicit_k` by `witness_of_isSome`. If the kernel rejects that and
+accepts `(N.prog.run F "R" [encode c₁, …]).isSome = false` instead
+(`N.nonwitness_k_j`), the program returns `none` on that input: the witness
+is `failed`. -/
+
+/-- Fuel of every witness run. Fuel bounds the call depth only; the deepest
+inputs of the tracked programs (byte folds over four bytes, depth-2 trees and
+expressions, the DNS header) return within fuel 9, and a larger fuel costs
+no measurable kernel time. -/
+def witnessFuel : Nat := 64
+
+/-- Witness cases per root, and sample values per type. -/
+def maxWitnessCases : Nat := 4
+
+/-- Constructor depth of sample values of recursive types. -/
+def witnessDepth : Nat := 2
+
+def uintBits (n : Name) : Option Nat :=
+  if n == ``UInt8 then some 8 else if n == ``UInt16 then some 16
+  else if n == ``UInt32 then some 32 else if n == ``UInt64 then some 64 else none
+
+/-- One mixed bit pattern per width. -/
+def mixedPattern (bits : Nat) : Nat :=
+  if bits == 8 then 0xA5 else if bits == 16 then 0xA5C3
+  else if bits == 32 then 0xA5C35A3C else 0xA5C35A3C0F1E2D4B
+
+/-- Byte-list samples: empty, one byte, a few bytes. -/
+def byteSamples : List (List Nat) := [[], [0xA5], [0x00, 0xFF, 0x01, 0x5A]]
+
+/-- At most `maxWitnessCases` closed sample values of a source type, in a
+fixed order: `UIntN` gives 0, 1, 2^N − 1 and a mixed pattern; `Bool` both
+values; `List UInt8` the byte samples; a non-parametric inductive type its
+constructors applied to sample fields (rotating through the field samples),
+with recursive fields taken from the samples one level shallower, down to
+`depth`. Empty when the type has no samples. -/
+partial def samples (ty : Expr) (depth : Nat) (nest : Nat := 0) : MetaM (Array Expr) := do
+  if nest > 8 then return #[]
+  if let .const n [] := ty then
+    if let some w := uintBits n then
+      return ← #[0, 1, 2 ^ w - 1, mixedPattern w].mapM (mkNumeral ty)
+    if n == ``Bool then return #[mkConst ``Bool.false, mkConst ``Bool.true]
+  if ty.isAppOfArity ``List 1 && ty.appArg!.isConstOf ``UInt8 then
+    return ← byteSamples.toArray.mapM fun bs => do
+      mkListLit (mkConst ``UInt8) (← bs.mapM (mkNumeral (mkConst ``UInt8)))
+  let .const T [] := ty | return #[]
+  let some (.inductInfo info) := (← getEnv).find? T | do
+    let ty' ← whnfR ty
+    if ty' == ty then return #[] else return ← samples ty' depth (nest + 1)
+  unless info.numParams == 0 && info.numIndices == 0 do return #[]
+  let below ← if depth == 0 then pure #[] else samples ty (depth - 1) nest
+  let mut ctorFields : Array (Name × Array (Array Expr)) := #[]
+  for c in info.ctors do
+    let fields? ← forallTelescope (← inferType (mkConst c)) fun fs _ => do
+      let mut out := #[]
+      for f in fs do
+        let fty ← inferType f
+        if fty.hasFVar then return none
+        if fty == ty then
+          if below.isEmpty then return none
+          -- the more complex shallower values first
+          out := out.push below.reverse
+        else
+          let s ← samples fty depth (nest + 1)
+          if s.isEmpty then return none
+          out := out.push s
+      return some out
+    if let some fields := fields? then ctorFields := ctorFields.push (c, fields)
+  let mut out : Array Expr := #[]
+  for rot in [:maxWitnessCases] do
+    for (c, fields) in ctorFields do
+      if out.size < maxWitnessCases then
+        let args := (List.range fields.size).toArray.map fun i =>
+          let s := fields[i]!
+          s[(i + rot) % s.size]!
+        let v := mkAppN (mkConst c) args
+        unless out.contains v do out := out.push v
+  return out
+
+/-- The argument lists of a root's witnesses: case `j` takes, for parameter
+`i`, sample `(j + i) mod (number of samples)`; there are as many cases as the
+largest sample list (at most `maxWitnessCases`), and one for a root without
+parameters. -/
+def witnessInputs (root : Name) : MetaM (Except String (Array (Array Expr))) := do
+  forallTelescope (← inferType (mkConst root)) fun xs _ => do
+    let mut lists : Array (Array Expr) := #[]
+    for x in xs do
+      let ty ← inferType x
+      let s ← samples ty witnessDepth
+      if s.isEmpty then return .error s!"no sample inputs for parameter type {← ppExpr ty}"
+      lists := lists.push s
+    if lists.isEmpty then return .ok #[#[]]
+    let n := min maxWitnessCases (lists.foldl (fun m s => max m s.size) 0)
+    return .ok ((Array.range n).map fun j =>
+      (List.range lists.size).toArray.map fun i =>
+        let s := lists[i]!
+        s[(j + i) % s.size]!)
+
+structure WitnessCase where
+  theoremName : Name := .anonymous
+  statement : String := ""
+  /-- `checked`, `failed` or `not_attempted`. -/
+  status : String := "not_attempted"
+  reason : String := ""
+  timeMs : Nat := 0
+
+def WitnessCase.json (c : WitnessCase) : Json := Json.mkObj [
+  ("theorem", if c.theoremName.isAnonymous then Json.null else toJson c.theoremName.toString),
+  ("statement", c.statement), ("status", c.status), ("reason", c.reason), ("time_ms", c.timeMs)]
+
+structure WitnessReport where
+  status : String := "not_attempted"
+  reason : String := ""
+  items : Array WitnessCase := #[]
+  timeMs : Nat := 0
+
+def WitnessReport.json (w : WitnessReport) : Json := Json.mkObj [
+  ("status", w.status), ("reason", w.reason), ("fuel", witnessFuel),
+  ("cases", toJson (w.items.map WitnessCase.json)), ("time_ms", w.timeMs)]
+
+/-- Add theorem `name : type := value` within the budget. The kernel checks
+it synchronously (`Elab.async` off), with the budget's heartbeats as its own
+limit and the budget's cancellation token; the result is its axioms. When the
+kernel rejects it, the environment is restored, so that the rejected
+declaration does not stay behind as an axiom. -/
+def addTheoremTerm (name : Name) (type value : Expr) (b : Budget) :
+    CoreM (Except Exception (Array Name) × Nat × Nat) := do
+  let saved := (← get).messages
+  let env ← getEnv
+  let r ← withBudget b <| withOptions (fun o =>
+      maxHeartbeats.set (Elab.async.set o false) b.heartbeats) do
+    addDecl (.thmDecl { name, levelParams := [], type, value })
+    axiomsOf name
+  modify fun s => { s with messages := saved }
+  if r.1 matches .error _ then setEnv env
+  return r
+
+/-- An exception that ends an attempt for lack of resources rather than with
+the kernel's verdict. -/
+def budgetException (e : Exception) (text : String) : Bool :=
+  e.isInterrupt || e.isMaxHeartbeat || (text.toLower.splitOn "memory").length > 1 ||
+    (text.toLower.splitOn "deep recursion").length > 1
+
+/-- Check one witness case. -/
+def witnessCase (progName explicitName root name refuteName : Name) (args : Array Expr) (b : Budget) :
+    CoreM (WitnessCase × Bool) := do
+  let built ← catchAll <| Meta.MetaM.run' do
+    let encs ← args.mapM fun a => mkAppM (V `Encode.encode) #[a]
+    let lst ← mkListLit (mkConst (V `Value)) encs.toList
+    let fuel := mkNatLit witnessFuel
+    let run := mkApp4 (mkConst (V `Program.run)) (mkConst progName) fuel (mkStrLit root.toString) lst
+    let result ← mkAppM (V `Encode.encode) #[mkAppN (mkConst root) args]
+    let type ← mkEq run (← mkAppM ``Option.some #[result])
+    let refl (b : Name) := mkApp2 (mkConst ``Eq.refl [1]) (mkConst ``Bool) (mkConst b)
+    let value := mkAppN (mkConst (V `witness_of_isSome))
+      #[run, result, refl ``Bool.true, mkAppN (mkConst explicitName) (#[fuel] ++ args)]
+    let isSome := mkApp2 (mkConst ``Option.isSome [0]) (mkConst (V `Value)) run
+    let refuteType := mkApp3 (mkConst ``Eq [1]) (mkConst ``Bool) isSome (mkConst ``Bool.false)
+    return (type, value, refuteType, refl ``Bool.false, ← pp type, ← pp refuteType)
+  let (type, value, refuteType, refuteValue, statement, refuteStatement) ← match built with
+    | .ok x => pure x
+    | .error e => return ({ reason := s!"witness statement not built: {← exceptionText e}" }, false)
+  let (r, ms, _) ← addTheoremTerm name type value b
+  match r with
+  | .ok axs =>
+    if standardAxioms axs then
+      return ({ theoremName := name, statement, status := "checked", timeMs := ms }, false)
+    return ({ statement, reason := s!"non-standard axioms {axs}", timeMs := ms }, false)
+  | .error e =>
+    let text ← exceptionText e
+    if budgetException e text then
+      return ({ statement, reason := text, timeMs := ms }, true)
+    -- The kernel finished without accepting the run as `some`: does it
+    -- return `none` on this input?
+    let (r', ms', _) ← addTheoremTerm refuteName refuteType refuteValue b
+    match r' with
+    | .ok axs =>
+      if standardAxioms axs then
+        return ({ theoremName := refuteName, statement := refuteStatement, status := "failed",
+                  reason := s!"the program returns none on this input within fuel {witnessFuel}",
+                  timeMs := ms + ms' }, false)
+      return ({ statement, reason := text, timeMs := ms + ms' }, false)
+    | .error e' =>
+      let text' ← exceptionText e'
+      return ({ statement, reason := (if budgetException e' text' then text' else text), timeMs := ms + ms' },
+        budgetException e' text')
+
+/-- Witnesses of root number `k`, whose explicit theorem is `explicitName`.
+Every case runs under its own budget; after a case that exhausts a budget the
+remaining cases are not attempted. -/
+def witnessRoot (ns progName explicitName root : Name) (k : Nat) (b : Budget) : CoreM WitnessReport := do
+  let inputs ← match ← catchAll (Meta.MetaM.run' (witnessInputs root)) with
+    | .ok (.ok xs) => pure xs
+    | .ok (.error e) => return { reason := e }
+    | .error e => return { reason := s!"no sample inputs: {← exceptionText e}" }
+  let mut items : Array WitnessCase := #[]
+  let mut exhausted := false
+  for h : j in [:inputs.size] do
+    if exhausted then
+      items := items.push { reason := "not attempted after an earlier case exhausted its budget" }
+      continue
+    let name := ns ++ Name.mkSimple s!"witness_{k}_{j}"
+    let refuteName := ns ++ Name.mkSimple s!"nonwitness_{k}_{j}"
+    let (c, budgetHit) ← witnessCase progName explicitName root name refuteName inputs[j] b
+    items := items.push c
+    exhausted := budgetHit
+  let time := items.foldl (· + ·.timeMs) 0
+  if let some j := items.findIdx? (·.status == "failed") then
+    return { status := "failed", reason := s!"the program returns none within fuel {witnessFuel} on case {j}",
+             items, timeMs := time }
+  if let some c := items.find? (·.status != "checked") then
+    return { status := "not_attempted", reason := c.reason, items, timeMs := time }
+  return { status := "checked", items, timeMs := time }
+
+/-- `#lean_go_witnesses prog "R" R explicit namespace N expect failed` runs
+the witness step of `#lean_go_validate` on a hand-written program `prog`
+whose explicit theorem for root `R` is `explicit`, logs the result, and
+fails unless the status is the expected one. -/
+syntax (name := leanGoWitnesses) "#lean_go_witnesses " ident str ident ident
+  (&"namespace" ident)? (&"expect" ident)? : command
+
+@[command_elab leanGoWitnesses] def elabLeanGoWitnesses : CommandElab := fun stx => do
+  let prog ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo stx[1]
+  let rootName := stx[2].isStrLit?.getD ""
+  let root ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo stx[3]
+  let explicit ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo stx[4]
+  let ns := if stx[5].isNone then defaultNamespace else stx[5][1].getId
+  unless rootName == root.toString do
+    throwError "lean_go_witnesses: the IR name {rootName} is not the name of {root}"
+  let w ← liftCoreM <| witnessRoot ns prog explicit root 0 { heartbeats := 200000, timeoutMs := 120000 }
+  let lines := w.items.toList.map fun c =>
+    s!"  {c.status}: {if c.theoremName.isAnonymous then "" else c.theoremName.toString ++ " : "}{c.statement}"
+  logInfo m!"witnesses {w.status} (fuel {witnessFuel}){if w.reason.isEmpty then "" else ": " ++ w.reason}\n{"\n".intercalate lines}"
+  unless stx[6].isNone do
+    let want := stx[6][1].getId.toString
+    unless want == w.status do throwError "lean_go_witnesses: expected {want}, got {w.status}"
+
 /-! ## The command -/
 
 structure FnReport where
@@ -605,7 +857,7 @@ def FnReport.json (r : FnReport) : Json := Json.mkObj [
 
 syntax (name := leanGoValidate) "#lean_go_validate " str " [" ident,* "] " str
   &"report" str (&"heartbeats" num)? (&"timeout_ms" num)? (&"strict")? (&"namespace" ident)?
-  (&"skip" str)? : command
+  (&"skip" str)? (&"skip_witnesses" str)? : command
 
 /-- The export command writes `json.pretty ++ "\n"`; `none` when no file is named. -/
 def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
@@ -625,6 +877,10 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
   -- earlier run); they are reported `not_attempted` with the caller's reason.
   let skipped : List String := if stx[12].isNone then [] else
     ((stx[12][1].isStrLit?.getD "").splitOn " ").filter (!·.isEmpty)
+  -- `skip_witnesses "R …"`: roots whose witnesses the caller does not want
+  -- checked (for example after a witness exhausted the process's limits).
+  let skippedWitnesses : List String := if stx[13].isNone then [] else
+    ((stx[13][1].isStrLit?.getD "").splitOn " ").filter (!·.isEmpty)
   let progName := ns ++ `prog
   let specListName := ns ++ `spec
   let budget : Budget := { heartbeats, timeoutMs }
@@ -782,6 +1038,8 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
   -- 6. whole-program theorems
   progress "whole-program theorems"
   let mut programs : Array Json := #[]
+  let mut witnessed : Array WitnessReport := #[]
+  let notProved : WitnessReport := { reason := "root not proved" }
   for h : k in [:roots.size] do
     let root := roots[k]
     let cl := closure fns root.toString
@@ -789,7 +1047,8 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
     let base := [("root", toJson root.toString), ("closure", toJson cl)]
     if !missing.isEmpty then
       programs := programs.push (Json.mkObj (base ++ [("status", toJson "not_established"),
-        ("missing", toJson missing)]))
+        ("missing", toJson missing), ("witnesses", notProved.json)]))
+      witnessed := witnessed.push notProved
       continue
     let obls := cl.filterMap fun f => (reports.find? (·.ir.name == f)).map (·.theoremName)
     let preName := ns ++ Name.mkSimple s!"prefixed_{k}"
@@ -800,15 +1059,16 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
     let oblIds := obls.map fun n => (mkCIdent n : Term)
     let (r1, ms1, _) ← liftCoreM (proveTheorem preName preType (← `(tactic| validate_prefixed_on [$oblIds,*])) budget)
     let fail (what : String) (e : String) : Json :=
-      Json.mkObj (base ++ [("status", toJson "failed"), ("reason", toJson s!"{what}: {e}")])
-    let .ok _ := r1 | programs := programs.push (fail "PreFixedOn" (match r1 with | .error e => e | _ => "")); continue
+      Json.mkObj (base ++ [("status", toJson "failed"), ("reason", toJson s!"{what}: {e}"),
+        ("witnesses", notProved.json)])
+    let .ok _ := r1 | witnessed := witnessed.push notProved; programs := programs.push (fail "PreFixedOn" (match r1 with | .error e => e | _ => "")); continue
     let soundType ← liftTermElabM (mkSoundType progName root)
     let runRelOn := mkCIdent (V `run_rel_on)
     let preId := mkCIdent preName
     let rootId := mkCIdent root
     let soundTac ← `(tactic| (intro n; exact $runRelOn $preId (by decide) $rootId (by validate_lookup) n))
     let (r2, ms2, _) ← liftCoreM (proveTheorem soundName soundType soundTac budget)
-    let .ok axs := r2 | programs := programs.push (fail "run_rel_on" (match r2 with | .error e => e | _ => "")); continue
+    let .ok axs := r2 | witnessed := witnessed.push notProved; programs := programs.push (fail "run_rel_on" (match r2 with | .error e => e | _ => "")); continue
     let explicitType ← liftTermElabM (mkExplicitType progName root)
     let arity ← liftTermElabM do forallTelescope (← inferType (mkConst root)) fun xs _ => pure xs.size
     let as := (Array.range arity).map fun j => mkIdent (Name.mkSimple s!"a{j}")
@@ -816,14 +1076,23 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
     let soundId := mkCIdent soundName
     let explicitTac ← `(tactic| (intro n $as* v h; exact Option.some.inj (($eqOfSome ($soundId n $as*) h).symm)))
     let (r3, ms3, _) ← liftCoreM (proveTheorem explicitName explicitType explicitTac budget)
-    let .ok axs3 := r3 | programs := programs.push (fail "explicit form" (match r3 with | .error e => e | _ => "")); continue
+    let .ok axs3 := r3 | witnessed := witnessed.push notProved; programs := programs.push (fail "explicit form" (match r3 with | .error e => e | _ => "")); continue
+    -- 7. non-vacuity witnesses
+    let w ← if skippedWitnesses.contains root.toString then
+        pure ({ reason := "skipped by the caller" } : WitnessReport)
+      else do
+        progress s!"witnessing {root}"
+        let w ← liftCoreM (witnessRoot ns progName explicitName root k budget)
+        progress s!"{root}: witnesses {w.status} in {w.timeMs} ms"
+        pure w
+    witnessed := witnessed.push w
     programs := programs.push (Json.mkObj (base ++ [("status", toJson "proved"),
       ("prefixed_theorem", toJson preName.toString),
       ("theorem", toJson soundName.toString), ("statement", toJson (← liftTermElabM (pp soundType))),
       ("explicit_theorem", toJson explicitName.toString),
       ("explicit_statement", toJson (← liftTermElabM (pp explicitType))),
       ("axioms", toJson ((axs ++ axs3).toList.eraseDups.map Name.toString)),
-      ("time_ms", toJson (ms1 + ms2 + ms3))]))
+      ("time_ms", toJson (ms1 + ms2 + ms3)), ("witnesses", w.json)]))
   let count (s : String) := (reports.filter (·.status == s)).size
   let rootsProved := (programs.filter fun p => (p.getObjValAs? String "status").toOption == some "proved").size
   let stopped ← IO.monoMsNow
@@ -837,6 +1106,7 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
     ("summary", Json.mkObj [("functions", toJson fns.size), ("proved", toJson (count "proved")),
       ("failed", toJson (count "failed")), ("not_attempted", toJson (count "not_attempted")),
       ("roots", toJson roots.size), ("roots_proved", toJson rootsProved),
+      ("roots_witnessed", toJson (witnessed.filter (·.status == "checked")).size),
       ("time_ms", toJson (stopped - started))])]
   if fileMatches == some false then
     logWarning m!"lean_go_validate: {irPath} is not the producer's JSON value for these roots"
@@ -844,5 +1114,8 @@ def irFileMatches (path : String) (json : Json) : IO (Option Bool) := do
     let bad := reports.filter (·.status != "proved")
     unless bad.isEmpty && fileMatches != some false do
       throwError "lean_go_validate: unproved obligations: {bad.map (·.ir.name)}"
+    let failedRoots := (roots.zip witnessed).filter (·.2.status == "failed")
+    unless failedRoots.isEmpty do
+      throwError "lean_go_validate: witnesses failed (the program returns none) for {failedRoots.map (·.1)}"
 
 end LeanGo.Validate.Command

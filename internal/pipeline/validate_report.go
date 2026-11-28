@@ -16,7 +16,7 @@ import (
 // times, heartbeat counts, the full failure messages and the process attempts.
 
 const (
-	ValidationSchema            = "lean-go-validation/v2"
+	ValidationSchema            = "lean-go-validation/v3"
 	ValidationDiagnosticsSchema = "lean-go-validation-diagnostics/v1"
 	maxValidationReportBytes    = 16 * 1024 * 1024
 )
@@ -25,6 +25,17 @@ const (
 const (
 	ValidationCompleted     = "completed"
 	ValidationProcessFailed = "process_failed"
+)
+
+// Witness statuses (ReportWitnesses.Status and each case's status). A root's
+// witnesses are "checked" when every generated case returned a value and its
+// theorem was added, "failed" when the kernel showed that the program returns
+// none on a generated input within the fuel, and "not_attempted" otherwise
+// (with a reason class).
+const (
+	WitnessChecked      = "checked"
+	WitnessFailed       = "failed"
+	WitnessNotAttempted = "not_attempted"
 )
 
 // Reason classes of unproved functions, roots and runs.
@@ -46,6 +57,10 @@ const (
 	ReasonDeriveFailed     = "derive_failed"
 	ReasonOther            = "other"
 	reasonMissingFunctions = "missing_functions"
+	// Witness reason classes.
+	ReasonReturnsNone   = "returns_none"
+	ReasonRootNotProved = "root_not_proved"
+	ReasonNoSamples     = "no_samples"
 	// ReasonNotReported marks an IR function or a requested root that the
 	// validation command's report does not mention.
 	ReasonNotReported = "not_reported"
@@ -76,8 +91,14 @@ func classifyReason(text string) string {
 		return ReasonLoadFailed
 	case strings.HasPrefix(text, "non-standard axioms"):
 		return ReasonAxioms
-	case strings.HasPrefix(text, "skipped by the caller"):
+	case strings.HasPrefix(text, "skipped by the caller") || strings.HasPrefix(text, "not attempted after an earlier case"):
 		return ReasonSkipped
+	case strings.HasPrefix(text, "the program returns none"):
+		return ReasonReturnsNone
+	case text == "root not proved":
+		return ReasonRootNotProved
+	case strings.HasPrefix(text, "no sample inputs"):
+		return ReasonNoSamples
 	case strings.Contains(t, "metavariables") || strings.Contains(t, "sorry") || strings.Contains(t, "(kernel)"):
 		return ReasonProofRejected
 	case strings.HasPrefix(text, "specification") || strings.HasPrefix(text, "source signature") ||
@@ -131,18 +152,35 @@ type rawFunction struct {
 }
 
 type rawProgram struct {
-	Root              string   `json:"root"`
-	Closure           []string `json:"closure"`
-	Status            string   `json:"status"`
-	Missing           []string `json:"missing"`
-	Reason            string   `json:"reason"`
-	PrefixedTheorem   string   `json:"prefixed_theorem"`
-	Theorem           string   `json:"theorem"`
-	Statement         string   `json:"statement"`
-	ExplicitTheorem   string   `json:"explicit_theorem"`
-	ExplicitStatement string   `json:"explicit_statement"`
-	Axioms            []string `json:"axioms"`
-	TimeMs            int64    `json:"time_ms"`
+	Root              string        `json:"root"`
+	Closure           []string      `json:"closure"`
+	Status            string        `json:"status"`
+	Missing           []string      `json:"missing"`
+	Reason            string        `json:"reason"`
+	PrefixedTheorem   string        `json:"prefixed_theorem"`
+	Theorem           string        `json:"theorem"`
+	Statement         string        `json:"statement"`
+	ExplicitTheorem   string        `json:"explicit_theorem"`
+	ExplicitStatement string        `json:"explicit_statement"`
+	Axioms            []string      `json:"axioms"`
+	TimeMs            int64         `json:"time_ms"`
+	Witnesses         *rawWitnesses `json:"witnesses"`
+}
+
+type rawWitnesses struct {
+	Status string           `json:"status"`
+	Reason string           `json:"reason"`
+	Fuel   int              `json:"fuel"`
+	Cases  []rawWitnessCase `json:"cases"`
+	TimeMs int64            `json:"time_ms"`
+}
+
+type rawWitnessCase struct {
+	Theorem   *string `json:"theorem"`
+	Statement string  `json:"statement"`
+	Status    string  `json:"status"`
+	Reason    string  `json:"reason"`
+	TimeMs    int64   `json:"time_ms"`
 }
 
 func parseRawReport(data []byte) (*rawValidationReport, error) {
@@ -220,15 +258,37 @@ type ReportProgram struct {
 	ExplicitTheorem   string   `json:"explicit_theorem,omitempty"`
 	ExplicitStatement string   `json:"explicit_statement,omitempty"`
 	Axioms            []string `json:"axioms,omitempty"`
+	// Witnesses is present on every program of a v3 report.
+	Witnesses *ReportWitnesses `json:"witnesses"`
+}
+
+// ReportWitnesses are a root's non-vacuity witnesses: on generated concrete
+// inputs and with a fixed fuel, the kernel-checked theorem
+// prog.run Fuel "R" [encode c…] = some (encode (R c…)).
+type ReportWitnesses struct {
+	Status      string              `json:"status"`
+	ReasonClass string              `json:"reason_class,omitempty"`
+	Fuel        int                 `json:"fuel"`
+	Cases       []ReportWitnessCase `json:"cases"`
+}
+
+// ReportWitnessCase is one witness. A checked case names the witness theorem;
+// a failed case names the kernel-checked theorem that the run returns none.
+type ReportWitnessCase struct {
+	Theorem     string `json:"theorem,omitempty"`
+	Statement   string `json:"statement"`
+	Status      string `json:"status"`
+	ReasonClass string `json:"reason_class,omitempty"`
 }
 
 type ReportSummary struct {
-	Functions    int `json:"functions"`
-	Proved       int `json:"proved"`
-	Failed       int `json:"failed"`
-	NotAttempted int `json:"not_attempted"`
-	Roots        int `json:"roots"`
-	RootsProved  int `json:"roots_proved"`
+	Functions      int `json:"functions"`
+	Proved         int `json:"proved"`
+	Failed         int `json:"failed"`
+	NotAttempted   int `json:"not_attempted"`
+	Roots          int `json:"roots"`
+	RootsProved    int `json:"roots_proved"`
+	RootsWitnessed int `json:"roots_witnessed"`
 }
 
 // ValidationDiagnostics is the optional, untracked part of a report.
@@ -247,11 +307,12 @@ type ValidationDiagnostics struct {
 
 // ValidationAttempt is one validation process.
 type ValidationAttempt struct {
-	Skip     []string `json:"skip"`
-	ExitCode int      `json:"exit_code"`
-	TimedOut bool     `json:"timed_out"`
-	WallMs   int64    `json:"wall_ms"`
-	Output   string   `json:"output,omitempty"`
+	Skip          []string `json:"skip"`
+	SkipWitnesses []string `json:"skip_witnesses"`
+	ExitCode      int      `json:"exit_code"`
+	TimedOut      bool     `json:"timed_out"`
+	WallMs        int64    `json:"wall_ms"`
+	Output        string   `json:"output,omitempty"`
 }
 
 type DiagnosticEncoding struct {
@@ -268,8 +329,18 @@ type DiagnosticFunction struct {
 }
 
 type DiagnosticProgram struct {
-	Root   string `json:"root"`
-	Reason string `json:"reason"`
+	Root          string                  `json:"root"`
+	Reason        string                  `json:"reason"`
+	TimeMs        int64                   `json:"time_ms"`
+	WitnessReason string                  `json:"witness_reason,omitempty"`
+	WitnessTimeMs int64                   `json:"witness_time_ms"`
+	WitnessCases  []DiagnosticWitnessCase `json:"witness_cases,omitempty"`
+}
+
+// DiagnosticWitnessCase is the full message and time of one witness case.
+type DiagnosticWitnessCase struct {
+	Status string `json:"status"`
+	Reason string `json:"reason,omitempty"`
 	TimeMs int64  `json:"time_ms"`
 }
 
@@ -317,6 +388,9 @@ func (r *ValidationReport) Unproved() []string {
 			}
 			out = append(out, line)
 		}
+		if p.Witnesses != nil && p.Witnesses.Status == WitnessFailed {
+			out = append(out, "root "+p.Root+": witnesses failed: "+reasonWords(p.Witnesses.ReasonClass))
+		}
 	}
 	// A root without a program entry is not established, whatever else the
 	// report says: completeness is judged against the roots that were asked
@@ -331,16 +405,41 @@ func (r *ValidationReport) Unproved() []string {
 	return out
 }
 
-// Complete reports whether every function and every root is proved.
+// Complete reports whether every function and every root is proved and no
+// root's witnesses failed. Witnesses that were not attempted do not make a
+// report incomplete; Unwitnessed lists them.
 func (r *ValidationReport) Complete() bool { return len(r.Unproved()) == 0 }
+
+// Unwitnessed lists, in report order, the established roots whose witnesses
+// were not attempted, with the reason ("root M.f: witnesses not attempted:
+// heartbeat limit"). Roots that are not established are listed by Unproved.
+func (r *ValidationReport) Unwitnessed() []string {
+	if r.Status != ValidationCompleted {
+		return nil
+	}
+	var out []string
+	for _, p := range r.Programs {
+		if p.Status != "proved" {
+			continue
+		}
+		switch {
+		case p.Witnesses == nil:
+			out = append(out, "root "+p.Root+": witnesses not attempted: "+reasonWords(ReasonNotReported))
+		case p.Witnesses.Status == WitnessNotAttempted:
+			out = append(out, "root "+p.Root+": witnesses not attempted: "+reasonWords(p.Witnesses.ReasonClass))
+		}
+	}
+	return out
+}
 
 // SummaryLine is the one-line result printed by the commands.
 func (r *ValidationReport) SummaryLine() string {
 	if r.Status != ValidationCompleted {
 		return fmt.Sprintf("validation %s (%s)", r.Status, reasonWords(r.ReasonClass))
 	}
-	return fmt.Sprintf("validation: %d/%d functions proved, %d/%d roots established",
-		r.Summary.Proved, r.Summary.Functions, r.Summary.RootsProved, r.Summary.Roots)
+	return fmt.Sprintf("validation: %d/%d functions proved, %d/%d roots established, %d/%d roots witnessed",
+		r.Summary.Proved, r.Summary.Functions, r.Summary.RootsProved, r.Summary.Roots,
+		r.Summary.RootsWitnessed, r.Summary.Roots)
 }
 
 // ParseValidationReport reads a tracked report.
@@ -356,6 +455,11 @@ func ParseValidationReport(data []byte) (*ValidationReport, error) {
 	}
 	if r.Schema != ValidationSchema {
 		return nil, exportErrorf("unsupported validation report schema %q", r.Schema)
+	}
+	for _, p := range r.Programs {
+		if p.Witnesses == nil {
+			return nil, exportErrorf("invalid validation report: root %s has no witnesses entry", p.Root)
+		}
 	}
 	return &r, nil
 }
@@ -391,7 +495,10 @@ type reportInputs struct {
 	// account for each of them.
 	functions []string
 	killed    map[string]killedObligation
-	attempts  []ValidationAttempt
+	// killedWitnesses are roots whose witnesses the runner skipped after they
+	// exhausted a process limit.
+	killedWitnesses map[string]killedObligation
+	attempts        []ValidationAttempt
 	// processReason is set when no report could be obtained.
 	processReason, processClass string
 }
@@ -500,6 +607,11 @@ func splitReport(raw *rawValidationReport, in reportInputs) (*ValidationReport, 
 	report.Summary.Functions = len(report.Functions)
 	for _, p := range raw.Programs {
 		program := ReportProgram{Root: p.Root, Closure: nonNil(p.Closure), Status: p.Status}
+		witnesses, programDiagnostics := splitWitnesses(p, in.killedWitnesses)
+		program.Witnesses = witnesses
+		if witnesses.Status == WitnessChecked {
+			report.Summary.RootsWitnessed++
+		}
 		switch p.Status {
 		case "proved":
 			axioms := append([]string(nil), p.Axioms...)
@@ -515,7 +627,8 @@ func splitReport(raw *rawValidationReport, in reportInputs) (*ValidationReport, 
 			program.ReasonClass = classifyReason(detail)
 		}
 		report.Programs = append(report.Programs, program)
-		diagnostics.Programs = append(diagnostics.Programs, DiagnosticProgram{Root: p.Root, Reason: p.Reason, TimeMs: p.TimeMs})
+		programDiagnostics.Root, programDiagnostics.Reason, programDiagnostics.TimeMs = p.Root, p.Reason, p.TimeMs
+		diagnostics.Programs = append(diagnostics.Programs, programDiagnostics)
 	}
 	if raw.Status == ValidationCompleted {
 		reported := make(map[string]bool, len(raw.Programs))
@@ -528,11 +641,69 @@ func splitReport(raw *rawValidationReport, in reportInputs) (*ValidationReport, 
 			}
 			reported[root] = true
 			report.Programs = append(report.Programs, ReportProgram{
-				Root: root, Closure: []string{}, Status: "not_established", ReasonClass: ReasonNotReported})
+				Root: root, Closure: []string{}, Status: "not_established", ReasonClass: ReasonNotReported,
+				Witnesses: &ReportWitnesses{Status: WitnessNotAttempted, ReasonClass: ReasonNotReported, Cases: []ReportWitnessCase{}}})
 			diagnostics.Programs = append(diagnostics.Programs, DiagnosticProgram{
 				Root: root, Reason: "the validation command did not report this root"})
 		}
 	}
 	report.Summary.Roots = len(in.roots)
 	return report, diagnostics
+}
+
+// splitWitnesses splits one root's witnesses. A program entry without
+// witnesses is entered as not attempted (not reported); a root whose
+// witnesses the runner skipped after a process limit is not attempted with
+// that limit's class. Nothing is dropped.
+func splitWitnesses(p rawProgram, killed map[string]killedObligation) (*ReportWitnesses, DiagnosticProgram) {
+	diagnostics := DiagnosticProgram{}
+	w := p.Witnesses
+	if w == nil {
+		diagnostics.WitnessReason = "the validation command did not report witnesses for this root"
+		return &ReportWitnesses{Status: WitnessNotAttempted, ReasonClass: ReasonNotReported, Cases: []ReportWitnessCase{}}, diagnostics
+	}
+	out := &ReportWitnesses{Status: w.Status, Fuel: w.Fuel, Cases: []ReportWitnessCase{}}
+	reason := w.Reason
+	switch w.Status {
+	case WitnessChecked, WitnessFailed, WitnessNotAttempted:
+	default:
+		out.Status = WitnessNotAttempted
+		reason = fmt.Sprintf("unknown witness status %q", w.Status)
+	}
+	if k, ok := killed[p.Root]; ok && out.Status != WitnessFailed {
+		out.Status, reason = WitnessNotAttempted, k.reason
+		out.ReasonClass = k.class
+	} else if out.Status != WitnessChecked {
+		out.ReasonClass = classifyReason(reason)
+	}
+	for _, c := range w.Cases {
+		status := c.Status
+		if status != WitnessChecked && status != WitnessFailed {
+			status = WitnessNotAttempted
+		}
+		one := ReportWitnessCase{Statement: c.Statement, Status: status}
+		if c.Theorem != nil && status != WitnessNotAttempted {
+			one.Theorem = *c.Theorem
+		}
+		if status != WitnessChecked {
+			one.ReasonClass = classifyReason(c.Reason)
+		}
+		out.Cases = append(out.Cases, one)
+		diagnostics.WitnessCases = append(diagnostics.WitnessCases, DiagnosticWitnessCase{Status: status, Reason: c.Reason, TimeMs: c.TimeMs})
+	}
+	// "checked" must be backed by cases that are all checked.
+	if out.Status == WitnessChecked {
+		backed := len(out.Cases) > 0
+		for _, c := range out.Cases {
+			backed = backed && c.Status == WitnessChecked
+		}
+		if !backed {
+			out.Status, reason = WitnessNotAttempted, "witnesses reported checked without checked cases"
+		}
+	}
+	if out.Status != WitnessChecked && out.ReasonClass == "" {
+		out.ReasonClass = ReasonOther
+	}
+	diagnostics.WitnessReason, diagnostics.WitnessTimeMs = reason, w.TimeMs
+	return out, diagnostics
 }

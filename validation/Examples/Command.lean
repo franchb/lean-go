@@ -13,8 +13,8 @@ the export workspace injects (`import LeanGo.Module.Audit`,
 `set_option compiler.postponeCompile false`), so the producer's compiler
 evidence (the lifted helper `Local.run._lam_0` with its capture `config`) is
 recorded exactly as in a real export. The empty paths skip the IR-file check
-and the report file; `strict` turns any unproved obligation into a build
-error. -/
+and the report file; `strict` turns any unproved obligation, and any root whose
+non-vacuity witnesses fail, into a build error. -/
 
 #lean_go_validate "" [Local.run] "Local" report "" heartbeats 200000 timeout_ms 600000 strict
   namespace Examples.Command.Local
@@ -27,3 +27,7 @@ example (n : Nat) (config : Local.Config) (x y : Local.Count) (v : LeanGo.Valida
        LeanGo.Validate.Encode.encode y] = some v) :
     v = LeanGo.Validate.Encode.encode (Local.run config x y) :=
   Examples.Command.Local.explicit_0 n config x y v h
+
+/- A non-vacuity witness the command added: on a concrete input, the IR
+program returns the encoding of `Local.run`'s result within the fuel. -/
+#check Examples.Command.Local.witness_0_0

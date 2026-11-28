@@ -25,7 +25,10 @@ import (
 // progress file names that obligation; it is skipped in a rerun and reported
 // failed with the limit it hit. A Lean memory exception that the command
 // caught is handled the same way, because the process can stay near its
-// limit afterwards and fail later obligations spuriously.
+// limit afterwards and fail later obligations spuriously. A root's
+// non-vacuity witnesses are handled the same way: the progress file names the
+// root being witnessed, the rerun skips its witnesses, and they are reported
+// not attempted with the limit they hit.
 
 const (
 	validationHarnessPath = "LeanGo/Module/Validate.lean"
@@ -114,9 +117,18 @@ func leanEnvironment(lake, lean, workspace string, env []string) ([]string, stri
 	return append(out, "LEAN_PATH="+leanPath), executable, nil
 }
 
-// lastAttempt names the obligation a killed process was proving, from the
-// command's progress lines ("<ms> ms proving F", "<ms> ms F: proved in …").
-func lastAttempt(progress string) string {
+// Kinds of the step a killed process was in (lastStep).
+const (
+	stepObligation = "obligation"
+	stepWitness    = "witness"
+)
+
+// lastStep names the step a killed process was in, from the command's
+// progress lines: an obligation ("<ms> ms proving F", ended by "<ms> ms F:
+// proved in …" or "… failed in …") or a root's witnesses ("<ms> ms
+// witnessing R", ended by "<ms> ms R: witnesses <status> in …"). It returns
+// empty strings when the last step had ended.
+func lastStep(progress string) (kind, name string) {
 	lines := strings.Split(strings.TrimRight(progress, "\n"), "\n")
 	for i := len(lines) - 1; i >= 0; i-- {
 		_, message, ok := strings.Cut(lines[i], " ms ")
@@ -124,11 +136,23 @@ func lastAttempt(progress string) string {
 			continue
 		}
 		if name, ok := strings.CutPrefix(message, "proving "); ok {
-			return name
+			return stepObligation, name
 		}
-		if strings.Contains(message, ": proved in ") || strings.Contains(message, ": failed in ") {
-			return ""
+		if name, ok := strings.CutPrefix(message, "witnessing "); ok {
+			return stepWitness, name
 		}
+		if strings.Contains(message, ": proved in ") || strings.Contains(message, ": failed in ") ||
+			strings.Contains(message, ": witnesses ") {
+			return "", ""
+		}
+	}
+	return "", ""
+}
+
+// lastAttempt names the obligation a killed process was proving, or "".
+func lastAttempt(progress string) string {
+	if kind, name := lastStep(progress); kind == stepObligation {
+		return name
 	}
 	return ""
 }
@@ -139,17 +163,24 @@ func mentionsMemory(text string) bool {
 	return strings.Contains(t, "memory")
 }
 
-// killReason explains why a process ended while proving one obligation.
-func killReason(o processOutcome, opts ValidationOptions) killedObligation {
+// Where a process was when it ended (killReason).
+const (
+	duringObligation = "while proving this obligation"
+	duringWitness    = "while checking this root's witnesses"
+)
+
+// killReason explains why a process ended during one step (during is
+// duringObligation or duringWitness).
+func killReason(o processOutcome, opts ValidationOptions, during string) killedObligation {
 	switch {
 	case o.timedOut:
-		return killedObligation{fmt.Sprintf("validation process exceeded its wall-clock limit of %s while proving this obligation", opts.ProcessTimeout), ReasonProcessTime}
+		return killedObligation{fmt.Sprintf("validation process exceeded its wall-clock limit of %s %s", opts.ProcessTimeout, during), ReasonProcessTime}
 	case mentionsMemory(o.output):
-		return killedObligation{fmt.Sprintf("validation process exceeded its memory limit of %d MiB while proving this obligation", opts.MemoryMB), ReasonMemory}
+		return killedObligation{fmt.Sprintf("validation process exceeded its memory limit of %d MiB %s", opts.MemoryMB, during), ReasonMemory}
 	case o.exitCode == 137 || o.exitCode == -1:
-		return killedObligation{fmt.Sprintf("validation process was killed (exit %d) while proving this obligation, most likely by the system's memory limit", o.exitCode), ReasonMemory}
+		return killedObligation{fmt.Sprintf("validation process was killed (exit %d) %s, most likely by the system's memory limit", o.exitCode, during), ReasonMemory}
 	}
-	return killedObligation{fmt.Sprintf("validation process exited (%d) while proving this obligation", o.exitCode), ReasonProcessFailed}
+	return killedObligation{fmt.Sprintf("validation process exited (%d) %s", o.exitCode, during), ReasonProcessFailed}
 }
 
 // processFailure describes a process that ended without a report.
@@ -175,6 +206,18 @@ func memoryVictim(raw *rawValidationReport, killed map[string]killedObligation) 
 	for _, f := range raw.Functions {
 		if _, done := killed[f.Name]; !done && f.Status == "failed" && classifyReason(f.Reason) == ReasonMemory {
 			return f.Name
+		}
+	}
+	return ""
+}
+
+// witnessMemoryVictim is the first root, in report order, whose witnesses the
+// command reported not attempted for memory and that has not been skipped yet.
+func witnessMemoryVictim(raw *rawValidationReport, killed map[string]killedObligation) string {
+	for _, p := range raw.Programs {
+		if _, done := killed[p.Root]; !done && p.Witnesses != nil && p.Witnesses.Status == WitnessNotAttempted &&
+			classifyReason(p.Witnesses.Reason) == ReasonMemory {
+			return p.Root
 		}
 	}
 	return ""
@@ -215,12 +258,13 @@ func runValidation(r validationRun) (*ValidationResult, error) {
 	reportPath := filepath.Join(r.workspace, validationReportName)
 	progressPath := reportPath + ".progress"
 	killed := map[string]killedObligation{}
+	killedWitnesses := map[string]killedObligation{}
 	var attempts []ValidationAttempt
 	var raw *rawValidationReport
 	processReason, processClass := "", ""
 	for attempt := 0; ; attempt++ {
-		skip := sortedNames(killed)
-		if err := os.WriteFile(harness, []byte(validationHarness(r.module, r.roots, opts, skip)), 0o644); err != nil {
+		skip, skipWitnesses := sortedNames(killed), sortedNames(killedWitnesses)
+		if err := os.WriteFile(harness, []byte(validationHarness(r.module, r.roots, opts, skip, skipWitnesses)), 0o644); err != nil {
 			return nil, err
 		}
 		for _, path := range []string{reportPath, progressPath} {
@@ -230,7 +274,7 @@ func runValidation(r validationRun) (*ValidationResult, error) {
 		}
 		command := []string{lean, "-M", strconv.Itoa(opts.MemoryMB), "-DElab.async=false", validationHarnessPath}
 		outcome := runValidationProcess(command, r.workspace, env, opts.ProcessTimeout)
-		record := ValidationAttempt{Skip: nonNil(skip), ExitCode: outcome.exitCode, TimedOut: outcome.timedOut, WallMs: outcome.elapsed.Milliseconds()}
+		record := ValidationAttempt{Skip: nonNil(skip), SkipWitnesses: nonNil(skipWitnesses), ExitCode: outcome.exitCode, TimedOut: outcome.timedOut, WallMs: outcome.elapsed.Milliseconds()}
 		if !outcome.ok() {
 			record.Output = outcome.output
 			if len(record.Output) > maxAttemptOutput {
@@ -251,16 +295,26 @@ func runValidation(r validationRun) (*ValidationResult, error) {
 		last := attempt >= maxValidationReruns
 		if current != nil {
 			raw = current
-			victim := memoryVictim(current, killed)
-			if victim == "" || last || !validSkipName(victim) {
+			if last {
 				break
 			}
-			killed[victim] = killedObligation{fmt.Sprintf("validation process exceeded its memory limit of %d MiB while proving this obligation", opts.MemoryMB), ReasonMemory}
-			continue
+			if victim := memoryVictim(current, killed); victim != "" && validSkipName(victim) {
+				killed[victim] = killedObligation{fmt.Sprintf("validation process exceeded its memory limit of %d MiB %s", opts.MemoryMB, duringObligation), ReasonMemory}
+				continue
+			}
+			if victim := witnessMemoryVictim(current, killedWitnesses); victim != "" && validSkipName(victim) {
+				killedWitnesses[victim] = killedObligation{fmt.Sprintf("validation process exceeded its memory limit of %d MiB %s", opts.MemoryMB, duringWitness), ReasonMemory}
+				continue
+			}
+			break
 		}
 		progress, _ := readBounded(progressPath, maxProgressBytes)
-		victim := lastAttempt(string(progress))
-		_, repeated := killed[victim]
+		kind, victim := lastStep(string(progress))
+		target, during := killed, duringObligation
+		if kind == stepWitness {
+			target, during = killedWitnesses, duringWitness
+		}
+		_, repeated := target[victim]
 		if outcome.ok() || victim == "" || repeated || last || !validSkipName(victim) {
 			processReason, processClass = processFailure(outcome, opts)
 			if outcome.ok() {
@@ -268,11 +322,12 @@ func runValidation(r validationRun) (*ValidationResult, error) {
 			}
 			break
 		}
-		killed[victim] = killReason(outcome, opts)
+		target[victim] = killReason(outcome, opts, during)
 	}
 	report, diagnostics := splitReport(raw, reportInputs{
 		module: r.module, roots: r.roots, irSHA256: Digest(r.ir), compiler: r.compiler, options: opts,
-		library: ValidationInventory(), functions: irFunctionNames(r.ir), killed: killed, attempts: attempts,
+		library: ValidationInventory(), functions: irFunctionNames(r.ir), killed: killed,
+		killedWitnesses: killedWitnesses, attempts: attempts,
 		processReason: processReason, processClass: processClass,
 	})
 	return encodeValidation(report, diagnostics)
