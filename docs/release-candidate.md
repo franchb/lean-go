@@ -64,7 +64,10 @@ the [alpha.7 walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.7
 (three demos, 18 source claims). Alpha.4 remains paired with Lean 4.35.0; use
 its [tagged walkthrough](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.4/docs/release-candidate.md).
 Local candidate results do not establish a public tag's availability, module
-checksum or future workflow state.
+checksum or future workflow state. The proof check of these tags accepts a
+theorem that a hostile proof file added without the kernel
+([status](../README.md#status)): reproduce a tag to compare its artifacts, not
+to certify proofs you did not write.
 
 ## Run the complete source-to-Go check
 
