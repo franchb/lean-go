@@ -168,7 +168,8 @@ program, that the IR agrees with the Lean source functions, using the
 `lean-go validate --source-dir DIR --module M --root R… --ir FILE` does the
 same for an IR file that already exists: it exports again in a fresh
 workspace, requires the result to be byte-identical to `FILE`, and writes the
-report (`--validate` defaults to `report` there).
+report. There `--validate` takes `report` (the default) or `require`; `off`
+is not a choice.
 
 **How it runs.** The export is unchanged. After the complete IR has been
 computed, a second Lean process runs the validation harness in the same
