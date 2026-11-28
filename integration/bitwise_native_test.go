@@ -15,13 +15,12 @@ import (
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Ports of BitwiseModelTests and BitwiseNativeTests in scripts/test_bitwise.py
-// and of ShiftLeftNativeTests in scripts/test_shift_left.py. The native tests
-// follow scripts/differential_backend.py: one ordinary Lean module with a
-// scalar root Generated.run is built natively with Lake and extracted with
-// the pipeline; the generated package runs through both its raw and typed
-// APIs with no producer tool on PATH, and all three channels must equal an
-// independent arithmetic model. Gated by LEAN_GO_DIFFERENTIAL, as before.
+// The bitwise operations and the left shift, against native Lean: one
+// ordinary Lean module with a scalar root Generated.run is built natively
+// with Lake and extracted with the pipeline; the generated package runs
+// through both its raw and typed APIs with no producer tool on PATH, and all
+// three channels must equal an independent arithmetic model. Gated by
+// LEAN_GO_DIFFERENTIAL.
 
 // bitwiseModel evaluates one operation of a and b with arbitrary precision,
 // bit by bit for the logical operations (differential_model.evaluate).
@@ -295,7 +294,7 @@ func TestShiftLeftNativeNotationAndDirectCallsMatchNativeRawTypedAndArithmetic(t
 				pairs = append(pairs, [2]uint64{a, b})
 			}
 		}
-		// A fixed seed per width; Python's Mersenne Twister draws differ.
+		// A fixed seed per width.
 		rng := rand.New(rand.NewPCG(uint64(3072+width), 0))
 		draw := func() uint64 {
 			if width == 64 {

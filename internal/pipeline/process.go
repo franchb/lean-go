@@ -57,7 +57,7 @@ func runProcess(command []string, dir string, env []string) (string, error) {
 	err := cmd.Run()
 	out, errText := universal(stdout.String()), universal(stderr.String())
 	if ctx.Err() == context.DeadlineExceeded {
-		return out, exportErrorf("producer process failed: Command %s timed out after %d seconds", pythonList(command), int(processTimeout.Seconds()))
+		return out, exportErrorf("producer process failed: Command %s timed out after %d seconds", quotedList(command), int(processTimeout.Seconds()))
 	}
 	var exit *exec.ExitError
 	if errors.As(err, &exit) {
@@ -73,12 +73,13 @@ func runProcess(command []string, dir string, env []string) (string, error) {
 	return out, nil
 }
 
-func pythonList(items []string) string {
-	quoted := make([]string, len(items))
+// quotedList renders a command line for an error message.
+func quotedList(items []string) string {
+	parts := make([]string, len(items))
 	for i, item := range items {
-		quoted[i] = pythonRepr(item)
+		parts[i] = quoted(item)
 	}
-	return "[" + strings.Join(quoted, ", ") + "]"
+	return "[" + strings.Join(parts, ", ") + "]"
 }
 
 // lookPath finds a required executable on PATH.

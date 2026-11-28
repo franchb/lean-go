@@ -7,10 +7,9 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) port of the producer half of
-// scripts/test_unsigned.py: every operation of UInt8/16/32/64 and all twelve
-// conversions, compiler rewrites of the new operations, and rejections that
-// must stay. The native comparison is integration/unsigned_native_test.go.
+// Lean-gated (LEAN_GO_MODULES=1): every operation of UInt8/16/32/64 and all
+// twelve conversions, compiler rewrites of the new operations, and rejections
+// that must stay. The native comparison is integration/unsigned_native_test.go.
 
 var unsignedWidths = []int{8, 16, 32, 64}
 

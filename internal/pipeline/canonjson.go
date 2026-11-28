@@ -12,11 +12,13 @@ import (
 	"unicode/utf8"
 )
 
-// The tracked artifacts were first written by Python's json module. These
-// helpers reproduce its strict decoding (duplicate keys and non-finite
-// constants are errors) and its exact encodings, so the Go pipeline publishes
-// the same bytes: compact sorted IR, indented sorted evidence and compact
-// diagnostics in insertion order.
+// Canonical JSON for the artifacts the pipeline tracks. Decoding is strict:
+// one document of valid UTF-8, with duplicate keys and non-finite constants
+// as errors. Encoding has three fixed layouts, so equal values always give
+// equal bytes: compact with sorted keys (IR), indented by two spaces with
+// sorted keys (evidence), and compact in insertion order (diagnostics).
+// Characters outside ASCII are written as they are; the only numbers are
+// integers.
 
 // Object is a JSON object that keeps its keys in document order.
 type Object struct {
@@ -154,13 +156,16 @@ var (
 	compactOrdered = jsonStyle{}
 )
 
-// EncodeCompactSorted matches json.dumps(v, sort_keys=True, separators=(",", ":"), ensure_ascii=False).
+// EncodeCompactSorted writes v on one line with sorted keys and no space after "," or ":".
 func EncodeCompactSorted(v any) ([]byte, error) { return encode(v, compactSorted) }
 
-// EncodeIndentedSorted matches json.dumps(v, sort_keys=True, indent=2, ensure_ascii=False).
+// EncodeIndentedSorted writes v with sorted keys, one member or element per
+// line indented by two spaces, and ": " after a key. Empty containers stay on
+// one line.
 func EncodeIndentedSorted(v any) ([]byte, error) { return encode(v, indentedSorted) }
 
-// EncodeCompactOrdered matches json.dumps(v, ensure_ascii=False, separators=(",", ":")).
+// EncodeCompactOrdered writes v on one line with keys in insertion order and
+// no space after "," or ":".
 func EncodeCompactOrdered(v any) ([]byte, error) { return encode(v, compactOrdered) }
 
 func encode(v any, style jsonStyle) ([]byte, error) {
@@ -191,7 +196,7 @@ func writeValue(b *bytes.Buffer, v any, style jsonStyle, level int) error {
 	case string:
 		writeString(b, t)
 	case json.Number:
-		text, err := pythonInteger(string(t))
+		text, err := canonicalInteger(string(t))
 		if err != nil {
 			return err
 		}
@@ -263,9 +268,10 @@ func writeValue(b *bytes.Buffer, v any, style jsonStyle, level int) error {
 	return nil
 }
 
-// pythonInteger reproduces Python's decoding and re-encoding of an integer
-// literal. The producers never emit fractions or exponents, so those fail.
-func pythonInteger(text string) (string, error) {
+// canonicalInteger is the encoding of an integer literal: the literal itself,
+// except that -0 is 0. The producers never emit fractions or exponents, so
+// those fail.
+func canonicalInteger(text string) (string, error) {
 	if strings.ContainsAny(text, ".eE") {
 		return "", fmt.Errorf("unsupported non-integer JSON number %s", text)
 	}
@@ -304,8 +310,11 @@ func writeString(b *bytes.Buffer, s string) {
 	b.WriteByte('"')
 }
 
-// pythonRepr approximates repr() of a Python str, as used in error messages.
-func pythonRepr(s string) string {
+// quoted renders a string for an error message: in single quotes, or in
+// double quotes when it contains a single quote and no double quote, with
+// backslash escapes for the quote, the backslash, control characters and
+// characters that do not print.
+func quoted(s string) string {
 	quote := byte('\'')
 	if strings.Contains(s, "'") && !strings.Contains(s, `"`) {
 		quote = '"'

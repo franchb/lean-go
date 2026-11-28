@@ -30,7 +30,6 @@ func checkoutRoot(t *testing.T) string {
 	return root
 }
 
-// Ported from test_differential_backend.py NativeSmokeTests.
 func TestNativeAndGoMatchIndependentModel(t *testing.T) {
 	requireDifferential(t)
 	b, err := NewBackend(checkoutRoot(t), t.TempDir(), 300*time.Second)
@@ -158,7 +157,6 @@ func TestStateMachineFaultIsSeenOnlyByStateMachineChannels(t *testing.T) {
 	}
 }
 
-// Ported from test_differential.py CompiledFaultInjectionTests.
 func TestCompiledMismatchIsReducedAndReplayedWithCleanBackend(t *testing.T) {
 	requireDifferential(t)
 	directory := t.TempDir()

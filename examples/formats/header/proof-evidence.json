@@ -106,15 +106,15 @@
     }
   ],
   "contract_sha256": "9432581e947a54034710f578511fc226d38423fc3ff0b617ae942c4d5d4709be",
-  "generated_manifest_sha256": "5ca6a6e390d2f686e86e524e56b419651ccddacb74cc6bfdc376ccf9b615812b",
+  "generated_manifest_sha256": "bdbd3150dd3fc7cf2c8f09729ecfc59a9d75dace07eacd646aaf42e3ff88c5de",
   "generated_mode": "native",
   "lean_commit": "611c117bfaf7b7ae1cfcf246ce6fba31e8f509e9",
   "lean_version": "4.36.0",
   "module": "DemoHeader",
   "project_inputs": {
-    "proof/DemoHeaderContract.lean": "6c9de9762e981e18b7416555eed0b28c479b9eea4c6d84b378a6d378c364de12",
-    "proof/DemoHeaderProofs.lean": "00934f06f32717d207d635798988b79cb7b8e27ced2ab9eebff439e1dbc47d56",
-    "source/DemoHeader.lean": "b6a9da0a0cb76f05a6880369a7fc04f9ac5aa9cda4cb883ac1eece54b55b4122"
+    "proof/DemoHeaderContract.lean": "6c5a1f9eda97388559d898dc8711d69f2263e00c23dfaa5d8b24ee3d29e4dc99",
+    "proof/DemoHeaderProofs.lean": "e125fd673c7ff32a8a23f0859cab37fa3ea3663ddf64841bb2d781075780b37b",
+    "source/DemoHeader.lean": "7d982c6d9f77f967e52556b154d57689b3b629474b1b3c6568582dc30de3cd1a"
   },
   "roots": [
     "DemoHeader.classify",
@@ -126,7 +126,7 @@
   "tool_inputs": {
     "producer/LeanGo/Proofs/Check.lean": "18424adfd8114a2d3ded2f064a4be53199d3c3f2b06b2da3ab73d9394c3b3fbd",
     "producer/lean-toolchain": "582a63f8f9c5128067b688778c1051cf1464c3ca9d57b9325025c051c29b774a",
-    "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d",
-    "tool/lean-go/proofcheck": "f6cf8e87d79d90b1ebc49d2bbbab4ce938e4c80f866860f1effc3b5a26ada9ee"
+    "tool/lean-go/pipeline": "0ab58ea43c0002036916072da849b4880bc297598e8a2ce6fd23fa79e62cf335",
+    "tool/lean-go/proofcheck": "1028c76cec315fee431dec9519cfdca41e8cc8898ca2b1ccd4e7db57efed1ad7"
   }
 }

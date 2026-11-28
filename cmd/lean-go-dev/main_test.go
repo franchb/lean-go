@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Command-line checks of values Python's argparse rejected by type: budgets
-// and timeouts that are booleans, fractions or non-finite are refused.
+// Budgets and timeouts on the command line must be whole numbers: booleans,
+// fractions and non-finite values are refused.
 
 func TestDifferentialDefaultsAndRepeatedSelections(t *testing.T) {
 	o, _, err := parseDifferential(nil, &bytes.Buffer{})

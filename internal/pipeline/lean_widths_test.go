@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) port of WidthAdmissionTests in
-// scripts/test_width_conversions.py.
+// Lean-gated (LEAN_GO_MODULES=1): admission of the width conversions.
 
 var widthCasts = [][3]string{{"UInt32.toUInt64", "UInt32", "UInt64"}, {"UInt64.toUInt32", "UInt64", "UInt32"}}
 

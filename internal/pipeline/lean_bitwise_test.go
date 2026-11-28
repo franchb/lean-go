@@ -7,10 +7,9 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) ports of BitwiseAdmissionTests in
-// scripts/test_bitwise.py and ShiftLeftAdmissionTests in
-// scripts/test_shift_left.py. The native comparisons of both files are in
-// integration/bitwise_native_test.go.
+// Lean-gated (LEAN_GO_MODULES=1): what the producer admits and rejects for
+// the bitwise operations and the left shift. The comparisons with native Lean
+// are in integration/bitwise_native_test.go.
 
 var bitwiseTestOperations = []string{"land", "lor", "xor", "complement", "shiftRight"}
 
@@ -136,7 +135,7 @@ func TestBitwiseUnsupportedSignedAndPlatformWidthsAndForgedAxiom(t *testing.T) {
 	}
 }
 
-// scripts/test_shift_left.py ShiftLeftAdmissionTests
+// Left shift.
 
 var shiftLeftWrappers = []string{"HShiftLeft.hShiftLeft", "instHShiftLeftOfShiftLeft", "ShiftLeft.shiftLeft",
 	"instShiftLeftUInt32", "instShiftLeftUInt64"}

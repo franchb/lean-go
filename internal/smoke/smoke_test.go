@@ -19,12 +19,8 @@ import (
 	"github.com/franchb/lean-go/producer"
 )
 
-// Ported from the Python verifier tests: scripts/test_clamp_demo.py and the
-// tests that extend it (test_flags_demo.py, test_words_demo.py,
-// test_bytes_demo.py, test_header_demo.py, test_wire16_demo.py,
-// test_normalizer_demo.py) and scripts/test_release_candidate.py. They run
-// the checks with a stand-in for lean-go and Go; the real commands run in
-// lean-go-dev installed-cli and release-candidate.
+// The demo and walkthrough checks, run with a stand-in for lean-go and Go;
+// the real commands run in lean-go-dev installed-cli and release-candidate.
 
 const repo = "../.."
 
@@ -460,7 +456,7 @@ func TestFileURL(t *testing.T) {
 
 // The real binaries, without Lean: go build, go install from the module
 // archive, help and version with no tools on PATH, doctor's missing-tool
-// report (check_cli_install.py --without-lean).
+// report (installed-cli --without-lean).
 func TestInstalledCLIWithoutLean(t *testing.T) {
 	if _, err := moduleFiles(repo); err != nil {
 		t.Skipf("no git checkout: %v", err)

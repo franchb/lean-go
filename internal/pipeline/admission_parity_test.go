@@ -11,10 +11,9 @@ import (
 	"testing"
 )
 
-// admissionCase is one rejected program with the diagnostic that the Python
-// pipeline (scripts/export_module.py) reported for it. The cases are those of
-// scripts/test_module_admission.py and scripts/test_diagnostics_lean.py; the
-// expectations were recorded from the Python pipeline before it was retired.
+// admissionCase is one rejected program with the diagnostic recorded for it.
+// The expectations were recorded from an earlier, independent implementation
+// of the pipeline, so they do not restate what this one prints.
 type admissionCase struct {
 	Name    string            `json:"name"`
 	Files   map[string]string `json:"files"`
@@ -44,7 +43,7 @@ func buildErrors(message string) []string {
 	return out
 }
 
-func TestAdmissionDiagnosticsMatchRecordedPythonReports(t *testing.T) {
+func TestAdmissionDiagnosticsMatchRecordedReports(t *testing.T) {
 	if os.Getenv("LEAN_GO_PARITY") != "1" {
 		t.Skip("set LEAN_GO_PARITY=1 for fresh Lean admission builds")
 	}

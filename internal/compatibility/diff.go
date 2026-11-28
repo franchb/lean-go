@@ -5,8 +5,7 @@ import (
 	"strings"
 )
 
-// splitLines splits text into lines that keep their "\n", like Python's
-// str.splitlines(True) for "\n"-terminated text.
+// splitLines splits text into lines that keep their "\n".
 func splitLines(text string) []string {
 	var out []string
 	for text != "" {
@@ -108,8 +107,8 @@ func unifiedRange(start, length int) string {
 	return fmt.Sprintf("%d,%d", beginning, length)
 }
 
-// UnifiedDiff returns a unified diff with three lines of context, in the
-// format of Python's difflib.unified_diff; it is empty for equal texts.
+// UnifiedDiff returns a unified diff with three lines of context; it is empty
+// for equal texts.
 func UnifiedDiff(before, after, fromFile, toFile string) string {
 	edits := myers(splitLines(before), splitLines(after))
 	changed := false

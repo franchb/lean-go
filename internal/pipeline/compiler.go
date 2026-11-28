@@ -52,7 +52,7 @@ func SelectedCompiler() (Compiler, error) {
 	for i, c := range SupportedCompilers {
 		names[i] = c.Version
 	}
-	return Compiler{}, exportErrorf("unsupported LEAN_GO_TOOLCHAIN %s; expected one of %s", pythonRepr(version), strings.Join(names, ", "))
+	return Compiler{}, exportErrorf("unsupported LEAN_GO_TOOLCHAIN %s; expected one of %s", quoted(version), strings.Join(names, ", "))
 }
 
 // RequiredGo is the Go release whose go/format output the tracked artifacts use.

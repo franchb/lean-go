@@ -57,8 +57,8 @@ func decodeJSON(data []byte) (any, error) {
 
 var integerText = regexp.MustCompile(`^(0|[1-9][0-9]*)$`)
 
-// natural accepts only a JSON integer literal (no sign, fraction or exponent),
-// as Python's type(n) is int; booleans and strings are not integers.
+// natural accepts only a JSON integer literal (no sign, fraction or exponent);
+// booleans and strings are not integers.
 func natural(v any) (*big.Int, bool) {
 	n, ok := v.(json.Number)
 	if !ok || !integerText.MatchString(string(n)) {

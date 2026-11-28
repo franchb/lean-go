@@ -7,7 +7,7 @@ Status: library and producer-side command (`#lean_go_validate`) in
 ([cli.md](../cli.md#translation-validation)), runner
 `internal/pipeline/validate_*.go` (§11). Every tracked module program has a
 tracked, deterministic report next to its IR (§9), written by
-`lean-go regenerate`. The Python runner and coverage script are gone.
+`lean-go regenerate`.
 
 Today extraction is *tested and trusted*: the producer pattern-matches the
 compiler's mono LCNF, audits it, and emits JSON IR that the Go printer turns

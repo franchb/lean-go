@@ -107,6 +107,8 @@ Changes on the development branch since `v0.1.0-alpha.15`.
   remaining gap comes from by-value copies of records with more than four
   fields at the public API; see
   [docs/wire-formats.md](docs/wire-formats.md#native-against-metered).
+- Generated wire-format files name their generator as `lean-go format`. The
+  separate `lean-go-format` command, which no release contained, is removed.
 
 **Examples**
 

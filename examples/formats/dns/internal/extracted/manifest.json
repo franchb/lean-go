@@ -4,7 +4,7 @@
   "generator": "lean-go-nativegen/v2",
   "generator_source_sha256": "af39bad95490c5e943f468e72dbe11aaed9b3a6831edb89480aa9f21991e6b21",
   "validator_source_sha256": "d6bd18ba4e7d84e95051ce15b95d4d32d2945ace3da795f8c5ea62528e79d456",
-  "ir_sha256": "1620d5abc4dbef5b3b7346f39d1708578d1af0a99541b720b082479ccf6cd476",
+  "ir_sha256": "bc54947eaf3318379f800bfa94b37640cfd1eec7ae59d2a771ebf10d7154afa3",
   "max_depth": 10000,
   "program": {
     "schema": "lean-go-ir/v24",
@@ -35,8 +35,8 @@
       "producer/LeanGo/Module/Primitives.lean": "fc57dc3e82c4a90f2f390a67655eaac8e96891779bc31d99bc3b0afd2925e018",
       "producer/LeanGo/Module/Records.lean": "773eb71197429cbbb401a06a6cce6957a4114b2823a0e8dc99f36821df6d3f6b",
       "producer/LeanGo/Module/Reduced.lean": "59214d12ac71738687bb2009f50fadd6189cbbffffa723c3746f349d42a2dc6a",
-      "source/DnsHeader.lean": "f9acbd13c61431440aaf2c8fae2ae634f52872221d5ff5553a2670b8cbae3ee9",
-      "tool/lean-go/pipeline": "d54747c671967bdc1c1aeacc58a6a69ae806a35e1722abb9c3bc3bfaa052f30d"
+      "source/DnsHeader.lean": "4703a376e67bf80006610cdc1a1410893ee35847ce4ab81b5e5b58f8ed621bcb",
+      "tool/lean-go/pipeline": "0ab58ea43c0002036916072da849b4880bc297598e8a2ce6fd23fa79e62cf335"
     },
     "types": [
       {

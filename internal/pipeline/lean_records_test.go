@@ -7,9 +7,8 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) ports of the retired scripts/test_record_admission.py,
-// scripts/test_api_admission.py, scripts/test_join_admission.py,
-// scripts/test_module_positive.py and the Lean half of scripts/test_multiroot.py.
+// Lean-gated (LEAN_GO_MODULES=1): admission of records, named APIs and joins,
+// the accepted module forms, and exports with several roots.
 
 // nsSource wraps body in a namespace, optionally as a modern module.
 func nsSource(namespace, body string, modern bool, probe string) string {
@@ -442,7 +441,7 @@ func TestContextSensitiveAccessorAndHelperRewritesAreRejected(t *testing.T) {
 	}
 }
 
-// scripts/test_api_admission.py
+// Named APIs.
 
 func TestNamedNestedInheritedFieldsAndEnums(t *testing.T) {
 	requireModules(t)
@@ -506,7 +505,7 @@ func TestSingleConstructorInductiveIsNotRecordMetadata(t *testing.T) {
 	jsonEqual(t, program["types"], `[{"name":"Records.Box","constructors":[{"name":"Records.Box.mk","tag":0,"fields":["UInt32"]}]}]`)
 }
 
-// scripts/test_join_admission.py
+// Joins.
 
 const joinPrelude = `structure Count where
   value : UInt32
@@ -722,7 +721,7 @@ def run (bias value : UInt32) : UInt32 :=
 `, "Local helper requires saturated direct calls")
 }
 
-// scripts/test_module_positive.py
+// Accepted module forms.
 
 func modernSources(f *leanFixture) {
 	f.write("Modern/Model.lean", `module
@@ -851,7 +850,7 @@ end Helper
 	}
 }
 
-// scripts/test_multiroot.py (MultiRootAdmissionTests)
+// Several roots.
 
 func sharedSources(f *leanFixture) {
 	f.write("Shared.lean", `namespace Shared

@@ -40,8 +40,6 @@ func TestStartFailureIsAnError(t *testing.T) {
 	}
 }
 
-// Ported from test_differential_backend.py
-// ProcessTests.test_timeout_kills_grandchild_holding_output_pipe.
 func TestTimeoutKillsGrandchildHoldingOutputPipe(t *testing.T) {
 	sh := shell(t)
 	script := "sleep 30 & echo 'child started'; sleep 30"

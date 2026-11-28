@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// A small argparse-compatible parser: "--name value", "--name=value",
+// A small option parser: "--name value", "--name=value",
 // repeatable options, two-value options and boolean switches. Both "-name"
 // and "--name" spellings are accepted for the flag-style emit command.
 

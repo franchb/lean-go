@@ -45,7 +45,7 @@ func pairs(proofs, contract string, names ...string) [][2]string {
 	return out
 }
 
-// All lists the ten demos in the order the retired verifiers ran them.
+// All lists the ten demos in the order the installed-CLI check runs them.
 var All = []Demo{
 	{Name: "clamp", Module: "Clamp", Roots: []string{"Clamp.clamp"},
 		Claims: pairs("ClampProofs", "ClampContract", "bounded", "idempotent", "preserves"),

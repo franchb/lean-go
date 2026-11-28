@@ -12,8 +12,7 @@ import (
 	"testing"
 )
 
-// Ported from the retired scripts/test_export_module.py, the module half of
-// scripts/test_generate.py and the unit half of scripts/test_multiroot.py.
+// Export, generation and root selection with a stand-in for Lean and Lake.
 
 // fakeLean stands in for Lean and Lake. It records every command.
 type fakeLean struct {
@@ -313,7 +312,7 @@ func TestFailedProcessAndSourceConflictPreserveOutputs(t *testing.T) {
 	}
 }
 
-// scripts/test_generate.py (module paths).
+// Module paths.
 
 func TestOverlappingOutputPathsAreRejected(t *testing.T) {
 	root := t.TempDir()
@@ -402,7 +401,7 @@ func TestOtherGoToolchainWarnsUnlessStrict(t *testing.T) {
 	}
 }
 
-// scripts/test_multiroot.py (RootSelectionTests).
+// Root selection.
 
 func TestRootSelectionIsCanonical(t *testing.T) {
 	roots, err := SelectRoots([]string{"Example.run"})
@@ -489,7 +488,7 @@ func TestHarnessReceivesCanonicalRoots(t *testing.T) {
 	}
 }
 
-// scripts/test_native_mode.py: the mode reaches the emitter.
+// The mode reaches the emitter.
 
 func TestEmitModes(t *testing.T) {
 	data, err := os.ReadFile("../../testdata/trees.ir.json")

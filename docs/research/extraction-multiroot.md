@@ -85,5 +85,5 @@ The original audited normalizer remains a separate profile.
 
 This milestone does not add polymorphism, generic collections, external Lake
 packages or an end-to-end proof of extraction correctness. Broad generic
-collections remain deferred. The [design](../superpowers/specs/2026-11-12-lean-go-multiroot-design.md)
+collections remain deferred. The [design](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.15/docs/superpowers/specs/2026-11-12-lean-go-multiroot-design.md)
 records the selection and compatibility contract.

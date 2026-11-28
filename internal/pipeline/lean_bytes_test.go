@@ -6,14 +6,13 @@ import (
 	"testing"
 )
 
-// Lean-gated (LEAN_GO_MODULES=1) ports of the producer halves of
-// scripts/test_uint8.py and scripts/test_uint16.py, and of
-// scripts/test_byte_folds.py. The native UInt16 check is in
+// Lean-gated (LEAN_GO_MODULES=1): what the producer admits and rejects for
+// UInt8, UInt16 and byte folds. The native UInt16 check is in
 // integration/unsigned_native_test.go.
 
 var byteOps = []string{"add", "sub", "mul", "decEq", "decLt", "decLe", "land", "lor", "xor", "complement", "shiftLeft", "shiftRight"}
 
-// scripts/test_uint8.py ByteAdmissionTests
+// UInt8.
 
 func TestByteExactOperationsNotationAndConversionSignatures(t *testing.T) {
 	requireModules(t)
@@ -187,7 +186,7 @@ func TestByteLocalScopedLateErasedAndClosedScopeHistory(t *testing.T) {
 		{"UInt8.shiftLeft", "UInt8", false}}, "uint8")
 }
 
-// scripts/test_uint16.py UInt16AdmissionTests
+// UInt16.
 
 func TestUInt16NestedRecordsLiteralsAndExactOperators(t *testing.T) {
 	requireModules(t)
@@ -377,8 +376,7 @@ def run (a b : UInt8) :=
 `, "rewrite|replacement|repeated compilation", numericOptions{})
 }
 
-// scripts/test_byte_folds.py ByteFoldTests: any export failure rejects, as
-// assertRaises(ExportError) did.
+// Byte folds: any export failure is a rejection.
 
 func byteFoldRejects(t *testing.T, body string) {
 	t.Helper()

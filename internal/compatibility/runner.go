@@ -27,7 +27,7 @@ const ReportSchema = "lean-go-compatibility/v1"
 var envKeys = []string{"PATH", "CGO_ENABLED", "GOTOOLCHAIN", "GOWORK", "GOPROXY", "GOSUMDB",
 	"GOENV", "GOFLAGS", "ELAN_TOOLCHAIN", "LEAN_GO_TOOLCHAIN", "LEAN_GO_CACHE_DIR"}
 
-// defaultPath is the fallback search path after the compiler and Go (Python's os.defpath).
+// defaultPath is the fallback search path after the compiler and Go.
 const defaultPath = "/bin:/usr/bin"
 
 // WriteJSON writes value with sorted keys, two-space indentation, unescaped

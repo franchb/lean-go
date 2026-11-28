@@ -20,7 +20,7 @@ SHA-256 `c67a835949d1786638d2809c970ef69861a074a23cf6fdbcae3f8cad1043771f`.
 The producer rejects modified model bytes and arbitrary source modules. Each
 export uses a fresh fixed Lake workspace with no package dependencies, checks
 the Lean version and commit, and snapshots the tracked producer inputs.
-This result implements the [approved pilot plan](../superpowers/plans/2026-11-11-lean-go-pilot.md)
+This result implements the [approved pilot plan](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.15/docs/superpowers/plans/2026-11-11-lean-go-pilot.md)
 following the [feasibility investigation](extraction-feasibility.md).
 
 The tested toolchains were Lean **4.35.0**, commit
@@ -215,6 +215,6 @@ CGO_ENABLED=0 GOTOOLCHAIN=local go test ./integration -run '^$' -bench 'Benchmar
 These are single-host observations, not production recommendations, resource
 cap justifications, or performance guarantees. Actual Windows/amd64 semantic
 and boundary execution and an external consumer from a tagged release remain
-required by the [release acceptance contract](../superpowers/specs/2026-11-11-lean-go-extraction-design.md#validation-and-release-acceptance).
+required by the [release acceptance contract](https://github.com/franchb/lean-go/blob/v0.1.0-alpha.15/docs/superpowers/specs/2026-11-11-lean-go-extraction-design.md#validation-and-release-acceptance).
 No published release, generic extraction support, or end-to-end compiler proof
 is asserted by this pilot.

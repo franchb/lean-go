@@ -2,7 +2,7 @@
 
 This is the four-byte version-1 header of
 [examples/proofs/header](../../proofs/header), re-expressed as a
-[spec](spec.json) for [lean-go-format](../../../docs/wire-formats.md) instead
+[spec](spec.json) for [`lean-go format`](../../../docs/wire-formats.md) instead
 of hand-written Lean, proofs and Go.
 
 | Byte | Meaning |
@@ -48,5 +48,5 @@ CGO_ENABLED=0 GOTOOLCHAIN=local GOWORK=off GOPROXY=off go test -count=1 ./...
 From the repository root:
 
 ```sh
-go run ./cmd/lean-go-format generate -spec examples/formats/header/spec.json -out examples/formats/header
+go run ./cmd/lean-go format generate -spec examples/formats/header/spec.json -out examples/formats/header
 ```

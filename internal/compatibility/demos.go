@@ -22,8 +22,7 @@ import (
 // The demo check regenerates every proof demo (artifacts.Packages under
 // examples/proofs, and the checked-frame composition) with one explicit,
 // supported Lean installation, freshly checks and verifies its source
-// proofs, and runs each demo's Go consumer with only Go on PATH. It
-// replaced the retired scripts/check_toolchain_demos.py.
+// proofs, and runs each demo's Go consumer with only Go on PATH.
 
 // Demo is one examples/proofs directory and its tracked packages.
 type Demo struct {

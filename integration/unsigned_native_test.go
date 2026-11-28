@@ -18,11 +18,10 @@ import (
 	"github.com/franchb/lean-go/internal/pipeline"
 )
 
-// Native halves of scripts/test_unsigned.py and scripts/test_uint16.py:
-// fresh Lean builds compared with the generated Go of both APIs and with an
-// arithmetic model. Gated by LEAN_GO_MODULES, as the retired Python suites were. The
-// producer halves are in internal/pipeline/lean_unsigned_test.go and
-// lean_bytes_test.go.
+// The unsigned operations against native Lean: fresh Lean builds compared
+// with the generated Go of both APIs and with an arithmetic model. Gated by
+// LEAN_GO_MODULES. What the producer admits and rejects is tested in
+// internal/pipeline/lean_unsigned_test.go and lean_bytes_test.go.
 
 func requireModulesGate(t *testing.T) {
 	t.Helper()
@@ -368,8 +367,8 @@ func TestUnsignedNativeLeanBothGoAPIsAndModelAgreeOnBoundaries(t *testing.T) {
 	}
 }
 
-// scripts/test_uint16.py test_native_bitwise_operations_and_byte_casts:
-// native Lean against the arithmetic definition.
+// UInt16 bitwise operations and byte casts: native Lean against the
+// arithmetic definition.
 func TestUInt16NativeBitwiseOperationsAndByteCasts(t *testing.T) {
 	requireModulesGate(t)
 	compiler := selectedCompiler(t)

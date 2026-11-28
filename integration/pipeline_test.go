@@ -54,8 +54,7 @@ func commandEnv(extra map[string]string) []string {
 
 // generateWithCLI runs this checkout's lean-go generate from the repository
 // root, as a user of the command would: metered mode, the pinned Go release
-// required (--strict-go), relative paths resolved against the checkout. It
-// replaces the retired scripts/generate.py, which ran the same command.
+// required (--strict-go), relative paths resolved against the checkout.
 func generateWithCLI(t *testing.T, sourceDir, module, out, ir string, roots ...string) {
 	t.Helper()
 	root, err := filepath.Abs("..")

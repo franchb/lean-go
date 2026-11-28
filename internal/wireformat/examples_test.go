@@ -83,7 +83,7 @@ func TestExamplesMatchGenerator(t *testing.T) {
 				t.Fatalf("%s: %v", name, err)
 			}
 			if string(tracked) != text {
-				t.Errorf("%s: %s differs from the generator output; regenerate with lean-go-format", name, path)
+				t.Errorf("%s: %s differs from the generator output; regenerate with lean-go format generate", name, path)
 			}
 		}
 		pipeline := f.extractedFiles()
