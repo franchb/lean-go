@@ -45,6 +45,19 @@ Windows:
 go run ./cmd/lean-go-dev installed-cli
 ```
 
+Fuzz targets get 10 seconds in the pull-request checks (the frame round trip
+only) and 3 minutes each, every night, in the
+["Fuzz" workflow](.github/workflows/fuzz.yml). That workflow asks
+`go test -list` for the targets of every tracked module, so a new `Fuzz`
+function is picked up without editing it, and it runs the fuzz targets of the
+two generated harnesses through `LEAN_GO_NATIVE_FUZZ` and
+`LEAN_GO_FORMATS_FUZZ`. A failing input is kept as a workflow artifact. To run
+one target yourself:
+
+```sh
+go test -run '^$' -fuzz '^FuzzDecode$' -fuzztime 3m ./internal/moduleir/
+```
+
 ## Regenerate tracked artifacts
 
 Generated Go, IR, proof evidence, wire-format examples and validation reports
