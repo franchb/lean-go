@@ -53,7 +53,7 @@ func TestEveryTrackedPackageIsCoveredByItsValidationReport(t *testing.T) {
 			t.Errorf("%s: %v", p.Package, err)
 			continue
 		}
-		if len(lines) != 1 || !strings.Contains(lines[0], "covers the IR of module "+p.Module+": ") || !strings.HasSuffix(lines[0], " roots established.") {
+		if len(lines) != 1 || !strings.Contains(lines[0], "covers the IR of module "+p.Module+": ") || !strings.Contains(lines[0], " functions proved, ") {
 			t.Errorf("%s: %q", p.Package, lines)
 		}
 	}
@@ -87,7 +87,7 @@ func TestRequireValidationRejectsReportsThatDoNotCoverTheManifest(t *testing.T) 
 			f := functions(r)[3].(map[string]any)
 			f["status"], f["reason_class"] = "failed", "heartbeat_limit"
 			delete(f, "theorem")
-		}), "not fully proved (validation: 4/4 functions proved, 4/4 roots established): Quota.reserve: failed: heartbeat limit"},
+		}), "): Quota.reserve: failed: heartbeat limit"},
 		"a function that was not attempted": {editedReport(t, quotaReport, func(r map[string]any) {
 			f := functions(r)[0].(map[string]any)
 			f["status"], f["reason_class"] = "not_attempted", "no_encoding"
@@ -239,8 +239,21 @@ func TestCheckProofsRequireValidationOption(t *testing.T) {
 	t.Cleanup(func() { checkProofsFunc = old })
 	manifest, report := manifestOf("generated/quota"), tracked("testdata", "quota.validation.json")
 
+	// The second line carries the report's own summary, whatever it counts.
+	data, err := os.ReadFile(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := pipeline.ParseValidationReport(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	summary, ok := strings.CutPrefix(parsed.SummaryLine(), "validation: 4/4 functions proved, 4/4 roots established")
+	if !ok {
+		t.Fatalf("the tracked quota report is not complete: %s", parsed.SummaryLine())
+	}
 	code, stdout, stderr := runMain("check-proofs", "--contract", "c.json", "--manifest", manifest, "--evidence", "e.json", "--require-validation", report)
-	want := "checked\n" + report + " covers the IR of module Quota: 4/4 functions proved, 4/4 roots established.\n"
+	want := "checked\n" + report + " covers the IR of module Quota: 4/4 functions proved, 4/4 roots established" + summary + ".\n"
 	if code != 0 || stdout != want || stderr != "" || calls != 1 {
 		t.Fatalf("%d %q %q %d", code, stdout, stderr, calls)
 	}

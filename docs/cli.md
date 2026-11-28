@@ -337,7 +337,7 @@ lean-go check-proofs --contract proof-contract.json \
 `check-proofs` then also fails, before it builds any proof and without writing
 evidence, unless the report
 
-- is a `lean-go-validation/v2` report written with this lean-go's validation
+- has this lean-go's report schema and was written with its validation
   library and runner (the `library` digests are compared; a report from
   another version must be produced again);
 - validated exactly the IR recorded in the manifest. The manifest holds that
