@@ -15,8 +15,14 @@ import (
 	"github.com/franchb/lean-go/internal/wireformat"
 )
 
-// Version is the release this checkout prepares.
-const Version = "0.1.0a15"
+// Version is the lean-go version of this source tree in SemVer 2.0.0 form: the
+// Go module tag without its "v". A released tree carries the release; between
+// releases it carries the next release with "-dev" appended.
+//
+// The suffix marks an unreleased build for people. It does not place the build
+// before the release: by SemVer precedence 0.1.0-alpha.16-dev sorts after
+// 0.1.0-alpha.16, so nothing may order versions by it.
+const Version = "0.1.0-alpha.16-dev"
 
 const mainUsage = `usage: lean-go <command> [options]
 

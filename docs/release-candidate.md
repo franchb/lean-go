@@ -1,8 +1,9 @@
 # Check source proofs, generated Go and deployment
 
 Use the CLI and examples from the same checkout or release tag. This checkout
-prepares lean-go `0.1.0a15` with generator v20 and defaults to stable Lean
-4.36.0; its other supported compiler is 4.36.0-rc2.
+is lean-go `0.1.0-alpha.16-dev`, the development version after
+`v0.1.0-alpha.15`, with generator v20. It defaults to stable Lean 4.36.0; its
+other supported compiler is 4.36.0-rc2.
 [Alpha.15 release notes](releases/v0.1.0-alpha.15.md)
 
 This walkthrough checks fresh source theorems, generated artifacts and isolated
@@ -81,7 +82,7 @@ and seeded cases with an independent integer model, including values above
 2^53 and `math.MaxUint64`.
 
 Success prints a JSON receipt with `"status": "passed"`,
-`"candidate": "0.1.0a15"`, tool identities (the Go release, the Lean version
+`"candidate": "0.1.0-alpha.16-dev"`, tool identities (the Go release, the Lean version
 and commit, and `lean_go_pipeline`, the digest of the pipeline sources),
 checked claims, source/proof/tool hashes, the generated manifest and IR hashes,
 the digest of the walkthrough's own source and the consumer case count. It
@@ -113,8 +114,10 @@ UInt64, quota and multi-root checks offline with only Go on `PATH`. It covers th
 existing root-module packages. On a tag, the "Installed CLI" workflow also
 installs the tagged command with `go install github.com/franchb/lean-go/cmd/lean-go@<tag>`
 and runs `go run ./cmd/lean-go-dev installed-cli --cli <binary> --expect-tag <tag>`
-on Linux and Windows. Those are configured coverage expectations, not claims
-that a future tag run passed. The public Go consumer test alone does not cover
+on Linux and Windows. That check fails unless the tagged tree's version is the
+tag without its `v`, so a tree still marked `-dev` cannot pass as a release.
+Those are configured coverage expectations, not claims that a future tag run
+passed. The public Go consumer test alone does not cover
 every byte, bitwise or width conversion operation.
 
 To check the current checkout through a local module proxy, the candidate test

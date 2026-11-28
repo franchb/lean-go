@@ -284,7 +284,7 @@ func installedCommand(args []string, stdout, stderr io.Writer) int {
 		"for byte with the tracked artifacts.", stderr)
 	o := smoke.InstallOptions{Stdout: stdout}
 	flags.StringVar(&o.CLI, "cli", "", "an installed lean-go binary to check instead of building one")
-	flags.StringVar(&o.ExpectTag, "expect-tag", "", "release tag the --cli binary must report (vMAJOR.MINOR.PATCH-alpha.N)")
+	flags.StringVar(&o.ExpectTag, "expect-tag", "", "release tag the --cli binary must report: v and the released version, as in v0.1.0-alpha.16")
 	flags.BoolVar(&o.WithoutLean, "without-lean", false, "check the binaries, help and missing-tool errors only")
 	flags.Func("demo", "check only this demo (repeatable; checkedframe is the frame composition); skips the clamp producer workflow", func(name string) error {
 		o.Demos = append(o.Demos, name)

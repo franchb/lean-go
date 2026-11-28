@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -53,14 +54,50 @@ func CheckDemoNames(names []string) error {
 // SmokeVersion is the module version the local proxy serves.
 const SmokeVersion = "v0.0.0-smoke"
 
-// ReleaseTag is the Go module tag of a lean-go version: 0.1.0a15 is
-// v0.1.0-alpha.15.
+// developmentSuffix ends the version of a source tree between releases.
+const developmentSuffix = "-dev"
+
+// semver matches a SemVer 2.0.0 version without build metadata, which a Go
+// module tag does not carry.
+var semver = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)` +
+	`(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$`)
+
+// ReleaseTag is the Go module tag of a released lean-go version: "v" and the
+// version. A development version has no tag.
 func ReleaseTag(version string) (string, error) {
-	release, alpha, ok := strings.Cut(version, "a")
-	if !ok || release == "" || alpha == "" {
-		return "", fmt.Errorf("version %q is not an alpha release", version)
+	if !semver.MatchString(version) {
+		return "", fmt.Errorf("version %q is not a SemVer version", version)
 	}
-	return "v" + release + "-alpha." + alpha, nil
+	if strings.HasSuffix(version, developmentSuffix) {
+		return "", fmt.Errorf("version %q is a development version: a release tag names the version without %s", version, developmentSuffix)
+	}
+	return "v" + version, nil
+}
+
+// checkVersionLine checks what an installed binary prints for --version
+// against the source tree doing the checking: the tree's version and pipeline
+// digest. With expectTag, the tree must be that release and the binary must
+// report the tag as its Go module version, which only `go install
+// module@tag` gives it.
+func checkVersionLine(line, version, digest, expectTag string) error {
+	line = strings.TrimSpace(line)
+	if !strings.HasPrefix(line, "lean-go "+version+" ") || !strings.HasSuffix(line, " pipeline "+digest) {
+		return fmt.Errorf("unexpected version %q: want lean-go %s with pipeline %s", line, version, digest)
+	}
+	if expectTag == "" {
+		return nil
+	}
+	tag, err := ReleaseTag(version)
+	if err != nil {
+		return err
+	}
+	if expectTag != tag {
+		return fmt.Errorf("release tag %s does not name lean-go %s (%s)", expectTag, version, tag)
+	}
+	if !strings.HasPrefix(line, "lean-go "+version+" ("+tag+") ") {
+		return fmt.Errorf("installed binary reports %q, not module version %s", line, tag)
+	}
+	return nil
 }
 
 // InstalledCLI runs the installed-CLI smoke.
@@ -166,20 +203,8 @@ func checkBinary(o InstallOptions, binary, label string, index int, goPath strin
 	if err != nil {
 		return err
 	}
-	if !strings.HasPrefix(version, "lean-go "+cli.Version+" ") || !strings.HasSuffix(strings.TrimSpace(version), " pipeline "+pipeline.SourceDigest()[:12]) {
-		return fmt.Errorf("unexpected version %q: want lean-go %s with pipeline %s", strings.TrimSpace(version), cli.Version, pipeline.SourceDigest()[:12])
-	}
-	if o.ExpectTag != "" {
-		tag, err := ReleaseTag(cli.Version)
-		if err != nil {
-			return err
-		}
-		if o.ExpectTag != tag {
-			return fmt.Errorf("release tag %s does not name lean-go %s (%s)", o.ExpectTag, cli.Version, tag)
-		}
-		if !strings.HasPrefix(version, "lean-go "+cli.Version+" ("+tag+") ") {
-			return fmt.Errorf("installed binary reports %q, not module version %s", strings.TrimSpace(version), tag)
-		}
+	if err := checkVersionLine(version, cli.Version, pipeline.SourceDigest()[:12], o.ExpectTag); err != nil {
+		return err
 	}
 	for _, arguments := range [][]string{{"--help"}, {"version"}, {"generate", "--help"}, {"check-proofs", "--help"}} {
 		if _, err := must(runCommand, append([]string{installed}, arguments...), caller, noTools); err != nil {

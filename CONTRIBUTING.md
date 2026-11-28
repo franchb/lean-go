@@ -67,6 +67,16 @@ table, which must match the one in
 Review the changed source, IR, manifest and evidence together. Source bytes
 are hashed, so keep repository text in LF form.
 
+## Versions and release tags
+
+`internal/cli.Version` is what `lean-go version` prints and the walkthrough
+receipt records as `candidate`. It is the Go module tag in SemVer form without
+its `v`. Between releases it is the next release with `-dev` appended
+(`0.1.0-alpha.16-dev`). A release commit removes the suffix, the tag on that
+commit is `v` and the version, and the following commit sets the next
+development version. On a tag, the "Installed CLI" workflow fails if the
+version still ends in `-dev` or differs from the tag.
+
 ## Extraction changes
 
 Include a minimal accepted example, rejection cases for the forms you do not

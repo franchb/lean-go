@@ -315,15 +315,67 @@ func TestWrongClaimInventoryIsRejected(t *testing.T) {
 }
 
 func TestReleaseTagNamesTheModuleVersion(t *testing.T) {
-	if cli.Version != "0.1.0a15" {
-		t.Fatalf("the receipt names candidate %s", cli.Version)
+	for version, want := range map[string]string{
+		"0.1.0-alpha.16": "v0.1.0-alpha.16", "0.1.0-rc.1": "v0.1.0-rc.1", "0.1.0": "v0.1.0", "1.20.3": "v1.20.3",
+		"1.0.0-x-y.7.z9": "v1.0.0-x-y.7.z9", "0.1.0-developer": "v0.1.0-developer",
+	} {
+		if tag, err := ReleaseTag(version); err != nil || tag != want {
+			t.Errorf("%s: %q %v", version, tag, err)
+		}
 	}
-	if tag, err := ReleaseTag(cli.Version); err != nil || tag != "v0.1.0-alpha.15" {
-		t.Fatalf("%s %v", tag, err)
+	for _, bad := range []string{
+		"", "0.1.0a15", "v0.1.0", "0.1", "0.1.0.0", "01.0.0", "0.1.0-", "0.1.0-alpha..1", "0.1.0-alpha.01", "0.1.0-alpha_1",
+		"0.1.0+build", "0.1.0-alpha.16+build", " 0.1.0", "0.1.0\n",
+	} {
+		if tag, err := ReleaseTag(bad); err == nil || !strings.Contains(err.Error(), "not a SemVer version") {
+			t.Errorf("%q: %q %v", bad, tag, err)
+		}
 	}
-	for _, bad := range []string{"0.1.0", "a15", "0.1.0a"} {
-		if _, err := ReleaseTag(bad); err == nil {
-			t.Errorf("%s accepted", bad)
+	for _, development := range []string{"0.1.0-alpha.16-dev", "0.1.0-dev", "1.0.0-rc.1.x-dev"} {
+		if tag, err := ReleaseTag(development); err == nil || !strings.Contains(err.Error(), "development version") {
+			t.Errorf("%s: %q %v", development, tag, err)
+		}
+	}
+}
+
+// The version of this source tree is a release, or a release with -dev
+// appended; only a release has a tag.
+func TestSourceTreeVersionIsSemVer(t *testing.T) {
+	release, development := strings.CutSuffix(cli.Version, developmentSuffix)
+	tag, err := ReleaseTag(release)
+	if err != nil || tag != "v"+release {
+		t.Fatalf("%s: %q %v", cli.Version, tag, err)
+	}
+	if _, err := ReleaseTag(cli.Version); (err != nil) != development {
+		t.Fatalf("%s: development %v, release tag error %v", cli.Version, development, err)
+	}
+}
+
+func TestVersionLineIsCheckedAgainstTheSourceTreeAndTheTag(t *testing.T) {
+	const digest = "0123456789ab"
+	built := "lean-go 0.1.0-alpha.16 (v0.1.0-alpha.15.0.20261127180227-c12981f3c61c) go1.27.4 pipeline " + digest + "\n"
+	run := "lean-go 0.1.0-alpha.16 go1.27.4 pipeline " + digest + "\n"
+	tagged := "lean-go 0.1.0-alpha.16 (v0.1.0-alpha.16) go1.27.4 pipeline " + digest + "\n"
+	for _, line := range []string{built, run, tagged} {
+		if err := checkVersionLine(line, "0.1.0-alpha.16", digest, ""); err != nil {
+			t.Errorf("%q: %v", line, err)
+		}
+	}
+	if err := checkVersionLine(tagged, "0.1.0-alpha.16", digest, "v0.1.0-alpha.16"); err != nil {
+		t.Error(err)
+	}
+	for name, c := range map[string]struct{ line, version, tag, want string }{
+		"another version":            {tagged, "0.1.0-alpha.17", "", "unexpected version"},
+		"a version that is a prefix": {tagged, "0.1.0-alpha.1", "", "unexpected version"},
+		"another pipeline":           {strings.Replace(tagged, digest, "ffffffffffff", 1), "0.1.0-alpha.16", "", "unexpected version"},
+		"tag of another release":     {tagged, "0.1.0-alpha.16", "v0.1.0-alpha.15", "does not name lean-go 0.1.0-alpha.16"},
+		"built from a checkout":      {built, "0.1.0-alpha.16", "v0.1.0-alpha.16", "not module version v0.1.0-alpha.16"},
+		"no module version":          {run, "0.1.0-alpha.16", "v0.1.0-alpha.16", "not module version v0.1.0-alpha.16"},
+		"tagged development tree": {"lean-go 0.1.0-alpha.16-dev (v0.1.0-alpha.16) go1.27.4 pipeline " + digest, "0.1.0-alpha.16-dev",
+			"v0.1.0-alpha.16", "development version"},
+	} {
+		if err := checkVersionLine(c.line, c.version, digest, c.tag); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: %v", name, err)
 		}
 	}
 }
